@@ -1,17 +1,13 @@
 <main class="flex min-h-dvh items-center justify-center bg-canvas px-4 py-12">
-  <div class="w-full max-w-md">
-    <header class="mb-10 text-center">
+  <!-- Cùng khối hình với /register: xem chú thích ở register.page.html. -->
+  <div class="w-full max-w-auth-card rounded-md bg-canvas-soft p-8 shadow-modal">
+    <header class="mb-8 text-center">
       <p class="text-eyebrow text-mute uppercase">Nexus</p>
       <h1 class="mt-2 text-display-md text-ink-strong">Đăng nhập</h1>
       <p class="mt-2 text-body-md text-body">Nhập email và mật khẩu để tiếp tục.</p>
     </header>
 
-    <form
-      [formGroup]="form"
-      (ngSubmit)="onSubmit()"
-      novalidate
-      class="rounded-md border border-hairline bg-canvas p-6"
-    >
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
       @if (errorMessage(); as message) {
         <div
           id="login-error"
@@ -33,7 +29,7 @@
           placeholder="ban@vidu.com"
           [attr.aria-invalid]="showError('email')"
           [attr.aria-describedby]="showError('email') ? 'email-error' : null"
-          class="w-full rounded-sm border border-hairline-strong bg-canvas-soft px-4 py-3 text-body-sm text-ink placeholder:text-mute focus:border-primary aria-invalid:border-danger"
+          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-mute focus:border-primary aria-invalid:border-danger"
         />
         @if (showError('email')) {
           <p id="email-error" class="mt-2 text-body-sm text-danger">
@@ -63,7 +59,7 @@
             autocomplete="current-password"
             [attr.aria-invalid]="showError('password')"
             [attr.aria-describedby]="showError('password') ? 'password-error' : null"
-            class="w-full rounded-sm border border-hairline-strong bg-canvas-soft py-3 pr-16 pl-4 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
+            class="w-full rounded-sm border border-hairline-strong bg-canvas py-3 pr-16 pl-4 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
           />
           <button
             type="button"
@@ -100,7 +96,7 @@
       </p>
     </form>
 
-    <p class="mt-6 text-center text-body-sm text-body">
+    <p class="mt-5 text-body-sm text-body">
       Chưa có tài khoản?
       <a
         routerLink="/register"

@@ -154,12 +154,17 @@
 
   /* ---- Độ nổi ----
      Elevation của brand là hairline, không phải đổ bóng. Chỉ dùng glow cho hover/
-     featured và modal cho dialog. Không thêm drop-shadow mềm lên card. */
+     featured và modal cho dialog. Không thêm drop-shadow mềm lên card.
+     Thẻ đăng nhập/đăng ký tính là dialog: nó là bề mặt duy nhất trên trang và
+     nhận toàn bộ tương tác, nên dùng `shadow-modal` — KHÔNG tự chế shadow mới. */
   --shadow-glow: 0 0 15px rgba(92, 88, 85, 0.2);
   --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(148, 163, 184, 0.1);
 
   /* ---- Container ---- */
   --container-band: 1280px;
+  /* Thẻ đứng một mình giữa trang (đăng nhập, đăng ký). Rộng hơn `max-w-md`
+     (448px) của Tailwind để form nhiều trường không bị bó. */
+  --container-auth-card: 480px;
 }
 
 @layer base {

@@ -8,4 +8,10 @@ export const authRoutes: Routes = [
     title: 'Đăng nhập · Nexus',
     loadComponent: () => import('./login/login.page').then((m) => m.LoginPage),
   },
+  {
+    path: 'register',
+    canActivate: [guestGuard],
+    title: 'Tạo tài khoản · Nexus',
+    loadComponent: () => import('./register/register.page').then((m) => m.RegisterPage),
+  },
 ];
