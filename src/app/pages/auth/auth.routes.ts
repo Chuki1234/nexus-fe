@@ -15,12 +15,6 @@ export const authRoutes: Routes = [
     loadComponent: () => import('./register/register.page').then((m) => m.RegisterPage),
   },
   {
-    path: 'phone',
-    canActivate: [guestGuard],
-    title: 'Đăng nhập bằng SĐT · Nexus',
-    loadComponent: () => import('./phone-login/phone-login.page').then((m) => m.PhoneLoginPage),
-  },
-  {
     path: 'forgot-password',
     canActivate: [guestGuard],
     title: 'Quên mật khẩu · Nexus',

@@ -56,29 +56,6 @@ export class AuthService {
     }
   }
 
-  /** Gửi mã OTP 6 số qua SMS tới `phone` (định dạng E.164, vd +849...). */
-  async sendPhoneOtp(phone: string): Promise<void> {
-    const { error } = await this.supabase.client.auth.signInWithOtp({ phone });
-    if (error) {
-      throw error;
-    }
-  }
-
-  /** Đổi mã OTP lấy phiên đăng nhập. */
-  async verifyPhoneOtp(phone: string, token: string): Promise<Session> {
-    const { data, error } = await this.supabase.client.auth.verifyOtp({
-      phone,
-      token,
-      type: 'sms',
-    });
-    if (error) {
-      throw error;
-    }
-    // `verifyOtp` chỉ để null khi có lỗi, mà nhánh đó đã ném ở trên.
-    this.currentSession.set(data.session);
-    return data.session!;
-  }
-
   private async restoreSession(): Promise<void> {
     const { data } = await this.supabase.client.auth.getSession();
     this.currentSession.set(data.session);
