@@ -4,6 +4,11 @@ const MESSAGES: Record<string, string> = {
   invalid_credentials: 'Email hoặc mật khẩu không đúng.',
   email_not_confirmed: 'Email chưa được xác nhận. Vui lòng kiểm tra hộp thư của bạn.',
   over_request_rate_limit: 'Bạn đã thử quá nhiều lần. Vui lòng đợi một lát rồi thử lại.',
+  over_sms_send_rate_limit: 'Bạn đã yêu cầu mã quá nhiều lần. Vui lòng đợi một lát rồi thử lại.',
+  over_email_send_rate_limit: 'Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi một lát rồi thử lại.',
+  otp_expired: 'Mã xác thực đã hết hạn hoặc không đúng. Vui lòng gửi lại mã.',
+  same_password: 'Mật khẩu mới phải khác mật khẩu hiện tại.',
+  weak_password: 'Mật khẩu quá yếu. Hãy chọn mật khẩu dài và khó đoán hơn.',
   user_banned: 'Tài khoản này đã bị khoá.',
 };
 

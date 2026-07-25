@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+import { authGuard, profileGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   // Trang chủ. Chưa đăng nhập thì `authGuard` đá sang /login kèm returnUrl, nên mở
@@ -8,7 +8,7 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    canActivate: [authGuard],
+    canActivate: [authGuard, profileGuard],
     title: 'Nexus',
     loadComponent: () => import('./pages/home/home.page').then((m) => m.HomePage),
   },

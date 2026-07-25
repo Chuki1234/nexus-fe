@@ -27,8 +27,24 @@ export class LoginPage {
   protected readonly passwordVisible = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
+  /** Bật true khi /assets/logo.png chưa có (hoặc lỗi tải) → dùng logo SVG dự phòng. */
+  protected readonly logoFailed = signal(false);
+
   protected togglePasswordVisibility(): void {
     this.passwordVisible.update((visible) => !visible);
+  }
+
+  /** Chuyển hướng sang Google; quay lại /auth/callback kèm returnUrl. */
+  protected async onGoogle(): Promise<void> {
+    this.errorMessage.set(null);
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+    const redirectTo = `${window.location.origin}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`;
+    try {
+      await this.auth.signInWithGoogle(redirectTo);
+    } catch (error) {
+      this.errorMessage.set(toAuthErrorMessage(error));
+      this.focusFirst('#login-error');
+    }
   }
 
   /** Errors stay hidden until the field is left or the form is submitted. */
