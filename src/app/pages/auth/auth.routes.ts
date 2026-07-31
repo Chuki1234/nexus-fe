@@ -14,20 +14,13 @@ export const authRoutes: Routes = [
     title: 'Tạo tài khoản · Nexus',
     loadComponent: () => import('./register/register.page').then((m) => m.RegisterPage),
   },
+  // Không gắn guestGuard: xác thực mã xong là đã có phiên tạm, guard sẽ đá người
+  // dùng về '/' ngay giữa chừng, trước khi họ kịp đặt mật khẩu mới.
   {
     path: 'forgot-password',
-    canActivate: [guestGuard],
     title: 'Quên mật khẩu · Nexus',
     loadComponent: () =>
       import('./forgot-password/forgot-password.page').then((m) => m.ForgotPasswordPage),
-  },
-  // Không gắn guestGuard: link email tạo một phiên tạm nên user tới đây đã "đăng
-  // nhập" — guestGuard sẽ đá họ về '/' trước khi kịp đặt mật khẩu mới.
-  {
-    path: 'reset-password',
-    title: 'Đặt lại mật khẩu · Nexus',
-    loadComponent: () =>
-      import('./reset-password/reset-password.page').then((m) => m.ResetPasswordPage),
   },
   // Điểm quay về sau khi đăng nhập Google. Không gắn guestGuard: người tới đây
   // vừa đăng nhập xong, guestGuard sẽ đá ngược ra trước khi callback kịp chạy.

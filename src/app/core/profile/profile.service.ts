@@ -3,13 +3,21 @@ import { effect, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
-import { SupabaseService } from '../supabase/supabase.service';
 
 /** Thân request của POST /api/auth/complete-profile — khớp `CompleteProfileDto`. */
 export interface CompleteProfilePayload {
   username: string;
   displayName?: string;
   /** Định dạng `YYYY-MM-DD`. */
+  birthdate: string;
+}
+
+/** Hồ sơ trả về từ GET /api/auth/me. */
+export interface Profile {
+  id: string;
+  username: string;
+  displayName: string | null;
+  email: string;
   birthdate: string;
 }
 
@@ -22,7 +30,6 @@ export interface CompleteProfilePayload {
  */
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
-  private readonly supabase = inject(SupabaseService);
   private readonly auth = inject(AuthService);
   private readonly http = inject(HttpClient);
 
@@ -56,23 +63,40 @@ export class ProfileService {
     return this.refresh();
   }
 
-  /** Truy vấn lại từ Supabase, bỏ qua giá trị đã nhớ. */
+  /**
+   * Hỏi lại backend, bỏ qua giá trị đã nhớ.
+   *
+   * Đi qua nexus-be chứ không đọc thẳng bảng `profiles`: frontend không được phép
+   * chạm vào bảng nào (NEXUS_CONTEXT §3.4), và RLS ở chế độ chặn hết nên truy vấn
+   * trực tiếp sẽ luôn trả rỗng — người đã có hồ sơ vẫn bị coi như chưa có.
+   */
   async refresh(): Promise<boolean> {
-    const user = this.auth.user();
-    if (!user) {
+    const token = this.auth.accessToken();
+    if (!token) {
       this.state.set(false);
       return false;
     }
-    // RLS cho phép người đã đăng nhập đọc profiles; chỉ cần biết có tồn tại.
-    const { data } = await this.supabase.client
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle();
 
-    const has = data !== null;
-    this.state.set(has);
-    return has;
+    try {
+      const { profile } = await firstValueFrom(
+        this.http.get<{ profile: Profile | null }>(`${environment.apiUrl}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      );
+      const has = profile !== null;
+      this.state.set(has);
+      return has;
+    } catch {
+      // Lỗi mạng thì cho đi tiếp thay vì kết luận "chưa có hồ sơ".
+      //
+      // Trả false ở đây sẽ đá người đã có hồ sơ sang trang hoàn tất hồ sơ, và khi
+      // họ bấm lưu thì backend báo "hồ sơ đã được tạo trước đó" — cụt đường. Cho
+      // qua thì không lộ gì: mọi endpoint dữ liệu đều tự kiểm tra quyền.
+      //
+      // Đặt lại null để lần điều hướng sau hỏi lại.
+      this.state.set(null);
+      return true;
+    }
   }
 
   markComplete(): void {

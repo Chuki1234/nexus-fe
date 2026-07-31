@@ -104,7 +104,7 @@ export class RegisterPage {
     // không được hiện thành "tạo tài khoản thất bại" rồi để người dùng thử lại
     // với email vừa bị chiếm.
     try {
-      await this.auth.signInWithPassword({ email: email.trim(), password });
+      await this.auth.signIn({ identifier: email.trim(), password });
       await this.router.navigateByUrl('/');
     } catch {
       await this.router.navigateByUrl('/login');

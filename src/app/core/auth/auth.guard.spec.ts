@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { routes } from '../../app.routes';
+import { ProfileService } from '../profile/profile.service';
 import { AuthService } from './auth.service';
 
 /** Stands in for Supabase so the guards can be driven from a known state. */
@@ -13,14 +14,32 @@ class AuthServiceStub {
   signOut = () => Promise.resolve();
 }
 
+/**
+ * Đứng thay `ProfileService` để guard không gọi backend thật.
+ *
+ * Bắt buộc phải stub: `profileGuard` chạy ngay sau `authGuard` trên mọi trang cần
+ * đăng nhập, nên thiếu nó thì mọi test "vào được trang X" đều bị đá sang
+ * /complete-profile.
+ */
+class ProfileServiceStub {
+  complete = true;
+  ensureLoaded = () => Promise.resolve(this.complete);
+}
+
 describe('route guards', () => {
   let auth: AuthServiceStub;
+  let profile: ProfileServiceStub;
   let harness: RouterTestingHarness;
 
   beforeEach(async () => {
     auth = new AuthServiceStub();
+    profile = new ProfileServiceStub();
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes), { provide: AuthService, useValue: auth }],
+      providers: [
+        provideRouter(routes),
+        { provide: AuthService, useValue: auth },
+        { provide: ProfileService, useValue: profile },
+      ],
     });
     harness = await RouterTestingHarness.create();
   });
@@ -64,6 +83,32 @@ describe('route guards', () => {
     auth.authenticated = false;
 
     await harness.navigateByUrl('/login');
+
+    expect(TestBed.inject(Router).url).toBe('/login');
+  });
+
+  it('sends a signed-in user with no profile to the complete-profile page', async () => {
+    auth.authenticated = true;
+    profile.complete = false;
+
+    await harness.navigateByUrl('/');
+
+    expect(TestBed.inject(Router).url).toBe('/complete-profile?returnUrl=%2F');
+  });
+
+  it('keeps a user who already has a profile off the complete-profile page', async () => {
+    auth.authenticated = true;
+    profile.complete = true;
+
+    await harness.navigateByUrl('/complete-profile');
+
+    expect(TestBed.inject(Router).url).toBe('/');
+  });
+
+  it('sends a guest away from the complete-profile page', async () => {
+    auth.authenticated = false;
+
+    await harness.navigateByUrl('/complete-profile');
 
     expect(TestBed.inject(Router).url).toBe('/login');
   });

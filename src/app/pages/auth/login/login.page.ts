@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, signal } from '
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
-import { toAuthErrorMessage } from '../../../core/auth/auth-error';
+import { toAuthErrorMessage, toLoginErrorMessage } from '../../../core/auth/auth-error';
 
 @Component({
   selector: 'app-login-page',
@@ -17,9 +17,15 @@ export class LoginPage {
   private readonly route = inject(ActivatedRoute);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
+  /**
+   * Một ô định danh duy nhất: email hoặc tên đăng nhập.
+   *
+   * Cố tình KHÔNG validate định dạng ngoài "phải nhập" — thêm luật ở đây sẽ chặn
+   * nhầm một trong hai loại, và backend mới là nơi biết chuỗi này ứng với ai.
+   */
   protected readonly form = this.formBuilder.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
+    identifier: ['', [Validators.required]],
+    password: ['', [Validators.required]],
   });
 
   protected readonly submitting = signal(false);
@@ -48,7 +54,7 @@ export class LoginPage {
   }
 
   /** Errors stay hidden until the field is left or the form is submitted. */
-  protected showError(field: 'email' | 'password'): boolean {
+  protected showError(field: 'identifier' | 'password'): boolean {
     const control = this.form.controls[field];
     return control.invalid && (control.touched || this.submitted());
   }
@@ -68,11 +74,11 @@ export class LoginPage {
 
     this.submitting.set(true);
     try {
-      await this.auth.signInWithPassword(this.form.getRawValue());
+      await this.auth.signIn(this.form.getRawValue());
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
       await this.router.navigateByUrl(returnUrl);
     } catch (error) {
-      this.errorMessage.set(toAuthErrorMessage(error));
+      this.errorMessage.set(toLoginErrorMessage(error));
       this.form.controls.password.reset();
       this.focusFirst('#login-error');
     } finally {

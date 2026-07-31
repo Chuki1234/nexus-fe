@@ -10,7 +10,7 @@ class RegistrationServiceStub {
 }
 
 class AuthServiceStub {
-  signInWithPassword = vi.fn().mockResolvedValue({});
+  signIn = vi.fn().mockResolvedValue({});
 }
 
 describe('RegisterPage', () => {
@@ -127,11 +127,17 @@ describe('RegisterPage', () => {
       password: 'matkhau12345',
       birthdate: '2000-06-15',
     });
-    expect(auth.signInWithPassword).toHaveBeenCalled();
+    // Đăng nhập ngay sau khi tạo tài khoản dùng chính email vừa đăng ký làm định danh.
+    expect(auth.signIn).toHaveBeenCalledWith({
+      identifier: 'ban@vidu.com',
+      password: 'matkhau12345',
+    });
     expect(navigate).toHaveBeenCalledWith('/');
   });
 
   it('omits displayName when the field is left empty', async () => {
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+
     fillValidForm({ displayName: '' });
     await submit();
 
@@ -155,13 +161,13 @@ describe('RegisterPage', () => {
       'đã có người dùng',
     );
     expect((fixture.nativeElement.querySelector('#password') as HTMLInputElement).value).toBe('');
-    expect(auth.signInWithPassword).not.toHaveBeenCalled();
+    expect(auth.signIn).not.toHaveBeenCalled();
   });
 
   it('still lands the user on /login when the account is created but sign-in fails', async () => {
     const router = TestBed.inject(Router);
     const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
-    auth.signInWithPassword.mockRejectedValue(new Error('mạng hỏng'));
+    auth.signIn.mockRejectedValue(new Error('mạng hỏng'));
 
     fillValidForm();
     await submit();

@@ -1,12 +1,12 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { ComponentFixture } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { AuthError } from '@supabase/supabase-js';
 import { AuthService } from '../../../core/auth/auth.service';
 import { LoginPage } from './login.page';
 
 class AuthServiceStub {
-  signInWithPassword = vi.fn().mockResolvedValue({});
+  signIn = vi.fn().mockResolvedValue({});
 }
 
 describe('LoginPage', () => {
@@ -36,59 +36,78 @@ describe('LoginPage', () => {
     fixture.detectChanges();
   });
 
-  it('does not call Supabase when the form is empty', async () => {
+  it('does not call the backend when the form is empty', async () => {
     await submit();
 
-    expect(auth.signInWithPassword).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('#email-error')).toBeTruthy();
+    expect(auth.signIn).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('#identifier-error')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('#password-error')).toBeTruthy();
   });
 
-  it('rejects a malformed email', async () => {
-    setInput('email', 'khong-phai-email');
+  it('accepts a username, not just an email', async () => {
+    setInput('identifier', 'monnguyen');
     setInput('password', 'matkhau123');
     await submit();
 
-    expect(auth.signInWithPassword).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('#email-error').textContent).toContain('định dạng');
-  });
-
-  it('rejects a password shorter than 6 characters', async () => {
-    setInput('email', 'ban@vidu.com');
-    setInput('password', '123');
-    await submit();
-
-    expect(auth.signInWithPassword).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('#password-error').textContent).toContain('6 ký tự');
+    expect(auth.signIn).toHaveBeenCalledWith({
+      identifier: 'monnguyen',
+      password: 'matkhau123',
+    });
   });
 
   it('signs in and navigates to returnUrl on success', async () => {
     const router = TestBed.inject(Router);
     const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
 
-    setInput('email', 'ban@vidu.com');
+    setInput('identifier', 'ban@vidu.com');
     setInput('password', 'matkhau123');
     await submit();
 
-    expect(auth.signInWithPassword).toHaveBeenCalledWith({
-      email: 'ban@vidu.com',
+    expect(auth.signIn).toHaveBeenCalledWith({
+      identifier: 'ban@vidu.com',
       password: 'matkhau123',
     });
     expect(navigate).toHaveBeenCalledWith('/');
   });
 
-  it('shows a readable message and clears the password when credentials are wrong', async () => {
-    auth.signInWithPassword.mockRejectedValue(
-      new AuthError('Invalid login credentials', 400, 'invalid_credentials'),
+  it('shows one generic message and clears the password when credentials are wrong', async () => {
+    auth.signIn.mockRejectedValue(
+      new HttpErrorResponse({ status: 401, error: { message: 'bất kỳ' } }),
     );
 
-    setInput('email', 'ban@vidu.com');
+    setInput('identifier', 'ban@vidu.com');
     setInput('password', 'sai-mat-khau');
     await submit();
 
     const alert = fixture.nativeElement.querySelector('#login-error');
-    expect(alert.textContent).toContain('Email hoặc mật khẩu không đúng');
+    expect(alert.textContent).toContain('Email/tên đăng nhập hoặc mật khẩu không đúng');
     expect((fixture.nativeElement.querySelector('#password') as HTMLInputElement).value).toBe('');
+  });
+
+  it('does not reveal whether the account exists', async () => {
+    // Hai nguyên nhân khác hẳn nhau phải ra đúng một câu, nếu không thì người
+    // ngoài dò được email/tên đăng nhập nào đã có người dùng.
+    const messageFor = async (status: number) => {
+      auth.signIn.mockRejectedValue(new HttpErrorResponse({ status }));
+      setInput('identifier', 'ban@vidu.com');
+      setInput('password', 'sai-mat-khau');
+      await submit();
+      return fixture.nativeElement.querySelector('#login-error').textContent.trim();
+    };
+
+    expect(await messageFor(401)).toBe(await messageFor(403));
+  });
+
+  it('tells the user to wait when rate limited', async () => {
+    auth.signIn.mockRejectedValue(new HttpErrorResponse({ status: 429 }));
+
+    setInput('identifier', 'ban@vidu.com');
+    setInput('password', 'matkhau123');
+    await submit();
+
+    expect(fixture.nativeElement.querySelector('#login-error').textContent).toContain(
+      'quá nhiều lần',
+    );
   });
 
   it('toggles password visibility', () => {
