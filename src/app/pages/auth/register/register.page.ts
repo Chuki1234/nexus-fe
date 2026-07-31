@@ -90,7 +90,7 @@ export class RegisterPage {
         username: username.trim().toLowerCase(),
         displayName: trimmedDisplayName || undefined,
         password,
-        birthdate: isoBirthdate,
+        dateOfBirth: isoBirthdate,
       });
     } catch (error) {
       this.submitting.set(false);

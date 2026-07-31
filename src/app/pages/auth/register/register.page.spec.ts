@@ -125,7 +125,7 @@ describe('RegisterPage', () => {
       username: 'ban_cua_toi',
       displayName: 'Bạn Của Tôi',
       password: 'matkhau12345',
-      birthdate: '2000-06-15',
+      dateOfBirth: '2000-06-15',
     });
     // Đăng nhập ngay sau khi tạo tài khoản dùng chính email vừa đăng ký làm định danh.
     expect(auth.signIn).toHaveBeenCalledWith({

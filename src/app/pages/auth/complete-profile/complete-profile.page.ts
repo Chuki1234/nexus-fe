@@ -81,7 +81,7 @@ export class CompleteProfilePage {
       await this.profile.complete({
         username: username.trim().toLowerCase(),
         displayName: trimmedDisplayName || undefined,
-        birthdate: isoBirthdate,
+        dateOfBirth: isoBirthdate,
       });
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
       await this.router.navigateByUrl(returnUrl);

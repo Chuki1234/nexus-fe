@@ -1,3 +1,12 @@
+/* Font tự host — KHÔNG dùng CDN Google Fonts (xem ghi chú 1 cuối file).
+   Inter: 4 weight đúng bộ làm việc của brand (400/500/600/700).
+   material-icons: font ligature mà `<mat-icon>` đọc mặc định qua class .material-icons. */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import 'material-icons/iconfont/material-icons.css';
+
 @import 'tailwindcss';
 
 /* ==========================================================================
@@ -224,11 +233,87 @@
 }
 
 /* ==========================================================================
+   GHI ĐÈ ANGULAR MATERIAL
+
+   `mat.theme()` trong material-theme.scss sinh ra bộ biến `--mat-sys-*`. Mọi
+   component Material đọc các biến này, nên ánh xạ chúng sang token Nexus là đủ
+   để cả thư viện mang diện mạo Voltagent — không phải đụng vào từng component.
+
+   Ánh xạ tay thay vì để M3 tự nội suy palette từ #00d992: brand chỉ có đúng một
+   màu nhấn và ba mức xám, còn M3 sẽ đẻ ra hàng chục sắc độ không có trong doc.
+   ========================================================================== */
+
+html {
+  /* ---- Màu nhấn ---- */
+  --mat-sys-primary: var(--color-primary);
+  --mat-sys-on-primary: var(--color-on-primary);
+  --mat-sys-primary-container: var(--color-canvas-soft);
+  --mat-sys-on-primary-container: var(--color-ink);
+  --mat-sys-secondary: var(--color-primary-soft);
+  --mat-sys-on-secondary: var(--color-on-primary);
+  --mat-sys-tertiary: var(--color-primary-deep);
+  --mat-sys-on-tertiary: var(--color-on-primary);
+
+  /* ---- Bề mặt ---- */
+  --mat-sys-background: var(--color-canvas);
+  --mat-sys-on-background: var(--color-ink);
+  --mat-sys-surface: var(--color-canvas);
+  --mat-sys-on-surface: var(--color-ink);
+  --mat-sys-surface-dim: var(--color-canvas);
+  --mat-sys-surface-bright: var(--color-canvas-soft);
+  --mat-sys-surface-container-lowest: var(--color-canvas);
+  --mat-sys-surface-container-low: var(--color-canvas);
+  --mat-sys-surface-container: var(--color-canvas-soft);
+  --mat-sys-surface-container-high: var(--color-canvas-soft);
+  --mat-sys-surface-container-highest: var(--color-canvas-soft);
+  --mat-sys-surface-variant: var(--color-canvas-soft);
+  --mat-sys-on-surface-variant: var(--color-body);
+  --mat-sys-inverse-surface: var(--color-ink);
+  --mat-sys-inverse-on-surface: var(--color-canvas);
+
+  /* ---- Viền ----
+     outline dành cho thành phần tương tác nên phải là hairline-strong (3.65:1);
+     outline-variant chỉ là đường kẻ trang trí nên dùng hairline. */
+  --mat-sys-outline: var(--color-hairline-strong);
+  --mat-sys-outline-variant: var(--color-hairline);
+
+  /* ---- Lỗi ---- */
+  --mat-sys-error: var(--color-danger);
+  --mat-sys-on-error: var(--color-on-primary);
+  --mat-sys-error-container: var(--color-danger-surface);
+  --mat-sys-on-error-container: var(--color-ink);
+
+  /* ---- Độ nổi ----
+     Brand dựng chiều sâu bằng hairline, KHÔNG bằng đổ bóng ("Don't drop a soft
+     drop-shadow on cards" — DESIGN-voltagent.md). Material mặc định gắn 5 mức
+     box-shadow; tắt hết, chỉ giữ mức cao nhất cho dialog. */
+  --mat-sys-level0: none;
+  --mat-sys-level1: none;
+  --mat-sys-level2: none;
+  --mat-sys-level3: none;
+  --mat-sys-level4: none;
+  --mat-sys-level5: var(--shadow-modal);
+
+  /* ---- Bo góc ---- nút 6px, card 8px (thang của brand, không phải thang M3) */
+  --mat-sys-corner-extra-small: var(--radius-xs);
+  --mat-sys-corner-small: var(--radius-sm);
+  --mat-sys-corner-medium: var(--radius-md);
+  --mat-sys-corner-large: var(--radius-md);
+}
+
+/* Material tự đặt focus ring riêng; giữ ring xanh chung của Nexus cho nhất quán. */
+.mat-mdc-button-base:focus-visible,
+.mat-mdc-list-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
    GHI CHÚ CHO TEAM
 
-   1. Font Inter chưa được nhúng. Hiện đang fallback sang system-ui. Muốn đúng
-      brand thì self-host Inter (woff2) rồi khai báo @font-face ở đây — đừng dùng
-      link CDN của Google Fonts (chậm first paint và lộ IP người dùng).
+   1. Inter và Material Icons đã được tự host qua npm (@fontsource/inter,
+      material-icons) và import ở đầu file này. `ng add @angular/material` sẽ
+      chèn lại link CDN Google Fonts vào index.html mỗi lần chạy — nhớ gỡ.
 
    2. Palette mặc định của Tailwind đã bị xoá. `bg-slate-900` sẽ KHÔNG hoạt động.
       Cần màu mới thì thêm token vào @theme ở trên, đừng hardcode trong component.

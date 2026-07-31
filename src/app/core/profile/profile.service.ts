@@ -4,22 +4,12 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
 
-/** Thân request của POST /api/auth/complete-profile — khớp `CompleteProfileDto`. */
-export interface CompleteProfilePayload {
-  username: string;
-  displayName?: string;
-  /** Định dạng `YYYY-MM-DD`. */
-  birthdate: string;
-}
+import type { CompleteProfileRequest, MeResponse, Profile } from '../../../shared/dto/auth';
 
-/** Hồ sơ trả về từ GET /api/auth/me. */
-export interface Profile {
-  id: string;
-  username: string;
-  displayName: string | null;
-  email: string;
-  birthdate: string;
-}
+export type { Profile };
+
+/** Thân request của POST /api/auth/complete-profile. */
+export type CompleteProfilePayload = CompleteProfileRequest;
 
 /**
  * Biết người đang đăng nhập đã có hồ sơ `profiles` hay chưa.
@@ -37,6 +27,15 @@ export class ProfileService {
   private readonly state = signal<boolean | null>(null);
   readonly hasProfile = this.state.asReadonly();
 
+  /**
+   * Hồ sơ đã tải về, hoặc null nếu chưa tải / chưa có.
+   *
+   * Giữ luôn nội dung chứ không chỉ cờ boolean: shell cần tên hiển thị và avatar,
+   * mà chúng vừa được `GET /auth/me` trả về rồi — hỏi lại lần nữa là thừa.
+   */
+  private readonly profileData = signal<Profile | null>(null);
+  readonly current = this.profileData.asReadonly();
+
   private lastUserId: string | null = null;
 
   constructor() {
@@ -47,6 +46,7 @@ export class ProfileService {
       if (id !== this.lastUserId) {
         this.lastUserId = id;
         this.state.set(null);
+        this.profileData.set(null);
       }
     });
   }
@@ -74,17 +74,19 @@ export class ProfileService {
     const token = this.auth.accessToken();
     if (!token) {
       this.state.set(false);
+      this.profileData.set(null);
       return false;
     }
 
     try {
       const { profile } = await firstValueFrom(
-        this.http.get<{ profile: Profile | null }>(`${environment.apiUrl}/auth/me`, {
+        this.http.get<MeResponse>(`${environment.apiUrl}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       );
       const has = profile !== null;
       this.state.set(has);
+      this.profileData.set(profile);
       return has;
     } catch {
       // Lỗi mạng thì cho đi tiếp thay vì kết luận "chưa có hồ sơ".
@@ -106,6 +108,7 @@ export class ProfileService {
   /** Quên trạng thái đã nhớ (gọi khi đăng xuất). */
   reset(): void {
     this.state.set(null);
+    this.profileData.set(null);
   }
 
   /** Gửi hồ sơ lên backend. Backend mới là bên ghi xuống `profiles`. */
