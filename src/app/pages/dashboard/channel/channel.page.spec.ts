@@ -6,9 +6,7 @@ import { ChannelPage } from './channel.page';
 describe('ChannelPage', () => {
   const mount = async (path: string) => {
     TestBed.configureTestingModule({
-      providers: [
-        provideRouter([{ path: 'c/:serverId/:channelId', component: ChannelPage }]),
-      ],
+      providers: [provideRouter([{ path: 'c/:serverId/:channelId', component: ChannelPage }])],
     });
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl(`/c/${path}`);

@@ -6,9 +6,7 @@ import { ConversationPage } from './conversation.page';
 describe('ConversationPage', () => {
   const mount = async (id: string) => {
     TestBed.configureTestingModule({
-      providers: [
-        provideRouter([{ path: 'dm/:conversationId', component: ConversationPage }]),
-      ],
+      providers: [provideRouter([{ path: 'dm/:conversationId', component: ConversationPage }])],
     });
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl(`/dm/${id}`);

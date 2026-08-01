@@ -8,6 +8,7 @@ import { toAuthErrorMessage, toLoginErrorMessage } from '../../../core/auth/auth
   selector: 'app-login-page',
   imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './login.page.html',
+  styleUrl: './login.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginPage {

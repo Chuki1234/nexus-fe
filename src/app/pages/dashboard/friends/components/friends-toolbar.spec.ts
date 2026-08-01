@@ -20,7 +20,9 @@ describe('FriendsToolbar', () => {
   };
 
   const filterButtons = (fixture: { nativeElement: HTMLElement }) =>
-    Array.from(fixture.nativeElement.querySelectorAll('[role=group] button')) as HTMLButtonElement[];
+    Array.from(
+      fixture.nativeElement.querySelectorAll('[role=group] button'),
+    ) as HTMLButtonElement[];
 
   it('bấm tab thì báo ngược ra ngoài', async () => {
     const fixture = await mount();
@@ -34,9 +36,7 @@ describe('FriendsToolbar', () => {
 
   it('chỉ đúng một tab được đánh dấu đang chọn', async () => {
     const fixture = await mount();
-    const pressed = filterButtons(fixture).filter(
-      (b) => b.getAttribute('aria-pressed') === 'true',
-    );
+    const pressed = filterButtons(fixture).filter((b) => b.getAttribute('aria-pressed') === 'true');
 
     expect(pressed.length).toBe(1);
     expect(pressed[0].textContent).toContain('Tất cả');

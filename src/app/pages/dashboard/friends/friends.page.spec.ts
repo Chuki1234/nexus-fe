@@ -46,9 +46,7 @@ describe('FriendsPage', () => {
 
   it('tab Trực tuyến loại người đang ngoại tuyến', async () => {
     const fixture = await mount();
-    const online = fixture.nativeElement.querySelector(
-      '[role=group] button',
-    ) as HTMLButtonElement;
+    const online = fixture.nativeElement.querySelector('[role=group] button') as HTMLButtonElement;
 
     const truoc = fixture.nativeElement.querySelectorAll('app-friend-row').length;
     online.click();

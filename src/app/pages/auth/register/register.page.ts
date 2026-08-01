@@ -12,6 +12,7 @@ type TextField = 'email' | 'displayName' | 'username' | 'password';
   selector: 'app-register-page',
   imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './register.page.html',
+  styleUrl: './register.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegisterPage {

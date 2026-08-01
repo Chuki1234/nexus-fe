@@ -5,9 +5,7 @@ import { MemberPanel } from './member-panel';
 @Component({
   imports: [MemberPanel],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <app-member-panel name="ho_be" [statusMessage]="status()" presence="dnd" />
-  `,
+  template: ` <app-member-panel name="ho_be" [statusMessage]="status()" presence="dnd" /> `,
 })
 class Host {
   readonly status = signal<string | null>('shut the fckup');

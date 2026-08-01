@@ -17,6 +17,7 @@ import { DISPLAY_NAME_MAX_LENGTH, USERNAME_PATTERN } from '../models/register';
   selector: 'app-complete-profile-page',
   imports: [ReactiveFormsModule],
   templateUrl: './complete-profile.page.html',
+  styleUrl: './complete-profile.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CompleteProfilePage {
