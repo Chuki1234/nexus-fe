@@ -12,6 +12,7 @@ import { EmptyState } from '../../../ui/empty-state/empty-state';
   imports: [EmptyState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block h-full' },
-  template: ` <app-empty-state icon="forum" message="Chọn một kênh để bắt đầu." /> `,
+  templateUrl: './server-home.page.html',
+  styleUrl: './server-home.page.css',
 })
 export class ServerHomePage {}

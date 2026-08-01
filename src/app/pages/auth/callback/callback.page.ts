@@ -19,11 +19,8 @@ import { AuthService } from '../../../core/auth/auth.service';
 @Component({
   selector: 'app-callback-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <main class="flex min-h-dvh items-center justify-center bg-canvas px-4 py-12">
-      <p role="status" aria-live="polite" class="text-body-md text-body">{{ status() }}</p>
-    </main>
-  `,
+  templateUrl: './callback.page.html',
+  styleUrl: './callback.page.css',
 })
 export class CallbackPage {
   private readonly auth = inject(AuthService);

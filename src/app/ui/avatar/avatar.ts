@@ -44,38 +44,8 @@ const DOT: Record<AvatarSize, 'sm' | 'md' | 'lg'> = {
   imports: [StatusDot],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'relative inline-flex shrink-0' },
-  template: `
-    @if (src() && !imageFailed()) {
-      <img
-        [src]="src()"
-        [alt]="name()"
-        (error)="imageFailed.set(true)"
-        [class]="'rounded-full object-cover ' + box()"
-      />
-    } @else {
-      <span
-        aria-hidden="true"
-        [class]="
-          'flex items-center justify-center rounded-full bg-canvas-soft text-ink ' +
-          box() +
-          ' ' +
-          text()
-        "
-      >
-        {{ initials() }}
-      </span>
-      <span class="sr-only">{{ name() }}</span>
-    }
-
-    @if (presence(); as status) {
-      <app-status-dot
-        class="absolute right-0 bottom-0"
-        [presence]="status"
-        [size]="dotSize()"
-        [ring]="ring()"
-      />
-    }
-  `,
+  templateUrl: './avatar.html',
+  styleUrl: './avatar.css',
 })
 export class Avatar {
   readonly name = input.required<string>();

@@ -19,48 +19,8 @@ import { Avatar } from '../../ui/avatar/avatar';
   imports: [Avatar, MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex items-center gap-1 border-t border-hairline bg-canvas px-2 py-2' },
-  template: `
-    <button
-      type="button"
-      [matMenuTriggerFor]="userMenu"
-      class="flex min-w-0 flex-1 items-center gap-2 rounded-sm px-1 py-1 text-left hover:bg-canvas-soft"
-    >
-      <app-avatar [name]="displayName()" size="sm" presence="online" ring="canvas" />
-      <span class="min-w-0 flex-1">
-        <span class="block truncate text-body-sm-strong text-ink">{{ displayName() }}</span>
-        <span class="block truncate text-caption text-mute">Trực tuyến</span>
-      </span>
-    </button>
-
-    <mat-menu #userMenu="matMenu">
-      <button mat-menu-item type="button" (click)="onSignOut()" [disabled]="signingOut()">
-        <mat-icon aria-hidden="true">logout</mat-icon>
-        <span>{{ signingOut() ? 'Đang đăng xuất…' : 'Đăng xuất' }}</span>
-      </button>
-    </mat-menu>
-
-    <button
-      mat-icon-button
-      type="button"
-      [attr.aria-pressed]="micMuted()"
-      [matTooltip]="micMuted() ? 'Bật micrô' : 'Tắt micrô'"
-      (click)="micMuted.set(!micMuted())"
-    >
-      <mat-icon>{{ micMuted() ? 'mic_off' : 'mic' }}</mat-icon>
-      <span class="sr-only">{{ micMuted() ? 'Bật micrô' : 'Tắt micrô' }}</span>
-    </button>
-
-    <button
-      mat-icon-button
-      type="button"
-      [attr.aria-pressed]="deafened()"
-      [matTooltip]="deafened() ? 'Bật loa' : 'Tắt loa'"
-      (click)="deafened.set(!deafened())"
-    >
-      <mat-icon>{{ deafened() ? 'headset_off' : 'headset' }}</mat-icon>
-      <span class="sr-only">{{ deafened() ? 'Bật loa' : 'Tắt loa' }}</span>
-    </button>
-  `,
+  templateUrl: './user-panel.html',
+  styleUrl: './user-panel.css',
 })
 export class UserPanel {
   private readonly auth = inject(AuthService);

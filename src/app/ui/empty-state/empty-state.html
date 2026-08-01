@@ -1,0 +1,11 @@
+<div class="rounded-md bg-canvas-soft p-8 text-center">
+  <mat-icon aria-hidden="true" class="!size-10 !text-4xl text-mute">{{ icon() }}</mat-icon>
+
+  @if (title(); as heading) {
+    <h2 class="mt-3 text-display-sm text-ink-strong">{{ heading }}</h2>
+  }
+
+  <p class="mt-2 max-w-prose text-body-md text-body">{{ message() }}</p>
+
+  <ng-content />
+</div>

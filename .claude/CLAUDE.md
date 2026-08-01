@@ -53,3 +53,31 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Design services around a single responsibility
 - Use the `providedIn: 'root'` option for singleton services
 - Use the `inject()` function instead of constructor injection
+
+## Folder structure
+
+```
+src/app/
+├── core/      Global services, no UI. `core/api/` holds data services.
+├── ui/        Design-system primitives. MUST NOT know what Nexus is —
+│              Avatar, StatusDot, SearchField would work in any project.
+├── layout/    Dashboard chrome that lives OUTSIDE the router outlet.
+└── pages/     Route-level pages.
+```
+
+One question decides where a component goes:
+
+| Question | Folder |
+|---|---|
+| Used in several places **and** contains no Nexus vocabulary? | `ui/` |
+| Always on screen, outside the router outlet? | `layout/` |
+| Shared by several pages in one area? | `pages/<area>/components/` |
+| Used by exactly one page? | `pages/<area>/<page>/components/` |
+
+- A `.page.ts` only assembles children and reads route data. It must not hold
+  detailed markup. Past ~80 lines is the signal to split.
+- Never hardcode a hex colour or px value when `styles.css` has a token. The token
+  set comes from `DESIGN-voltagent.md` — that file, not Material's defaults, is the
+  design system.
+- Types shared with the backend go in `src/shared/`, mirrored byte-for-byte into
+  `nexus-be`. Run `npm run check:shared` after touching it.

@@ -1,0 +1,12 @@
+/* Hàng của Material cao 48px theo M3 — quá thoáng cho sidebar dạng Discord.
+   Đặt ở đây để cả hai danh sách con cùng thừa hưởng; nén bằng token của chính
+   Material thay vì đè !important lên class nội bộ của nó. */
+:host {
+  --mat-list-list-item-one-line-container-height: 34px;
+  --mat-list-list-item-two-line-container-height: 44px;
+  --mat-list-list-item-leading-icon-size: 20px;
+  --mat-list-list-item-label-text-size: 14px;
+  --mat-list-list-item-label-text-color: var(--color-body);
+  --mat-list-list-item-supporting-text-color: var(--color-mute);
+  --mat-list-active-indicator-shape: var(--radius-sm);
+}

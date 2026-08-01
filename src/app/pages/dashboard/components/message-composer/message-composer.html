@@ -1,0 +1,21 @@
+<div
+  class="flex items-center gap-2 rounded-md border border-hairline-strong bg-canvas-soft px-3 py-1"
+>
+  <button mat-icon-button type="button" disabled matTooltip="Đính kèm (chưa làm)">
+    <mat-icon>add_circle</mat-icon>
+    <span class="sr-only">Đính kèm tệp</span>
+  </button>
+
+  <input
+    type="text"
+    disabled
+    [attr.aria-label]="'Nhắn ' + target()"
+    [placeholder]="'Nhắn ' + target()"
+    class="min-w-0 flex-1 bg-transparent py-2 text-body-sm text-ink placeholder:text-mute focus:outline-none disabled:cursor-not-allowed"
+  />
+
+  <button mat-icon-button type="button" disabled matTooltip="Sticker (chưa làm)">
+    <mat-icon>emoji_emotions</mat-icon>
+    <span class="sr-only">Chọn sticker</span>
+  </button>
+</div>

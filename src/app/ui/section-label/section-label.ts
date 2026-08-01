@@ -13,12 +13,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   selector: 'app-section-label',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
-  template: `
-    <h3 class="flex items-center justify-between gap-2 px-2 text-eyebrow text-mute uppercase">
-      <span class="truncate">{{ text() }}</span>
-      <ng-content select="[slot=action]" />
-    </h3>
-  `,
+  templateUrl: './section-label.html',
+  styleUrl: './section-label.css',
 })
 export class SectionLabel {
   readonly text = input.required<string>();

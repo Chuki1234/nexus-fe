@@ -12,16 +12,8 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
   selector: 'app-unread-badge',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'inline-flex' },
-  template: `
-    @if (count() > 0) {
-      <span
-        class="flex min-w-5 items-center justify-center rounded-pill bg-danger px-1.5 text-caption-strong text-on-primary"
-      >
-        {{ display() }}
-        <span class="sr-only">{{ label() }}</span>
-      </span>
-    }
-  `,
+  templateUrl: './unread-badge.html',
+  styleUrl: './unread-badge.css',
 })
 export class UnreadBadge {
   readonly count = input.required<number>();

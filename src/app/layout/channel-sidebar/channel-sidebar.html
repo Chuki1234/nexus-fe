@@ -1,0 +1,17 @@
+<header class="shrink-0 border-b border-hairline p-2">
+  @if (serverId(); as id) {
+    <h2 class="truncate px-2 py-1 text-body-md-strong text-ink-strong">{{ title() }}</h2>
+  } @else {
+    <app-search-field placeholder="Tìm hoặc bắt đầu cuộc trò chuyện" [disabled]="true" />
+  }
+</header>
+
+<nav class="flex-1 overflow-y-auto px-2 py-3" [attr.aria-label]="title()">
+  @if (serverId(); as id) {
+    <app-channel-list [serverId]="id" />
+  } @else {
+    <app-conversation-list />
+  }
+</nav>
+
+<app-user-panel />

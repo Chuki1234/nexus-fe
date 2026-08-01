@@ -26,11 +26,8 @@ const SIZE: Record<'sm' | 'md' | 'lg', string> = {
   selector: 'app-status-dot',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'inline-flex' },
-  template: `
-    <span [class]="classes()">
-      <span class="sr-only">{{ label() }}</span>
-    </span>
-  `,
+  templateUrl: './status-dot.html',
+  styleUrl: './status-dot.css',
 })
 export class StatusDot {
   readonly presence = input.required<PresenceStatus>();

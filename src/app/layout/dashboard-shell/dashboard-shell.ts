@@ -30,49 +30,8 @@ import { ServerRail } from '../server-rail/server-rail';
     ServerRail,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: `
-    :host {
-      display: block;
-      height: 100dvh;
-    }
-    /* Sidenav của Material mặc định vẽ viền + bóng; brand dùng hairline. */
-    :host {
-      --mat-sidenav-container-divider-color: var(--color-hairline);
-      --mat-sidenav-container-background-color: var(--color-canvas);
-      --mat-sidenav-content-background-color: var(--color-canvas);
-    }
-  `,
-  template: `
-    <mat-sidenav-container class="h-full" [hasBackdrop]="isCompact()">
-      <mat-sidenav
-        #drawer
-        [mode]="isCompact() ? 'over' : 'side'"
-        [opened]="!isCompact()"
-        class="!border-r !border-hairline"
-      >
-        <div class="flex h-full">
-          <app-server-rail />
-          <app-channel-sidebar [serverId]="serverId()" />
-        </div>
-      </mat-sidenav>
-
-      <mat-sidenav-content class="flex h-full flex-col">
-        @if (isCompact()) {
-          <button
-            mat-icon-button
-            type="button"
-            (click)="drawer.toggle()"
-            matTooltip="Mở danh sách kênh"
-            class="absolute top-2 left-2 z-10"
-          >
-            <mat-icon>menu</mat-icon>
-            <span class="sr-only">Mở danh sách kênh</span>
-          </button>
-        }
-        <router-outlet />
-      </mat-sidenav-content>
-    </mat-sidenav-container>
-  `,
+  styleUrl: './dashboard-shell.css',
+  templateUrl: './dashboard-shell.html',
 })
 export class DashboardShell {
   private readonly breakpoints = inject(BreakpointObserver);

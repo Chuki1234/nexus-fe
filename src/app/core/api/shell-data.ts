@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import type { ChannelType, PresenceStatus } from '../../shared/dto/common';
+import type { ChannelType, PresenceStatus } from '../../../shared/dto/common';
 
 /**
  * DỮ LIỆU GIẢ CHO P1 — sẽ bị thay ở P2.
