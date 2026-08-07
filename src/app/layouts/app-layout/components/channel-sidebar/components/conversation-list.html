@@ -1,0 +1,57 @@
+<mat-nav-list class="!py-0">
+  <a
+    mat-list-item
+    routerLink="/channels/@me"
+    routerLinkActive
+    #friends="routerLinkActive"
+    [routerLinkActiveOptions]="{ exact: true }"
+    [activated]="friends.isActive"
+    [attr.aria-current]="friends.isActive ? 'page' : null"
+  >
+    <mat-icon matListItemIcon aria-hidden="true">group</mat-icon>
+    <span matListItemTitle [class.text-ink]="friends.isActive">Bạn bè</span>
+  </a>
+</mat-nav-list>
+
+<app-section-label class="mt-5 mb-1 block" text="Tin nhắn trực tiếp">
+  <button
+    slot="action"
+    type="button"
+    disabled
+    matTooltip="Tạo tin nhắn (chưa làm)"
+    class="rounded-xs text-steel disabled:cursor-not-allowed"
+  >
+    <mat-icon aria-hidden="true" class="!size-4 !text-base">add</mat-icon>
+    <span class="sr-only">Tạo tin nhắn mới</span>
+  </button>
+</app-section-label>
+
+<mat-nav-list class="!py-0">
+  @for (conversation of conversations(); track conversation.id) {
+    <a
+      mat-list-item
+      [routerLink]="['/channels/@me', conversation.id]"
+      routerLinkActive
+      #link="routerLinkActive"
+      [activated]="link.isActive"
+      [attr.aria-current]="link.isActive ? 'page' : null"
+      [lines]="conversation.statusMessage ? 2 : 1"
+    >
+      <app-avatar
+        matListItemIcon
+        [name]="conversation.name"
+        [presence]="conversation.presence"
+        size="sm"
+        ring="surface"
+      />
+      <span matListItemTitle [class.text-ink]="link.isActive || conversation.unread">
+        {{ conversation.name }}
+      </span>
+      @if (conversation.statusMessage) {
+        <span matListItemLine>{{ conversation.statusMessage }}</span>
+      }
+    </a>
+  } @empty {
+    <p class="px-2 py-4 text-body-sm text-steel">Chưa có cuộc trò chuyện nào.</p>
+  }
+</mat-nav-list>

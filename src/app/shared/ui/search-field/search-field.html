@@ -1,0 +1,25 @@
+<div
+  class="flex items-center gap-2 rounded-sm border border-hairline-strong bg-canvas px-3 py-2 focus-within:border-primary"
+>
+  <mat-icon aria-hidden="true" class="!size-4 !text-base text-steel">search</mat-icon>
+  <input
+    [id]="inputId"
+    type="search"
+    [value]="value()"
+    [placeholder]="placeholder()"
+    [disabled]="disabled()"
+    [attr.aria-label]="placeholder()"
+    (input)="onInput($event)"
+    class="min-w-0 flex-1 bg-transparent text-body-sm text-ink placeholder:text-steel focus:outline-none disabled:cursor-not-allowed"
+  />
+  @if (value() && !disabled()) {
+    <button
+      type="button"
+      (click)="value.set('')"
+      class="rounded-xs text-steel hover:text-ink"
+      aria-label="Xoá nội dung tìm kiếm"
+    >
+      <mat-icon aria-hidden="true" class="!size-4 !text-base">close</mat-icon>
+    </button>
+  }
+</div>

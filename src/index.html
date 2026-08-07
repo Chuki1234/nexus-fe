@@ -1,13 +1,17 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>NexusFe</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-</head>
-<body>
-  <app-root></app-root>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>NexusFe</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <!-- Font nạp qua styles.css từ @fontsource/inter và material-icons (tự host).
+         `ng add @angular/material` mặc định chèn link CDN Google Fonts vào đây;
+         đã gỡ theo ghi chú trong styles.css — CDN làm chậm first paint và lộ IP
+         người dùng sang máy chủ của Google. -->
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
 </html>

@@ -1,0 +1,28 @@
+<mat-toolbar class="!gap-3 !border-b !border-hairline !px-4">
+  <mat-icon aria-hidden="true" class="text-steel">group</mat-icon>
+  <h1 class="text-body-md-medium text-ink">Bạn bè</h1>
+
+  <span aria-hidden="true" class="h-5 w-px shrink-0 bg-hairline"></span>
+
+  <div class="flex gap-1" role="group" aria-label="Lọc danh sách bạn bè">
+    @for (option of tabs; track option.id) {
+      <button
+        type="button"
+        (click)="tab.set(option.id)"
+        [attr.aria-pressed]="tab() === option.id"
+        class="rounded-sm px-3 py-1 text-body-sm-medium transition-colors"
+        [class.bg-surface]="tab() === option.id"
+        [class.text-ink]="tab() === option.id"
+        [class.text-slate]="tab() !== option.id"
+      >
+        {{ option.label }}
+      </button>
+    }
+  </div>
+
+  <span class="flex-1"></span>
+
+  <button mat-flat-button type="button" [disabled]="true" matTooltip="Thêm bạn (chưa làm)">
+    Thêm bạn
+  </button>
+</mat-toolbar>

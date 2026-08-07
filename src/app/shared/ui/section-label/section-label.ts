@@ -1,0 +1,21 @@
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+
+/**
+ * Nhãn nhóm chữ hoa phía trên một danh sách ("TIN NHẮN TRỰC TIẾP", "KÊNH THOẠI").
+ *
+ * Dùng token `text-micro-uppercase` — chữ hoa Inter 600 với tracking 2.52px, kiểu nhãn
+ * đặc trưng của brand theo DESIGN-voltagent.md.
+ *
+ * Chiếu nội dung vào `[slot=action]` để gắn nút bên phải (ví dụ nút "+").
+ * Thẻ là `h3` vì nó luôn đứng đầu một nhóm trong cây tiêu đề của trang.
+ */
+@Component({
+  selector: 'app-section-label',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
+  templateUrl: './section-label.html',
+  styleUrl: './section-label.css',
+})
+export class SectionLabel {
+  readonly text = input.required<string>();
+}

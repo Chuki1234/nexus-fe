@@ -1,16 +1,47 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { AuthError } from '@supabase/supabase-js';
 
+/**
+ * Câu chung cho mọi kiểu đăng nhập hỏng, khớp với backend.
+ *
+ * Không được tách theo nguyên nhân: một thông báo riêng cho "email chưa xác nhận"
+ * hay "tài khoản đã bị khoá" đủ để người ngoài biết địa chỉ đó có tài khoản.
+ */
+const INVALID_LOGIN = 'Email/tên đăng nhập hoặc mật khẩu không đúng.';
+
 const MESSAGES: Record<string, string> = {
-  invalid_credentials: 'Email hoặc mật khẩu không đúng.',
-  email_not_confirmed: 'Email chưa được xác nhận. Vui lòng kiểm tra hộp thư của bạn.',
   over_request_rate_limit: 'Bạn đã thử quá nhiều lần. Vui lòng đợi một lát rồi thử lại.',
   over_email_send_rate_limit: 'Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi một lát rồi thử lại.',
   same_password: 'Mật khẩu mới phải khác mật khẩu hiện tại.',
   weak_password: 'Mật khẩu quá yếu. Hãy chọn mật khẩu dài và khó đoán hơn.',
-  user_banned: 'Tài khoản này đã bị khoá.',
+  otp_expired: 'Mã xác thực đã hết hạn. Hãy bấm gửi lại mã.',
 };
 
-/** Turns a Supabase auth failure into a message that is safe to show a user. */
+/**
+ * Lỗi từ POST /api/auth/login.
+ *
+ * Chỉ có 3 kết cục hiển thị được: không gọi tới nơi, bị chặn vì thử quá nhiều,
+ * và "sai thông tin" — gom mọi nguyên nhân còn lại.
+ */
+export function toLoginErrorMessage(error: unknown): string {
+  if (error instanceof HttpErrorResponse) {
+    if (error.status === 0) {
+      return 'Không kết nối được máy chủ. Kiểm tra backend đang chạy rồi thử lại.';
+    }
+    if (error.status === 429) {
+      return 'Bạn đã thử quá nhiều lần. Vui lòng đợi một phút rồi thử lại.';
+    }
+  }
+  return INVALID_LOGIN;
+}
+
+/**
+ * Turns a Supabase auth failure into a message that is safe to show a user.
+ *
+ * Dùng cho các luồng auth vẫn gọi thẳng Supabase: đăng nhập Google, gửi/xác thực
+ * mã, đổi mật khẩu. Đăng nhập bằng mật khẩu đi qua backend nên dùng
+ * `toLoginErrorMessage`.
+ */
 export function toAuthErrorMessage(error: unknown): string {
   if (error instanceof AuthError) {
     const known = error.code ? MESSAGES[error.code] : undefined;
@@ -22,5 +53,5 @@ export function toAuthErrorMessage(error: unknown): string {
       return 'Không kết nối được máy chủ. Kiểm tra kết nối mạng rồi thử lại.';
     }
   }
-  return 'Đăng nhập không thành công. Vui lòng thử lại.';
+  return 'Không thực hiện được. Vui lòng thử lại.';
 }

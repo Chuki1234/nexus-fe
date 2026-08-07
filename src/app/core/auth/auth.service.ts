@@ -1,16 +1,28 @@
+import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { Session, User } from '@supabase/supabase-js';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { SupabaseService } from '../supabase/supabase.service';
 
 export interface SignInCredentials {
-  email: string;
+  /** Email hoặc tên đăng nhập — backend tự phân biệt. */
+  identifier: string;
   password: string;
+}
+
+/** Thân phản hồi của POST /api/auth/login. */
+interface LoginSession {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number | null;
 }
 
 /** Single source of truth for who is signed in. */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly supabase = inject(SupabaseService);
+  private readonly http = inject(HttpClient);
 
   private readonly currentSession = signal<Session | null>(null);
 
@@ -61,24 +73,65 @@ export class AuthService {
     this.currentSession.set(data.session);
   }
 
-  /** Throws the raw Supabase `AuthError` — callers map it for display. */
-  async signInWithPassword({ email, password }: SignInCredentials): Promise<Session> {
-    const { data, error } = await this.supabase.client.auth.signInWithPassword({
+  /**
+   * Đăng nhập bằng email hoặc tên đăng nhập.
+   *
+   * Đi qua nexus-be chứ không gọi thẳng Supabase: tra tên đăng nhập ra email cần
+   * đọc bảng `profiles`, mà frontend không được phép đọc bảng. Backend trả token,
+   * ở đây nạp vào Supabase client để phần còn lại của app dùng phiên như thường.
+   *
+   * Ném `HttpErrorResponse` — người gọi dùng `toLoginErrorMessage` để hiển thị.
+   */
+  async signIn({ identifier, password }: SignInCredentials): Promise<Session> {
+    const session = await firstValueFrom(
+      this.http.post<LoginSession>(`${environment.apiUrl}/auth/login`, {
+        identifier,
+        password,
+      }),
+    );
+
+    const { data, error } = await this.supabase.client.auth.setSession({
+      access_token: session.accessToken,
+      refresh_token: session.refreshToken,
+    });
+    if (error || !data.session) {
+      throw error ?? new Error('Không nạp được phiên đăng nhập.');
+    }
+
+    this.currentSession.set(data.session);
+    return data.session;
+  }
+
+  /**
+   * Bước 1 khôi phục mật khẩu: gửi mã 6 chữ số tới email.
+   *
+   * Supabase mặc định gửi LINK. Muốn ra mã thì phải sửa template "Reset Password"
+   * trong Supabase Dashboard để dùng `{{ .Token }}` thay cho `{{ .ConfirmationURL }}`.
+   * Không sửa template thì hàm này vẫn chạy, nhưng người dùng nhận được link và
+   * không bao giờ thấy mã để nhập.
+   */
+  async sendPasswordResetCode(email: string): Promise<void> {
+    const { error } = await this.supabase.client.auth.resetPasswordForEmail(email);
+    if (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Bước 2: đổi mã đúng lấy một phiên tạm, đủ quyền để đặt lại mật khẩu.
+   *
+   * Ném `AuthError` khi mã sai hoặc hết hạn.
+   */
+  async verifyPasswordResetCode(email: string, code: string): Promise<void> {
+    const { data, error } = await this.supabase.client.auth.verifyOtp({
       email,
-      password,
+      token: code,
+      type: 'recovery',
     });
     if (error) {
       throw error;
     }
     this.currentSession.set(data.session);
-    return data.session;
-  }
-
-  async sendPasswordReset(email: string, redirectTo: string): Promise<void> {
-    const { error } = await this.supabase.client.auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) {
-      throw error;
-    }
   }
 
   /**

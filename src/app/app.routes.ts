@@ -2,22 +2,24 @@ import { Routes } from '@angular/router';
 import { authGuard, profileGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
-  // Trang chủ. Chưa đăng nhập thì `authGuard` đá sang /login kèm returnUrl, nên mở
-  // app lên là thấy màn đăng nhập ngay. Đừng đổi thành redirect thẳng sang /login:
-  // `guestGuard` đẩy người đã đăng nhập từ /login về '/' nên sẽ thành vòng lặp.
+  // Đích sau khi đăng nhập. Chưa đăng nhập thì `authGuard` trong /channels đá
+  // sang /login kèm returnUrl.
+  { path: '', pathMatch: 'full', redirectTo: '/channels/@me' },
+
   {
-    path: '',
-    pathMatch: 'full',
+    path: 'channels',
     canActivate: [authGuard, profileGuard],
-    title: 'Nexus',
-    loadComponent: () => import('./pages/home/home.page').then((m) => m.HomePage),
+    loadChildren: () =>
+      import('./features/dashboard/dashboard.routes').then((m) => m.dashboardRoutes),
   },
+
   {
     path: '',
-    loadChildren: () => import('./pages/auth/auth.routes').then((m) => m.authRoutes),
+    loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),
   },
-  {
-    path: '**',
-    redirectTo: '',
-  },
+
+  // Trỏ thẳng tới Dashboard chứ không về '': Angular chỉ áp một lần chuyển hướng
+  // mỗi lần khớp route, nên '**' → '' → '/channels/@me' sẽ dừng lại ở '' và cho
+  // ra màn hình trắng.
+  { path: '**', redirectTo: '/channels/@me' },
 ];

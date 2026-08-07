@@ -1,0 +1,10 @@
+:host {
+  display: block;
+  height: 100dvh;
+}
+/* Sidenav của Material mặc định vẽ viền + bóng; brand dùng hairline. */
+:host {
+  --mat-sidenav-container-divider-color: var(--color-hairline);
+  --mat-sidenav-container-background-color: var(--color-canvas);
+  --mat-sidenav-content-background-color: var(--color-canvas);
+}

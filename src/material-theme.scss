@@ -1,0 +1,47 @@
+// ============================================================================
+// Angular Material — dựng khung, còn diện mạo do Nexus quyết định
+//
+// `mat.theme()` sinh ra bộ biến `--mat-sys-*` mà mọi component Material đọc vào.
+// Ở đây chỉ dựng khung dark + typography; toàn bộ giá trị màu thật được ghi đè
+// bằng token Voltagent ở `styles.css` (mục "GHI ĐÈ ANGULAR MATERIAL").
+//
+// Vì sao không tự sinh palette M3 từ #00d992: thuật toán M3 sẽ đẻ ra hàng chục
+// sắc độ phái sinh, phần lớn không có trong DESIGN-voltagent.md. Brand chỉ có
+// đúng một màu nhấn và ba mức xám — ánh xạ tay đúng hơn là để máy nội suy.
+// ============================================================================
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$green-palette,
+        tertiary: mat.$green-palette,
+        theme-type: dark,
+      ),
+      // Manrope thay cho Euclid Circular A (NexusCord Hybrid) — không dùng Roboto.
+      typography: (
+          plain-family: (
+            Manrope,
+            system-ui,
+            sans-serif,
+          ),
+          brand-family: (
+            Manrope,
+            system-ui,
+            sans-serif,
+          ),
+        ),
+      density: 0,
+    )
+  );
+}
+
+body {
+  // Dark là surface DUY NHẤT của brand — không có light mode để chuyển sang.
+  color-scheme: dark;
+  margin: 0;
+  height: 100%;
+}

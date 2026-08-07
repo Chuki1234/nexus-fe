@@ -1,0 +1,231 @@
+<main class="flex min-h-dvh items-center justify-center bg-canvas px-4 py-12">
+  <!-- Thẻ nổi hẳn khỏi nền: surface + shadow-modal thay cho viền hairline,
+       nên ở đây KHÔNG thêm border — shadow-modal đã có sẵn viền inset 1px. -->
+  <div class="w-full max-w-auth-card rounded-md bg-surface p-8 shadow-modal">
+    <header class="mb-8 text-center">
+      <p class="text-micro-uppercase text-steel uppercase">Nexus</p>
+      <h1 class="mt-2 text-heading-3 text-ink">Tạo tài khoản</h1>
+      <p class="mt-2 text-body-md text-slate">Điền thông tin dưới đây để bắt đầu.</p>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      @if (errorMessage(); as message) {
+        <div
+          id="register-error"
+          role="alert"
+          tabindex="-1"
+          class="mb-5 rounded-sm border border-danger-border bg-danger-surface px-4 py-3 text-body-sm text-ink"
+        >
+          {{ message }}
+        </div>
+      }
+
+      <div class="mb-5">
+        <label for="email" class="mb-2 block text-body-sm-medium text-ink">
+          Email <span aria-hidden="true" class="text-danger">*</span>
+          <span class="sr-only">(bắt buộc)</span>
+        </label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          placeholder="ban@vidu.com"
+          [attr.aria-invalid]="showError('email')"
+          [attr.aria-describedby]="showError('email') ? 'email-error' : null"
+          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-steel focus:border-primary aria-invalid:border-danger"
+        />
+        @if (showError('email')) {
+          <p id="email-error" class="mt-2 text-body-sm text-danger">
+            @if (form.controls.email.hasError('required')) {
+              Vui lòng nhập email.
+            } @else {
+              Email không đúng định dạng.
+            }
+          </p>
+        }
+      </div>
+
+      <div class="mb-5">
+        <label for="displayName" class="mb-2 block text-body-sm-medium text-ink">
+          Tên hiển thị <span class="text-steel">(không bắt buộc)</span>
+        </label>
+        <input
+          id="displayName"
+          type="text"
+          formControlName="displayName"
+          autocomplete="nickname"
+          [attr.aria-invalid]="showError('displayName')"
+          [attr.aria-describedby]="
+            showError('displayName') ? 'displayName-error' : 'displayName-hint'
+          "
+          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-steel focus:border-primary aria-invalid:border-danger"
+        />
+        @if (showError('displayName')) {
+          <p id="displayName-error" class="mt-2 text-body-sm text-danger">
+            Tên hiển thị tối đa {{ displayNameMaxLength }} ký tự.
+          </p>
+        } @else {
+          <p id="displayName-hint" class="mt-2 text-caption text-steel">
+            Tên người khác nhìn thấy. Để trống thì dùng tên đăng nhập.
+          </p>
+        }
+      </div>
+
+      <div class="mb-5">
+        <label for="username" class="mb-2 block text-body-sm-medium text-ink">
+          Tên đăng nhập <span aria-hidden="true" class="text-danger">*</span>
+          <span class="sr-only">(bắt buộc)</span>
+        </label>
+        <input
+          id="username"
+          type="text"
+          formControlName="username"
+          autocomplete="username"
+          [attr.aria-invalid]="showError('username')"
+          [attr.aria-describedby]="showError('username') ? 'username-error' : 'username-hint'"
+          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-steel focus:border-primary aria-invalid:border-danger"
+        />
+        @if (showError('username')) {
+          <p id="username-error" class="mt-2 text-body-sm text-danger">
+            @if (form.controls.username.hasError('required')) {
+              Vui lòng nhập tên đăng nhập.
+            } @else {
+              Tên đăng nhập gồm 3–32 ký tự, chỉ chữ, số, dấu chấm hoặc gạch dưới.
+            }
+          </p>
+        } @else {
+          <p id="username-hint" class="mt-2 text-caption text-steel">
+            3–32 ký tự. Chữ hoa sẽ được lưu thành chữ thường.
+          </p>
+        }
+      </div>
+
+      <div class="mb-5">
+        <label for="password" class="mb-2 block text-body-sm-medium text-ink">
+          Mật khẩu <span aria-hidden="true" class="text-danger">*</span>
+          <span class="sr-only">(bắt buộc)</span>
+        </label>
+        <div class="relative">
+          <input
+            id="password"
+            [type]="passwordVisible() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="new-password"
+            [attr.aria-invalid]="showError('password')"
+            [attr.aria-describedby]="showError('password') ? 'password-error' : 'password-hint'"
+            class="w-full rounded-sm border border-hairline-strong bg-canvas py-3 pr-16 pl-4 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
+          />
+          <button
+            type="button"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-pressed]="passwordVisible()"
+            aria-controls="password"
+            class="absolute inset-y-0 right-0 rounded-r-sm px-4 text-body-sm-medium text-slate hover:text-ink"
+          >
+            {{ passwordVisible() ? 'Ẩn' : 'Hiện' }}
+          </button>
+        </div>
+        @if (showError('password')) {
+          <p id="password-error" class="mt-2 text-body-sm text-danger">
+            @if (form.controls.password.hasError('required')) {
+              Vui lòng nhập mật khẩu.
+            } @else {
+              Mật khẩu phải có ít nhất {{ passwordMinLength }} ký tự.
+            }
+          </p>
+        } @else {
+          <p id="password-hint" class="mt-2 text-caption text-steel">
+            Ít nhất {{ passwordMinLength }} ký tự.
+          </p>
+        }
+      </div>
+
+      <fieldset formGroupName="birthdate" class="mb-6">
+        <legend class="mb-2 text-body-sm-medium text-ink">
+          Ngày sinh <span aria-hidden="true" class="text-danger">*</span>
+          <span class="sr-only">(bắt buộc)</span>
+        </legend>
+        <div class="grid grid-cols-3 gap-3">
+          <select
+            formControlName="day"
+            aria-label="Ngày"
+            [attr.aria-invalid]="showBirthdateError()"
+            [attr.aria-describedby]="showBirthdateError() ? 'birthdate-error' : null"
+            class="w-full rounded-sm border border-hairline-strong bg-canvas px-3 py-3 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
+          >
+            <option value="" disabled>Ngày</option>
+            @for (day of days; track day) {
+              <option [value]="day">{{ day }}</option>
+            }
+          </select>
+
+          <select
+            formControlName="month"
+            aria-label="Tháng"
+            [attr.aria-invalid]="showBirthdateError()"
+            class="w-full rounded-sm border border-hairline-strong bg-canvas px-3 py-3 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
+          >
+            <option value="" disabled>Tháng</option>
+            @for (month of months; track month) {
+              <option [value]="month">Tháng {{ month }}</option>
+            }
+          </select>
+
+          <select
+            formControlName="year"
+            aria-label="Năm"
+            [attr.aria-invalid]="showBirthdateError()"
+            class="w-full rounded-sm border border-hairline-strong bg-canvas px-3 py-3 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
+          >
+            <option value="" disabled>Năm</option>
+            @for (year of years; track year) {
+              <option [value]="year">{{ year }}</option>
+            }
+          </select>
+        </div>
+        @if (showBirthdateError()) {
+          <p id="birthdate-error" class="mt-2 text-body-sm text-danger">
+            @switch (true) {
+              @case (form.controls.birthdate.hasError('required')) {
+                Vui lòng chọn đủ ngày, tháng và năm sinh.
+              }
+              @case (form.controls.birthdate.hasError('invalidDate')) {
+                Ngày sinh này không tồn tại.
+              }
+              @default {
+                Bạn chưa đủ tuổi để tạo tài khoản.
+              }
+            }
+          </p>
+        }
+      </fieldset>
+
+      <p class="mb-5 text-caption text-steel">
+        Khi nhấn “Tạo tài khoản”, bạn đồng ý với Điều khoản dịch vụ và Chính sách bảo mật của Nexus.
+      </p>
+
+      <button
+        type="submit"
+        [disabled]="submitting()"
+        [attr.aria-busy]="submitting()"
+        class="w-full rounded-full bg-primary px-4 py-3 text-button-md text-on-primary hover:bg-primary-soft disabled:cursor-not-allowed disabled:bg-hairline disabled:text-steel"
+      >
+        {{ submitting() ? 'Đang tạo tài khoản…' : 'Tạo tài khoản' }}
+      </button>
+
+      <p aria-live="polite" class="sr-only">
+        {{ submitting() ? 'Đang xử lý đăng ký' : '' }}
+      </p>
+    </form>
+
+    <p class="mt-5 text-body-sm text-slate">
+      Đã có tài khoản?
+      <a
+        routerLink="/login"
+        class="rounded-xs text-primary-deep underline underline-offset-2 hover:text-primary-soft"
+        >Đăng nhập</a
+      >
+    </p>
+  </div>
+</main>

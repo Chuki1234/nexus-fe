@@ -1,0 +1,22 @@
+<app-friends-toolbar [(tab)]="tab" />
+
+<div class="min-h-0 flex-1 overflow-y-auto p-6">
+  <app-search-field placeholder="Tìm kiếm" [(value)]="query" />
+
+  @if (visible().length > 0) {
+    <app-section-label class="mt-6 block" [text]="sectionLabel()" />
+
+    <ul class="mt-2 divide-y divide-hairline">
+      @for (person of visible(); track person.id) {
+        <li><app-friend-row [person]="person" /></li>
+      }
+    </ul>
+  } @else if (query()) {
+    <app-empty-state icon="search_off" [message]="'Không có ai khớp với “' + query() + '”.'" />
+  } @else {
+    <app-empty-state
+      icon="group_off"
+      message="Chưa có cuộc trò chuyện nào. Hãy kết bạn để bắt đầu."
+    />
+  }
+</div>
