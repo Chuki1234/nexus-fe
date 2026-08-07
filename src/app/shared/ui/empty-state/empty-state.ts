@@ -4,7 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 /**
  * Khung trạng thái rỗng — `ex-empty-state-card` trong design system.
  *
- * Nền `canvas-soft`, bo `rounded.md`, đệm `{spacing.3xl}`. Luôn nói thành lời
+ * Nền `surface`, bo `rounded.md`, đệm `{spacing.3xl}`. Luôn nói thành lời
  * thay vì để vùng trống: "Nexus chưa thấy gì" dễ hiểu hơn một ô trắng.
  */
 @Component({

@@ -1,13 +1,13 @@
 <a
   [routerLink]="['/channels/@me', person().id]"
-  class="flex items-center gap-3 rounded-sm px-2 py-3 hover:bg-canvas-soft"
+  class="flex items-center gap-3 rounded-sm px-2 py-3 hover:bg-surface"
 >
   <app-avatar [name]="person().name" [presence]="person().presence" size="lg" ring="canvas" />
 
   <span class="min-w-0 flex-1">
-    <span class="block truncate text-body-sm-strong text-ink">{{ person().name }}</span>
-    <span class="block truncate text-caption text-mute">{{ subtitle() }}</span>
+    <span class="block truncate text-body-sm-medium text-ink">{{ person().name }}</span>
+    <span class="block truncate text-caption text-steel">{{ subtitle() }}</span>
   </span>
 
-  <mat-icon aria-hidden="true" class="text-mute">chat_bubble</mat-icon>
+  <mat-icon aria-hidden="true" class="text-steel">chat_bubble</mat-icon>
 </a>

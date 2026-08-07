@@ -1,6 +1,6 @@
 <header class="shrink-0 border-b border-hairline p-2">
   @if (serverId(); as id) {
-    <h2 class="truncate px-2 py-1 text-body-md-strong text-ink-strong">{{ title() }}</h2>
+    <h2 class="truncate px-2 py-1 text-body-md-medium text-ink">{{ title() }}</h2>
   } @else {
     <app-search-field placeholder="Tìm hoặc bắt đầu cuộc trò chuyện" [disabled]="true" />
   }

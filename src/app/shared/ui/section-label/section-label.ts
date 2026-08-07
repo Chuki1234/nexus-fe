@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 /**
  * Nhãn nhóm chữ hoa phía trên một danh sách ("TIN NHẮN TRỰC TIẾP", "KÊNH THOẠI").
  *
- * Dùng token `text-eyebrow` — chữ hoa Inter 600 với tracking 2.52px, kiểu nhãn
+ * Dùng token `text-micro-uppercase` — chữ hoa Inter 600 với tracking 2.52px, kiểu nhãn
  * đặc trưng của brand theo DESIGN-voltagent.md.
  *
  * Chiếu nội dung vào `[slot=action]` để gắn nút bên phải (ví dụ nút "+").

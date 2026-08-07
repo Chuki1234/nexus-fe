@@ -14,11 +14,11 @@ const BOX: Record<AvatarSize, string> = {
 
 /** Cỡ chữ của chữ cái dự phòng, đi kèm từng cỡ hộp. */
 const TEXT: Record<AvatarSize, string> = {
-  xs: 'text-caption-strong',
-  sm: 'text-caption-strong',
-  md: 'text-body-sm-strong',
-  lg: 'text-body-sm-strong',
-  xl: 'text-display-md',
+  xs: 'text-caption-bold',
+  sm: 'text-caption-bold',
+  md: 'text-body-sm-medium',
+  lg: 'text-body-sm-medium',
+  xl: 'text-heading-3',
 };
 
 /** Chấm trạng thái nhỏ hơn ở avatar nhỏ, nếu không nó nuốt mất avatar. */
@@ -53,7 +53,7 @@ export class Avatar {
   readonly size = input<AvatarSize>('md');
   readonly presence = input<PresenceStatus | null>(null);
   /** Nền phía sau — quyết định màu viền của chấm trạng thái. */
-  readonly ring = input<'canvas' | 'canvas-soft'>('canvas-soft');
+  readonly ring = input<'canvas' | 'surface'>('surface');
 
   protected readonly imageFailed = signal(false);
 

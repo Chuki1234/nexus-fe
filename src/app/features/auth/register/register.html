@@ -1,11 +1,11 @@
 <main class="flex min-h-dvh items-center justify-center bg-canvas px-4 py-12">
-  <!-- Thẻ nổi hẳn khỏi nền: canvas-soft + shadow-modal thay cho viền hairline,
+  <!-- Thẻ nổi hẳn khỏi nền: surface + shadow-modal thay cho viền hairline,
        nên ở đây KHÔNG thêm border — shadow-modal đã có sẵn viền inset 1px. -->
-  <div class="w-full max-w-auth-card rounded-md bg-canvas-soft p-8 shadow-modal">
+  <div class="w-full max-w-auth-card rounded-md bg-surface p-8 shadow-modal">
     <header class="mb-8 text-center">
-      <p class="text-eyebrow text-mute uppercase">Nexus</p>
-      <h1 class="mt-2 text-display-md text-ink-strong">Tạo tài khoản</h1>
-      <p class="mt-2 text-body-md text-body">Điền thông tin dưới đây để bắt đầu.</p>
+      <p class="text-micro-uppercase text-steel uppercase">Nexus</p>
+      <h1 class="mt-2 text-heading-3 text-ink">Tạo tài khoản</h1>
+      <p class="mt-2 text-body-md text-slate">Điền thông tin dưới đây để bắt đầu.</p>
     </header>
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
@@ -21,7 +21,7 @@
       }
 
       <div class="mb-5">
-        <label for="email" class="mb-2 block text-body-sm-strong text-ink">
+        <label for="email" class="mb-2 block text-body-sm-medium text-ink">
           Email <span aria-hidden="true" class="text-danger">*</span>
           <span class="sr-only">(bắt buộc)</span>
         </label>
@@ -33,7 +33,7 @@
           placeholder="ban@vidu.com"
           [attr.aria-invalid]="showError('email')"
           [attr.aria-describedby]="showError('email') ? 'email-error' : null"
-          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-mute focus:border-primary aria-invalid:border-danger"
+          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-steel focus:border-primary aria-invalid:border-danger"
         />
         @if (showError('email')) {
           <p id="email-error" class="mt-2 text-body-sm text-danger">
@@ -47,8 +47,8 @@
       </div>
 
       <div class="mb-5">
-        <label for="displayName" class="mb-2 block text-body-sm-strong text-ink">
-          Tên hiển thị <span class="text-mute">(không bắt buộc)</span>
+        <label for="displayName" class="mb-2 block text-body-sm-medium text-ink">
+          Tên hiển thị <span class="text-steel">(không bắt buộc)</span>
         </label>
         <input
           id="displayName"
@@ -59,21 +59,21 @@
           [attr.aria-describedby]="
             showError('displayName') ? 'displayName-error' : 'displayName-hint'
           "
-          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-mute focus:border-primary aria-invalid:border-danger"
+          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-steel focus:border-primary aria-invalid:border-danger"
         />
         @if (showError('displayName')) {
           <p id="displayName-error" class="mt-2 text-body-sm text-danger">
             Tên hiển thị tối đa {{ displayNameMaxLength }} ký tự.
           </p>
         } @else {
-          <p id="displayName-hint" class="mt-2 text-caption text-mute">
+          <p id="displayName-hint" class="mt-2 text-caption text-steel">
             Tên người khác nhìn thấy. Để trống thì dùng tên đăng nhập.
           </p>
         }
       </div>
 
       <div class="mb-5">
-        <label for="username" class="mb-2 block text-body-sm-strong text-ink">
+        <label for="username" class="mb-2 block text-body-sm-medium text-ink">
           Tên đăng nhập <span aria-hidden="true" class="text-danger">*</span>
           <span class="sr-only">(bắt buộc)</span>
         </label>
@@ -84,7 +84,7 @@
           autocomplete="username"
           [attr.aria-invalid]="showError('username')"
           [attr.aria-describedby]="showError('username') ? 'username-error' : 'username-hint'"
-          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-mute focus:border-primary aria-invalid:border-danger"
+          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-steel focus:border-primary aria-invalid:border-danger"
         />
         @if (showError('username')) {
           <p id="username-error" class="mt-2 text-body-sm text-danger">
@@ -95,14 +95,14 @@
             }
           </p>
         } @else {
-          <p id="username-hint" class="mt-2 text-caption text-mute">
+          <p id="username-hint" class="mt-2 text-caption text-steel">
             3–32 ký tự. Chữ hoa sẽ được lưu thành chữ thường.
           </p>
         }
       </div>
 
       <div class="mb-5">
-        <label for="password" class="mb-2 block text-body-sm-strong text-ink">
+        <label for="password" class="mb-2 block text-body-sm-medium text-ink">
           Mật khẩu <span aria-hidden="true" class="text-danger">*</span>
           <span class="sr-only">(bắt buộc)</span>
         </label>
@@ -121,7 +121,7 @@
             (click)="togglePasswordVisibility()"
             [attr.aria-pressed]="passwordVisible()"
             aria-controls="password"
-            class="absolute inset-y-0 right-0 rounded-r-sm px-4 text-body-sm-strong text-body hover:text-ink"
+            class="absolute inset-y-0 right-0 rounded-r-sm px-4 text-body-sm-medium text-slate hover:text-ink"
           >
             {{ passwordVisible() ? 'Ẩn' : 'Hiện' }}
           </button>
@@ -135,14 +135,14 @@
             }
           </p>
         } @else {
-          <p id="password-hint" class="mt-2 text-caption text-mute">
+          <p id="password-hint" class="mt-2 text-caption text-steel">
             Ít nhất {{ passwordMinLength }} ký tự.
           </p>
         }
       </div>
 
       <fieldset formGroupName="birthdate" class="mb-6">
-        <legend class="mb-2 text-body-sm-strong text-ink">
+        <legend class="mb-2 text-body-sm-medium text-ink">
           Ngày sinh <span aria-hidden="true" class="text-danger">*</span>
           <span class="sr-only">(bắt buộc)</span>
         </legend>
@@ -201,7 +201,7 @@
         }
       </fieldset>
 
-      <p class="mb-5 text-caption text-mute">
+      <p class="mb-5 text-caption text-steel">
         Khi nhấn “Tạo tài khoản”, bạn đồng ý với Điều khoản dịch vụ và Chính sách bảo mật của Nexus.
       </p>
 
@@ -209,7 +209,7 @@
         type="submit"
         [disabled]="submitting()"
         [attr.aria-busy]="submitting()"
-        class="w-full rounded-sm bg-primary px-4 py-3 text-button text-on-primary hover:bg-primary-soft disabled:cursor-not-allowed disabled:bg-hairline disabled:text-mute"
+        class="w-full rounded-full bg-primary px-4 py-3 text-button-md text-on-primary hover:bg-primary-soft disabled:cursor-not-allowed disabled:bg-hairline disabled:text-steel"
       >
         {{ submitting() ? 'Đang tạo tài khoản…' : 'Tạo tài khoản' }}
       </button>
@@ -219,7 +219,7 @@
       </p>
     </form>
 
-    <p class="mt-5 text-body-sm text-body">
+    <p class="mt-5 text-body-sm text-slate">
       Đã có tài khoản?
       <a
         routerLink="/login"

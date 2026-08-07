@@ -1,178 +1,193 @@
-/* Font tự host — KHÔNG dùng CDN Google Fonts (xem ghi chú 1 cuối file).
-   Inter: 4 weight đúng bộ làm việc của brand (400/500/600/700).
-   material-icons: font ligature mà `<mat-icon>` đọc mặc định qua class .material-icons. */
-@import '@fontsource/inter/400.css';
-@import '@fontsource/inter/500.css';
-@import '@fontsource/inter/600.css';
-@import '@fontsource/inter/700.css';
+/* Font tự host — KHÔNG dùng CDN Google Fonts (xem ghi chú cuối file).
+   Manrope thay cho Euclid Circular A (proprietary) theo DESIGN-nexuscord-hybrid.md.
+   Source Code Pro cho code. material-icons cho <mat-icon>. */
+@import '@fontsource/manrope/400.css';
+@import '@fontsource/manrope/500.css';
+@import '@fontsource/manrope/600.css';
+@import '@fontsource/manrope/700.css';
+@import '@fontsource/source-code-pro/400.css';
 @import 'material-icons/iconfont/material-icons.css';
 
 @import 'tailwindcss';
 
 /* ==========================================================================
    NEXUS DESIGN SYSTEM  —  nguồn duy nhất cho toàn bộ project
-   Dựa trên DESIGN-voltagent.md. Mọi trang PHẢI dùng token dưới đây;
+   Dựa trên DESIGN-nexuscord-hybrid.md. Mọi trang PHẢI dùng token dưới đây;
    không hardcode mã màu / px trong component.
 
-   Dark canvas là surface DUY NHẤT — không có light mode.
-   Xanh #00d992 chỉ dành cho CTA, logo, chỉ báo trạng thái. Không dùng làm màu chữ thân bài.
+   GIAI ĐOẠN HIỆN TẠI: chỉ DARK mode (bảng màu MongoDB deep-teal).
+   Light mode (Starbucks kem) sẽ bổ sung sau — khi làm, bọc phần màu trong
+   :root[data-theme='light'] và bật nút toggle; typography/shape/spacing giữ nguyên.
    ========================================================================== */
 
 @theme {
-  /* Xoá palette mặc định của Tailwind để `bg-slate-50`, `text-indigo-600`... không
-     compile được nữa — sai design system sẽ lộ ra ngay lúc build, không âm thầm trôi. */
+  /* Xoá palette mặc định của Tailwind để `bg-slate-50`... không compile được —
+     sai design system lộ ra ngay lúc build. (Lưu ý: token `slate` bên dưới là
+     màu chữ phụ của Nexus, không phải thang slate của Tailwind.) */
   --color-*: initial;
 
   --color-transparent: transparent;
   --color-current: currentColor;
   --color-inherit: inherit;
 
-  /* ---- Brand ---- */
-  --color-primary: #00d992; /* CTA, logo, trạng thái "live" — CHỈ dùng cho việc này */
-  --color-primary-soft: #2fd6a1; /* nút ghost, focus indicator */
-  --color-primary-deep: #10b981; /* link inline trong đoạn văn */
-  --color-on-primary: #101010; /* chữ đặt trên nền primary */
+  /* ---- Brand & Accent (MongoDB green trên nền tối) ---- */
+  --color-primary: #00ed64; /* CTA pill sáng trên nền tối */
+  --color-primary-soft: #00b545; /* hover đậm hơn */
+  --color-primary-deep: #00684a; /* link inline trên nền tối */
+  --color-primary-pressed: #008c34;
+  --color-on-primary: #001e2b; /* chữ navy đặt trên nút xanh */
+  --color-brand-green: #00ed64;
+  --color-brand-green-dark: #00684a;
+  --color-brand-green-mid: #00a35c;
+  --color-brand-green-soft: #c3f0d2;
 
-  /* ---- Surface ---- */
-  --color-canvas: #101010; /* nền trang, mặc định */
-  --color-canvas-soft: #1a1a1a; /* code block, input, card nổi nhẹ */
-  --color-canvas-text-soft: #f5f6f7; /* chữ bên trong code mockup */
+  /* ---- Surface (deep teal) ---- */
+  --color-canvas: #001e2b; /* nền trang */
+  --color-canvas-dark: #001e2b; /* code block (giống canvas ở dark) */
+  --color-surface: #002634; /* nền section, sidebar, card nổi nhẹ */
+  --color-surface-soft: #082b38; /* phân vùng nhạt hơn */
+  --color-surface-feature: #003d4f; /* bề mặt featured/hover */
 
   /* ---- Đường viền ----
-     hairline là chrome thương hiệu (1px, viền card trang trí) — tương phản 1.69:1,
-     KHÔNG đạt WCAG 1.4.11. Với viền có nghĩa của thành phần tương tác (input, nút,
-     ô chọn) BẮT BUỘC dùng hairline-strong (3.65:1). */
-  --color-hairline: #3d3a39;
-  --color-hairline-strong: #6f6c6a;
-  --color-hairline-soft: #b8b3b0;
+     hairline cho viền trang trí; hairline-strong (3:1+) cho thành phần tương tác
+     (input, nút, ô chọn) theo WCAG 1.4.11. */
+  --color-hairline: #1c4553;
+  --color-hairline-soft: #163540;
+  --color-hairline-strong: #5c7883;
+  --color-hairline-dark: #1c2d38;
 
-  /* ---- Chữ ---- */
-  --color-ink: #f2f2f2; /* chữ mặc định trên nền tối */
-  --color-ink-strong: #ffffff; /* tiêu đề hero, nhấn mạnh cao */
-  --color-body: #bdbdbd; /* đoạn văn, chữ phụ */
-  --color-mute: #8b949e; /* caption, fine print, footer phụ */
+  /* ---- Chữ (thang xám lạnh) ---- */
+  --color-ink: #ffffff; /* chữ chính + tiêu đề */
+  --color-charcoal: #e1e5e8; /* body nhấn */
+  --color-slate: #c1ccd3; /* chữ phụ (secondary) */
+  --color-steel: #8ca0ac; /* chữ hạng ba, caption */
+  --color-stone: #7c8c9a; /* nhãn mờ */
+  --color-muted: #5c6c7a; /* disabled, placeholder */
+  --color-on-dark: #ffffff;
+  --color-on-dark-muted: #a8b3bc;
 
-  /* ---- Semantic ----
-     DESIGN-voltagent.md không định nghĩa palette lỗi/cảnh báo (trang marketing không
-     có form thật). Bổ sung ở đây cho các trang trong ứng dụng; đã kiểm tra đạt AA. */
-  --color-danger: #ff7b72; /* 7.55:1 trên canvas */
-  --color-danger-surface: #2a1512;
-  --color-danger-border: #7f322b;
-  --color-success: #00d992;
+  /* ---- Category accent (chỉ dùng cho TAG ở dark mode) ---- */
+  --color-accent-purple: #7b3ff2;
+  --color-accent-orange: #fa6e39;
+  --color-accent-pink: #f06bb8;
+  --color-accent-blue: #3d4f9f;
+
+  /* ---- Semantic ---- */
+  --color-danger: #ff806f;
+  --color-danger-surface: #3b201f;
+  --color-danger-border: #8a4139;
+  --color-success: #00ed64;
+  --color-warning-bg: #fff8e0;
+  --color-warning-text: #946f3f;
 
   /* ---- Font ----
-     Inter và SF Mono là một phần giọng thương hiệu, không thay bằng họ khác.
-     Inter chưa được self-host trong repo — xem ghi chú cuối file. */
-  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+     Manrope (thay Euclid Circular A) cho mọi UI; Source Code Pro cho code. */
+  --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Source Code Pro', 'SF Mono', Menlo, Consolas, monospace;
 
-  /* ---- Thang chữ ----
-     Mỗi token gói sẵn size + line-height + tracking + weight.
-     Dùng `text-display-xl`, `text-body-md`... thay vì ghép text-[60px] font-normal. */
-  --text-display-xl: 60px;
-  --text-display-xl--line-height: 60px;
-  --text-display-xl--letter-spacing: -0.65px;
-  --text-display-xl--font-weight: 400;
+  /* ---- Thang chữ (Euclid Circular A scale — MongoDB) ----
+     Mỗi token gói size + line-height + tracking + weight. */
+  --text-hero-display: 72px;
+  --text-hero-display--line-height: 1.1;
+  --text-hero-display--letter-spacing: -1.5px;
+  --text-hero-display--font-weight: 500;
 
-  --text-display-lg: 36px;
-  --text-display-lg--line-height: 40px;
-  --text-display-lg--letter-spacing: -0.9px;
-  --text-display-lg--font-weight: 400;
+  --text-display-lg: 56px;
+  --text-display-lg--line-height: 1.15;
+  --text-display-lg--letter-spacing: -1px;
+  --text-display-lg--font-weight: 500;
 
-  --text-display-md: 24px;
-  --text-display-md--line-height: 32px;
-  --text-display-md--letter-spacing: -0.6px;
-  --text-display-md--font-weight: 700;
+  --text-heading-1: 48px;
+  --text-heading-1--line-height: 1.2;
+  --text-heading-1--letter-spacing: -0.5px;
+  --text-heading-1--font-weight: 500;
 
-  --text-display-sm: 20px;
-  --text-display-sm--line-height: 28px;
-  --text-display-sm--font-weight: 600;
+  --text-heading-2: 36px;
+  --text-heading-2--line-height: 1.25;
+  --text-heading-2--letter-spacing: -0.5px;
+  --text-heading-2--font-weight: 500;
 
-  --text-eyebrow: 14px;
-  --text-eyebrow--line-height: 20px;
-  --text-eyebrow--letter-spacing: 2.52px;
-  --text-eyebrow--font-weight: 600;
+  --text-heading-3: 28px;
+  --text-heading-3--line-height: 1.3;
+  --text-heading-3--font-weight: 500;
 
-  --text-eyebrow-lg: 18px;
-  --text-eyebrow-lg--line-height: 28px;
-  --text-eyebrow-lg--letter-spacing: 0.45px;
-  --text-eyebrow-lg--font-weight: 600;
+  --text-heading-4: 22px;
+  --text-heading-4--line-height: 1.35;
+  --text-heading-4--font-weight: 500;
 
-  --text-body-lg: 18px;
-  --text-body-lg--line-height: 28px;
-  --text-body-lg--font-weight: 400;
+  --text-heading-5: 18px;
+  --text-heading-5--line-height: 1.4;
+  --text-heading-5--font-weight: 600;
+
+  --text-subtitle: 18px;
+  --text-subtitle--line-height: 1.5;
+  --text-subtitle--font-weight: 400;
 
   --text-body-md: 16px;
-  --text-body-md--line-height: 26px;
+  --text-body-md--line-height: 1.55;
   --text-body-md--font-weight: 400;
 
-  --text-body-md-strong: 16px;
-  --text-body-md-strong--line-height: 24px;
-  --text-body-md-strong--font-weight: 600;
+  --text-body-md-medium: 16px;
+  --text-body-md-medium--line-height: 1.55;
+  --text-body-md-medium--font-weight: 500;
 
   --text-body-sm: 14px;
-  --text-body-sm--line-height: 20px;
+  --text-body-sm--line-height: 1.5;
   --text-body-sm--font-weight: 400;
 
-  --text-body-sm-strong: 14px;
-  --text-body-sm-strong--line-height: 23px;
-  --text-body-sm-strong--font-weight: 600;
+  --text-body-sm-medium: 14px;
+  --text-body-sm-medium--line-height: 1.5;
+  --text-body-sm-medium--font-weight: 500;
 
-  --text-caption: 12px;
-  --text-caption--line-height: 16px;
+  --text-caption: 13px;
+  --text-caption--line-height: 1.4;
   --text-caption--font-weight: 400;
 
-  --text-caption-strong: 12px;
-  --text-caption-strong--line-height: 16px;
-  --text-caption-strong--font-weight: 500;
+  --text-caption-bold: 13px;
+  --text-caption-bold--line-height: 1.4;
+  --text-caption-bold--font-weight: 600;
 
-  --text-code: 13px;
-  --text-code--line-height: 18px;
-  --text-code--font-weight: 400;
+  --text-micro: 12px;
+  --text-micro--line-height: 1.4;
+  --text-micro--font-weight: 500;
 
-  --text-code-strong: 13px;
-  --text-code-strong--line-height: 16px;
-  --text-code-strong--font-weight: 550;
+  --text-micro-uppercase: 11px;
+  --text-micro-uppercase--line-height: 1.4;
+  --text-micro-uppercase--letter-spacing: 1px;
+  --text-micro-uppercase--font-weight: 600;
 
-  --text-button: 16px;
-  --text-button--line-height: 24px;
-  --text-button--font-weight: 600;
+  --text-button-md: 14px;
+  --text-button-md--line-height: 1.3;
+  --text-button-md--font-weight: 600;
 
-  /* ---- Bo góc ---- nút 6px · card 8px · pill chỉ cho tag trạng thái */
-  --radius-none: 0px;
+  --text-code-md: 14px;
+  --text-code-md--line-height: 1.55;
+  --text-code-md--font-weight: 400;
+
+  /* ---- Bo góc (MongoDB) ---- pill cho nút/badge · 12px cho card ---- */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-pill: 9999px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-xxl: 24px;
   --radius-full: 9999px;
 
   /* ---- Khoảng cách ----
-     KHÔNG đặt token tên `--spacing-sm/md/lg/...`: tên đó trùng với tên kích thước
-     dựng sẵn của Tailwind, làm `max-w-md` biến thành 12px và vỡ layout.
-
-     Thang 4px của Tailwind đã trùng khít thang trong design doc, nên dùng thẳng
-     thang số. Bảng quy đổi:
-       xxs 2px  → 0.5      2xl 24px → 6
-       xs  4px  → 1        3xl 32px → 8
-       sm  8px  → 2        4xl 40px → 10
-       md  12px → 3        5xl 48px → 12
-       lg  16px → 4        6xl 64px → 16
-       xl  20px → 5
-     Ví dụ: padding card `{spacing.2xl}` = `p-6`; padding band `{spacing.5xl}` = `py-12`. */
+     Giữ thang số 4px của Tailwind (trùng thang MongoDB), KHÔNG đặt token tên
+     `--spacing-sm/md/...` vì trùng tên size dựng sẵn của Tailwind (làm vỡ max-w-md).
+     Quy đổi: xs 8px→2 · sm 12px→3 · md 16px→4 · lg 20px→5 · xl 24px→6 ·
+     xxl 32px→8 · section 64px→16 · hero 120px→30. */
   --spacing: 4px;
 
-  /* ---- Độ nổi ----
-     Elevation của brand là hairline, không phải đổ bóng. Chỉ dùng glow cho hover/
-     featured và modal cho dialog. Không thêm drop-shadow mềm lên card.
-     Thẻ đăng nhập/đăng ký tính là dialog: nó là bề mặt duy nhất trên trang và
-     nhận toàn bộ tương tác, nên dùng `shadow-modal` — KHÔNG tự chế shadow mới. */
-  --shadow-glow: 0 0 15px rgba(92, 88, 85, 0.2);
-  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(148, 163, 184, 0.1);
+  /* ---- Độ nổi (MongoDB elevation, tông teal) ----
+     Khác Voltagent (vốn cấm đổ bóng): hệ mới CÓ dùng shadow nhẹ. */
+  --shadow-glow: rgba(0, 30, 43, 0.04) 0 1px 2px 0; /* level 1 — hover */
+  --shadow-card: rgba(0, 30, 43, 0.08) 0 4px 12px 0; /* level 2 — feature card */
+  --shadow-modal: rgba(0, 30, 43, 0.16) 0 16px 48px -8px; /* level 4 — modal/dropdown */
 
   /* ---- Container ---- */
   --container-band: 1280px;
-  /* Thẻ đứng một mình giữa trang (đăng nhập, đăng ký). Rộng hơn `max-w-md`
-     (448px) của Tailwind để form nhiều trường không bị bó. */
   --container-auth-card: 480px;
 }
 
@@ -188,8 +203,6 @@
     font-family: var(--font-sans);
     font-size: var(--text-body-md);
     line-height: var(--text-body-md--line-height);
-    /* Ligature theo brand: Inter cần calt + rlig để hiển thị đúng. */
-    font-feature-settings: 'calt', 'rlig';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -201,8 +214,7 @@
     font-family: var(--font-mono);
   }
 
-  /* Focus nhìn thấy được ở mọi nơi — yêu cầu WCAG 2.4.7. Component có thể ghi đè
-     bằng ring, nhưng không được xoá hẳn. */
+  /* Focus nhìn thấy được ở mọi nơi — WCAG 2.4.7. */
   :where(a, button, input, select, textarea, [tabindex]):focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
@@ -214,40 +226,17 @@
   }
 }
 
-/* Đường kẻ đứt giữa các band — dấu nhịp trang trí duy nhất của brand. */
-@utility divider-dashed {
-  border-top: 1px dashed rgba(79, 93, 117, 0.4);
-}
-
-/* Hero co từ 60px xuống 32px ở mobile theo đúng breakpoint của design doc. */
-@utility text-display-hero {
-  font-size: 32px;
-  line-height: 36px;
-  letter-spacing: -0.4px;
-  font-weight: 400;
-  @media (width >= 48rem) {
-    font-size: 60px;
-    line-height: 60px;
-    letter-spacing: -0.65px;
-  }
-}
-
 /* ==========================================================================
    GHI ĐÈ ANGULAR MATERIAL
-
-   `mat.theme()` trong material-theme.scss sinh ra bộ biến `--mat-sys-*`. Mọi
-   component Material đọc các biến này, nên ánh xạ chúng sang token Nexus là đủ
-   để cả thư viện mang diện mạo Voltagent — không phải đụng vào từng component.
-
-   Ánh xạ tay thay vì để M3 tự nội suy palette từ #00d992: brand chỉ có đúng một
-   màu nhấn và ba mức xám, còn M3 sẽ đẻ ra hàng chục sắc độ không có trong doc.
+   `mat.theme()` sinh ra bộ biến `--mat-sys-*`; ánh xạ chúng sang token Nexus để
+   cả thư viện mang diện mạo NexusCord. Nút Material dùng corner-full (pill).
    ========================================================================== */
 
 html {
   /* ---- Màu nhấn ---- */
   --mat-sys-primary: var(--color-primary);
   --mat-sys-on-primary: var(--color-on-primary);
-  --mat-sys-primary-container: var(--color-canvas-soft);
+  --mat-sys-primary-container: var(--color-surface);
   --mat-sys-on-primary-container: var(--color-ink);
   --mat-sys-secondary: var(--color-primary-soft);
   --mat-sys-on-secondary: var(--color-on-primary);
@@ -260,20 +249,18 @@ html {
   --mat-sys-surface: var(--color-canvas);
   --mat-sys-on-surface: var(--color-ink);
   --mat-sys-surface-dim: var(--color-canvas);
-  --mat-sys-surface-bright: var(--color-canvas-soft);
+  --mat-sys-surface-bright: var(--color-surface-feature);
   --mat-sys-surface-container-lowest: var(--color-canvas);
-  --mat-sys-surface-container-low: var(--color-canvas);
-  --mat-sys-surface-container: var(--color-canvas-soft);
-  --mat-sys-surface-container-high: var(--color-canvas-soft);
-  --mat-sys-surface-container-highest: var(--color-canvas-soft);
-  --mat-sys-surface-variant: var(--color-canvas-soft);
-  --mat-sys-on-surface-variant: var(--color-body);
+  --mat-sys-surface-container-low: var(--color-surface);
+  --mat-sys-surface-container: var(--color-surface);
+  --mat-sys-surface-container-high: var(--color-surface-soft);
+  --mat-sys-surface-container-highest: var(--color-surface-feature);
+  --mat-sys-surface-variant: var(--color-surface-soft);
+  --mat-sys-on-surface-variant: var(--color-slate);
   --mat-sys-inverse-surface: var(--color-ink);
   --mat-sys-inverse-on-surface: var(--color-canvas);
 
-  /* ---- Viền ----
-     outline dành cho thành phần tương tác nên phải là hairline-strong (3.65:1);
-     outline-variant chỉ là đường kẻ trang trí nên dùng hairline. */
+  /* ---- Viền ---- */
   --mat-sys-outline: var(--color-hairline-strong);
   --mat-sys-outline-variant: var(--color-hairline);
 
@@ -283,22 +270,20 @@ html {
   --mat-sys-error-container: var(--color-danger-surface);
   --mat-sys-on-error-container: var(--color-ink);
 
-  /* ---- Độ nổi ----
-     Brand dựng chiều sâu bằng hairline, KHÔNG bằng đổ bóng ("Don't drop a soft
-     drop-shadow on cards" — DESIGN-voltagent.md). Material mặc định gắn 5 mức
-     box-shadow; tắt hết, chỉ giữ mức cao nhất cho dialog. */
+  /* ---- Độ nổi ---- */
   --mat-sys-level0: none;
   --mat-sys-level1: none;
-  --mat-sys-level2: none;
-  --mat-sys-level3: none;
-  --mat-sys-level4: none;
+  --mat-sys-level2: var(--shadow-card);
+  --mat-sys-level3: var(--shadow-card);
+  --mat-sys-level4: var(--shadow-modal);
   --mat-sys-level5: var(--shadow-modal);
 
-  /* ---- Bo góc ---- nút 6px, card 8px (thang của brand, không phải thang M3) */
+  /* ---- Bo góc ---- nút pill (full) · card 12px · input 8px ---- */
   --mat-sys-corner-extra-small: var(--radius-xs);
   --mat-sys-corner-small: var(--radius-sm);
   --mat-sys-corner-medium: var(--radius-md);
-  --mat-sys-corner-large: var(--radius-md);
+  --mat-sys-corner-large: var(--radius-lg);
+  --mat-sys-corner-full: var(--radius-full);
 }
 
 /* Material tự đặt focus ring riêng; giữ ring xanh chung của Nexus cho nhất quán. */
@@ -311,15 +296,19 @@ html {
 /* ==========================================================================
    GHI CHÚ CHO TEAM
 
-   1. Inter và Material Icons đã được tự host qua npm (@fontsource/inter,
-      material-icons) và import ở đầu file này. `ng add @angular/material` sẽ
-      chèn lại link CDN Google Fonts vào index.html mỗi lần chạy — nhớ gỡ.
+   1. Font tự host qua @fontsource (manrope, source-code-pro) + material-icons.
+      `ng add @angular/material` chèn lại link CDN Google Fonts vào index.html —
+      nhớ gỡ mỗi lần chạy.
 
-   2. Palette mặc định của Tailwind đã bị xoá. `bg-slate-900` sẽ KHÔNG hoạt động.
-      Cần màu mới thì thêm token vào @theme ở trên, đừng hardcode trong component.
+   2. Palette mặc định Tailwind đã bị xoá. Cần màu mới → thêm token vào @theme,
+      đừng hardcode hex trong component.
 
-   3. Viền: dùng `border-hairline` cho card trang trí, `border-hairline-strong`
-      cho input/nút/mọi thứ bấm được (đạt tương phản 3:1).
+   3. Viền: `border-hairline` cho trang trí, `border-hairline-strong` cho mọi thứ
+      bấm được (đạt 3:1).
 
-   4. Không dùng `text-primary` cho chữ thân bài — xanh chỉ dành cho CTA và trạng thái.
+   4. Nút LUÔN pill (`rounded-full`); badge trạng thái cũng pill. Card `rounded-lg`
+      (12px). Xanh brand chỉ cho CTA + chỉ báo trạng thái, không dùng làm chữ thân bài.
+
+   5. Chưa có light mode. Khi thêm: chỉ đổi khối `--color-*` theo
+      :root[data-theme='light'], phần còn lại giữ nguyên.
    ========================================================================== */

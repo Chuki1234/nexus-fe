@@ -21,15 +21,15 @@ html {
         tertiary: mat.$green-palette,
         theme-type: dark,
       ),
-      // Inter là một phần giọng thương hiệu, không thay bằng Roboto.
+      // Manrope thay cho Euclid Circular A (NexusCord Hybrid) — không dùng Roboto.
       typography: (
           plain-family: (
-            Inter,
+            Manrope,
             system-ui,
             sans-serif,
           ),
           brand-family: (
-            Inter,
+            Manrope,
             system-ui,
             sans-serif,
           ),

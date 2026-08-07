@@ -51,6 +51,6 @@ describe('SearchField', () => {
     const box = fixture.nativeElement.querySelector('div') as HTMLElement;
 
     expect(box.className).toContain('rounded-sm');
-    expect(box.className).not.toContain('rounded-pill');
+    expect(box.className).not.toContain('rounded-full');
   });
 });

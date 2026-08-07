@@ -1,11 +1,11 @@
 <mat-toolbar class="!border-b !border-hairline !px-4">
-  <mat-icon aria-hidden="true" class="!mr-2 text-mute">{{ leadingIcon() }}</mat-icon>
+  <mat-icon aria-hidden="true" class="!mr-2 text-steel">{{ leadingIcon() }}</mat-icon>
 
-  <h1 class="truncate text-body-md-strong text-ink-strong">{{ title() }}</h1>
+  <h1 class="truncate text-body-md-medium text-ink">{{ title() }}</h1>
 
   @if (subtitle(); as text) {
     <span aria-hidden="true" class="mx-3 h-5 w-px shrink-0 bg-hairline"></span>
-    <p class="truncate text-body-sm text-mute">{{ text }}</p>
+    <p class="truncate text-body-sm text-steel">{{ text }}</p>
   }
 
   <span class="flex-1"></span>

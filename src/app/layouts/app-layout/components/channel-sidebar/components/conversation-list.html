@@ -9,7 +9,7 @@
     [attr.aria-current]="friends.isActive ? 'page' : null"
   >
     <mat-icon matListItemIcon aria-hidden="true">group</mat-icon>
-    <span matListItemTitle [class.text-ink-strong]="friends.isActive">Bạn bè</span>
+    <span matListItemTitle [class.text-ink]="friends.isActive">Bạn bè</span>
   </a>
 </mat-nav-list>
 
@@ -19,7 +19,7 @@
     type="button"
     disabled
     matTooltip="Tạo tin nhắn (chưa làm)"
-    class="rounded-xs text-mute disabled:cursor-not-allowed"
+    class="rounded-xs text-steel disabled:cursor-not-allowed"
   >
     <mat-icon aria-hidden="true" class="!size-4 !text-base">add</mat-icon>
     <span class="sr-only">Tạo tin nhắn mới</span>
@@ -42,9 +42,9 @@
         [name]="conversation.name"
         [presence]="conversation.presence"
         size="sm"
-        ring="canvas-soft"
+        ring="surface"
       />
-      <span matListItemTitle [class.text-ink-strong]="link.isActive || conversation.unread">
+      <span matListItemTitle [class.text-ink]="link.isActive || conversation.unread">
         {{ conversation.name }}
       </span>
       @if (conversation.statusMessage) {
@@ -52,6 +52,6 @@
       }
     </a>
   } @empty {
-    <p class="px-2 py-4 text-body-sm text-mute">Chưa có cuộc trò chuyện nào.</p>
+    <p class="px-2 py-4 text-body-sm text-steel">Chưa có cuộc trò chuyện nào.</p>
   }
 </mat-nav-list>

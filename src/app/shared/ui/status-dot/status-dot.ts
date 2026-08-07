@@ -5,7 +5,7 @@ import { PRESENCE_LABEL, type PresenceStatus } from '../../../../shared/dto/comm
  *  "primary chỉ cho CTA và chỉ báo trạng thái sống" trong DESIGN-voltagent.md. */
 const FILL: Record<PresenceStatus, string> = {
   online: 'bg-primary',
-  idle: 'bg-mute',
+  idle: 'bg-steel',
   dnd: 'bg-danger',
   offline: 'bg-hairline-strong',
 };
@@ -33,16 +33,14 @@ export class StatusDot {
   readonly presence = input.required<PresenceStatus>();
   readonly size = input<'sm' | 'md' | 'lg'>('md');
   /** Nền bao quanh chấm. 'none' khi chấm đứng riêng, không đè lên gì. */
-  readonly ring = input<'canvas' | 'canvas-soft' | 'none'>('none');
+  readonly ring = input<'canvas' | 'surface' | 'none'>('none');
 
   protected readonly label = computed(() => PRESENCE_LABEL[this.presence()]);
 
   protected readonly classes = computed(() => {
     const ring = this.ring();
     const border =
-      ring === 'none'
-        ? ''
-        : `border-2 ${ring === 'canvas' ? 'border-canvas' : 'border-canvas-soft'}`;
+      ring === 'none' ? '' : `border-2 ${ring === 'canvas' ? 'border-canvas' : 'border-surface'}`;
     return `block rounded-full ${SIZE[this.size()]} ${FILL[this.presence()]} ${border}`;
   });
 }

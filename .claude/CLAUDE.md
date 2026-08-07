@@ -86,7 +86,11 @@ One question decides where a component goes:
 - A page file only assembles children and reads route data. It must not hold detailed
   markup. Past ~80 lines is the signal to split.
 - Never hardcode a hex colour or px value when `styles.css` has a token. The token
-  set comes from `DESIGN-voltagent.md` — that file, not Material's defaults, is the
-  design system.
+  set comes from `DESIGN-nexuscord-hybrid.md` (supersedes the old `DESIGN-voltagent.md`)
+  — that file, not Material's defaults, is the design system. Currently only **dark
+  mode** is wired (MongoDB deep-teal); light mode (Starbucks) is a later phase.
+- Buttons and status badges are **pill** (`rounded-full`); cards are `rounded-lg` (12px).
+  Text tokens use the new scale (`heading-1..5`, `body-md`, `caption`, `micro-uppercase`);
+  colour tokens use `charcoal/slate/steel/stone`, `surface/surface-soft`, `brand-green`.
 - Cross-backend types go in `src/shared/` (mirrored byte-for-byte into `nexus-be`;
   run `npm run check:shared`). Note this is `src/shared/`, distinct from `src/app/shared/ui/`.

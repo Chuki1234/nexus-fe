@@ -9,13 +9,13 @@
   class="relative flex size-12 items-center justify-center rounded-md transition-colors"
   [class.bg-primary]="dmLink.isActive"
   [class.text-on-primary]="dmLink.isActive"
-  [class.bg-canvas-soft]="!dmLink.isActive"
+  [class.bg-surface]="!dmLink.isActive"
   [class.text-ink]="!dmLink.isActive"
 >
   <mat-icon aria-hidden="true">forum</mat-icon>
   <span class="sr-only">Tin nhắn trực tiếp</span>
   @if (dmLink.isActive) {
-    <span aria-hidden="true" class="absolute -left-3 h-10 w-1 rounded-pill bg-primary"></span>
+    <span aria-hidden="true" class="absolute -left-3 h-10 w-1 rounded-full bg-primary"></span>
   }
 </a>
 
@@ -31,7 +31,7 @@
         [matTooltip]="server.name"
         matTooltipPosition="right"
         [attr.aria-current]="serverLink.isActive ? 'page' : null"
-        class="flex size-12 items-center justify-center rounded-md bg-canvas-soft text-body-md-strong text-ink transition-colors hover:bg-primary hover:text-on-primary"
+        class="flex size-12 items-center justify-center rounded-md bg-surface text-body-md-medium text-ink transition-colors hover:bg-primary hover:text-on-primary"
         [class.ring-2]="serverLink.isActive"
         [class.ring-primary]="serverLink.isActive"
       >
@@ -41,7 +41,7 @@
       @if (serverLink.isActive) {
         <span
           aria-hidden="true"
-          class="absolute top-1 -left-3 h-10 w-1 rounded-pill bg-primary"
+          class="absolute top-1 -left-3 h-10 w-1 rounded-full bg-primary"
         ></span>
       } @else if (server.unread) {
         <span aria-hidden="true" class="absolute top-5 -left-3 size-2 rounded-full bg-ink"></span>
@@ -62,7 +62,7 @@
   disabled
   matTooltip="Thêm máy chủ (chưa làm)"
   matTooltipPosition="right"
-  class="flex size-12 items-center justify-center rounded-md bg-canvas-soft text-primary transition-colors disabled:cursor-not-allowed disabled:text-mute"
+  class="flex size-12 items-center justify-center rounded-md bg-surface text-primary transition-colors disabled:cursor-not-allowed disabled:text-steel"
 >
   <mat-icon aria-hidden="true">add</mat-icon>
   <span class="sr-only">Thêm máy chủ</span>

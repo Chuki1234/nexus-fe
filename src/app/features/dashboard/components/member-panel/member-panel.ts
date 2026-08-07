@@ -18,7 +18,7 @@ import { SectionLabel } from '../../../../shared/ui/section-label/section-label'
   selector: 'app-member-panel',
   imports: [Avatar, MatButtonModule, MatChipsModule, MatDividerModule, SectionLabel],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex h-full w-84 shrink-0 flex-col overflow-y-auto bg-canvas-soft' },
+  host: { class: 'flex h-full w-84 shrink-0 flex-col overflow-y-auto bg-surface' },
   templateUrl: './member-panel.html',
   styleUrl: './member-panel.css',
 })

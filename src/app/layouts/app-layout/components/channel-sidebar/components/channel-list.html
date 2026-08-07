@@ -12,7 +12,7 @@
         [attr.aria-current]="link.isActive ? 'page' : null"
       >
         <mat-icon matListItemIcon aria-hidden="true">{{ group.icon }}</mat-icon>
-        <span matListItemTitle [class.text-ink-strong]="link.isActive || channel.unread">
+        <span matListItemTitle [class.text-ink]="link.isActive || channel.unread">
           {{ channel.name }}
         </span>
         <app-unread-badge
@@ -24,5 +24,5 @@
     }
   </mat-nav-list>
 } @empty {
-  <p class="px-2 py-4 text-body-sm text-mute">Server này chưa có kênh nào.</p>
+  <p class="px-2 py-4 text-body-sm text-steel">Server này chưa có kênh nào.</p>
 }
