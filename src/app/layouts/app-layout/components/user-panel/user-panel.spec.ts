@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
-import { ProfileService } from '../../core/profile/profile.service';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { ProfileService } from '../../../../core/profile/profile.service';
 import { UserPanel } from './user-panel';
 
 class AuthStub {

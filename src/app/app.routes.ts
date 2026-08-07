@@ -9,12 +9,13 @@ export const routes: Routes = [
   {
     path: 'channels',
     canActivate: [authGuard, profileGuard],
-    loadChildren: () => import('./pages/dashboard/dashboard.routes').then((m) => m.dashboardRoutes),
+    loadChildren: () =>
+      import('./features/dashboard/dashboard.routes').then((m) => m.dashboardRoutes),
   },
 
   {
     path: '',
-    loadChildren: () => import('./pages/auth/auth.routes').then((m) => m.authRoutes),
+    loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),
   },
 
   // Trỏ thẳng tới Dashboard chứ không về '': Angular chỉ áp một lần chuyển hướng

@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
-import { CallbackPage } from './callback.page';
+import { CallbackPage } from './callback';
 
 class AuthServiceStub {
   readonly authenticated = signal(false);

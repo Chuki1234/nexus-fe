@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { ShellData } from '../../core/api/shell-data';
-import { SearchField } from '../../ui/search-field/search-field';
+import { ShellData } from '../../../../core/api/shell-data';
+import { SearchField } from '../../../../shared/ui/search-field/search-field';
 import { UserPanel } from '../user-panel/user-panel';
 import { ChannelList } from './components/channel-list';
 import { ConversationList } from './components/conversation-list';

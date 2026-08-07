@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { AuthError } from '@supabase/supabase-js';
 import { AuthService } from '../../../core/auth/auth.service';
-import { ForgotPasswordPage } from './forgot-password.page';
+import { ForgotPasswordPage } from './forgot-password';
 
 class AuthServiceStub {
   sendPasswordResetCode = vi.fn().mockResolvedValue(undefined);

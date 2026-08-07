@@ -36,8 +36,8 @@ type Step = 'email' | 'code' | 'password';
 @Component({
   selector: 'app-forgot-password-page',
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './forgot-password.page.html',
-  styleUrl: './forgot-password.page.css',
+  templateUrl: './forgot-password.html',
+  styleUrl: './forgot-password.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ForgotPasswordPage {

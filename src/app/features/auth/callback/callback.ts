@@ -19,8 +19,8 @@ import { AuthService } from '../../../core/auth/auth.service';
 @Component({
   selector: 'app-callback-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './callback.page.html',
-  styleUrl: './callback.page.css',
+  templateUrl: './callback.html',
+  styleUrl: './callback.css',
 })
 export class CallbackPage {
   private readonly auth = inject(AuthService);

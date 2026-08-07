@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { ConversationPage } from './conversation.page';
+import { ConversationPage } from './conversation';
 
 describe('ConversationPage', () => {
   const mount = async (id: string) => {

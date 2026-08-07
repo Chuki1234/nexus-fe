@@ -4,9 +4,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
-import { ProfileService } from '../../core/profile/profile.service';
-import { Avatar } from '../../ui/avatar/avatar';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { ProfileService } from '../../../../core/profile/profile.service';
+import { Avatar } from '../../../../shared/ui/avatar/avatar';
 
 /**
  * Khối người dùng ở đáy cột 2: avatar, tên, và các nút mic / tai nghe / cài đặt.

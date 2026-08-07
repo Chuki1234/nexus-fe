@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { PRESENCE_LABEL, type PresenceStatus } from '../../../shared/dto/common';
+import { PRESENCE_LABEL, type PresenceStatus } from '../../../../shared/dto/common';
 
 /** Màu theo trạng thái. Xanh brand chỉ dành cho "đang trực tuyến" — đúng luật
  *  "primary chỉ cho CTA và chỉ báo trạng thái sống" trong DESIGN-voltagent.md. */

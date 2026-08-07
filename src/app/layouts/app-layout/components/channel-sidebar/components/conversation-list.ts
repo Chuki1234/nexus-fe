@@ -3,9 +3,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { ShellData } from '../../../core/api/shell-data';
-import { Avatar } from '../../../ui/avatar/avatar';
-import { SectionLabel } from '../../../ui/section-label/section-label';
+import { ShellData } from '../../../../../core/api/shell-data';
+import { Avatar } from '../../../../../shared/ui/avatar/avatar';
+import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
 
 /**
  * Danh sách tin nhắn riêng — nội dung cột 2 khi ở khu `/channels/@me`.

@@ -7,8 +7,8 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
-import { ChannelSidebar } from '../channel-sidebar/channel-sidebar';
-import { ServerRail } from '../server-rail/server-rail';
+import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
+import { ServerRail } from './components/server-rail/server-rail';
 
 /**
  * Khung Dashboard — nơi ba trang còn lại (Profile, Setting, và các trang chat)
@@ -30,10 +30,10 @@ import { ServerRail } from '../server-rail/server-rail';
     ServerRail,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styleUrl: './dashboard-shell.css',
-  templateUrl: './dashboard-shell.html',
+  styleUrl: './app-layout.css',
+  templateUrl: './app-layout.html',
 })
-export class DashboardShell {
+export class AppLayout {
   private readonly breakpoints = inject(BreakpointObserver);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);

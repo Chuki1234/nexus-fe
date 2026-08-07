@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { ShellData } from '../../../core/api/shell-data';
-import { SectionLabel } from '../../../ui/section-label/section-label';
-import { UnreadBadge } from '../../../ui/unread-badge/unread-badge';
+import { ShellData } from '../../../../../core/api/shell-data';
+import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
+import { UnreadBadge } from '../../../../../shared/ui/unread-badge/unread-badge';
 
 /** Nhãn nhóm theo loại kênh. Thứ tự trong mảng là thứ tự hiển thị. */
 const GROUPS = [

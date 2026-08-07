@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { ChannelPage } from './channel.page';
+import { ChannelPage } from './channel';
 
 describe('ChannelPage', () => {
   const mount = async (path: string) => {

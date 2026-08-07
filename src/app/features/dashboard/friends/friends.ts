@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ShellData } from '../../../core/api/shell-data';
-import { EmptyState } from '../../../ui/empty-state/empty-state';
-import { SearchField } from '../../../ui/search-field/search-field';
-import { SectionLabel } from '../../../ui/section-label/section-label';
+import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
+import { SearchField } from '../../../shared/ui/search-field/search-field';
+import { SectionLabel } from '../../../shared/ui/section-label/section-label';
 import { FriendRow } from './components/friend-row';
 import { FriendsToolbar, type FriendsTab } from './components/friends-toolbar';
 
@@ -16,8 +16,8 @@ import { FriendsToolbar, type FriendsTab } from './components/friends-toolbar';
   imports: [EmptyState, FriendRow, FriendsToolbar, SearchField, SectionLabel],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col' },
-  templateUrl: './friends.page.html',
-  styleUrl: './friends.page.css',
+  templateUrl: './friends.html',
+  styleUrl: './friends.css',
 })
 export class FriendsPage {
   private readonly shell = inject(ShellData);

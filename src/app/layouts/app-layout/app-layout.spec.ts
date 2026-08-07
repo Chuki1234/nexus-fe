@@ -3,7 +3,7 @@ import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
-import { dashboardRoutes } from '../../pages/dashboard/dashboard.routes';
+import { dashboardRoutes } from '../../features/dashboard/dashboard.routes';
 
 class AuthServiceStub {
   whenReady = () => Promise.resolve();
@@ -25,7 +25,7 @@ class ProfileServiceStub {
   reset = () => undefined;
 }
 
-describe('DashboardShell', () => {
+describe('AppLayout', () => {
   let harness: RouterTestingHarness;
 
   const text = () => harness.routeNativeElement!.ownerDocument.body.textContent ?? '';

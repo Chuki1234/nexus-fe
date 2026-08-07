@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { UnreadBadge } from '../../ui/unread-badge/unread-badge';
-import { ShellData } from '../../core/api/shell-data';
+import { UnreadBadge } from '../../../../shared/ui/unread-badge/unread-badge';
+import { ShellData } from '../../../../core/api/shell-data';
 
 /**
  * Cột 1 — dải icon server dọc mép trái.

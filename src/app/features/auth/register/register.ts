@@ -11,8 +11,8 @@ type TextField = 'email' | 'displayName' | 'username' | 'password';
 @Component({
   selector: 'app-register-page',
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './register.page.html',
-  styleUrl: './register.page.css',
+  templateUrl: './register.html',
+  styleUrl: './register.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegisterPage {

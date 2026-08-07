@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { EmptyState } from '../../../ui/empty-state/empty-state';
+import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 
 /**
  * `/channels/:serverId` — đã chọn server nhưng chưa chọn kênh.
@@ -12,7 +12,7 @@ import { EmptyState } from '../../../ui/empty-state/empty-state';
   imports: [EmptyState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block h-full' },
-  templateUrl: './server-home.page.html',
-  styleUrl: './server-home.page.css',
+  templateUrl: './server-home.html',
+  styleUrl: './server-home.css',
 })
 export class ServerHomePage {}

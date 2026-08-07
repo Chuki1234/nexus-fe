@@ -5,8 +5,8 @@ import { map } from 'rxjs';
 import { ChatToolbar } from '../components/chat-toolbar/chat-toolbar';
 import { MessageComposer } from '../components/message-composer/message-composer';
 import { ShellData } from '../../../core/api/shell-data';
-import { EmptyState } from '../../../ui/empty-state/empty-state';
-import { SectionLabel } from '../../../ui/section-label/section-label';
+import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
+import { SectionLabel } from '../../../shared/ui/section-label/section-label';
 
 /** Kênh trong server — `/channels/:serverId/:channelId`. */
 @Component({
@@ -14,8 +14,8 @@ import { SectionLabel } from '../../../ui/section-label/section-label';
   imports: [ChatToolbar, EmptyState, MessageComposer, SectionLabel],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col' },
-  templateUrl: './channel.page.html',
-  styleUrl: './channel.page.css',
+  templateUrl: './channel.html',
+  styleUrl: './channel.css',
 })
 export class ChannelPage {
   private readonly route = inject(ActivatedRoute);

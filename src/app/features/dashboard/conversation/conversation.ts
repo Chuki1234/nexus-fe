@@ -6,8 +6,8 @@ import { ChatToolbar } from '../components/chat-toolbar/chat-toolbar';
 import { MemberPanel } from '../components/member-panel/member-panel';
 import { MessageComposer } from '../components/message-composer/message-composer';
 import { ShellData } from '../../../core/api/shell-data';
-import { Avatar } from '../../../ui/avatar/avatar';
-import { EmptyState } from '../../../ui/empty-state/empty-state';
+import { Avatar } from '../../../shared/ui/avatar/avatar';
+import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 
 /** Tin nhắn riêng — `/channels/@me/:conversationId`. */
 @Component({
@@ -15,8 +15,8 @@ import { EmptyState } from '../../../ui/empty-state/empty-state';
   imports: [Avatar, ChatToolbar, EmptyState, MemberPanel, MessageComposer],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col' },
-  templateUrl: './conversation.page.html',
-  styleUrl: './conversation.page.css',
+  templateUrl: './conversation.html',
+  styleUrl: './conversation.css',
 })
 export class ConversationPage {
   private readonly route = inject(ActivatedRoute);

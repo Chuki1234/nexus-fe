@@ -3,8 +3,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import type { PresenceStatus } from '../../../../../shared/dto/common';
-import { Avatar } from '../../../../ui/avatar/avatar';
-import { SectionLabel } from '../../../../ui/section-label/section-label';
+import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import { SectionLabel } from '../../../../shared/ui/section-label/section-label';
 
 /**
  * Cột 4 — thẻ hồ sơ người đang trò chuyện (ảnh 3 trong tài liệu phân tích).

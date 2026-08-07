@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
-import type { PresenceStatus } from '../../../shared/dto/common';
+import type { PresenceStatus } from '../../../../shared/dto/common';
 import { StatusDot } from '../status-dot/status-dot';
 
 type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';

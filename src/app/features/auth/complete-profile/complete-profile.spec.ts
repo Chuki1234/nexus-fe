@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ProfileService } from '../../../core/profile/profile.service';
-import { CompleteProfilePage } from './complete-profile.page';
+import { CompleteProfilePage } from './complete-profile';
 
 class ProfileServiceStub {
   complete = vi.fn().mockResolvedValue(undefined);

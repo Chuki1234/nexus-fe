@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ServerHomePage } from './server-home.page';
+import { ServerHomePage } from './server-home';
 
 describe('ServerHomePage', () => {
   it('mời người dùng chọn một kênh thay vì để trống', async () => {

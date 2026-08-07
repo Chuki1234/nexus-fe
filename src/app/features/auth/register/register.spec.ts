@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { RegistrationService } from '../services/registration.service';
-import { RegisterPage } from './register.page';
+import { RegisterPage } from './register';
 
 class RegistrationServiceStub {
   register = vi.fn().mockResolvedValue({ id: 'u1' });

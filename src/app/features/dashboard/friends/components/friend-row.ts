@@ -3,7 +3,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { PRESENCE_LABEL } from '../../../../../shared/dto/common';
 import type { ConversationSummary } from '../../../../core/api/shell-data';
-import { Avatar } from '../../../../ui/avatar/avatar';
+import { Avatar } from '../../../../shared/ui/avatar/avatar';
 
 /**
  * Một hàng trong danh sách bạn bè.

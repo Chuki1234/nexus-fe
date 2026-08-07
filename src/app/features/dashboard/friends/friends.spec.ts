@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { FriendsPage } from './friends.page';
+import { FriendsPage } from './friends';
 
 describe('FriendsPage', () => {
   const mount = async () => {
