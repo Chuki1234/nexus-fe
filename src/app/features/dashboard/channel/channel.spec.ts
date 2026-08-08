@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -34,11 +35,15 @@ const SHELL_STUB = {
 };
 
 describe('ChannelPage', () => {
-  const mount = async (path: string) => {
+  const mount = async (path: string, demo = false) => {
+    const shell = {
+      ...SHELL_STUB,
+      demoEnabled: signal(demo).asReadonly(),
+    };
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'c/:serverId/:channelId', component: ChannelPage }]),
-        { provide: ShellData, useValue: SHELL_STUB },
+        { provide: ShellData, useValue: shell },
       ],
     });
     const harness = await RouterTestingHarness.create();
@@ -60,6 +65,16 @@ describe('ChannelPage', () => {
         ?.classList.contains('nexus-scrollbar'),
     ).toBe(true);
     expect(harness.routeNativeElement!.querySelector('.chat-intro')).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('[data-demo-message]')).toBeFalsy();
+  });
+
+  it('chỉ render timeline Nexus Thread khi người dùng chủ động bật demo', async () => {
+    const harness = await mount('itss/do-an', true);
+
+    expect(harness.routeNativeElement!.querySelectorAll('[data-demo-message]')).toHaveLength(3);
+    expect(harness.routeNativeElement!.querySelector('.message-reply')).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('.nexus-unread-divider')).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('.reaction-chip')).toBeTruthy();
   });
 
   it('kênh thoại KHÔNG có ô soạn tin', async () => {

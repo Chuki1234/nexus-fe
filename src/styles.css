@@ -585,6 +585,339 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
   display: none;
 }
 
+/* ===========================================================================
+   DASHBOARD CHAT TIMELINE — Nexus Thread
+   Khóa selector vào hai route chat của Dashboard để Channel và DM dùng chung
+   geometry mà không nhân đôi component CSS hoặc ảnh hưởng trang member khác.
+   ========================================================================== */
+
+:is(app-channel-page, app-conversation-page) .message-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  animation: nexus-message-enter 360ms var(--ease-nexus-out) both;
+}
+
+:is(app-channel-page, app-conversation-page) .message-row:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+:is(app-channel-page, app-conversation-page) .message-row:nth-child(4) {
+  animation-delay: 120ms;
+}
+
+:is(app-channel-page, app-conversation-page) .message-card {
+  position: relative;
+  min-width: 0;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+:is(app-channel-page, app-conversation-page) .message-row:is(:hover, :focus-within) .message-card {
+  background: color-mix(in srgb, var(--color-surface-feature) 68%, var(--color-surface));
+  box-shadow:
+    3px 0 0 color-mix(in srgb, var(--color-primary) 72%, transparent) inset,
+    var(--shadow-card);
+  transform: translateX(2px);
+}
+
+:is(app-channel-page, app-conversation-page) .message-row--compact {
+  margin-top: -0.125rem;
+}
+
+:is(app-channel-page, app-conversation-page) .message-row__compact-time {
+  align-self: center;
+  text-align: right;
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-nexus-out);
+}
+
+:is(app-channel-page, app-conversation-page)
+  .message-row--compact:hover
+  .message-row__compact-time {
+  opacity: 1;
+}
+
+:is(app-channel-page, app-conversation-page) .message-actions {
+  position: absolute;
+  z-index: 2;
+  top: -1.125rem;
+  right: 0.75rem;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-full);
+  background: var(--color-canvas);
+  padding: 0.125rem;
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+:is(app-channel-page, app-conversation-page)
+  .message-row:is(:hover, :focus-within)
+  .message-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+:is(app-channel-page, app-conversation-page) .message-actions button {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-steel);
+}
+
+:is(app-channel-page, app-conversation-page) .message-actions button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+:is(app-channel-page, app-conversation-page) .message-actions mat-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+}
+
+:is(app-channel-page, app-conversation-page) .reaction-chip {
+  display: inline-flex;
+  min-height: 1.75rem;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary-soft) 32%, var(--color-hairline));
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-surface-feature) 72%, var(--color-canvas));
+  padding: 0.125rem 0.625rem;
+  color: var(--color-slate);
+  font-size: var(--text-caption);
+}
+
+:is(app-channel-page, app-conversation-page) .message-reply {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-steel);
+  font-size: var(--text-caption);
+}
+
+:is(app-channel-page, app-conversation-page) .message-reply::before {
+  position: absolute;
+  top: 50%;
+  left: -2.25rem;
+  width: 1.75rem;
+  height: 1rem;
+  border-top: 2px solid var(--color-primary-soft);
+  border-left: 2px solid var(--color-primary-soft);
+  border-radius: var(--radius-md) 0 0 0;
+  content: '';
+}
+
+:is(app-channel-page, app-conversation-page) .message-reply__avatar {
+  display: grid;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
+  font-size: var(--text-micro);
+}
+
+:is(app-channel-page, app-conversation-page) .message-reply strong {
+  flex: 0 0 auto;
+  color: var(--color-slate);
+  font-weight: 600;
+}
+
+:is(app-channel-page, app-conversation-page) .nexus-unread-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-primary-soft);
+  font-size: var(--text-micro);
+  font-weight: 600;
+}
+
+:is(app-channel-page, app-conversation-page) .nexus-unread-divider::before,
+:is(app-channel-page, app-conversation-page) .nexus-unread-divider::after {
+  height: 2px;
+  flex: 1 1 auto;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-primary-soft) 64%, transparent);
+  content: '';
+}
+
+@keyframes nexus-message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Command Center render qua CDK overlay ngoài app-server-rail, nên scope bằng đúng
+   panel class của dialog thay vì để rule toàn cục trôi sang modal khác. */
+.nexus-add-server-dialog .command-center {
+  display: flex;
+  min-height: min(34rem, calc(100dvh - 2rem));
+  max-height: calc(100dvh - 2rem);
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-canvas);
+}
+
+.nexus-add-server-dialog :is(.command-center__header, .command-center__footer) {
+  flex: 0 0 auto;
+}
+
+.nexus-add-server-dialog .command-center__header {
+  box-shadow: 0 -1px 0 color-mix(in srgb, var(--color-hairline) 72%, transparent) inset;
+}
+
+.nexus-add-server-dialog .command-center__mark {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.nexus-add-server-dialog .command-center__shortcut {
+  align-items: center;
+  min-height: 1.75rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+  padding: 0 0.5rem;
+  color: var(--color-steel);
+  font-size: var(--text-micro);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset;
+}
+
+.nexus-add-server-dialog .command-center__search {
+  border: 1px solid var(--color-hairline-strong);
+  background: var(--color-surface-soft);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+  transition:
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .command-center__search:focus-within {
+  border-color: var(--color-primary-soft);
+  background: var(--color-canvas);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary-soft) 18%, transparent),
+    var(--shadow-card);
+}
+
+.nexus-add-server-dialog .command-center__body {
+  flex: 1 1 auto;
+}
+
+.nexus-add-server-dialog .command-result {
+  color: var(--color-ink);
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .command-result:is(:hover, :focus-visible) {
+  background: var(--color-surface-feature);
+  box-shadow: 3px 0 0 var(--color-primary) inset;
+  transform: translateX(2px);
+}
+
+.nexus-add-server-dialog .command-result__icon {
+  background: color-mix(in srgb, var(--color-surface-soft) 82%, var(--color-canvas));
+  color: var(--color-primary-soft);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset;
+}
+
+.nexus-add-server-dialog .command-result__arrow {
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .command-result:is(:hover, :focus-visible) .command-result__arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.nexus-add-server-dialog .command-center__footer {
+  background: color-mix(in srgb, var(--color-surface-soft) 68%, var(--color-canvas));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-hairline) 72%, transparent) inset;
+}
+
+@media (max-width: 39.999rem) {
+  :is(app-channel-page, app-conversation-page) .message-row {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  :is(app-channel-page, app-conversation-page) .message-card {
+    padding-inline: 0.75rem;
+  }
+
+  :is(app-channel-page, app-conversation-page) .message-actions {
+    position: static;
+    width: fit-content;
+    margin-top: 0.5rem;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  :is(app-channel-page, app-conversation-page) .message-reply::before {
+    left: -1.75rem;
+    width: 1.25rem;
+  }
+
+  .nexus-add-server-dialog .command-result__kind {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(app-channel-page, app-conversation-page) .message-row {
+    animation: none;
+  }
+
+  :is(app-channel-page, app-conversation-page)
+    :is(.message-card, .message-actions, .message-row__compact-time),
+  .nexus-add-server-dialog :is(.command-center__search, .command-result, .command-result__arrow) {
+    transition: none;
+    transform: none;
+  }
+}
+
 /* ==========================================================================
    GHI CHÚ CHO TEAM
 

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostListener, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -8,7 +8,10 @@ import { MatIconModule } from '@angular/material/icon';
   templateUrl: './context-panel.html',
   styleUrl: './context-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'contents' },
+  host: {
+    class: 'contents',
+    '(document:keydown.escape)': 'closeFromKeyboard($event)',
+  },
 })
 export class ContextPanel {
   readonly title = input.required<string>();
@@ -23,7 +26,6 @@ export class ContextPanel {
     }
   }
 
-  @HostListener('document:keydown.escape', ['$event'])
   protected closeFromKeyboard(event: Event): void {
     if (!this.open()) {
       return;

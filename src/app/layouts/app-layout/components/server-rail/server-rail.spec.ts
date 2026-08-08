@@ -63,8 +63,9 @@ describe('ServerRail', () => {
     return {
       servers: signal(servers).asReadonly(),
       serverGroups: signal(serverGroups).asReadonly(),
+      conversations: signal([]).asReadonly(),
       channelsOf: (serverId: string) => channels[serverId] ?? [],
-    } as ShellData;
+    } as unknown as ShellData;
   };
 
   it('tài khoản mới chỉ có lối vào DM, tìm kiếm và thêm server', async () => {
@@ -115,7 +116,55 @@ describe('ServerRail', () => {
     expect(search.getAttribute('aria-label')).toContain('tin nhắn');
     expect(search.getAttribute('aria-label')).toContain('kênh thoại');
     expect(search.getAttribute('aria-label')).toContain('máy chủ');
+    expect(search.getAttribute('aria-keyshortcuts')).toContain('Control+K');
     expect(search.classList.contains('nexus-icon-control')).toBe(true);
+  });
+
+  it('Command Center mở từ rail và lọc server, kênh thoại, DM trong dữ liệu demo', async () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    const fixture = await mount(shell);
+    const search = fixture.nativeElement.querySelector(
+      '[data-action="global-search"]',
+    ) as HTMLButtonElement;
+
+    search.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+    const dialog = documentBody.querySelector('.command-center') as HTMLElement;
+    const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+
+    expect(dialog.textContent).toContain('Nexus Command');
+    expect(dialog.querySelector('[data-command-result="conversation"]')).toBeTruthy();
+    expect(dialog.querySelector('[data-command-result="server"]')).toBeTruthy();
+
+    input.value = 'standup';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(dialog.textContent).toContain('Standup');
+    expect(dialog.querySelector('[data-command-result="voice-channel"]')).toBeTruthy();
+    expect(dialog.querySelectorAll('[data-command-result]')).toHaveLength(1);
+
+    (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
+  });
+
+  it('Ctrl K mở cùng Command Center và user mới nhận hướng dẫn empty thay vì dữ liệu giả', async () => {
+    const fixture = await mount();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+    const dialog = documentBody.querySelector('.command-center') as HTMLElement;
+
+    expect(dialog.textContent).toContain('Không gian của bạn đang trống');
+    expect(dialog.querySelector('[data-command-result]')).toBeNull();
+
+    (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
   });
 
   it('nhóm server thật có thể thu gọn mà server ngoài nhóm vẫn giữ nguyên', async () => {

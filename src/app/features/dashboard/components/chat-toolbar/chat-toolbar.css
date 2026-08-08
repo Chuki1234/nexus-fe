@@ -9,3 +9,20 @@
   z-index: 2;
   box-shadow: 0 1px 0 color-mix(in srgb, var(--color-hairline) 62%, transparent);
 }
+
+.chat-toolbar__identity-icon {
+  position: relative;
+  background: color-mix(in srgb, var(--color-surface-feature) 76%, var(--color-surface));
+  color: var(--color-primary-soft);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset;
+}
+
+.chat-toolbar__identity-icon::before {
+  position: absolute;
+  left: -1rem;
+  width: 0.75rem;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  content: '';
+}

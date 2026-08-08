@@ -11,7 +11,11 @@
   <mat-icon aria-hidden="true">forum</mat-icon>
   <span class="sr-only">Tin nhắn trực tiếp</span>
   @if (dmLink.isActive) {
-    <span aria-hidden="true" class="absolute -left-3 h-6 w-1 rounded-full bg-primary"></span>
+    <span
+      aria-hidden="true"
+      class="nexus-thread-marker absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
+      data-nexus-thread="server-active"
+    ></span>
   }
 </a>
 
@@ -123,7 +127,8 @@
                 @if (groupServerLink.isActive) {
                   <span
                     aria-hidden="true"
-                    class="absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
+                    class="nexus-thread-marker absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
+                    data-nexus-thread="server-active"
                   ></span>
                 } @else if (server.unread) {
                   <span
@@ -203,7 +208,8 @@
       @if (serverLink.isActive) {
         <span
           aria-hidden="true"
-          class="absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
+          class="nexus-thread-marker absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
+          data-nexus-thread="server-active"
         ></span>
       } @else if (server.unread) {
         <span aria-hidden="true" class="absolute top-5 -left-3 size-2 rounded-full bg-ink"></span>
@@ -236,22 +242,131 @@
 
 <button
   type="button"
-  [matMenuTriggerFor]="searchMenu"
+  (click)="openCommandCenter(commandDialog)"
   matTooltip="Tìm tin nhắn, kênh chữ, kênh thoại và máy chủ"
   matTooltipPosition="right"
   aria-label="Tìm tin nhắn, kênh chữ, kênh thoại và máy chủ"
+  aria-keyshortcuts="Control+K Meta+K"
   data-action="global-search"
   class="server-rail-action nexus-icon-control flex size-12 items-center justify-center rounded-full"
 >
   <mat-icon aria-hidden="true">search</mat-icon>
 </button>
 
-<mat-menu #searchMenu="matMenu">
-  <button mat-menu-item type="button" disabled>
-    <mat-icon aria-hidden="true">search_off</mat-icon>
-    <span>Chưa có dữ liệu để tìm kiếm</span>
-  </button>
-</mat-menu>
+<ng-template #commandDialog>
+  <section class="command-center" aria-labelledby="command-center-title">
+    <header class="command-center__header flex items-center gap-3 px-5 pt-5 pb-4">
+      <span
+        class="command-center__mark flex size-10 shrink-0 items-center justify-center rounded-full"
+        aria-hidden="true"
+      >
+        <mat-icon>hub</mat-icon>
+      </span>
+
+      <span class="min-w-0 flex-1">
+        <p class="text-micro-uppercase text-steel">Nexus Command</p>
+        <h2 id="command-center-title" class="text-heading-5 text-ink">Đi tới đúng nơi</h2>
+      </span>
+
+      <kbd class="command-center__shortcut hidden sm:inline-flex">Ctrl K</kbd>
+      <button
+        mat-icon-button
+        mat-dialog-close
+        type="button"
+        class="nexus-icon-control"
+        aria-label="Đóng tìm kiếm"
+      >
+        <mat-icon aria-hidden="true">close</mat-icon>
+      </button>
+    </header>
+
+    <div class="px-5 pb-4">
+      <div class="command-center__search flex h-12 items-center gap-3 rounded-lg px-4">
+        <mat-icon aria-hidden="true" class="text-steel">search</mat-icon>
+        <input
+          type="search"
+          class="command-center__input min-w-0 flex-1 bg-transparent text-body-md text-ink placeholder:text-steel focus:outline-none"
+          placeholder="Máy chủ, kênh hoặc người bạn..."
+          aria-label="Tìm trong NexusCord"
+          autocomplete="off"
+          [value]="commandQuery()"
+          (input)="updateCommandQuery($event)"
+        />
+        @if (commandQuery()) {
+          <button
+            type="button"
+            class="nexus-icon-control flex size-8 items-center justify-center rounded-full"
+            aria-label="Xóa từ khóa"
+            (click)="commandQuery.set('')"
+          >
+            <mat-icon aria-hidden="true" class="!text-lg">close</mat-icon>
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="command-center__body nexus-scrollbar min-h-0 overflow-y-auto px-3 pb-3">
+      @if (commandResults().length > 0) {
+        <p class="px-3 py-2 text-micro-uppercase text-stone">
+          {{ commandQuery() ? 'Kết quả phù hợp' : 'Lối tắt trong không gian của bạn' }}
+        </p>
+
+        <nav aria-label="Kết quả tìm nhanh" class="grid gap-1">
+          @for (result of commandResults(); track result.id) {
+            <a
+              [routerLink]="result.link"
+              mat-dialog-close
+              class="command-result group flex min-h-15 items-center gap-3 rounded-lg px-3 py-2"
+              [attr.data-command-result]="result.kind"
+            >
+              <span
+                class="command-result__icon flex size-10 shrink-0 items-center justify-center rounded-lg"
+                aria-hidden="true"
+              >
+                <mat-icon>{{ result.icon }}</mat-icon>
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-body-sm-medium text-ink">{{ result.label }}</span>
+                <span class="block truncate text-caption text-steel">{{ result.context }}</span>
+              </span>
+              <span class="command-result__kind text-micro text-stone">
+                {{ commandKindLabel(result.kind) }}
+              </span>
+              <mat-icon aria-hidden="true" class="command-result__arrow text-steel">
+                arrow_forward
+              </mat-icon>
+            </a>
+          }
+        </nav>
+      } @else {
+        <div class="command-center__empty flex flex-col items-center px-6 py-10 text-center">
+          <span
+            class="flex size-12 items-center justify-center rounded-full bg-surface-soft text-steel"
+          >
+            <mat-icon aria-hidden="true">travel_explore</mat-icon>
+          </span>
+          <h3 class="mt-4 text-body-md-medium text-ink">
+            {{ commandQuery() ? 'Không tìm thấy nơi phù hợp' : 'Không gian của bạn đang trống' }}
+          </h3>
+          <p class="mt-1 max-w-sm text-body-sm text-slate">
+            @if (commandQuery()) {
+              Thử tên máy chủ, kênh hoặc người bạn khác.
+            } @else {
+              Thêm máy chủ, kết bạn hoặc bật dữ liệu demo để xem Command Center hoạt động.
+            }
+          </p>
+        </div>
+      }
+    </div>
+
+    <footer
+      class="command-center__footer flex items-center gap-2 px-5 py-3 text-caption text-steel"
+    >
+      <mat-icon aria-hidden="true" class="!text-lg">search_activity</mat-icon>
+      <span>Tìm nội dung tin nhắn sẽ xuất hiện khi kết nối backend.</span>
+    </footer>
+  </section>
+</ng-template>
 
 <button
   type="button"

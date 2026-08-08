@@ -24,6 +24,37 @@
   box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
 }
 
+.composer-thread {
+  position: absolute;
+  top: 50%;
+  left: -0.125rem;
+  width: 0.25rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 9%, transparent);
+  transform: translateY(-50%);
+}
+
+.composer-send {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.composer-send:disabled {
+  background: color-mix(in srgb, var(--color-primary) 72%, var(--color-surface));
+  color: var(--color-on-primary);
+  opacity: 1;
+}
+
+.composer-action:disabled {
+  color: var(--color-steel);
+}
+
+.composer-hint {
+  text-wrap: pretty;
+}
+
 @media (max-width: 39.999rem) {
   :host {
     padding-inline: 0.75rem;

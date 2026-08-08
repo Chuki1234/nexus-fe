@@ -5,6 +5,7 @@ import {
   computed,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { CdkDrag, type CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,15 +13,26 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { UnreadBadge } from '../../../../shared/ui/unread-badge/unread-badge';
 import {
+  type ChannelSummary,
+  type ConversationSummary,
   type ServerGroupSummary,
   type ServerSummary,
   ShellData,
 } from '../../../../core/api/shell-data';
+
+interface CommandResult {
+  id: string;
+  icon: string;
+  kind: 'server' | 'text-channel' | 'voice-channel' | 'conversation';
+  label: string;
+  context: string;
+  link: string[];
+  searchableText: string;
+}
 
 /**
  * Cột 1 — dải icon server dọc mép trái.
@@ -44,7 +56,6 @@ import {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatMenuModule,
     MatTooltipModule,
     RouterLink,
     RouterLinkActive,
@@ -53,6 +64,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'flex h-full w-18 shrink-0 flex-col items-center gap-2 overflow-hidden bg-canvas py-3',
+    '(document:keydown)': 'handleGlobalShortcut($event)',
   },
   templateUrl: './server-rail.html',
   styleUrl: './server-rail.css',
@@ -60,12 +72,39 @@ import {
 export class ServerRail {
   private readonly shell = inject(ShellData);
   private readonly dialog = inject(MatDialog);
+  private readonly commandDialog = viewChild.required<TemplateRef<unknown>>('commandDialog');
 
   protected readonly servers = this.shell.servers;
   protected readonly serverGroups = this.shell.serverGroups;
   private readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
   protected readonly activeDropSlot = signal<string | null>(null);
   protected readonly addServerStep = signal<'choose' | 'create' | 'join'>('choose');
+  protected readonly commandQuery = signal('');
+
+  private readonly commandItems = computed<CommandResult[]>(() => {
+    const servers = this.servers();
+    const serverItems = servers.map((server) => this.serverCommand(server));
+    const channelItems = servers.flatMap((server) =>
+      this.shell.channelsOf(server.id).map((channel) => this.channelCommand(server, channel)),
+    );
+    const conversationItems = this.shell
+      .conversations()
+      .map((conversation) => this.conversationCommand(conversation));
+
+    return [...conversationItems, ...serverItems, ...channelItems];
+  });
+
+  protected readonly commandResults = computed(() => {
+    const query = this.normalizeSearch(this.commandQuery());
+    const items = this.commandItems();
+    if (!query) {
+      return items.slice(0, 9);
+    }
+
+    return items
+      .filter((item) => this.normalizeSearch(item.searchableText).includes(query))
+      .slice(0, 12);
+  });
 
   protected readonly ungroupedServers = computed(() => {
     const groupedIds = new Set(this.serverGroups().flatMap((group) => group.serverIds));
@@ -162,6 +201,45 @@ export class ServerRail {
     });
   }
 
+  protected openCommandCenter(template: TemplateRef<unknown> = this.commandDialog()): void {
+    this.commandQuery.set('');
+    this.dialog.open(template, {
+      ariaLabel: 'Tìm nhanh trong NexusCord',
+      autoFocus: '.command-center__input',
+      maxHeight: 'min(42rem, calc(100vh - 2rem))',
+      maxWidth: '42rem',
+      panelClass: 'nexus-add-server-dialog',
+      restoreFocus: true,
+      width: 'calc(100vw - 2rem)',
+    });
+  }
+
+  protected handleGlobalShortcut(event: KeyboardEvent): void {
+    if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'k') {
+      return;
+    }
+
+    event.preventDefault();
+    this.openCommandCenter();
+  }
+
+  protected updateCommandQuery(event: Event): void {
+    this.commandQuery.set((event.target as HTMLInputElement | null)?.value ?? '');
+  }
+
+  protected commandKindLabel(kind: CommandResult['kind']): string {
+    switch (kind) {
+      case 'server':
+        return 'Máy chủ';
+      case 'text-channel':
+        return 'Kênh chữ';
+      case 'voice-channel':
+        return 'Kênh thoại';
+      case 'conversation':
+        return 'Tin nhắn trực tiếp';
+    }
+  }
+
   protected groupMentions(servers: ServerSummary[]): number {
     return servers.reduce((total, server) => total + server.mentionCount, 0);
   }
@@ -180,8 +258,53 @@ export class ServerRail {
    * Mở thẳng kênh đầu tiên thay vì dừng ở trang server rỗng — bấm vào server mà
    * phải bấm thêm một lần nữa mới đọc được gì là thừa một bước.
    */
-  protected linkFor(serverId: string): unknown[] {
+  protected linkFor(serverId: string): string[] {
     const first = this.shell.channelsOf(serverId)[0];
     return first ? ['/channels', serverId, first.id] : ['/channels', serverId];
+  }
+
+  private serverCommand(server: ServerSummary): CommandResult {
+    return {
+      id: `server-${server.id}`,
+      icon: 'dns',
+      kind: 'server',
+      label: server.name,
+      context: server.unread ? 'Có cập nhật mới' : 'Đi tới máy chủ',
+      link: this.linkFor(server.id),
+      searchableText: `${server.name} máy chủ server`,
+    };
+  }
+
+  private channelCommand(server: ServerSummary, channel: ChannelSummary): CommandResult {
+    const voice = channel.type === 'voice';
+    return {
+      id: `channel-${server.id}-${channel.id}`,
+      icon: voice ? 'volume_up' : 'tag',
+      kind: voice ? 'voice-channel' : 'text-channel',
+      label: channel.name,
+      context: server.name,
+      link: ['/channels', server.id, channel.id],
+      searchableText: `${channel.name} ${server.name} ${voice ? 'kênh thoại voice' : 'kênh chữ text'}`,
+    };
+  }
+
+  private conversationCommand(conversation: ConversationSummary): CommandResult {
+    return {
+      id: `conversation-${conversation.id}`,
+      icon: 'alternate_email',
+      kind: 'conversation',
+      label: conversation.name,
+      context: conversation.statusMessage ?? 'Mở cuộc trò chuyện',
+      link: ['/channels', '@me', conversation.id],
+      searchableText: `${conversation.name} ${conversation.statusMessage ?? ''} bạn bè tin nhắn dm`,
+    };
+  }
+
+  private normalizeSearch(value: string): string {
+    return value
+      .trim()
+      .toLocaleLowerCase('vi')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
   }
 }

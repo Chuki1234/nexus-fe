@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -18,11 +19,15 @@ const SHELL_STUB = {
 };
 
 describe('ConversationPage', () => {
-  const mount = async (id: string) => {
+  const mount = async (id: string, demo = false) => {
+    const shell = {
+      ...SHELL_STUB,
+      demoEnabled: signal(demo).asReadonly(),
+    };
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'dm/:conversationId', component: ConversationPage }]),
-        { provide: ShellData, useValue: SHELL_STUB },
+        { provide: ShellData, useValue: shell },
       ],
     });
     const harness = await RouterTestingHarness.create();
@@ -44,6 +49,16 @@ describe('ConversationPage', () => {
         ?.classList.contains('nexus-scrollbar'),
     ).toBe(true);
     expect(harness.routeNativeElement!.querySelector('.chat-intro')).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('[data-demo-message]')).toBeFalsy();
+  });
+
+  it('demo ON hiển thị timeline DM nhưng không thêm panel Profile', async () => {
+    const harness = await mount('ho-be', true);
+
+    expect(harness.routeNativeElement!.querySelectorAll('[data-demo-message]')).toHaveLength(3);
+    expect(harness.routeNativeElement!.querySelector('.message-reply')).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('.nexus-unread-divider')).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('app-context-panel')).toBeNull();
   });
 
   it('không dựng panel hoặc action hồ sơ thuộc ownership của trang Profile', async () => {

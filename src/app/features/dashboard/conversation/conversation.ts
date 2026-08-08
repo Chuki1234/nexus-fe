@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
+import { MatIconModule } from '@angular/material/icon';
 import { ChatToolbar } from '../components/chat-toolbar/chat-toolbar';
 import { MessageComposer } from '../components/message-composer/message-composer';
 import { ShellData } from '../../../core/api/shell-data';
@@ -11,7 +12,7 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 /** Tin nhắn riêng — `/channels/@me/:conversationId`. */
 @Component({
   selector: 'app-conversation-page',
-  imports: [Avatar, ChatToolbar, EmptyState, MessageComposer],
+  imports: [Avatar, ChatToolbar, EmptyState, MatIconModule, MessageComposer],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col' },
   templateUrl: './conversation.html',
@@ -20,6 +21,7 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 export class ConversationPage {
   private readonly route = inject(ActivatedRoute);
   private readonly shell = inject(ShellData);
+  protected readonly demoEnabled = this.shell.demoEnabled;
 
   private readonly conversationId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('conversationId'))),

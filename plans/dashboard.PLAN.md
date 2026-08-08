@@ -965,6 +965,97 @@ Status: APPROVED
 - Đánh giá Data: thêm thứ tự server runtime tách live/demo trong `ShellData`; demo vẫn OFF mặc định,
   tắt demo trả về user mới rỗng; không persistence, API, backend, database, auth hoặc đổi schema.
 
+### Phase UI-12 — Nexus Thread, chat preview và Command Center
+
+Status: APPROVED
+
+> Tài đã duyệt bằng yêu cầu “làm thử cho tao xem thử” sau khi đọc phần brainstorm Nexus Thread,
+> đồng thời đã cho phép append phase UI được đặt `APPROVED`. Phase này không tạo, xóa hoặc di chuyển
+> folder; không sửa `features/profile/**`, `features/settings/**`, backend, database hay auth.
+> Vì Command Center và server active indicator nằm trong app shell, phase sửa có kiểm soát
+> `layouts/app-layout/components/server-rail/**`; đây là hạ tầng dùng chung cần báo nhóm trước khi merge.
+
+#### Design read
+
+- **Đối tượng:** Dashboard NexusCord cho sinh viên và nhóm nhỏ cần đổi nhanh giữa DM, server và kênh.
+- **Công việc chính:** đọc ngữ cảnh cuộc trò chuyện, tìm đúng nơi cần đến và tiếp tục nhắn tin mà không
+  mất phương hướng.
+- **Palette:** giữ nguyên toàn bộ token Hybrid — warm cream/Starbucks green ở light, deep teal/MongoDB
+  green ở dark; không thêm hex, gradient hoặc accent thứ hai.
+- **Typography:** tiếp tục Manrope thay Euclid Circular A và Source Code Pro cho phím tắt; không đổi font
+  hoặc dependency.
+- **Layout:** rail và toolbar yên, lịch sử chat là vùng biểu đạt chính, context rail chỉ mở theo hành động.
+- **Signature:** “Nexus Thread” — một đường nối primary mảnh mang nghĩa kết nối, dùng cho active server,
+  reply, unread marker và trạng thái sống. Command palette riêng lẻ là pattern phổ biến; Thread khiến
+  pattern đó thuộc về NexusCord thay vì trông như một dashboard mẫu.
+
+#### Mục tiêu
+
+- **UI/UX:** chat demo có grouped message, reply connector, unread divider, reaction và toolbar chỉ hiện
+  khi hover/focus; doodle lùi sau message surface. Active server và drop slot dùng cùng ngôn ngữ Thread.
+  Command Center mở bằng nút search hoặc `Ctrl/Cmd + K`, có tìm server, text/voice channel và DM bằng
+  keyboard-focus rõ ràng. Light/dark dùng cùng geometry và tôn trọng reduced motion.
+- **Feature:** dữ liệu demo ON hiển thị timeline mẫu để đánh giá giao diện; demo OFF vẫn giữ intro/empty
+  đúng logic tài khoản mới. Search lọc trực tiếp dữ liệu shell hiện có và điều hướng bằng router link;
+  không giả chức năng search message backend. Context panel channel vẫn chỉ hiển thị member thuộc
+  Dashboard, không mở Profile/Settings.
+- **Data:** chỉ đọc `ShellData.demoEnabled`, server, channel và conversation hiện có; không thêm mock vào
+  live state, không persistence/API/schema/backend.
+
+#### File dự kiến
+
+- `plans/dashboard.PLAN.md` — gate và kết quả phase.
+- `src/app/features/dashboard/channel/channel.{ts,html,css,spec.ts}` — timeline demo, Nexus Thread và
+  context member UI.
+- `src/app/features/dashboard/conversation/conversation.{ts,html,css,spec.ts}` — timeline DM demo cùng
+  geometry, không thêm action Profile.
+- `src/app/features/dashboard/components/message-composer/*` và `chat-toolbar/*` — visual state,
+  helper copy, focus/hover polish; không gửi dữ liệu thật.
+- `src/app/features/dashboard/components/context-panel/*` — focus/transition và Escape theo Angular
+  host binding; không thêm nội dung ngoài Dashboard.
+- `src/app/layouts/app-layout/components/server-rail/*` — Command Center, shortcut và Nexus Thread active.
+- `src/styles.css` — style timeline/Command Center dùng chung nhưng khóa selector trong Dashboard; tránh
+  nhân đôi CSS giữa Channel/DM và giữ từng component dưới budget 4 kB của Angular.
+- Không tạo component/folder/dependency mới; không sửa `ShellData` nếu contract hiện tại đã đủ.
+
+#### Test dự kiến
+
+- Channel/Conversation: demo ON render message groups, reply/unread/reaction; demo OFF vẫn không dựng
+  user/message giả và không mất intro/composer.
+- ServerRail: nút search mở dialog; query lọc server/channel/DM; `Ctrl/Cmd + K` gọi cùng Command Center;
+  tài khoản mới có empty guidance; drag/drop/Add Server không đổi.
+- ContextPanel/Composer/Toolbar: aria, Escape, focus và disabled seam vẫn đúng.
+- `npm run build` pass browser/SSR/prerender và `npm test -- --watch=false` giữ 100% pass. Theo thỏa thuận,
+  Tài tự kiểm tra cảm nhận trực tiếp ở light/dark và responsive; không thêm Playwright/Codex audit file.
+
+#### Tiêu chí hoàn thành
+
+- **UI/UX:** Nexus Thread xuất hiện nhất quán nhưng không biến thành decoration; chat là vùng nổi bật duy
+  nhất; Command Center rõ hierarchy, không có glass/glow/gradient thừa; contrast/focus đạt AA theo token.
+- **Feature:** demo toggle quyết định có/không timeline mẫu; Command Center tìm và điều hướng dữ liệu shell
+  hiện có; context rail, theme, route, server drag group và Add Server không regression.
+- **Data:** user mới vẫn rỗng mặc định, không thêm message vào live state và không đụng backend/database.
+
+#### Kết quả Phase UI-12
+
+- Ngày hoàn thành code/test: 2026-08-08 trên branch `page/tai`.
+- Commit/push: không tự thực hiện nếu Tài chưa yêu cầu.
+- Kết quả test: `npm run build` pass browser/SSR/prerender, không còn warning component CSS;
+  toàn bộ unit/component `33/33` file và `157/157` test pass. Lần test đầu dừng ở compile vì stub
+  `ServerRail` cast trực tiếp object tối giản sang `ShellData`; đã đổi test double qua `unknown` theo
+  đúng cảnh báo TypeScript và chạy lại sạch.
+- Đánh giá UI/UX: Nexus Thread nối active server, toolbar, composer, reply và unread bằng đúng token
+  Hybrid; chat demo có grouped/compact row, hover actions, reaction, reply và member context. Command
+  Center dùng hierarchy yên, focus rõ, `Ctrl/Cmd + K`, responsive/reduced-motion; không gradient,
+  glass hoặc accent ngoài design system. Style timeline dùng chung được khóa vào Channel/DM trong
+  `src/styles.css`, tránh lặp và giữ CSS component dưới budget Angular.
+- Đánh giá Feature: demo OFF vẫn chỉ có intro và không dựng message/member giả; demo ON render timeline
+  để review. Command Center lọc server, text/voice channel và DM từ `ShellData`, click điều hướng bằng
+  router link; search message được ghi rõ là chờ backend. Drag group, Add Server, theme, route, context
+  panel và seam Profile/Settings giữ nguyên.
+- Đánh giá Data: không sửa `ShellData`, API, backend, database, auth hoặc schema; chỉ đọc các signal demo
+  và collection shell hiện có. Tài khoản mới vẫn rỗng mặc định.
+
 ---
 
 ## Phạm vi

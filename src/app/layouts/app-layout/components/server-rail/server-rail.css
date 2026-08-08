@@ -5,6 +5,27 @@
     var(--shadow-glow);
 }
 
+/* Nexus Thread: một đường trạng thái có "nút nối" ở giữa, dùng lại cùng ngôn ngữ
+   với reply/unread trong vùng chat thay vì thêm một hiệu ứng trang trí độc lập. */
+.nexus-thread-marker {
+  width: 2px;
+  overflow: visible;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.nexus-thread-marker::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border: 2px solid var(--color-canvas);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  content: '';
+  transform: translate(-50%, -50%);
+}
+
 .server-tile,
 .server-group-tile,
 .server-rail-action {

@@ -1,5 +1,7 @@
 <mat-toolbar class="chat-toolbar !px-4">
-  <mat-icon aria-hidden="true" class="!mr-2 text-steel">{{ leadingIcon() }}</mat-icon>
+  <span class="chat-toolbar__identity-icon mr-2 flex size-8 items-center justify-center rounded-lg">
+    <mat-icon aria-hidden="true">{{ leadingIcon() }}</mat-icon>
+  </span>
 
   <h1 class="truncate text-body-md-medium text-ink">{{ title() }}</h1>
 

@@ -30,6 +30,19 @@
   animation: chat-intro-enter 420ms var(--ease-nexus-out) both;
 }
 
+.chat-intro__avatar {
+  border-radius: var(--radius-xxl);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.message-row--mine .message-card {
+  background: color-mix(in srgb, var(--color-surface-feature) 76%, var(--color-surface));
+}
+
+.message-row--mine:is(:hover, :focus-within) .message-card {
+  background: color-mix(in srgb, var(--color-surface-feature) 88%, var(--color-surface));
+}
+
 @keyframes chat-intro-enter {
   from {
     opacity: 0;

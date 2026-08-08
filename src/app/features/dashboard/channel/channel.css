@@ -30,6 +30,33 @@
   animation: chat-intro-enter 420ms var(--ease-nexus-out) both;
 }
 
+.chat-intro__mark {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.context-member {
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.context-member:hover {
+  background: var(--color-surface-feature);
+  box-shadow: 3px 0 0 var(--color-primary) inset;
+}
+
+.live-presence {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 12%, transparent);
+  animation: presence-breathe 2.4s var(--ease-nexus-out) infinite;
+}
+
 @keyframes chat-intro-enter {
   from {
     opacity: 0;
@@ -42,8 +69,19 @@
   }
 }
 
+@keyframes presence-breathe {
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--color-success) 5%, transparent);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .chat-intro {
+  .chat-intro,
+  .live-presence {
     animation: none;
+  }
+
+  .context-member {
+    transition: none;
   }
 }
