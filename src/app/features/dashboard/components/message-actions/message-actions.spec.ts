@@ -1,0 +1,120 @@
+import { TestBed } from '@angular/core/testing';
+import type { MessageComposerContext } from '../message-composer/message-composer';
+import { MessageActions } from './message-actions';
+
+describe('MessageActions', () => {
+  const mount = async (editable = false) => {
+    await TestBed.configureTestingModule({
+      imports: [MessageActions],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(MessageActions);
+    fixture.componentRef.setInput('messageId', 'message-1');
+    fixture.componentRef.setInput('author', 'Minh Tài');
+    fixture.componentRef.setInput('excerpt', 'Một đoạn tin nhắn để xem trước.');
+    fixture.componentRef.setInput('editable', editable);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    return fixture;
+  };
+
+  it('có toolbar đủ reaction, reply và more với nhãn truy cập', async () => {
+    const fixture = await mount();
+    const toolbar = fixture.nativeElement.querySelector('[role="toolbar"]') as HTMLElement;
+
+    expect(toolbar.getAttribute('aria-label')).toContain('Minh Tài');
+    expect(toolbar.querySelectorAll('button')).toHaveLength(3);
+    expect(toolbar.querySelector('button[aria-label="Thêm cảm xúc"]')).toBeTruthy();
+    expect(toolbar.querySelector('button[aria-label="Trả lời"]')).toBeTruthy();
+    expect(toolbar.querySelector('button[aria-label="Thêm thao tác"]')).toBeTruthy();
+  });
+
+  it('chọn reaction tạo chip local và bấm lại thì bỏ', async () => {
+    const fixture = await mount();
+    const trigger = fixture.nativeElement.querySelector(
+      'button[aria-label="Thêm cảm xúc"]',
+    ) as HTMLButtonElement;
+
+    trigger.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const option = document.body.querySelector(
+      '.nexus-message-reaction-menu .message-reaction-option',
+    ) as HTMLButtonElement;
+    option.click();
+    fixture.detectChanges();
+
+    const chip = fixture.nativeElement.querySelector(
+      '.message-reaction-preview',
+    ) as HTMLButtonElement;
+    expect(chip).toBeTruthy();
+    expect(chip.getAttribute('aria-pressed')).toBe('true');
+
+    chip.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.message-reaction-preview')).toBeNull();
+  });
+
+  it('reply phát composer context còn edit chỉ mở với tin của mình', async () => {
+    const fixture = await mount(true);
+    const contexts: MessageComposerContext[] = [];
+    fixture.componentInstance.action.subscribe((context) => contexts.push(context));
+
+    const reply = fixture.nativeElement.querySelector(
+      'button[aria-label="Trả lời"]',
+    ) as HTMLButtonElement;
+    reply.click();
+    fixture.detectChanges();
+
+    expect(contexts.at(-1)?.kind).toBe('reply');
+    expect(contexts.at(-1)?.label).toContain('Minh Tài');
+
+    const more = fixture.nativeElement.querySelector(
+      'button[aria-label="Thêm thao tác"]',
+    ) as HTMLButtonElement;
+    more.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const edit = Array.from(document.body.querySelectorAll('.nexus-message-more-menu button')).find(
+      (button) => button.textContent?.includes('Chỉnh sửa'),
+    ) as HTMLButtonElement;
+    expect(edit.disabled).toBe(false);
+    edit.click();
+    fixture.detectChanges();
+    expect(contexts.at(-1)?.kind).toBe('edit');
+  });
+
+  it('forward và delete chỉ phát UI contract, edit tin người khác vẫn khóa', async () => {
+    const fixture = await mount(false);
+    const contexts: MessageComposerContext[] = [];
+    fixture.componentInstance.action.subscribe((context) => contexts.push(context));
+    const more = fixture.nativeElement.querySelector(
+      'button[aria-label="Thêm thao tác"]',
+    ) as HTMLButtonElement;
+
+    more.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    let menuButtons = Array.from(
+      document.body.querySelectorAll('.nexus-message-more-menu button'),
+    ) as HTMLButtonElement[];
+    const edit = menuButtons.find((button) => button.textContent?.includes('Chỉnh sửa'))!;
+    const forward = menuButtons.find((button) => button.textContent?.includes('Chuyển tiếp'))!;
+    expect(edit.disabled).toBe(true);
+    forward.click();
+    fixture.detectChanges();
+    expect(contexts.at(-1)?.kind).toBe('forward');
+
+    more.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    menuButtons = Array.from(
+      document.body.querySelectorAll('.nexus-message-more-menu button'),
+    ) as HTMLButtonElement[];
+    const remove = menuButtons.find((button) => button.textContent?.includes('Xóa khỏi phía bạn'))!;
+    remove.click();
+    fixture.detectChanges();
+    expect(contexts.at(-1)?.kind).toBe('delete');
+    expect(contexts.at(-1)?.description).toContain('backend');
+  });
+});

@@ -7,73 +7,86 @@
   (toggleDemo)="toggleDemoData()"
 />
 
-<div class="flex min-h-0 flex-1">
-  <main
-    class="friends-main nexus-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6 lg:p-8"
-    aria-live="polite"
-  >
-    <section class="friends-content mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
-      @if (tab() === 'online' || tab() === 'all') {
-        <app-search-field placeholder="Tìm kiếm bạn bè" [(value)]="query" />
+@if (connectionState(); as state) {
+  <app-dashboard-state [state]="state" layout="list" (action)="clearUiState()" />
+}
 
-        @if (visible().length > 0) {
-          <app-section-label class="mt-6 block" [text]="sectionLabel()" />
+@if (blockingState(); as state) {
+  <app-dashboard-state
+    class="flex min-h-0 flex-1"
+    [state]="state"
+    layout="list"
+    (action)="clearUiState()"
+  />
+} @else {
+  <div class="flex min-h-0 flex-1">
+    <main
+      class="friends-main nexus-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6 lg:p-8"
+      aria-live="polite"
+    >
+      <section class="friends-content mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
+        @if (tab() === 'online' || tab() === 'all') {
+          <app-search-field placeholder="Tìm kiếm bạn bè" [(value)]="query" />
 
-          <ul class="mt-2 space-y-1" aria-label="Danh sách bạn bè">
-            @for (person of visible(); track person.id) {
-              <li><app-friend-row [person]="person" /></li>
-            }
-          </ul>
-        } @else if (query()) {
-          <app-empty-state
-            class="mt-6 flex min-h-0 flex-1"
-            icon="person_search"
-            title="Không tìm thấy người phù hợp"
-            [message]="'Không có ai khớp với “' + query() + '”.'"
-          />
+          @if (visible().length > 0) {
+            <app-section-label class="mt-6 block" [text]="sectionLabel()" />
+
+            <ul class="mt-2 space-y-1" aria-label="Danh sách bạn bè">
+              @for (person of visible(); track person.id) {
+                <li><app-friend-row [person]="person" /></li>
+              }
+            </ul>
+          } @else if (query()) {
+            <app-empty-state
+              class="mt-6 flex min-h-0 flex-1"
+              icon="person_search"
+              title="Không tìm thấy người phù hợp"
+              [message]="'Không có ai khớp với “' + query() + '”.'"
+            />
+          } @else {
+            <app-empty-state
+              class="mt-6 flex min-h-0 flex-1"
+              icon="group_off"
+              title="Danh sách đang trống"
+              message="Hãy thêm bạn để bắt đầu trò chuyện trên NexusCord."
+            />
+          }
+        } @else if (tab() === 'pending') {
+          <app-section-label [text]="'Chờ duyệt — ' + pendingRequests().length" />
+
+          @if (pendingRequests().length > 0) {
+            <ul class="mt-2 space-y-1" aria-label="Lời mời kết bạn đang chờ">
+              @for (request of pendingRequests(); track request.id) {
+                <li>
+                  <app-friend-request-item
+                    [person]="request"
+                    (accepted)="removeRequest($event)"
+                    (dismissed)="removeRequest($event)"
+                  />
+                </li>
+              }
+            </ul>
+          } @else {
+            <app-empty-state
+              class="mt-6 flex min-h-0 flex-1"
+              icon="mark_email_read"
+              title="Đã xử lý hết"
+              message="Bạn không còn lời mời kết bạn nào đang chờ."
+            />
+          }
         } @else {
-          <app-empty-state
-            class="mt-6 flex min-h-0 flex-1"
-            icon="group_off"
-            title="Danh sách đang trống"
-            message="Hãy thêm bạn để bắt đầu trò chuyện trên NexusCord."
-          />
+          <app-add-friend-form />
         }
-      } @else if (tab() === 'pending') {
-        <app-section-label [text]="'Chờ duyệt — ' + pendingRequests().length" />
+      </section>
+    </main>
 
-        @if (pendingRequests().length > 0) {
-          <ul class="mt-2 space-y-1" aria-label="Lời mời kết bạn đang chờ">
-            @for (request of pendingRequests(); track request.id) {
-              <li>
-                <app-friend-request-item
-                  [person]="request"
-                  (accepted)="removeRequest($event)"
-                  (dismissed)="removeRequest($event)"
-                />
-              </li>
-            }
-          </ul>
-        } @else {
-          <app-empty-state
-            class="mt-6 flex min-h-0 flex-1"
-            icon="mark_email_read"
-            title="Đã xử lý hết"
-            message="Bạn không còn lời mời kết bạn nào đang chờ."
-          />
-        }
-      } @else {
-        <app-add-friend-form />
-      }
-    </section>
-  </main>
-
-  <app-context-panel
-    title="Đang hoạt động"
-    [open]="contextOpen()"
-    [pinned]="true"
-    (closed)="closeContext()"
-  >
-    <app-activity-panel [people]="onlineFriends()" />
-  </app-context-panel>
-</div>
+    <app-context-panel
+      title="Đang hoạt động"
+      [open]="contextOpen()"
+      [pinned]="true"
+      (closed)="closeContext()"
+    >
+      <app-activity-panel [people]="onlineFriends()" />
+    </app-context-panel>
+  </div>
+}

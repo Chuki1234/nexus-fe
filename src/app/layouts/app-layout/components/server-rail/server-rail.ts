@@ -34,6 +34,8 @@ interface CommandResult {
   searchableText: string;
 }
 
+type GroupingTargetKind = 'group' | 'server';
+
 /**
  * Cột 1 — dải icon server dọc mép trái.
  *
@@ -78,6 +80,9 @@ export class ServerRail {
   protected readonly serverGroups = this.shell.serverGroups;
   private readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
   protected readonly activeDropSlot = signal<string | null>(null);
+  protected readonly activeGroupingTarget = signal<string | null>(null);
+  protected readonly activeUngroupTarget = signal<string | null>(null);
+  protected readonly draggingServerId = signal<string | null>(null);
   protected readonly addServerStep = signal<'choose' | 'create' | 'join'>('choose');
   protected readonly commandQuery = signal('');
 
@@ -111,6 +116,15 @@ export class ServerRail {
     return this.servers().filter((server) => !groupedIds.has(server.id));
   });
 
+  protected readonly draggingSourceGroupId = computed(() => {
+    const serverId = this.draggingServerId();
+    if (!serverId) {
+      return null;
+    }
+
+    return this.serverGroups().find((group) => group.serverIds.includes(serverId))?.id ?? null;
+  });
+
   protected serversInGroup(group: ServerGroupSummary): ServerSummary[] {
     const byId = new Map(this.servers().map((server) => [server.id, server]));
     return group.serverIds.flatMap((id) => {
@@ -136,14 +150,14 @@ export class ServerRail {
   }
 
   protected dropOnServer(event: CdkDragDrop<string, string, string>, targetServerId: string): void {
-    this.activeDropSlot.set(null);
+    this.clearDropFeedback();
     if (event.isPointerOverContainer) {
       this.shell.groupServers(event.item.data, targetServerId);
     }
   }
 
   protected dropOnGroup(event: CdkDragDrop<string, string, string>, targetGroupId: string): void {
-    this.activeDropSlot.set(null);
+    this.clearDropFeedback();
     if (event.isPointerOverContainer) {
       this.shell.addServerToGroup(event.item.data, targetGroupId);
     }
@@ -154,7 +168,7 @@ export class ServerRail {
     targetGroupId: string,
     insertionIndex: number,
   ): void {
-    this.activeDropSlot.set(null);
+    this.clearDropFeedback();
     if (event.isPointerOverContainer) {
       this.shell.moveServerToGroup(event.item.data, targetGroupId, insertionIndex);
     }
@@ -164,19 +178,71 @@ export class ServerRail {
     event: CdkDragDrop<string, string, string>,
     insertionIndex: number,
   ): void {
-    this.activeDropSlot.set(null);
+    this.clearDropFeedback();
     if (event.isPointerOverContainer) {
       this.shell.moveServerOutsideGroups(event.item.data, insertionIndex);
     }
   }
 
+  protected startServerDrag(serverId: string): void {
+    this.draggingServerId.set(serverId);
+    this.clearDropFeedback();
+  }
+
+  protected finishServerDrag(): void {
+    this.draggingServerId.set(null);
+    this.clearDropFeedback();
+  }
+
+  protected activateGroupingTarget(kind: GroupingTargetKind, targetId: string): void {
+    const sourceServerId = this.draggingServerId();
+    if (!sourceServerId || !this.canGroupWithTarget(sourceServerId, kind, targetId)) {
+      this.activeGroupingTarget.set(null);
+      return;
+    }
+
+    this.activeDropSlot.set(null);
+    this.activeUngroupTarget.set(null);
+    this.activeGroupingTarget.set(this.groupingTargetId(kind, targetId));
+  }
+
+  protected deactivateGroupingTarget(kind: GroupingTargetKind, targetId: string): void {
+    const target = this.groupingTargetId(kind, targetId);
+    if (this.activeGroupingTarget() === target) {
+      this.activeGroupingTarget.set(null);
+    }
+  }
+
+  protected groupingTargetIsActive(kind: GroupingTargetKind, targetId: string): boolean {
+    return this.activeGroupingTarget() === this.groupingTargetId(kind, targetId);
+  }
+
   protected activateDropSlot(slotId: string): void {
+    this.activeGroupingTarget.set(null);
+    this.activeUngroupTarget.set(null);
     this.activeDropSlot.set(slotId);
   }
 
   protected deactivateDropSlot(slotId: string): void {
     if (this.activeDropSlot() === slotId) {
       this.activeDropSlot.set(null);
+    }
+  }
+
+  protected activateUngroupTarget(groupId: string): void {
+    if (this.draggingSourceGroupId() !== groupId) {
+      this.activeUngroupTarget.set(null);
+      return;
+    }
+
+    this.activeDropSlot.set(null);
+    this.activeGroupingTarget.set(null);
+    this.activeUngroupTarget.set(groupId);
+  }
+
+  protected deactivateUngroupTarget(groupId: string): void {
+    if (this.activeUngroupTarget() === groupId) {
+      this.activeUngroupTarget.set(null);
     }
   }
 
@@ -306,5 +372,35 @@ export class ServerRail {
       .toLocaleLowerCase('vi')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  private canGroupWithTarget(
+    sourceServerId: string,
+    kind: GroupingTargetKind,
+    targetId: string,
+  ): boolean {
+    if (kind === 'group') {
+      const targetGroup = this.serverGroups().find((group) => group.id === targetId);
+      return !!targetGroup && !targetGroup.serverIds.includes(sourceServerId);
+    }
+
+    if (sourceServerId === targetId) {
+      return false;
+    }
+
+    const sourceGroup = this.serverGroups().find((group) =>
+      group.serverIds.includes(sourceServerId),
+    );
+    return !sourceGroup?.serverIds.includes(targetId);
+  }
+
+  private groupingTargetId(kind: GroupingTargetKind, targetId: string): string {
+    return kind + ':' + targetId;
+  }
+
+  private clearDropFeedback(): void {
+    this.activeDropSlot.set(null);
+    this.activeGroupingTarget.set(null);
+    this.activeUngroupTarget.set(null);
   }
 }

@@ -1,1 +1,9 @@
-<app-empty-state class="min-h-full" icon="forum" message="Chọn một kênh để bắt đầu." />
+@if (connectionState(); as state) {
+  <app-dashboard-state [state]="state" (action)="clearUiState()" />
+}
+
+@if (blockingState(); as state) {
+  <app-dashboard-state class="min-h-full" [state]="state" (action)="clearUiState()" />
+} @else {
+  <app-empty-state class="min-h-full" icon="forum" message="Chọn một kênh để bắt đầu." />
+}

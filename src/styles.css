@@ -683,6 +683,9 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
   border-radius: var(--radius-full);
   background: transparent;
   color: var(--color-steel);
+
+  --mat-icon-button-state-layer-size: 2rem;
+  --mat-icon-button-touch-target-display: none;
 }
 
 :is(app-channel-page, app-conversation-page) .message-actions button:disabled {
@@ -694,6 +697,62 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
   width: 1.125rem;
   height: 1.125rem;
   font-size: 1.125rem;
+}
+
+:is(app-channel-page, app-conversation-page)
+  .message-actions
+  button:not(:disabled):is(:hover, :focus-visible, [aria-expanded='true']) {
+  background: var(--color-surface-feature);
+  color: var(--color-primary-soft);
+}
+
+/* MatMenu render qua CDK overlay ngoài Dashboard route, nên panel cần class scope
+   riêng thay vì selector theo app-channel-page/app-conversation-page. */
+.nexus-message-reaction-menu .mat-mdc-menu-content {
+  display: grid;
+  grid-template-columns: repeat(5, 2.5rem);
+  gap: 0.25rem;
+  padding: 0.375rem;
+}
+
+.nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option {
+  display: grid;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  place-items: center;
+  border-radius: var(--radius-md);
+  padding: 0;
+  font-size: 1.125rem;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option:is(:hover, :focus-visible) {
+  background: var(--color-surface-feature);
+  transform: translateY(-1px);
+}
+
+.nexus-message-more-menu .mat-mdc-menu-item {
+  min-height: 2.75rem;
+}
+
+.nexus-message-more-menu .message-menu-copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.nexus-message-more-menu .message-menu-copy small {
+  color: var(--color-steel);
+  font-size: var(--text-micro);
+}
+
+.nexus-message-more-menu .message-menu-danger,
+.nexus-message-more-menu .message-menu-danger .mat-icon {
+  color: var(--color-danger);
 }
 
 :is(app-channel-page, app-conversation-page) .reaction-chip {
@@ -776,6 +835,161 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Server group là một surface liên tục khi mở. Interaction grouping dùng target
+   phình/halo; drop line chỉ còn mang nghĩa reorder; vùng Ra ngoài chỉ xuất hiện
+   cho server đang thuộc group. Scope giữ tuyệt đối trong app-server-rail. */
+app-server-rail .server-group-shell {
+  position: relative;
+  width: 3.75rem;
+  padding-block: 0.25rem;
+  background: transparent;
+  box-shadow: 0 0 0 1px transparent inset;
+  transition:
+    background-color var(--motion-base) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+app-server-rail .server-group-shell--expanded {
+  background: color-mix(in srgb, var(--color-surface-soft) 88%, var(--color-canvas));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-hairline-strong) 34%, transparent) inset,
+    0 1px 0 color-mix(in srgb, var(--color-ink) 5%, transparent);
+}
+
+app-server-rail .server-group-shell--expanded::before {
+  position: absolute;
+  top: 3.75rem;
+  bottom: 0.75rem;
+  left: 0.25rem;
+  width: 2px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-primary) 42%, var(--color-hairline));
+  content: '';
+  opacity: 0.78;
+}
+
+app-server-rail .server-group-members {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding-bottom: 0.125rem;
+}
+
+app-server-rail .server-group-caption {
+  display: flex;
+  min-height: 1.125rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  color: var(--color-steel);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+app-server-rail .server-group-caption .mat-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  font-size: 0.75rem;
+}
+
+app-server-rail .server-group-tile--expanded {
+  background: color-mix(in srgb, var(--color-surface-feature) 86%, var(--color-surface));
+}
+
+app-server-rail :is(.server-drop-target, .server-group-dropzone) {
+  transform-origin: center;
+  transition:
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+app-server-rail :is(.server-drop-target--group-active, .server-group-dropzone--group-active) {
+  z-index: 4;
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 32%, transparent),
+    var(--shadow-card);
+}
+
+app-server-rail .server-drop-target--group-active .server-tile,
+app-server-rail .server-group-dropzone--group-active .server-group-tile {
+  background: var(--color-surface-feature);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 52%, transparent) inset;
+}
+
+app-server-rail .server-ungroup-zone {
+  display: flex;
+  width: 3.25rem;
+  height: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-soft);
+  color: var(--color-steel);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.86);
+  visibility: hidden;
+  box-shadow: 0 0 0 1px var(--color-hairline-strong) inset;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-fast) var(--ease-nexus-out),
+    color var(--motion-fast) var(--ease-nexus-out),
+    height var(--motion-base) var(--ease-nexus-out),
+    margin var(--motion-base) var(--ease-nexus-out),
+    opacity var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+app-server-rail .server-ungroup-zone .mat-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
+}
+
+app-server-rail .server-ungroup-zone--visible {
+  height: 2.25rem;
+  min-height: 2.25rem;
+  margin: 0.125rem 0 0.5rem;
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+  visibility: visible;
+}
+
+app-server-rail .server-ungroup-zone--active {
+  background: var(--color-surface-feature);
+  color: var(--color-ink);
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 28%, transparent),
+    0 0 0 1px var(--color-primary) inset;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  app-server-rail
+    :is(.server-drop-target, .server-group-dropzone, .server-group-shell, .server-ungroup-zone) {
+    transition: none;
+  }
+
+  app-server-rail
+    :is(
+      .server-drop-target--group-active,
+      .server-group-dropzone--group-active,
+      .server-ungroup-zone,
+      .server-ungroup-zone--active
+    ) {
+    transform: none;
   }
 }
 
@@ -915,6 +1129,286 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
   .nexus-add-server-dialog :is(.command-center__search, .command-result, .command-result__arrow) {
     transition: none;
     transform: none;
+  }
+
+  .nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   NEXUS ORBIT BOOT — fallback trước Angular + overlay khi vào Dashboard
+   Scope riêng để index.html và component NexusBoot dùng cùng một geometry.
+   ========================================================================== */
+
+.nexus-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  overflow: hidden;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  isolation: isolate;
+  animation: nexus-boot-enter 320ms var(--ease-nexus-out) both;
+  transition:
+    opacity var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-boot::after {
+  position: absolute;
+  z-index: -1;
+  content: '';
+  pointer-events: none;
+}
+
+.nexus-boot::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-hairline-soft));
+  opacity: 0.42;
+}
+
+.nexus-boot--static {
+  animation: nexus-boot-static-reveal 1ms linear 140ms both;
+}
+
+.nexus-boot--leaving {
+  opacity: 0;
+  transform: scale(1.012);
+}
+
+.nexus-boot__content {
+  display: grid;
+  width: min(22rem, calc(100vw - 3rem));
+  justify-items: center;
+  text-align: center;
+}
+
+.nexus-boot__mark {
+  position: relative;
+  display: grid;
+  width: 9.5rem;
+  aspect-ratio: 1;
+  place-items: center;
+  isolation: isolate;
+}
+
+.nexus-boot__mark::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: -1;
+  width: min(68vmin, 34rem);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 10%, var(--color-hairline));
+  border-radius: var(--radius-full);
+  content: '';
+  opacity: 0.46;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.nexus-boot__orbits {
+  position: absolute;
+  inset: 0;
+  animation: nexus-boot-orbit-turn 7.2s linear infinite;
+}
+
+.nexus-boot__orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8.7rem;
+  height: 3.65rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 62%, var(--color-hairline));
+  border-radius: var(--radius-full);
+}
+
+.nexus-boot__orbit--one {
+  transform: translate(-50%, -50%) rotate(28deg);
+}
+
+.nexus-boot__orbit--two {
+  border-color: color-mix(in srgb, var(--color-primary) 36%, var(--color-hairline));
+  transform: translate(-50%, -50%) rotate(-28deg);
+}
+
+.nexus-boot__node {
+  position: absolute;
+  width: 0.65rem;
+  aspect-ratio: 1;
+  border: 2px solid var(--color-canvas);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 54%, transparent);
+  transform: translate(-50%, -50%);
+  animation: nexus-boot-node-breathe 1.8s var(--ease-nexus-out) infinite;
+}
+
+.nexus-boot__node--one {
+  top: 50%;
+  left: 0;
+}
+
+.nexus-boot__node--two {
+  top: 50%;
+  left: 100%;
+}
+
+.nexus-boot__node--three,
+.nexus-boot__node--four {
+  top: 50%;
+}
+
+.nexus-boot__node--three {
+  left: 0;
+}
+
+.nexus-boot__node--four {
+  left: 100%;
+}
+
+.nexus-boot__monogram {
+  position: relative;
+  display: grid;
+  width: 3.8rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-hairline));
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.08em;
+  line-height: 1;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent) inset,
+    var(--shadow-card);
+}
+
+.nexus-boot__copy {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1.35rem;
+}
+
+.nexus-boot__copy strong {
+  color: var(--color-ink);
+  font-size: var(--text-heading-5);
+  font-weight: var(--text-heading-5--font-weight);
+  letter-spacing: -0.025em;
+}
+
+.nexus-boot__copy span {
+  color: var(--color-steel);
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  text-wrap: balance;
+}
+
+.nexus-boot__progress {
+  position: relative;
+  display: block;
+  width: 7.5rem;
+  height: 2px;
+  margin-top: 1.25rem;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-hairline);
+}
+
+.nexus-boot__progress > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  animation: nexus-boot-progress 1.35s var(--ease-nexus-out) infinite;
+}
+
+@keyframes nexus-boot-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes nexus-boot-static-reveal {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes nexus-boot-orbit-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nexus-boot-node-breathe {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) scale(0.84);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+@keyframes nexus-boot-progress {
+  from {
+    transform: translateX(-135%);
+  }
+
+  to {
+    transform: translateX(340%);
+  }
+}
+
+@media (max-width: 29.999rem) {
+  .nexus-boot__mark {
+    width: 8.5rem;
+  }
+
+  .nexus-boot__orbit {
+    width: 7.8rem;
+    height: 3.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-boot,
+  .nexus-boot__orbits,
+  .nexus-boot__node {
+    animation: none;
+  }
+
+  .nexus-boot {
+    transition: opacity 1ms linear;
+  }
+
+  .nexus-boot__progress {
+    display: none;
   }
 }
 

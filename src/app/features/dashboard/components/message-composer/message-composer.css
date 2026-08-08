@@ -5,6 +5,73 @@
   background: var(--color-canvas);
 }
 
+.composer-context {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) 2.25rem;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-canvas));
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  box-shadow:
+    3px 0 0 color-mix(in srgb, var(--color-primary) 70%, transparent) inset,
+    var(--shadow-glow);
+}
+
+.composer-context__icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-feature);
+  color: var(--color-primary-soft);
+}
+
+.composer-context__icon .mat-icon,
+.composer-context__close .mat-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+}
+
+.composer-context__copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.composer-context__copy strong,
+.composer-context__copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-context__copy strong {
+  color: var(--color-ink);
+  font-size: var(--text-caption-bold);
+  font-weight: 600;
+}
+
+.composer-context__copy span {
+  color: var(--color-steel);
+  font-size: var(--text-micro);
+}
+
+.composer-context[data-context-kind='delete'] {
+  box-shadow:
+    3px 0 0 var(--color-danger) inset,
+    var(--shadow-glow);
+}
+
+.composer-context[data-context-kind='delete'] .composer-context__icon {
+  background: var(--color-danger-surface);
+  color: var(--color-danger);
+}
+
 .composer-shell {
   box-shadow:
     0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,

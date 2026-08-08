@@ -1056,6 +1056,435 @@ Status: APPROVED
 - Đánh giá Data: không sửa `ShellData`, API, backend, database, auth hoặc schema; chỉ đọc các signal demo
   và collection shell hiện có. Tài khoản mới vẫn rỗng mặc định.
 
+### Phase UI-13 — Server group container và drag intent rõ ràng
+
+Status: APPROVED
+
+> Tài yêu cầu trực tiếp chỉnh interaction server rail và trước đó đã cho phép phase UI append được đặt
+> APPROVED. Phase này chỉ tinh chỉnh phần Dashboard shell đã thuộc các phase UI trước; không tạo, xóa
+> hoặc di chuyển folder, không thêm dependency và không đụng Profile, Settings, Auth hay backend.
+> layouts/app-layout/components/server-rail/** là vùng layout dùng chung nên cần báo nhóm trước khi merge.
+
+#### Chẩn đoán UI hiện tại
+
+- Group khi mở chỉ là các server rời xếp dọc, thiếu một surface/connector chung nên không thể nhìn nhanh
+  chúng thuộc cùng folder.
+- Drop line đang làm tốt vai trò reorder nhưng bị dùng cạnh interaction gom nhóm, khiến intent “đặt vào
+  group” và “đổi vị trí” khó phân biệt.
+- Logic ungroup đã có trong ShellData, nhưng khe ngoài group chỉ cao 0.5rem; pointer khó bắt và không
+  có affordance cho biết kéo tới đâu để đưa server ra ngoài.
+
+#### Mục tiêu
+
+- **UI/UX:** group mở có một vỏ surface-soft liên tục, bo 12px, connector Nexus Thread và nhãn nhóm
+  kín đáo để toàn bộ server con được đọc như một đơn vị. Khi kéo chồng lên server hoặc group hợp lệ,
+  chính target phình nhẹ và có halo primary; drop line chỉ còn mang nghĩa reorder. Khi kéo server đang
+  trong group, hiện một drop zone “Ngoài nhóm” đủ lớn, có Material Symbol và active state rõ.
+- **Feature:** phân biệt ba intent: thả lên server/group để gom nhóm; thả vào line để reorder; thả vào
+  vùng ngoài nhóm để ungroup. State drag/hover phải được dọn khi drop, exit hoặc drag end; không highlight
+  target là chính server đang kéo hoặc group mà server đã thuộc sẵn.
+- **Data:** dùng lại groupServers, addServerToGroup, moveServerToGroup và
+  moveServerOutsideGroups; chỉ sửa ShellData nếu test chứng minh logic hiện có sai. Không persistence,
+  API, backend, database hoặc schema.
+
+#### File dự kiến
+
+- plans/dashboard.PLAN.md — gate và kết quả phase.
+- src/app/layouts/app-layout/components/server-rail/server-rail.ts — drag intent signals và cleanup.
+- src/app/layouts/app-layout/components/server-rail/server-rail.html — group container, target enter/exit
+  và dedicated ungroup zone.
+- src/app/layouts/app-layout/components/server-rail/server-rail.css — surface nhóm, scale/halo,
+  drop-zone state và reduced motion.
+- src/app/layouts/app-layout/components/server-rail/server-rail.spec.ts — semantics và interaction state.
+- src/styles.css — style interaction mới được scope bằng app-server-rail để không vượt budget
+  anyComponentStyle 4 kB của Angular; không ảnh hưởng component ngoài rail.
+- src/app/core/api/shell-data.ts|spec.ts chỉ khi kiểm chứng phát hiện lỗi data thật.
+- Không tạo folder/component/dependency mới.
+
+#### Test dự kiến
+
+- Group mở render một container chung có tên, số server và các server con; thu gọn vẫn giữ miniature.
+- Drag server hợp lệ lên server/group kích hoạt đúng scale target; exit/drag end xóa state.
+- Server kéo không tự highlight chính nó; member trong cùng group không tạo lại group.
+- Kéo member của group làm hiện ungroup zone; drop gọi moveServerOutsideGroups và group hai member tự rã.
+- Các slot reorder trong/ngoài group vẫn render và gọi đúng insertion index.
+- npm run build và npm test -- --watch=false pass; Tài tự kiểm tra pointer drag ở light/dark.
+
+#### Tiêu chí hoàn thành
+
+- **UI/UX:** nhìn group mở nhận ra ngay phạm vi group; ba intent grouping/reorder/ungroup có ba phản hồi
+  khác nhau; không thêm màu ngoài token Hybrid, không gradient/glass/glow nặng và tôn trọng reduced motion.
+- **Feature:** gom vào server/group, kéo ra ngoài và reorder đều thao tác được bằng vùng hit đủ lớn; state
+  không bị kẹt sau drag.
+- **Data:** demo OFF vẫn rỗng; cấu trúc group/order runtime giữ typed và không đụng backend.
+
+#### Kết quả Phase UI-13
+
+- Ngày hoàn thành code/test: 2026-08-09 trên branch page/tai; chờ Tài kiểm tra pointer drag trực tiếp.
+- Commit/push: không tự thực hiện nếu Tài chưa yêu cầu.
+- Kết quả test: npm run build pass browser/SSR/prerender, không có warning anyComponentStyle;
+  toàn bộ unit/component 33/33 file và 160/160 test pass. CSS interaction được scope bằng
+  app-server-rail trong styles.css để server-rail.css còn 3.8 kB, dưới budget 4 kB.
+- Đánh giá UI/UX: group mở có surface-soft bo 12px, caption folder, member count và connector
+  Nexus Thread bao toàn bộ server con. Grouping dùng scale 1.12 + halo trên target thật; reorder
+  vẫn dùng line ngang; ungroup dùng drop zone “Ra ngoài” 52 × 36px chỉ hiện khi kéo member trong
+  group. Light/dark chỉ dùng token Hybrid và reduced-motion bỏ transform.
+- Đánh giá Feature: drag state phân biệt server/group target, drop slot và ungroup target; target
+  chính server đang kéo, member cùng group và group nguồn không highlight sai. Drag end/drop dọn
+  toàn bộ feedback. Vùng Ra ngoài gọi lại moveServerOutsideGroups ở insertion index 0; drop-line
+  ngoài group vẫn hỗ trợ chọn vị trí chính xác như trước.
+- Đánh giá Data: không cần sửa ShellData vì test hiện có đã chứng minh ungroup/reorder và group
+  hai member tự rã đúng. Không thêm persistence, API, backend, database, auth hoặc schema; demo OFF
+  vẫn giữ tài khoản mới rỗng.
+
+## Checklist hoàn thiện Dashboard còn lại
+
+Checklist này là bảng theo dõi UI/UX của phần Minh Tài phụ trách. Mỗi nhóm chỉ được triển khai sau khi
+có phase riêng trong file này; những mục cần backend/database vẫn giữ ở trạng thái chờ team chốt contract.
+
+### 1. Trạng thái sản phẩm
+
+- [x] Skeleton đúng hình dạng cho lần tải đầu của Friends, DM và Channel; không dùng spinner chung chung.
+- [x] Lỗi tải dữ liệu có nội dung cụ thể, nút thử lại và vùng thông báo truy cập được.
+- [x] Ngoại tuyến và đang kết nối lại dùng banner gọn, không xoá nội dung người dùng đang đọc.
+- [x] Không có quyền và nội dung không còn tồn tại được phân biệt bằng copy/icon/action riêng.
+- [x] Có cách preview độc lập với backend để Tài kiểm tra cả dark/light và responsive.
+- [x] Unit/component test cùng build browser/SSR pass; không thay dữ liệu live/demo hiện có.
+- [x] Boot screen có thương hiệu cho F5 và lần đi từ Auth vào Dashboard; không chặn chuyển kênh nội bộ.
+
+### 2. Accessibility và kiểm thử trình duyệt
+
+- [ ] Playwright E2E cho Friends, DM, Channel, Command Center và server rail.
+- [ ] AXE/WCAG AA cho dark/light, focus ring, dialog focus return và aria-live.
+- [ ] Keyboard alternative cho group/reorder/ungroup server; thông báo kết quả cho screen reader.
+- [ ] Kiểm tra viewport 320/480/768/1024/1280/1440 và touch target tối thiểu 40–44px.
+- [ ] Không cuộn ngang ngoài ý muốn; reduced-motion không còn scale/slide gây khó chịu.
+
+### 3. Server và Channel UI
+
+- [ ] Tách Add Server preview khỏi server rail theo `features/servers/**` sau khi duyệt folder.
+- [ ] Tạo server: personal/group, tên, icon preview, validation và trạng thái submit.
+- [ ] Join server: invite hợp lệ/hết hạn/đã tham gia/server đầy.
+- [ ] Create channel: text/voice, tên, private/access preview và validation.
+- [ ] Chỉ nối submit thật sau khi API/schema được mentor xác nhận.
+
+### 4. Chat interaction UI
+
+- [ ] Composer nhiều dòng, giới hạn ký tự, reply/edit mode và draft state.
+- [ ] Pending/sent/failed/retry cho message optimistic.
+- [ ] Attachment tray, upload progress/error, drag/drop và paste preview.
+- [ ] Reaction/sticker/message actions/file gallery ở mức UI contract.
+- [ ] Không giả gửi thành công khi backend chưa tồn tại.
+
+### 5. Notification và Voice UI
+
+- [ ] Notification center: unread/all, mention/friend/server, mark-read và empty/loading/error.
+- [ ] Voice lobby, participant tile, mic/deafen/camera/screen-share controls.
+- [ ] Connecting/reconnecting/disconnected và denied-device permission.
+- [ ] Chờ team chốt Socket.IO/WebRTC/LiveKit trước khi nối realtime thật.
+
+### 6. Dọn kỹ thuật trước bàn giao
+
+- [ ] Chia nhỏ `server-rail` và các template chat quá dài sau khi nhóm duyệt vùng `layouts/**`.
+- [ ] Ẩn hoặc khóa demo/state preview ở production build.
+- [ ] Kiểm tra CSS budget, bundle, route lazy-load và toàn bộ regression test.
+- [ ] Không sửa Auth/Profile/Settings hay database schema thuộc phần người khác.
+
+### Phase UI-14 — Trạng thái sản phẩm có thể preview, sẵn sàng nối API
+
+Status: APPROVED
+
+> Tài yêu cầu trực tiếp tạo checklist rồi triển khai mục 1, đồng thời trước đó đã cho phép phase UI append
+> được đặt `APPROVED`. Phase này chỉ thêm UI state trong `features/dashboard/**` và nối vào các route
+> Dashboard; không đụng backend, database, Auth, Profile hoặc Settings.
+
+#### Chẩn đoán
+
+- Dashboard hiện có empty/not-found state nhưng chưa phân biệt loading, API error, forbidden, offline và
+  reconnecting; khi nối HTTP/socket sau này các trang sẽ phải tự chèn UI rời rạc nếu không có contract chung.
+- Không có backend để kích hoạt các state, vì vậy cần một preview source không làm thay đổi demo/live data và
+  không thêm control phát triển vào giao diện production.
+- Spinner tròn chung chung không phản ánh cấu trúc Friends/chat; loading cần skeleton theo đúng hình dạng nội dung.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:** một component state dùng token NexusCord Hybrid, loading bằng skeleton có nhịp mềm; error,
+  forbidden và missing có hierarchy/copy/action riêng; offline/reconnecting là banner gọn, dark/light dùng
+  cùng geometry và tôn trọng reduced-motion.
+- **Feature:** `?ui-state=loading|error|offline|reconnecting|forbidden|missing` preview được trên Friends,
+  DM và Channel. Retry/close state preview đưa route về trạng thái sẵn sàng mà không reload hay đổi dữ liệu.
+- **Data:** state preview chỉ đọc query param, không thêm mock member/server/message, không gọi API và không
+  sửa schema; source live vẫn rỗng và demo toggle giữ nguyên hành vi.
+
+#### File/folder dự kiến
+
+- `plans/dashboard.PLAN.md` — checklist, gate và kết quả phase.
+- `src/app/features/dashboard/components/dashboard-state/**` — scaffold bằng Angular CLI; skeleton/panel/banner.
+- `src/app/features/dashboard/services/dashboard-ui-state.ts|spec.ts` — scaffold bằng Angular CLI; chuẩn hoá
+  query param thành typed state và clear preview bằng Router.
+- `src/app/features/dashboard/friends/friends.ts|html|spec.ts` — render blocking/connection state quanh nội dung.
+- `src/app/features/dashboard/channel/channel.ts|html|spec.ts` — render state trước dữ liệu channel.
+- `src/app/features/dashboard/conversation/conversation.ts|html|spec.ts` — render state trước dữ liệu DM.
+- `src/app/features/dashboard/server-home/server-home.ts|html|spec.ts` — giữ state nhất quán ở route server home.
+- Không sửa `layouts/**`, `shared/**`, backend hoặc database; không thêm dependency.
+
+#### Test dự kiến
+
+- DashboardState render skeleton khác nhau cho list/chat, có `aria-busy`/`role=status` và không có spinner.
+- Error/forbidden/missing có đúng icon, copy và action; offline/reconnecting dùng banner không-blocking.
+- Query không hợp lệ rơi về `ready`; clear preview giữ route hiện tại và xoá duy nhất `ui-state`.
+- Friends/DM/Channel giữ UI cũ ở ready, state blocking không dựng dữ liệu giả; banner connection không xoá content.
+- `npm run build`, toàn bộ unit/component test và `git diff --check` pass.
+
+#### Tiêu chí hoàn thành
+
+- [x] Hoàn tất toàn bộ sáu checkbox mục “1. Trạng thái sản phẩm”.
+- [x] Light/dark chỉ dùng token hiện có, không hardcode hex/gradient/glass/glow nặng.
+- [x] Không làm thay đổi demo toggle, routing, server drag/group hoặc ownership của member khác.
+
+#### Kết quả Phase UI-14
+
+- Ngày hoàn thành code/test: 2026-08-09 trên branch `page/tai`; chờ Tài kiểm tra giao diện trực tiếp.
+- Commit/push: không tự thực hiện vì Tài chưa yêu cầu.
+- Kết quả test: toàn bộ frontend `35/35` test file và `174/174` unit/component test pass;
+  `npm run build` pass browser/SSR/prerender, không có warning `anyComponentStyle`; `git diff --check` pass.
+- Đánh giá UI/UX: loading dùng skeleton riêng cho list/chat; error/forbidden/missing dùng panel có copy,
+  Material Symbol và action riêng; offline/reconnecting dùng banner không-blocking. Màu, border, shadow và
+  animation chỉ dùng token NexusCord Hybrid, có `prefers-reduced-motion` và semantics `status/alert/aria-busy`.
+- Đánh giá Feature: Friends, DM, Channel và Server Home đọc preview typed qua query `ui-state`; action xoá riêng
+  query này, giữ route/query khác. Blocking state không render timeline/composer/list; connection state vẫn giữ
+  nội dung đang xem. Query lạ tự rơi về `ready`.
+- Đánh giá Data: không thêm server/member/message giả, không sửa ShellData, backend, database, Profile, Settings
+  hoặc server drag/group; demo toggle và dữ liệu rỗng của tài khoản mới giữ nguyên.
+
+### Phase UI-15 — Nexus Orbit Boot cho F5 và lần đầu vào Dashboard
+
+Status: APPROVED
+
+> Tài giao agent tự chọn hiệu ứng phù hợp và yêu cầu triển khai để kiểm tra bằng DevTools. Tài trước đó đã
+> cho phép phase UI append được đặt `APPROVED`. Phase này cần ngoại lệ tối thiểu ở `app-root`, `index.html`
+> và `styles.css` vì loader phải xuất hiện trước khi route Dashboard/Angular hoàn tất; không sửa Login/Auth.
+
+#### Chẩn đoán
+
+- State loading ở Phase UI-14 chỉ dựng sau khi route component đã tồn tại, nên không thể che khoảng chờ khi
+  F5 đang bootstrap/hydrate hoặc guard đang khôi phục session và hồ sơ.
+- Nếu bật full-screen loader cho mọi `NavigationStart`, việc đổi DM/kênh nội bộ sẽ chớp màn hình và làm mất
+  cảm giác app thời gian thực. Loader chỉ nên chạy ở initial navigation và lần đi từ route ngoài vào `/channels`.
+- Loader hiện ngay trên máy nhanh tạo flash khó chịu; cần reveal delay ngắn, minimum visible time khi đã hiện,
+  exit bằng opacity/transform và một query preview dành cho kiểm tra thủ công.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:** “Nexus Orbit Boot” dùng monogram N phẳng, hai quỹ đạo và ba node chuyển động bằng transform;
+  không spinner, gradient, glow 3D hoặc ảnh logo nặng. Dark/light dùng token Hybrid, copy ngắn, có reduced-motion.
+- **Feature:** boot screen chỉ hiện nếu initial/entry-to-Dashboard kéo dài quá ngưỡng; không hiện khi chuyển kênh
+  nội bộ. `?boot-preview=1` giữ hiệu ứng đủ lâu để Tài mở DevTools xem mà không thêm nút phát triển lên giao diện.
+- **Data:** chỉ quan sát Angular Router; không gọi API, không đọc/ghi dữ liệu Dashboard và không thay Auth guard.
+
+#### File/folder dự kiến
+
+- `plans/dashboard.PLAN.md` — gate, checklist và kết quả phase.
+- `src/app/features/dashboard/components/nexus-boot/**` — scaffold bằng Angular CLI; markup/semantics visual.
+- `src/app/features/dashboard/services/nexus-boot-state.ts|spec.ts` — scaffold bằng Angular CLI; state machine timer
+  cho initial navigation, entry Dashboard, preview và exit.
+- `src/app/app.ts|html|spec.ts` — ngoại lệ root tối thiểu để overlay sống xuyên thời gian activate route.
+- `src/index.html` — fallback markup và đọc theme đã lưu trước bootstrap để F5 không lóe sai màu.
+- `src/styles.css` — CSS scope `.nexus-boot*` dùng chung cho fallback trước bootstrap và Angular component.
+- Không sửa `features/auth/**`, `core/auth/**`, Profile, Settings, backend/database hoặc thêm dependency.
+
+#### Test dự kiến
+
+- NexusBoot có `role=status`, `aria-live=polite`, copy đúng và class exit; không có spinner/image.
+- State service không hiện khi navigation kết thúc trước reveal delay; hiện và giữ minimum time khi navigation chậm.
+- Từ route ngoài vào `/channels` được kích hoạt; `/channels` sang `/channels` không kích hoạt lại.
+- `boot-preview=1` ép thời gian preview; reduced-motion được đảm bảo bằng CSS media query.
+- `npm run build`, toàn bộ unit/component test, Prettier và `git diff --check` pass.
+
+#### Tiêu chí hoàn thành
+
+- [x] F5/restore session chậm có boot screen, máy nhanh không bị flash bắt buộc.
+- [x] Sau đăng nhập vào Dashboard có transition; đổi server/kênh/DM không bật full-screen loader.
+- [x] Dark/light, mobile, SSR/hydration và reduced-motion giữ cùng geometry, không cuộn ngang.
+- [x] Chỉ sửa đúng ngoại lệ shared đã khai và không thay ownership/logic Auth.
+
+#### Kết quả Phase UI-15
+
+- Ngày hoàn thành code/test: 2026-08-09 trên branch `page/tai`; chờ Tài duyệt animation trực tiếp.
+- Commit/push: không tự thực hiện vì Tài chưa yêu cầu.
+- Kết quả test: toàn bộ frontend `37/37` test file và `181/181` unit/component test pass;
+  `npm run build` pass browser/SSR/prerender, initial bundle `614.85 kB` dưới budget warning `700 kB`, không có
+  warning `anyComponentStyle`. Dev server trả HTTP 200; HTML SSR có fallback boot, theme bootstrap và title NexusCord.
+- Đánh giá UI/UX: Nexus Orbit Boot dùng monogram phẳng, hai orbit, ba node và progress thread; màu chỉ lấy token
+  Hybrid. Reveal delay 160ms tránh flash, exit 220ms, animation chỉ đổi transform/opacity và reduced-motion tắt motion.
+- Sau lượt duyệt trực tiếp của Tài: vòng nền lớn được thu theo cạnh ngắn viewport và căn đồng tâm tuyệt đối với
+  monogram để không còn lệch thị giác; khi hệ điều hành bật reduced-motion, progress thread được ẩn thay vì đứng
+  yên ở 64% gây cảm giác trang bị treo.
+- Bốn connection node được chuyển từ tọa độ rời theo khung vuông sang làm con trực tiếp của hai ellipse: mỗi orbit
+  có một cặp node đối xứng tại hai đầu. Sau lượt duyệt tiếp theo, cả bốn dot dùng chung kích thước, màu, viền và
+  nhịp thở; chỉ độ đậm hai nét ellipse tạo phân lớp. Vị trí theo phần trăm giữ đúng quỹ đạo ở desktop/mobile.
+- Đánh giá Feature: initial navigation và lần từ route ngoài vào `/channels` được theo dõi; navigation Dashboard
+  nội bộ không kích hoạt overlay. `?boot-preview=1` giữ loader 2,4 giây cho DevTools. Browser automation nội bộ
+  không kết nối được trong phiên này nên phần duyệt cảm giác animation để Tài thực hiện trên dev server thật.
+- Đánh giá Data: không sửa `features/auth/**`, `core/auth/**`, guard, session, ShellData, backend hoặc database;
+  state machine chỉ quan sát Router và timer phía browser, SSR không tạo timer giữ tiến trình render.
+
+### Phase UI-16 — Cân chỉnh user panel và cụm điều khiển âm thanh
+
+Status: APPROVED
+
+> Tài đã yêu cầu trực tiếp cân lại avatar/profile và ba icon mic, tai nghe, cài đặt sau khi kiểm tra hover
+> trên giao diện thật; các phase UI append trước đó đã được cho phép đặt `APPROVED`. Đây là ngoại lệ shared
+> tối thiểu trong `layouts/**` vì user panel thuộc app shell của Dashboard; không dựng hay sửa trang Profile/Settings.
+
+#### Chẩn đoán
+
+- Nút danh tính chỉ cao `36px` và có padding dọc trong khi avatar đã cao `32px`, hai dòng tên/trạng thái cần
+  thêm khoảng thở; vì vậy nội dung bị ép, tâm avatar và khối chữ không còn cân nhau khi hover.
+- Ba icon button đứng trực tiếp trong grid với khoảng cách `2px`; glyph Material có cùng hộp 24px nhưng trọng tâm
+  thị giác khác nhau, khiến mic/tai nghe/bánh răng trông lệch và các vùng hover dính thành một dải chật.
+- Tên dài cần tiếp tục truncate trong cột co giãn, không được đẩy cụm điều khiển hoặc tạo overflow ngang.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:** tách danh tính và audio controls thành hai cụm rõ ràng; profile có hàng `44px`, avatar và hai dòng
+  copy căn giữa; ba nút có cùng khung `36px`, lõi icon `20px`, gap đều và hiệu chỉnh quang học tối thiểu. Dark/light
+  dùng cùng geometry và các token surface/hairline hiện có.
+- **Feature:** giữ nguyên menu đăng xuất, tooltip, ARIA và state bật/tắt mic/tai nghe; Settings tiếp tục là integration
+  seam bị khóa, không mở dialog hay route thuộc member khác.
+- **Data:** không thêm hoặc sửa dữ liệu, profile contract, Auth, ShellData, API hay backend.
+
+#### File/folder dự kiến
+
+- `plans/dashboard.PLAN.md` — gate và kết quả phase.
+- `src/app/layouts/app-layout/components/user-panel/user-panel.html|css|spec.ts` — ngoại lệ shared đã khai báo;
+  chỉ đổi markup trình bày, geometry và regression test của chính user panel.
+- Không tạo folder/component mới, không thêm dependency, không sửa `user-panel.ts`, `shared/avatar/**`,
+  `features/auth/**`, Profile, Settings, backend hoặc database.
+
+#### Test dự kiến và tiêu chí hoàn thành
+
+- Profile row có hook riêng, cao ổn định và vẫn truncate tên dài; ba control nằm trong group có nhãn truy cập.
+- Các button/icon dùng chung kích thước, mic/tai nghe vẫn toggle tại chỗ, Settings vẫn disabled.
+- Không có overflow ngang; hover/focus/pressed dùng token và không đổi layout giữa dark/light.
+- Chạy toàn bộ unit/component test, `npm run build`, Prettier và `git diff --check`.
+
+#### Kết quả Phase UI-16
+
+- Ngày hoàn thành code/test: 2026-08-09 trên branch `page/tai`; chờ Tài kiểm tra hover trực tiếp.
+- Commit/push: không tự thực hiện vì Tài chưa yêu cầu.
+- Kết quả test: toàn bộ frontend `37/37` test file và `181/181` unit/component test pass;
+  `npm run build` pass browser/SSR/prerender, initial bundle `614.81 kB` dưới budget warning `700 kB`,
+  không có warning `anyComponentStyle`; Prettier và `git diff --check` pass.
+- Đánh giá UI/UX: profile row cao `44px` nên avatar `32px` và hai dòng copy không còn bị ép; identity và
+  control group là hai vùng độc lập. Ba nút dùng chung hộp `36px`, lõi icon `20px`, gap đều và mic/tai nghe
+  được bù tâm thị giác nhẹ; surface/viền chỉ dùng token nên geometry giữ nguyên ở dark/light.
+- Đánh giá Feature: menu đăng xuất, tooltip, ARIA và state mic/tai nghe giữ nguyên; cụm control có nhãn group,
+  tên dài tiếp tục truncate; Settings vẫn disabled và không dựng UI của member khác.
+- Đánh giá Data: không sửa `user-panel.ts`, Auth, Profile contract, ShellData, API, backend hoặc database;
+  không tạo folder/component/dependency mới.
+
+### Phase UI-17 — Neo timeline chat lên vùng đầu nội dung
+
+Status: APPROVED
+
+> Tài yêu cầu trực tiếp giữ timeline căn giữa theo chiều ngang nhưng đưa cụm intro/tin nhắn lên phía trên.
+> Phase UI append đã được cho phép đặt `APPROVED`; thay đổi chỉ thuộc hai trang chat của Dashboard.
+
+#### Chẩn đoán và mục tiêu theo ba tiêu chí
+
+- **UI/UX:** `chat-stage` đang dùng `justify-end`, nên khi chỉ có ít tin nhắn toàn bộ intro/timeline bị đẩy
+  xuống đáy và mức tụt thay đổi theo chiều cao màn hình. Chuyển sang neo đầu nội dung ở top, vẫn giữ `max-w-4xl`,
+  căn giữa ngang và padding hiện có để bố cục ổn định trên desktop/mobile, dark/light.
+- **Feature:** Channel và DM dùng cùng quy tắc; vùng lịch sử vẫn tự cuộn khi nội dung vượt chiều cao, composer,
+  wallpaper, message actions và demo toggle không đổi. Khi nối dữ liệu thật, logic scroll tới tin mới nhất sẽ
+  thuộc phase message/pagination riêng, không giả lập trong phase UI này.
+- **Data:** không sửa mock, ShellData, API, backend, database, Auth, Profile hoặc Settings.
+
+#### File/folder và kiểm chứng
+
+- `plans/dashboard.PLAN.md` — gate và kết quả phase.
+- `src/app/features/dashboard/channel/channel.html|spec.ts`.
+- `src/app/features/dashboard/conversation/conversation.html|spec.ts`.
+- Không tạo file/folder/dependency mới và không sửa `layouts/**`, `shared/**`, `core/**`.
+- Test xác nhận cả hai `chat-stage` dùng top anchor, không còn bottom anchor; chạy toàn bộ unit/component test,
+  `npm run build`, Prettier và `git diff --check`.
+
+#### Kết quả Phase UI-17
+
+- Ngày hoàn thành code/test: 2026-08-09 trên branch `page/tai`; chờ Tài kiểm tra vị trí trực tiếp.
+- Commit/push: không tự thực hiện vì Tài chưa yêu cầu.
+- Kết quả test: toàn bộ frontend `37/37` test file và `181/181` unit/component test pass;
+  `npm run build` pass browser/SSR/prerender, initial bundle `614.85 kB` dưới budget warning `700 kB`,
+  không có warning `anyComponentStyle`; Prettier và `git diff --check` pass.
+- Đánh giá UI/UX: `chat-stage` của Channel và DM chuyển từ bottom anchor sang top anchor, vẫn giữ
+  `max-w-4xl`, căn giữa ngang, padding và wallpaper hiện có; vị trí không còn trôi theo chiều cao viewport.
+- Đánh giá Feature: lịch sử vẫn là vùng cuộn độc lập và composer giữ nguyên; demo toggle, message action,
+  context panel và state loading/error không đổi. Logic auto-scroll dữ liệu thật chưa được giả lập.
+- Đánh giá Data: không sửa mock, service, ShellData, API, backend/database hay phần của member khác;
+  không tạo file/folder/dependency mới.
+
+### Phase UI-18 — Message actions và composer context preview
+
+Status: APPROVED
+
+> Tài yêu cầu trực tiếp bổ sung các chi tiết thao tác trên tin nhắn nhưng giới hạn ở UI Dashboard. Tài đã được
+> báo trước việc thêm một component `message-actions/` trong cấu trúc `features/dashboard/components/` để Channel
+> và DM không copy-paste interaction. Phase UI append trước đó đã được cho phép đặt `APPROVED`.
+
+#### Chẩn đoán
+
+- Toolbar hiện chỉ có ba icon bị khóa và lặp nguyên markup ở sáu tin demo; không có focus/tooltip thực dụng,
+  reaction picker, phân biệt quyền sửa hay một nơi thể hiện ý định reply/edit/forward/delete.
+- Nếu cho các action giả vờ thành công sẽ sai contract khi chưa có API, quyền, message id thật và socket sync.
+  UI cần tương tác được nhưng phải nói rõ đâu là preview cục bộ và đâu đang chờ backend/team khác.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:** toolbar nổi khi hover/focus, dùng Material icon/button/menu; reaction picker gọn theo hàng emoji,
+  selected reaction thành chip có thể bỏ; menu “Thêm” có hierarchy rõ và destructive action tách màu semantic.
+  Composer có context strip cho reply/edit/forward/delete, không làm nhảy chiều ngang; dark/light chỉ dùng token Hybrid.
+- **Feature:** reaction hoạt động cục bộ trong từng message action; reply, edit tin của mình, forward và delete/recall
+  mở đúng context preview phía trên composer và đóng được. Edit tin người khác disabled. Forward không mở trang/danh
+  sách người nhận; delete không xóa mock; send/save vẫn khóa cho tới phase backend tương ứng.
+- **Data:** không sửa mock collection, ShellData, API, DTO, backend/database, permission service hoặc realtime;
+  không ghi reaction/action vào localStorage và không báo thành công giả.
+
+#### File/folder dự kiến
+
+- `plans/dashboard.PLAN.md` — gate và kết quả phase.
+- Tạo bằng Angular CLI: `src/app/features/dashboard/components/message-actions/**`.
+- `src/app/features/dashboard/components/message-composer/message-composer.ts|html|css|spec.ts` — context strip typed.
+- `src/app/features/dashboard/channel/channel.ts|html|spec.ts` — lắp component/action preview cho kênh chữ.
+- `src/app/features/dashboard/conversation/conversation.ts|html|spec.ts` — lắp component/action preview cho DM.
+- `src/styles.css` — ngoại lệ UI dùng chung tối thiểu, chỉ scope panel overlay `.nexus-message-reaction-menu`
+  vì CDK overlay render ngoài component tree.
+- Không sửa `layouts/**`, `shared/**`, `core/**`, Auth, Profile, Settings; không thêm dependency hay folder khác.
+
+#### Kiểm chứng và tiêu chí hoàn thành
+
+- MessageActions có toolbar truy cập được, reaction toggle local, more menu và trạng thái edit theo ownership.
+- MessageComposer render/đóng được bốn loại context nhưng input/send vẫn disabled.
+- Channel và DM thay toàn bộ toolbar lặp bằng component chung; mỗi trang truyền đúng ownership/copy và context.
+- `npm run build`, toàn bộ unit/component test, Prettier và `git diff --check` pass; Tài tự kiểm tra hover/menu trực tiếp.
+
+#### Kết quả Phase UI-18
+
+- Ngày hoàn thành code/test: 2026-08-09 trên branch `page/tai`; chờ Tài kiểm tra hover/menu trực tiếp.
+- Commit/push: không tự thực hiện vì Tài chưa yêu cầu.
+- Kết quả test: toàn bộ frontend `38/38` test file và `186/186` unit/component test pass;
+  `npm run build` pass browser/SSR/prerender, initial bundle `616.27 kB` dưới budget warning `700 kB`,
+  không có warning `anyComponentStyle`; Prettier và `git diff --check` pass. Lượt test đầu có `1/185` fail
+  vì assertion đọc signal trước change detection; thêm chu kỳ render cho test rồi chạy lại toàn bộ sạch.
+- Đánh giá UI/UX: toolbar dùng Material icon/button/menu, hover/focus không đổi layout; reaction picker là lưới
+  năm emoji, reaction đã chọn thành chip có thể bỏ. More menu phân cấp edit/forward/destructive; composer context
+  dùng Nexus Thread ở cạnh trái, delete đổi sang semantic danger; dark/light chỉ đổi token.
+- Đánh giá Feature: reaction toggle cục bộ theo từng tin; reply/edit/forward/delete phát typed context và đóng được.
+  Edit tin người khác disabled; Channel/DM đều dùng component chung. Composer input/send vẫn khóa; forward không
+  mở danh sách đích và delete/thu hồi không xóa mock hay báo thành công giả.
+- Đánh giá Data: không sửa ShellData/mock collection/API/DTO/backend/database/permission/realtime, không persistence
+  reaction/action; không đụng `layouts/**`, `shared/**`, Auth, Profile hoặc Settings. Component mới được tạo bằng CLI.
+
 ---
 
 ## Phạm vi

@@ -3,6 +3,12 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { ShellData } from '../../../core/api/shell-data';
+import {
+  DashboardUiState,
+  type DashboardBlockingState,
+  type DashboardConnectionState,
+  type DashboardUiStateName,
+} from '../services/dashboard-ui-state';
 import { ChannelPage } from './channel';
 
 const SHELL_STUB = {
@@ -35,15 +41,30 @@ const SHELL_STUB = {
 };
 
 describe('ChannelPage', () => {
-  const mount = async (path: string, demo = false) => {
+  const mount = async (path: string, demo = false, uiState: DashboardUiStateName = 'ready') => {
     const shell = {
       ...SHELL_STUB,
       demoEnabled: signal(demo).asReadonly(),
     };
+    const blockingState = signal<DashboardBlockingState | null>(
+      uiState === 'loading' ||
+        uiState === 'error' ||
+        uiState === 'forbidden' ||
+        uiState === 'missing'
+        ? uiState
+        : null,
+    ).asReadonly();
+    const connectionState = signal<DashboardConnectionState | null>(
+      uiState === 'offline' || uiState === 'reconnecting' ? uiState : null,
+    ).asReadonly();
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'c/:serverId/:channelId', component: ChannelPage }]),
         { provide: ShellData, useValue: shell },
+        {
+          provide: DashboardUiState,
+          useValue: { blockingState, connectionState, clearPreview: async () => true },
+        },
       ],
     });
     const harness = await RouterTestingHarness.create();
@@ -65,6 +86,9 @@ describe('ChannelPage', () => {
         ?.classList.contains('nexus-scrollbar'),
     ).toBe(true);
     expect(harness.routeNativeElement!.querySelector('.chat-intro')).toBeTruthy();
+    const chatStage = harness.routeNativeElement!.querySelector('.chat-stage');
+    expect(chatStage?.classList.contains('justify-start')).toBe(true);
+    expect(chatStage?.classList.contains('justify-end')).toBe(false);
     expect(harness.routeNativeElement!.querySelector('[data-demo-message]')).toBeFalsy();
   });
 
@@ -72,9 +96,19 @@ describe('ChannelPage', () => {
     const harness = await mount('itss/do-an', true);
 
     expect(harness.routeNativeElement!.querySelectorAll('[data-demo-message]')).toHaveLength(3);
+    expect(harness.routeNativeElement!.querySelectorAll('app-message-actions')).toHaveLength(3);
     expect(harness.routeNativeElement!.querySelector('.message-reply')).toBeTruthy();
     expect(harness.routeNativeElement!.querySelector('.nexus-unread-divider')).toBeTruthy();
     expect(harness.routeNativeElement!.querySelector('.reaction-chip')).toBeTruthy();
+
+    const reply = harness.routeNativeElement!.querySelector(
+      'app-message-actions button[aria-label="Trả lời"]',
+    ) as HTMLButtonElement;
+    reply.click();
+    harness.fixture.detectChanges();
+    expect(harness.routeNativeElement!.querySelector('.composer-context')?.textContent).toContain(
+      'Trả lời Phan Thế Mon',
+    );
   });
 
   it('kênh thoại KHÔNG có ô soạn tin', async () => {
@@ -109,5 +143,23 @@ describe('ChannelPage', () => {
     expect(panel.classList.contains('context-panel--open')).toBe(true);
     expect(panel.textContent).toContain('Chưa có dữ liệu thành viên');
     expect(panel.querySelector('app-avatar')).toBeFalsy();
+  });
+
+  it('error chặn timeline và ô soạn tin', async () => {
+    const harness = await mount('itss/do-an', false, 'error');
+
+    expect(
+      harness.routeNativeElement!.querySelector('[data-dashboard-state="error"]'),
+    ).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('app-message-composer')).toBeNull();
+  });
+
+  it('reconnecting giữ nguyên kênh đang xem và chỉ thêm banner', async () => {
+    const harness = await mount('itss/do-an', false, 'reconnecting');
+
+    expect(
+      harness.routeNativeElement!.querySelector('[data-dashboard-state="reconnecting"]'),
+    ).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('app-message-composer')).toBeTruthy();
   });
 });

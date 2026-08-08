@@ -1,4 +1,15 @@
-@if (conversation(); as person) {
+@if (connectionState(); as state) {
+  <app-dashboard-state [state]="state" layout="chat" (action)="clearUiState()" />
+}
+
+@if (blockingState(); as state) {
+  <app-dashboard-state
+    class="flex min-h-0 flex-1"
+    [state]="state"
+    layout="chat"
+    (action)="clearUiState()"
+  />
+} @else if (conversation(); as person) {
   <app-chat-toolbar
     [title]="person.name"
     [subtitle]="person.statusMessage"
@@ -13,7 +24,7 @@
       class="chat-history nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-6"
       data-chat-wallpaper="doodle"
     >
-      <div class="chat-stage mx-auto flex min-h-full w-full max-w-4xl flex-col justify-end">
+      <div class="chat-stage mx-auto flex min-h-full w-full max-w-4xl flex-col justify-start">
         <section class="chat-intro max-w-2xl">
           <span class="chat-intro__avatar flex w-fit" aria-hidden="true">
             <app-avatar [name]="person.name" [presence]="person.presence" size="xl" ring="canvas" />
@@ -45,17 +56,12 @@
                   Mày xem Dashboard mới chưa? Tao thích cách phần server active nối xuống cuộc trò
                   chuyện.
                 </p>
-                <div class="message-actions" role="toolbar" aria-label="Thao tác tin nhắn mẫu">
-                  <button type="button" disabled aria-label="Thêm cảm xúc">
-                    <mat-icon aria-hidden="true">add_reaction</mat-icon>
-                  </button>
-                  <button type="button" disabled aria-label="Trả lời">
-                    <mat-icon aria-hidden="true">reply</mat-icon>
-                  </button>
-                  <button type="button" disabled aria-label="Thêm thao tác">
-                    <mat-icon aria-hidden="true">more_horiz</mat-icon>
-                  </button>
-                </div>
+                <app-message-actions
+                  messageId="dm-1"
+                  [author]="person.name"
+                  excerpt="Mày xem Dashboard mới chưa? Tao thích cách phần server active nối xuống cuộc trò chuyện."
+                  (action)="composerContext.set($event)"
+                />
               </article>
             </li>
 
@@ -79,17 +85,13 @@
                 <div class="message-reactions mt-2 flex flex-wrap gap-1.5" aria-label="Cảm xúc">
                   <span class="reaction-chip">✨ <span>1</span></span>
                 </div>
-                <div class="message-actions" role="toolbar" aria-label="Thao tác tin nhắn mẫu">
-                  <button type="button" disabled aria-label="Thêm cảm xúc">
-                    <mat-icon aria-hidden="true">add_reaction</mat-icon>
-                  </button>
-                  <button type="button" disabled aria-label="Trả lời">
-                    <mat-icon aria-hidden="true">reply</mat-icon>
-                  </button>
-                  <button type="button" disabled aria-label="Thêm thao tác">
-                    <mat-icon aria-hidden="true">more_horiz</mat-icon>
-                  </button>
-                </div>
+                <app-message-actions
+                  messageId="dm-2"
+                  author="Bạn"
+                  excerpt="Đang xem đây. Bấm Ctrl K tìm kênh nhanh hơn hẳn, mà giao diện vẫn không bị rối."
+                  [editable]="true"
+                  (action)="composerContext.set($event)"
+                />
               </article>
             </li>
 
@@ -112,14 +114,12 @@
                 <p class="mt-1 text-body-sm text-charcoal">
                   Giữ kiểu này đi. Nó có dấu ấn riêng mà không biến thành một đống hiệu ứng.
                 </p>
-                <div class="message-actions" role="toolbar" aria-label="Thao tác tin nhắn mẫu">
-                  <button type="button" disabled aria-label="Trả lời">
-                    <mat-icon aria-hidden="true">reply</mat-icon>
-                  </button>
-                  <button type="button" disabled aria-label="Thêm thao tác">
-                    <mat-icon aria-hidden="true">more_horiz</mat-icon>
-                  </button>
-                </div>
+                <app-message-actions
+                  messageId="dm-3"
+                  [author]="person.name"
+                  excerpt="Giữ kiểu này đi. Nó có dấu ấn riêng mà không biến thành một đống hiệu ứng."
+                  (action)="composerContext.set($event)"
+                />
               </article>
             </li>
           </ol>
@@ -127,7 +127,11 @@
       </div>
     </div>
 
-    <app-message-composer [target]="'@' + person.name" />
+    <app-message-composer
+      [target]="'@' + person.name"
+      [context]="composerContext()"
+      (contextClosed)="composerContext.set(null)"
+    />
   </div>
 } @else {
   <app-empty-state icon="search_off" message="Không tìm thấy cuộc trò chuyện này." />

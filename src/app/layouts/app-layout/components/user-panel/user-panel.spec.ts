@@ -66,7 +66,7 @@ describe('UserPanel', () => {
     expect(mic.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('giữ ba control trong grid 36px để tên dài không tạo overflow ngang', async () => {
+  it('tách danh tính và control group để tên dài không tạo overflow ngang', async () => {
     profile.current = () => ({
       id: 'u1',
       username: 'minhtai',
@@ -76,11 +76,21 @@ describe('UserPanel', () => {
     const controls = Array.from(
       fixture.nativeElement.querySelectorAll('button.nexus-icon-control'),
     ) as HTMLButtonElement[];
+    const identity = fixture.nativeElement.querySelector(
+      'button.user-panel__identity',
+    ) as HTMLButtonElement;
+    const controlGroup = fixture.nativeElement.querySelector(
+      '.user-panel__controls[role="group"]',
+    ) as HTMLDivElement;
 
     expect(fixture.nativeElement.classList.contains('overflow-hidden')).toBe(true);
     expect(controls).toHaveLength(3);
-    expect(controls.every((control) => control.classList.contains('!size-9'))).toBe(true);
-    expect(fixture.nativeElement.querySelector('button.overflow-hidden')).toBeTruthy();
+    expect(controls.every((control) => control.classList.contains('user-panel__control'))).toBe(
+      true,
+    );
+    expect(identity).toBeTruthy();
+    expect(identity.textContent).toContain('Nguyễn Minh Tài');
+    expect(controlGroup.getAttribute('aria-label')).toBe('Điều khiển âm thanh và ứng dụng');
   });
 
   it('để nút cài đặt làm integration seam và không dựng UI của team Settings', async () => {

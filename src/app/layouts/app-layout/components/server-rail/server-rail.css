@@ -56,11 +56,6 @@
   cursor: grabbing;
 }
 
-.server-drop-target.cdk-drop-list-dragging,
-.server-group-dropzone.cdk-drop-list-dragging {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-soft) 34%, transparent);
-}
-
 .server-drop-slot {
   display: flex;
   width: 3rem;

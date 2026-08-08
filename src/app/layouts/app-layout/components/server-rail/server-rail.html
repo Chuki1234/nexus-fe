@@ -22,8 +22,8 @@
 <hr class="my-1 w-8 border-t border-hairline" aria-hidden="true" />
 
 <span id="server-drag-help" class="sr-only">
-  Giữ và kéo một máy chủ lên máy chủ khác để tạo nhóm, kéo lên một nhóm để di chuyển, hoặc thả vào
-  đường chỉ vị trí để sắp xếp và đưa máy chủ ra ngoài nhóm.
+  Giữ và kéo một máy chủ lên máy chủ hoặc folder đang phình để gom nhóm, thả vào đường ngang để sắp
+  xếp, hoặc thả vào vùng Ra ngoài để đưa máy chủ ra khỏi nhóm.
 </span>
 
 <ul
@@ -35,17 +35,27 @@
   @for (group of serverGroups(); track group.id) {
     @let groupServers = serversInGroup(group);
     @if (groupServers.length > 0) {
-      <li class="mb-2 flex w-full flex-col items-center" [attr.data-server-group-id]="group.id">
+      <li
+        class="server-group-shell mb-2 flex flex-col items-center rounded-xl"
+        [class.server-group-shell--expanded]="groupIsExpanded(group.id)"
+        [attr.data-server-group-id]="group.id"
+        [attr.data-group-state]="groupIsExpanded(group.id) ? 'expanded' : 'collapsed'"
+      >
         <div
           cdkDropList
           [cdkDropListData]="group.id"
           [cdkDropListSortingDisabled]="true"
+          (cdkDropListEntered)="activateGroupingTarget('group', group.id)"
+          (cdkDropListExited)="deactivateGroupingTarget('group', group.id)"
           (cdkDropListDropped)="dropOnGroup($event, group.id)"
           class="server-group-dropzone relative rounded-lg"
+          [class.server-group-dropzone--group-active]="groupingTargetIsActive('group', group.id)"
+          [attr.data-group-drop-target]="group.id"
         >
           <button
             type="button"
             class="server-group-tile nexus-icon-control flex size-12 items-center justify-center rounded-xl"
+            [class.server-group-tile--expanded]="groupIsExpanded(group.id)"
             [attr.aria-expanded]="groupIsExpanded(group.id)"
             [attr.aria-label]="
               'Nhóm máy chủ ' + group.name + ', ' + groupServers.length + ' máy chủ'
@@ -84,7 +94,16 @@
         </div>
 
         @if (groupIsExpanded(group.id)) {
-          <ul class="flex flex-col items-center" [attr.aria-label]="group.name">
+          <ul
+            class="server-group-members flex flex-col items-center"
+            [attr.aria-label]="group.name"
+            data-expanded-group-members
+          >
+            <li class="server-group-caption" aria-hidden="true">
+              <mat-icon>folder_open</mat-icon>
+              <span>{{ groupServers.length }}</span>
+            </li>
+
             @for (server of groupServers; track server.id; let index = $index) {
               @let slotId = groupSlotId(group.id, index);
               <li
@@ -106,12 +125,20 @@
                 cdkDropList
                 [cdkDropListData]="server.id"
                 [cdkDropListSortingDisabled]="true"
+                (cdkDropListEntered)="activateGroupingTarget('server', server.id)"
+                (cdkDropListExited)="deactivateGroupingTarget('server', server.id)"
                 (cdkDropListDropped)="dropOnServer($event, server.id)"
                 class="server-drop-target relative rounded-md"
+                [class.server-drop-target--group-active]="
+                  groupingTargetIsActive('server', server.id)
+                "
+                [attr.data-server-drop-target]="server.id"
               >
                 <a
                   cdkDrag
                   [cdkDragData]="server.id"
+                  (cdkDragStarted)="startServerDrag(server.id)"
+                  (cdkDragEnded)="finishServerDrag()"
                   [routerLink]="linkFor(server.id)"
                   routerLinkActive
                   #groupServerLink="routerLinkActive"
@@ -163,6 +190,27 @@
           </ul>
         }
       </li>
+
+      <li
+        cdkDropList
+        [cdkDropListData]="'ungroup-' + group.id"
+        [cdkDropListSortingDisabled]="true"
+        [cdkDropListDisabled]="draggingSourceGroupId() !== group.id"
+        (cdkDropListEntered)="activateUngroupTarget(group.id)"
+        (cdkDropListExited)="deactivateUngroupTarget(group.id)"
+        (cdkDropListDropped)="dropOutsideGroupsAt($event, 0)"
+        class="server-ungroup-zone"
+        [class.server-ungroup-zone--visible]="draggingSourceGroupId() === group.id"
+        [class.server-ungroup-zone--active]="activeUngroupTarget() === group.id"
+        [attr.data-server-ungroup-zone]="group.id"
+        [attr.aria-hidden]="draggingSourceGroupId() === group.id ? null : 'true'"
+        aria-label="Thả để đưa máy chủ ra ngoài nhóm"
+        matTooltip="Thả để đưa máy chủ ra ngoài nhóm"
+        matTooltipPosition="right"
+      >
+        <mat-icon aria-hidden="true">folder_off</mat-icon>
+        <span aria-hidden="true">Ra ngoài</span>
+      </li>
     }
   }
 
@@ -187,12 +235,18 @@
       cdkDropList
       [cdkDropListData]="server.id"
       [cdkDropListSortingDisabled]="true"
+      (cdkDropListEntered)="activateGroupingTarget('server', server.id)"
+      (cdkDropListExited)="deactivateGroupingTarget('server', server.id)"
       (cdkDropListDropped)="dropOnServer($event, server.id)"
       class="server-drop-target relative rounded-md"
+      [class.server-drop-target--group-active]="groupingTargetIsActive('server', server.id)"
+      [attr.data-server-drop-target]="server.id"
     >
       <a
         cdkDrag
         [cdkDragData]="server.id"
+        (cdkDragStarted)="startServerDrag(server.id)"
+        (cdkDragEnded)="finishServerDrag()"
         [routerLink]="linkFor(server.id)"
         routerLinkActive
         #serverLink="routerLinkActive"

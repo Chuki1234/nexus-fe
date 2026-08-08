@@ -1,3 +1,29 @@
+@if (context(); as activeContext) {
+  <section
+    class="composer-context"
+    [attr.data-context-kind]="activeContext.kind"
+    aria-live="polite"
+  >
+    <span class="composer-context__icon" aria-hidden="true">
+      <mat-icon>{{ activeContext.icon }}</mat-icon>
+    </span>
+    <span class="composer-context__copy">
+      <strong>{{ activeContext.label }}</strong>
+      <span>{{ activeContext.description }}</span>
+    </span>
+    <button
+      mat-icon-button
+      type="button"
+      class="composer-context__close nexus-icon-control"
+      aria-label="Đóng thao tác tin nhắn"
+      matTooltip="Đóng"
+      (click)="contextClosed.emit()"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  </section>
+}
+
 <div
   class="composer-shell relative rounded-xl bg-surface-soft p-1 shadow-card"
   data-composer-state="preview"

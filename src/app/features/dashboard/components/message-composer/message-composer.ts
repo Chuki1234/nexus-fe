@@ -1,7 +1,16 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
+
+export type MessageComposerContextKind = 'reply' | 'edit' | 'forward' | 'delete';
+
+export interface MessageComposerContext {
+  kind: MessageComposerContextKind;
+  icon: string;
+  label: string;
+  description: string;
+}
 
 /**
  * Ô soạn tin ở đáy khu nội dung.
@@ -20,4 +29,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 export class MessageComposer {
   /** Tên kênh hoặc người nhận, hiện trong placeholder. */
   readonly target = input.required<string>();
+  /** Ý định thao tác UI; không đồng nghĩa dữ liệu đã được gửi hoặc lưu. */
+  readonly context = input<MessageComposerContext | null>(null);
+  readonly contextClosed = output<void>();
 }

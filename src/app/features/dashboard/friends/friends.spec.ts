@@ -3,6 +3,12 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import type { ConversationSummary } from '../../../core/api/shell-data';
 import { ShellData } from '../../../core/api/shell-data';
+import {
+  DashboardUiState,
+  type DashboardBlockingState,
+  type DashboardConnectionState,
+  type DashboardUiStateName,
+} from '../services/dashboard-ui-state';
 import { FriendsPage } from './friends';
 
 describe('FriendsPage', () => {
@@ -23,7 +29,11 @@ describe('FriendsPage', () => {
     },
   ];
 
-  const mount = async (people: ConversationSummary[] = [], shellOverride?: ShellData) => {
+  const mount = async (
+    people: ConversationSummary[] = [],
+    shellOverride?: ShellData,
+    uiState: DashboardUiStateName = 'ready',
+  ) => {
     const conversations = signal(people).asReadonly();
     const demoEnabled = signal(false);
     const shell =
@@ -33,9 +43,27 @@ describe('FriendsPage', () => {
         demoEnabled: demoEnabled.asReadonly(),
         toggleDemoData: () => demoEnabled.update((enabled) => !enabled),
       } as ShellData);
+    const blockingState = signal<DashboardBlockingState | null>(
+      uiState === 'loading' ||
+        uiState === 'error' ||
+        uiState === 'forbidden' ||
+        uiState === 'missing'
+        ? uiState
+        : null,
+    ).asReadonly();
+    const connectionState = signal<DashboardConnectionState | null>(
+      uiState === 'offline' || uiState === 'reconnecting' ? uiState : null,
+    ).asReadonly();
     await TestBed.configureTestingModule({
       imports: [FriendsPage],
-      providers: [provideRouter([]), { provide: ShellData, useValue: shell }],
+      providers: [
+        provideRouter([]),
+        { provide: ShellData, useValue: shell },
+        {
+          provide: DashboardUiState,
+          useValue: { blockingState, connectionState, clearPreview: async () => true },
+        },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(FriendsPage);
     fixture.detectChanges();
@@ -184,5 +212,20 @@ describe('FriendsPage', () => {
     expect(fixture.nativeElement.querySelector('button[aria-label^="Xem hồ sơ nhanh"]')).toBeNull();
     expect(panel.textContent).toContain('Đang hoạt động');
     expect(panel.querySelector('app-member-panel')).toBeNull();
+  });
+
+  it('loading thay danh sách bằng skeleton đúng ngữ cảnh', async () => {
+    const fixture = await mount(PEOPLE, undefined, 'loading');
+
+    expect(fixture.nativeElement.querySelector('[data-dashboard-state="loading"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-skeleton-layout="list"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-friend-row')).toBeNull();
+  });
+
+  it('offline chỉ thêm banner và vẫn giữ danh sách đang xem', async () => {
+    const fixture = await mount(PEOPLE, undefined, 'offline');
+
+    expect(fixture.nativeElement.querySelector('[data-dashboard-state="offline"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelectorAll('app-friend-row')).toHaveLength(2);
   });
 });

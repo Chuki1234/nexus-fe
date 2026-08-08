@@ -176,6 +176,10 @@ describe('ServerRail', () => {
 
     expect(group.querySelectorAll('[data-server-id]').length).toBe(2);
     expect(group.querySelectorAll('[data-server-miniature]').length).toBe(2);
+    expect(group.getAttribute('data-group-state')).toBe('expanded');
+    expect(group.classList.contains('server-group-shell--expanded')).toBe(true);
+    expect(group.querySelector('[data-expanded-group-members]')).toBeTruthy();
+    expect(group.querySelector('.server-group-caption')?.textContent).toContain('2');
     expect(fixture.nativeElement.querySelector('[data-server-id="solo"]')).toBeTruthy();
     expect(toggle.classList.contains('nexus-icon-control')).toBe(true);
 
@@ -184,8 +188,102 @@ describe('ServerRail', () => {
 
     expect(group.querySelectorAll('[data-server-id]').length).toBe(0);
     expect(group.querySelectorAll('[data-server-miniature]').length).toBe(2);
+    expect(group.getAttribute('data-group-state')).toBe('collapsed');
+    expect(group.classList.contains('server-group-shell--expanded')).toBe(false);
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(fixture.nativeElement.querySelector('[data-server-id="solo"]')).toBeTruthy();
+  });
+
+  it('target gom nhóm chỉ phình khi server hoặc group nhận một server hợp lệ', async () => {
+    const fixture = await mount(groupedShell());
+    const rail = fixture.componentInstance as unknown as {
+      startServerDrag: (serverId: string) => void;
+      finishServerDrag: () => void;
+      activateGroupingTarget: (kind: 'group' | 'server', targetId: string) => void;
+    };
+
+    rail.startServerDrag('solo');
+    rail.activateGroupingTarget('server', 'alpha');
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-server-drop-target="alpha"]')
+        ?.classList.contains('server-drop-target--group-active'),
+    ).toBe(true);
+
+    rail.activateGroupingTarget('group', 'study');
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-group-drop-target="study"]')
+        ?.classList.contains('server-group-dropzone--group-active'),
+    ).toBe(true);
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-server-drop-target="alpha"]')
+        ?.classList.contains('server-drop-target--group-active'),
+    ).toBe(false);
+
+    rail.finishServerDrag();
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-group-drop-target="study"]')
+        ?.classList.contains('server-group-dropzone--group-active'),
+    ).toBe(false);
+  });
+
+  it('không báo grouping khi kéo lên chính mình hoặc member cùng group', async () => {
+    const fixture = await mount(groupedShell());
+    const rail = fixture.componentInstance as unknown as {
+      startServerDrag: (serverId: string) => void;
+      activateGroupingTarget: (kind: 'group' | 'server', targetId: string) => void;
+      activeGroupingTarget: () => string | null;
+    };
+
+    rail.startServerDrag('alpha');
+    rail.activateGroupingTarget('server', 'alpha');
+    expect(rail.activeGroupingTarget()).toBeNull();
+
+    rail.activateGroupingTarget('server', 'beta');
+    expect(rail.activeGroupingTarget()).toBeNull();
+
+    rail.activateGroupingTarget('group', 'study');
+    expect(rail.activeGroupingTarget()).toBeNull();
+  });
+
+  it('kéo member trong group làm hiện vùng Ra ngoài và dọn state sau drag', async () => {
+    const fixture = await mount(groupedShell());
+    const rail = fixture.componentInstance as unknown as {
+      startServerDrag: (serverId: string) => void;
+      finishServerDrag: () => void;
+      activateUngroupTarget: (groupId: string) => void;
+    };
+    const ungroupZone = fixture.nativeElement.querySelector(
+      '[data-server-ungroup-zone="study"]',
+    ) as HTMLElement;
+
+    expect(ungroupZone.getAttribute('aria-hidden')).toBe('true');
+
+    rail.startServerDrag('alpha');
+    fixture.detectChanges();
+
+    expect(ungroupZone.classList.contains('server-ungroup-zone--visible')).toBe(true);
+    expect(ungroupZone.getAttribute('aria-hidden')).toBeNull();
+
+    rail.activateUngroupTarget('study');
+    fixture.detectChanges();
+    expect(ungroupZone.classList.contains('server-ungroup-zone--active')).toBe(true);
+
+    rail.finishServerDrag();
+    fixture.detectChanges();
+
+    expect(ungroupZone.classList.contains('server-ungroup-zone--visible')).toBe(false);
+    expect(ungroupZone.classList.contains('server-ungroup-zone--active')).toBe(false);
+    expect(ungroupZone.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('render drop line cho từng khe trong group và ngoài group', async () => {

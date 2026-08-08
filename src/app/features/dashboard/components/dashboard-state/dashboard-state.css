@@ -1,0 +1,193 @@
+:host {
+  width: 100%;
+}
+
+.dashboard-state--loading,
+.dashboard-state--panel {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.state-skeleton {
+  width: min(100%, 56rem);
+  animation: nexus-state-breathe 1.6s ease-in-out infinite alternate;
+}
+
+.skeleton-block,
+.skeleton-avatar,
+.skeleton-action,
+.skeleton-orbit {
+  display: block;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-hairline-strong) 30%, var(--color-surface-soft));
+}
+
+.skeleton-search {
+  width: 100%;
+  height: 2.75rem;
+  margin-bottom: 1.5rem;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-row {
+  display: grid;
+  min-height: 4.25rem;
+  grid-template-columns: 2.5rem minmax(0, 1fr) 2rem;
+  gap: 0.75rem;
+  align-items: center;
+  border-bottom: 1px solid var(--color-hairline-soft);
+}
+
+.skeleton-avatar,
+.skeleton-action {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.skeleton-action {
+  width: 2rem;
+  height: 2rem;
+}
+
+.skeleton-copy {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.skeleton-name {
+  width: min(13rem, 44%);
+  height: 0.75rem;
+}
+
+.skeleton-line,
+.skeleton-message-line,
+.skeleton-intro {
+  width: min(24rem, 72%);
+  height: 0.625rem;
+}
+
+.skeleton-kicker {
+  width: 7rem;
+  height: 0.625rem;
+  margin-top: 4rem;
+}
+
+.skeleton-heading {
+  width: min(22rem, 58%);
+  height: 1.75rem;
+  margin-top: 0.75rem;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-intro {
+  margin-top: 0.75rem;
+}
+
+.skeleton-message {
+  margin-top: 1rem;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+}
+
+.skeleton-message-line {
+  width: min(32rem, 84%);
+}
+
+.skeleton-orbit {
+  width: 4rem;
+  height: 4rem;
+  border: 1px solid var(--color-hairline-strong);
+  background: var(--color-surface-soft);
+}
+
+.dashboard-state--banner {
+  display: flex;
+  min-height: 3.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--color-hairline);
+  background: color-mix(in srgb, var(--color-surface-feature) 58%, var(--color-canvas));
+  padding: 0.625rem 1rem;
+}
+
+.state-mark {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-feature);
+  color: var(--color-primary-soft);
+  box-shadow: 0 0 0 1px var(--color-hairline) inset;
+}
+
+.state-mark--compact {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  border-radius: var(--radius-lg);
+}
+
+.state-mark--compact mat-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: 1.25rem;
+}
+
+.state-panel {
+  position: relative;
+  width: min(100%, 31rem);
+  overflow: hidden;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-xxl);
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-canvas));
+  padding: 2rem;
+  box-shadow: var(--shadow-card);
+}
+
+.state-thread {
+  position: absolute;
+  top: 0;
+  left: 2rem;
+  width: 4.5rem;
+  height: 0.25rem;
+  border-radius: 0 0 var(--radius-full) var(--radius-full);
+  background: var(--color-primary);
+}
+
+.state-action {
+  border-radius: var(--radius-full);
+}
+
+@keyframes nexus-state-breathe {
+  from {
+    opacity: 0.58;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 39.999rem) {
+  .dashboard-state--banner {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-state--banner .state-action {
+    margin-left: 3rem;
+  }
+
+  .state-panel {
+    padding: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .state-skeleton {
+    animation: none;
+    opacity: 0.82;
+  }
+}

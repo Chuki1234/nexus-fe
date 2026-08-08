@@ -1,4 +1,15 @@
-@if (channel(); as current) {
+@if (connectionState(); as state) {
+  <app-dashboard-state [state]="state" layout="chat" (action)="clearUiState()" />
+}
+
+@if (blockingState(); as state) {
+  <app-dashboard-state
+    class="flex min-h-0 flex-1"
+    [state]="state"
+    layout="chat"
+    (action)="clearUiState()"
+  />
+} @else if (channel(); as current) {
   <app-chat-toolbar
     [title]="current.name"
     [subtitle]="current.topic"
@@ -24,7 +35,7 @@
           class="chat-history nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-6"
           data-chat-wallpaper="doodle"
         >
-          <div class="chat-stage mx-auto flex min-h-full w-full max-w-4xl flex-col justify-end">
+          <div class="chat-stage mx-auto flex min-h-full w-full max-w-4xl flex-col justify-start">
             <section class="chat-intro max-w-2xl">
               <span class="chat-intro__mark flex size-12 items-center justify-center rounded-xl">
                 <mat-icon aria-hidden="true">tag</mat-icon>
@@ -53,17 +64,12 @@
                       <span class="reaction-chip">👌 <span>3</span></span>
                       <span class="reaction-chip">🌿 <span>2</span></span>
                     </div>
-                    <div class="message-actions" role="toolbar" aria-label="Thao tác tin nhắn mẫu">
-                      <button type="button" disabled aria-label="Thêm cảm xúc">
-                        <mat-icon aria-hidden="true">add_reaction</mat-icon>
-                      </button>
-                      <button type="button" disabled aria-label="Trả lời">
-                        <mat-icon aria-hidden="true">reply</mat-icon>
-                      </button>
-                      <button type="button" disabled aria-label="Thêm thao tác">
-                        <mat-icon aria-hidden="true">more_horiz</mat-icon>
-                      </button>
-                    </div>
+                    <app-message-actions
+                      messageId="channel-1"
+                      author="Phan Thế Mon"
+                      excerpt="Tao vừa gom lại checklist Dashboard. Phần kéo nhóm server giờ nhìn vị trí thả rõ rồi."
+                      (action)="composerContext.set($event)"
+                    />
                   </article>
                 </li>
 
@@ -73,14 +79,12 @@
                     <p class="text-body-sm text-charcoal">
                       Tao để màu xanh chỉ làm trạng thái sống, không phủ lên cả card nữa.
                     </p>
-                    <div class="message-actions" role="toolbar" aria-label="Thao tác tin nhắn mẫu">
-                      <button type="button" disabled aria-label="Trả lời">
-                        <mat-icon aria-hidden="true">reply</mat-icon>
-                      </button>
-                      <button type="button" disabled aria-label="Thêm thao tác">
-                        <mat-icon aria-hidden="true">more_horiz</mat-icon>
-                      </button>
-                    </div>
+                    <app-message-actions
+                      messageId="channel-2"
+                      author="Phan Thế Mon"
+                      excerpt="Tao để màu xanh chỉ làm trạng thái sống, không phủ lên cả card nữa."
+                      (action)="composerContext.set($event)"
+                    />
                   </article>
                 </li>
 
@@ -104,17 +108,13 @@
                       Ổn đó. Tao đang thử “Nexus Thread” để reply, unread và server active nói cùng
                       một ngôn ngữ.
                     </p>
-                    <div class="message-actions" role="toolbar" aria-label="Thao tác tin nhắn mẫu">
-                      <button type="button" disabled aria-label="Thêm cảm xúc">
-                        <mat-icon aria-hidden="true">add_reaction</mat-icon>
-                      </button>
-                      <button type="button" disabled aria-label="Trả lời">
-                        <mat-icon aria-hidden="true">reply</mat-icon>
-                      </button>
-                      <button type="button" disabled aria-label="Thêm thao tác">
-                        <mat-icon aria-hidden="true">more_horiz</mat-icon>
-                      </button>
-                    </div>
+                    <app-message-actions
+                      messageId="channel-3"
+                      author="NguyenMinhTai"
+                      excerpt="Ổn đó. Tao đang thử Nexus Thread để reply, unread và server active nói cùng một ngôn ngữ."
+                      [editable]="true"
+                      (action)="composerContext.set($event)"
+                    />
                   </article>
                 </li>
               </ol>
@@ -122,7 +122,11 @@
           </div>
         </div>
 
-        <app-message-composer [target]="'#' + current.name" />
+        <app-message-composer
+          [target]="'#' + current.name"
+          [context]="composerContext()"
+          (contextClosed)="composerContext.set(null)"
+        />
       }
     </div>
 

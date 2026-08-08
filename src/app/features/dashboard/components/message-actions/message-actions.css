@@ -1,0 +1,32 @@
+:host {
+  display: contents;
+}
+
+.message-reaction-preview {
+  margin-top: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 28%, transparent) inset;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.message-reaction-preview:is(:hover, :focus-visible) {
+  background: var(--color-surface-feature);
+  box-shadow: 0 0 0 1px var(--color-primary-soft) inset;
+}
+
+.message-reaction-preview:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-reaction-preview {
+    transition: none;
+  }
+
+  .message-reaction-preview:active {
+    transform: none;
+  }
+}

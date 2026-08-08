@@ -1,13 +1,21 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { MessageComposer } from './message-composer';
+import { MessageComposer, type MessageComposerContext } from './message-composer';
 
 @Component({
   imports: [MessageComposer],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<app-message-composer target="#đồ-án" />`,
+  template: `
+    <app-message-composer
+      target="#đồ-án"
+      [context]="context()"
+      (contextClosed)="context.set(null)"
+    />
+  `,
 })
-class Host {}
+class Host {
+  readonly context = signal<MessageComposerContext | null>(null);
+}
 
 describe('MessageComposer', () => {
   const mount = async () => {
@@ -38,5 +46,28 @@ describe('MessageComposer', () => {
     expect(input.disabled).toBe(true);
     expect(fixture.nativeElement.querySelector('.composer-shell')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.composer-core')).toBeTruthy();
+  });
+
+  it('hiện và đóng context thao tác nhưng không mở khóa input', async () => {
+    const fixture = await mount();
+    fixture.componentInstance.context.set({
+      kind: 'reply',
+      icon: 'reply',
+      label: 'Trả lời Phan Thế Mon',
+      description: 'Một đoạn tin nhắn để trích dẫn.',
+    });
+    fixture.detectChanges();
+
+    const context = fixture.nativeElement.querySelector('.composer-context') as HTMLElement;
+    expect(context.getAttribute('data-context-kind')).toBe('reply');
+    expect(context.textContent).toContain('Trả lời Phan Thế Mon');
+    expect((fixture.nativeElement.querySelector('input') as HTMLInputElement).disabled).toBe(true);
+
+    const close = fixture.nativeElement.querySelector(
+      'button[aria-label="Đóng thao tác tin nhắn"]',
+    ) as HTMLButtonElement;
+    close.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.composer-context')).toBeNull();
   });
 });

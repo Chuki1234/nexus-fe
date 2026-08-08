@@ -1,0 +1,95 @@
+@if (selectedReaction(); as reaction) {
+  <button
+    type="button"
+    class="message-reaction-preview reaction-chip"
+    aria-pressed="true"
+    [attr.aria-label]="'Bỏ cảm xúc ' + reaction + ' khỏi tin nhắn của ' + author()"
+    matTooltip="Bỏ cảm xúc"
+    (click)="toggleReaction(reaction)"
+  >
+    <span aria-hidden="true">{{ reaction }}</span>
+    <span>1</span>
+  </button>
+}
+
+<div class="message-actions" role="toolbar" [attr.aria-label]="'Thao tác tin nhắn của ' + author()">
+  <button
+    mat-icon-button
+    type="button"
+    class="message-action--reaction"
+    [matMenuTriggerFor]="reactionMenu"
+    matTooltip="Thêm cảm xúc"
+    aria-label="Thêm cảm xúc"
+  >
+    <mat-icon aria-hidden="true">add_reaction</mat-icon>
+  </button>
+  <button
+    mat-icon-button
+    type="button"
+    class="message-action--reply"
+    matTooltip="Trả lời"
+    aria-label="Trả lời"
+    (click)="requestReply()"
+  >
+    <mat-icon aria-hidden="true">reply</mat-icon>
+  </button>
+  <button
+    mat-icon-button
+    type="button"
+    class="message-action--more"
+    [matMenuTriggerFor]="moreMenu"
+    matTooltip="Thêm thao tác"
+    aria-label="Thêm thao tác"
+  >
+    <mat-icon aria-hidden="true">more_horiz</mat-icon>
+  </button>
+</div>
+
+<mat-menu
+  #reactionMenu="matMenu"
+  class="nexus-message-reaction-menu"
+  xPosition="before"
+  yPosition="above"
+  [overlapTrigger]="false"
+>
+  @for (reaction of reactions; track reaction.emoji) {
+    <button
+      mat-menu-item
+      type="button"
+      class="message-reaction-option"
+      [attr.aria-label]="reaction.label"
+      (click)="toggleReaction(reaction.emoji)"
+    >
+      <span aria-hidden="true">{{ reaction.emoji }}</span>
+    </button>
+  }
+</mat-menu>
+
+<mat-menu
+  #moreMenu="matMenu"
+  class="nexus-message-more-menu"
+  xPosition="before"
+  [overlapTrigger]="false"
+>
+  <button mat-menu-item type="button" (click)="requestEdit()" [disabled]="!editable()">
+    <mat-icon aria-hidden="true">edit_note</mat-icon>
+    <span class="message-menu-copy">
+      <span>Chỉnh sửa tin nhắn</span>
+      @if (!editable()) {
+        <small>Chỉ áp dụng cho tin của bạn</small>
+      }
+    </span>
+  </button>
+  <button mat-menu-item type="button" (click)="requestForward()">
+    <mat-icon aria-hidden="true">forward_to_inbox</mat-icon>
+    <span class="message-menu-copy">
+      <span>Chuyển tiếp</span>
+      <small>UI preview · Chưa chọn nơi nhận</small>
+    </span>
+  </button>
+  <mat-divider />
+  <button mat-menu-item type="button" class="message-menu-danger" (click)="requestDelete()">
+    <mat-icon aria-hidden="true">{{ editable() ? 'delete_forever' : 'delete_outline' }}</mat-icon>
+    <span>{{ editable() ? 'Thu hồi tin nhắn' : 'Xóa khỏi phía bạn' }}</span>
+  </button>
+</mat-menu>
