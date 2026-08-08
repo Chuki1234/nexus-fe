@@ -1,0 +1,29 @@
+:host {
+  color: var(--color-ink);
+}
+
+.activity-card {
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
+    var(--shadow-glow);
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+.activity-card:hover {
+  background-color: var(--color-surface-feature);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-card {
+    transition: none;
+  }
+
+  .activity-card:hover {
+    transform: none;
+  }
+}

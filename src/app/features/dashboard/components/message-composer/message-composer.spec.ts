@@ -36,5 +36,7 @@ describe('MessageComposer', () => {
     const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
 
     expect(input.disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('.composer-shell')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.composer-core')).toBeTruthy();
   });
 });

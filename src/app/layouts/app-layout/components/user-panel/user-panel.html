@@ -1,7 +1,7 @@
 <button
   type="button"
   [matMenuTriggerFor]="userMenu"
-  class="flex min-w-0 flex-1 items-center gap-2 rounded-sm px-1 py-1 text-left hover:bg-surface"
+  class="nexus-interactive-row flex h-9 min-w-0 items-center gap-2 overflow-hidden rounded-lg px-2 py-1 text-left"
 >
   <app-avatar [name]="displayName()" size="sm" presence="online" ring="canvas" />
   <span class="min-w-0 flex-1">
@@ -20,6 +20,7 @@
 <button
   mat-icon-button
   type="button"
+  class="nexus-icon-control nexus-audio-toggle !size-9"
   [attr.aria-pressed]="micMuted()"
   [matTooltip]="micMuted() ? 'Bật micrô' : 'Tắt micrô'"
   (click)="micMuted.set(!micMuted())"
@@ -31,10 +32,22 @@
 <button
   mat-icon-button
   type="button"
+  class="nexus-icon-control nexus-audio-toggle !size-9"
   [attr.aria-pressed]="deafened()"
   [matTooltip]="deafened() ? 'Bật loa' : 'Tắt loa'"
   (click)="deafened.set(!deafened())"
 >
   <mat-icon>{{ deafened() ? 'headset_off' : 'headset' }}</mat-icon>
   <span class="sr-only">{{ deafened() ? 'Bật loa' : 'Tắt loa' }}</span>
+</button>
+
+<button
+  mat-icon-button
+  type="button"
+  disabled
+  class="nexus-icon-control !size-9"
+  aria-label="Cài đặt — do team Settings phụ trách"
+  matTooltip="Phần Cài đặt do team Settings phụ trách"
+>
+  <mat-icon aria-hidden="true">settings</mat-icon>
 </button>

@@ -10,9 +10,10 @@
         #link="routerLinkActive"
         [activated]="link.isActive"
         [attr.aria-current]="link.isActive ? 'page' : null"
+        class="nexus-nav-item"
       >
         <mat-icon matListItemIcon aria-hidden="true">{{ group.icon }}</mat-icon>
-        <span matListItemTitle [class.text-ink]="link.isActive || channel.unread">
+        <span matListItemTitle [class.text-ink]="!link.isActive && channel.unread">
           {{ channel.name }}
         </span>
         <app-unread-badge

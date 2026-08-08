@@ -1,0 +1,6 @@
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, 2.25rem);
+  align-items: center;
+  gap: 0.125rem;
+}

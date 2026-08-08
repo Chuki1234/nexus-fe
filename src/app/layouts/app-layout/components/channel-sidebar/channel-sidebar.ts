@@ -17,7 +17,7 @@ import { ConversationList } from './components/conversation-list';
   selector: 'app-channel-sidebar',
   imports: [ChannelList, ConversationList, SearchField, UserPanel],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex h-full w-60 shrink-0 flex-col bg-surface' },
+  host: { class: 'flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface' },
   styleUrl: './channel-sidebar.css',
   templateUrl: './channel-sidebar.html',
 })

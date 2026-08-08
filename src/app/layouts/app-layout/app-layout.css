@@ -1,10 +1,67 @@
 :host {
   display: block;
+  width: 100%;
   height: 100dvh;
+  overflow: hidden;
 }
-/* Sidenav của Material mặc định vẽ viền + bóng; brand dùng hairline. */
+
+/* Shell dùng các lớp surface lồng nhau thay vì đường kẻ chia cột cứng. */
 :host {
-  --mat-sidenav-container-divider-color: var(--color-hairline);
-  --mat-sidenav-container-background-color: var(--color-canvas);
-  --mat-sidenav-content-background-color: var(--color-canvas);
+  --mat-sidenav-container-divider-color: transparent;
+  --mat-sidenav-container-background-color: var(--color-surface-soft);
+  --mat-sidenav-content-background-color: var(--color-surface-soft);
+}
+
+.dashboard-nav-drawer {
+  width: min(23.5rem, calc(100vw - 0.5rem));
+  max-width: 100%;
+  overflow: hidden;
+  background: var(--color-surface-soft);
+  box-shadow: none;
+}
+
+.dashboard-nav-shell {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* Material khai báo `.mat-drawer-content { display: block; overflow: auto }`.
+   Selector component này chủ động lấy lại flex contract để route con giãn đến đáy
+   và từng vùng con tự quản lý scroll thay vì cả workspace cùng cuộn. */
+.dashboard-content {
+  display: flex;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dashboard-workspace {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 0%;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-canvas);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
+    var(--shadow-card);
+}
+
+@media (max-width: 47.999rem) {
+  .dashboard-nav-drawer {
+    width: min(23.5rem, 100vw);
+  }
+
+  .dashboard-content {
+    padding: 0;
+  }
+
+  .dashboard-workspace {
+    border-radius: 0;
+    box-shadow: none;
+  }
 }

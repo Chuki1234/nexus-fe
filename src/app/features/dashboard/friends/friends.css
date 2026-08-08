@@ -1,0 +1,22 @@
+.friends-content {
+  padding-bottom: 2rem;
+  animation: friends-content-enter 360ms var(--ease-nexus-out) both;
+}
+
+@keyframes friends-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .friends-content {
+    animation: none;
+  }
+}

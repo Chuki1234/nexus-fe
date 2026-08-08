@@ -7,6 +7,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
+import { ThemeService } from '../../core/theme/theme.service';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
 
@@ -37,6 +38,7 @@ export class AppLayout {
   private readonly breakpoints = inject(BreakpointObserver);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  protected readonly theme = inject(ThemeService).mode;
 
   /**
    * Dưới `lg` (1024px) thì hai cột trái thu vào drawer — đúng breakpoint Desktop

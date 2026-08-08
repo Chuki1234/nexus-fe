@@ -1,4 +1,4 @@
-<mat-nav-list class="!py-0">
+<mat-nav-list class="!px-1 !py-0">
   <a
     mat-list-item
     routerLink="/channels/@me"
@@ -7,13 +7,14 @@
     [routerLinkActiveOptions]="{ exact: true }"
     [activated]="friends.isActive"
     [attr.aria-current]="friends.isActive ? 'page' : null"
+    class="nexus-nav-item"
   >
     <mat-icon matListItemIcon aria-hidden="true">group</mat-icon>
     <span matListItemTitle [class.text-ink]="friends.isActive">Bạn bè</span>
   </a>
 </mat-nav-list>
 
-<app-section-label class="mt-5 mb-1 block" text="Tin nhắn trực tiếp">
+<app-section-label class="mt-5 mb-2 block" text="Tin nhắn trực tiếp">
   <button
     slot="action"
     type="button"
@@ -26,7 +27,7 @@
   </button>
 </app-section-label>
 
-<mat-nav-list class="!py-0">
+<mat-nav-list class="!px-1 !py-0">
   @for (conversation of conversations(); track conversation.id) {
     <a
       mat-list-item
@@ -36,22 +37,37 @@
       [activated]="link.isActive"
       [attr.aria-current]="link.isActive ? 'page' : null"
       [lines]="conversation.statusMessage ? 2 : 1"
+      class="conversation-row nexus-nav-item !mb-1 !h-auto !min-h-14 !rounded-lg"
     >
-      <app-avatar
+      <span
         matListItemIcon
-        [name]="conversation.name"
-        [presence]="conversation.presence"
-        size="sm"
-        ring="surface"
-      />
-      <span matListItemTitle [class.text-ink]="link.isActive || conversation.unread">
+        class="conversation-avatar-slot !mr-3 !flex !size-8 !min-w-8 !items-center !justify-center !overflow-visible"
+      >
+        <app-avatar
+          [name]="conversation.name"
+          [presence]="conversation.presence"
+          size="sm"
+          ring="surface"
+        />
+      </span>
+      <span
+        matListItemTitle
+        class="!block min-w-0 truncate pr-1"
+        [class.text-ink]="!link.isActive && conversation.unread"
+      >
         {{ conversation.name }}
       </span>
       @if (conversation.statusMessage) {
-        <span matListItemLine>{{ conversation.statusMessage }}</span>
+        <span matListItemLine class="!block min-w-0 truncate pr-1">
+          {{ conversation.statusMessage }}
+        </span>
       }
     </a>
   } @empty {
-    <p class="px-2 py-4 text-body-sm text-steel">Chưa có cuộc trò chuyện nào.</p>
+    <div class="mx-1 rounded-xl bg-surface-soft px-3 py-5 text-center shadow-glow">
+      <mat-icon aria-hidden="true" class="text-steel">chat_bubble_outline</mat-icon>
+      <p class="mt-2 text-body-sm-medium text-ink">Chưa có cuộc trò chuyện</p>
+      <p class="mt-1 text-caption text-steel">Thêm bạn để bắt đầu nhắn tin trên NexusCord.</p>
+    </div>
   }
 </mat-nav-list>

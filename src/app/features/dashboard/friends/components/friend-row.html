@@ -1,13 +1,41 @@
-<a
-  [routerLink]="['/channels/@me', person().id]"
-  class="flex items-center gap-3 rounded-sm px-2 py-3 hover:bg-surface"
+<article
+  class="friend-row nexus-interactive-row group flex min-h-16 items-center gap-3 rounded-xl px-3 py-2"
 >
-  <app-avatar [name]="person().name" [presence]="person().presence" size="lg" ring="canvas" />
+  <a
+    [routerLink]="['/channels/@me', person().id]"
+    class="flex min-w-0 flex-1 items-center gap-3 rounded-md"
+  >
+    <span class="flex size-10 shrink-0 items-center justify-center">
+      <app-avatar [name]="person().name" [presence]="person().presence" size="lg" ring="canvas" />
+    </span>
 
-  <span class="min-w-0 flex-1">
-    <span class="block truncate text-body-sm-medium text-ink">{{ person().name }}</span>
-    <span class="block truncate text-caption text-steel">{{ subtitle() }}</span>
+    <span class="min-w-0 flex-1">
+      <span class="friend-row__name block truncate text-body-sm-medium text-ink">
+        {{ person().name }}
+      </span>
+      <span class="block truncate text-caption text-steel">{{ subtitle() }}</span>
+    </span>
+  </a>
+
+  <span class="friend-row__actions flex shrink-0 items-center gap-1">
+    <a
+      mat-icon-button
+      class="nexus-icon-control"
+      [routerLink]="['/channels/@me', person().id]"
+      [attr.aria-label]="'Nhắn tin cho ' + person().name"
+      [matTooltip]="'Nhắn tin cho ' + person().name"
+    >
+      <mat-icon aria-hidden="true">chat_bubble</mat-icon>
+    </a>
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control"
+      disabled
+      aria-label="Tùy chọn khác"
+      matTooltip="Tùy chọn sẽ được nối ở phase chức năng"
+    >
+      <mat-icon aria-hidden="true">more_vert</mat-icon>
+    </button>
   </span>
-
-  <mat-icon aria-hidden="true" class="text-steel">chat_bubble</mat-icon>
-</a>
+</article>

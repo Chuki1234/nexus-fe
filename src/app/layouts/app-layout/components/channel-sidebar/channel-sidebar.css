@@ -2,11 +2,22 @@
    Đặt ở đây để cả hai danh sách con cùng thừa hưởng; nén bằng token của chính
    Material thay vì đè !important lên class nội bộ của nó. */
 :host {
+  min-width: 0;
+
   --mat-list-list-item-one-line-container-height: 34px;
   --mat-list-list-item-two-line-container-height: 44px;
   --mat-list-list-item-leading-icon-size: 20px;
   --mat-list-list-item-label-text-size: 14px;
-  --mat-list-list-item-label-text-color: var(--color-body);
-  --mat-list-list-item-supporting-text-color: var(--color-mute);
-  --mat-list-active-indicator-shape: var(--radius-sm);
+  --mat-list-list-item-label-text-color: var(--color-slate);
+  --mat-list-list-item-supporting-text-color: var(--color-steel);
+  --mat-list-active-indicator-shape: var(--radius-lg);
+
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
+    var(--shadow-glow);
+}
+
+.channel-sidebar__header {
+  box-shadow: 0 -1px 0 color-mix(in srgb, var(--color-hairline) 58%, transparent) inset;
 }

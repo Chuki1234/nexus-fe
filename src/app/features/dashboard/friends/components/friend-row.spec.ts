@@ -15,7 +15,7 @@ const NGUOI: ConversationSummary = {
 @Component({
   imports: [FriendRow],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<app-friend-row [person]="person()" />`,
+  template: ` <app-friend-row [person]="person()" /> `,
 })
 class Host {
   readonly person = signal<ConversationSummary>(NGUOI);
@@ -39,6 +39,36 @@ describe('FriendRow', () => {
     // Vùng bấm phải là cả hàng, không chỉ mỗi cái tên.
     expect(link.getAttribute('href')).toBe('/channels/@me/ho-be');
     expect(link.textContent).toContain('ho_be');
+  });
+
+  it('có action nhắn tin với nhãn truy cập được', async () => {
+    const fixture = await mount();
+    const action = fixture.nativeElement.querySelector(
+      'a[aria-label="Nhắn tin cho ho_be"]',
+    ) as HTMLAnchorElement;
+
+    expect(action.getAttribute('href')).toBe('/channels/@me/ho-be');
+    expect(action.classList.contains('nexus-icon-control')).toBe(true);
+  });
+
+  it('avatar nằm trong link DM và không dựng action hồ sơ của team khác', async () => {
+    const fixture = await mount();
+    const profileAction = fixture.nativeElement.querySelector(
+      'button[aria-label="Xem hồ sơ nhanh của ho_be"]',
+    );
+    const dmLink = fixture.nativeElement.querySelector(
+      'a[href="/channels/@me/ho-be"]:not([aria-label])',
+    ) as HTMLAnchorElement;
+
+    expect(profileAction).toBeNull();
+    expect(dmLink.querySelector('app-avatar')).toBeTruthy();
+  });
+
+  it('hàng bạn bè dùng state hover/focus tương phản chung', async () => {
+    const fixture = await mount();
+    const row = fixture.nativeElement.querySelector('article') as HTMLElement;
+
+    expect(row.classList.contains('nexus-interactive-row')).toBe(true);
   });
 
   /**

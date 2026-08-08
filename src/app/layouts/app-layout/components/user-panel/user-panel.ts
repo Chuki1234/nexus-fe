@@ -18,7 +18,9 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
   selector: 'app-user-panel',
   imports: [Avatar, MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex items-center gap-1 border-t border-hairline bg-canvas px-2 py-2' },
+  host: {
+    class: 'm-2 mt-1 min-w-0 self-stretch overflow-hidden rounded-xl bg-canvas p-1.5 shadow-glow',
+  },
   templateUrl: './user-panel.html',
   styleUrl: './user-panel.css',
 })

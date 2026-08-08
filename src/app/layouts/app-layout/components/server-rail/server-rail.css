@@ -1,0 +1,130 @@
+:host {
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
+    var(--shadow-glow);
+}
+
+.server-tile,
+.server-group-tile,
+.server-rail-action {
+  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-canvas));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.server-tile:not(:active):is(:hover, :focus-visible),
+.server-group-tile:not(:active):is(:hover, :focus-visible),
+.server-rail-action:not(:active):is(:hover, :focus-visible) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 9%, transparent) inset,
+    var(--shadow-card);
+}
+
+.server-drag-source {
+  cursor: grab;
+  user-select: none;
+}
+
+.server-drag-source:active {
+  cursor: grabbing;
+}
+
+.server-drop-target.cdk-drop-list-dragging,
+.server-group-dropzone.cdk-drop-list-dragging {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-soft) 34%, transparent);
+}
+
+.server-drop-slot {
+  display: flex;
+  width: 3rem;
+  height: 0.5rem;
+  flex: 0 0 0.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.server-drop-indicator {
+  width: 2rem;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  opacity: 0;
+  transform: scaleX(0.45);
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-fast) var(--ease-nexus-out),
+    opacity var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.server-drop-slot--active .server-drop-indicator {
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-soft) 18%, transparent);
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.server-drag-source.cdk-drag-preview {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+}
+
+.server-drag-source.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.server-drag-source.cdk-drag-animating {
+  transition: transform var(--motion-base) var(--ease-nexus-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .server-tile,
+  .server-group-tile,
+  .server-rail-action,
+  .server-drag-source.cdk-drag-animating,
+  .server-drop-indicator {
+    transition: none;
+  }
+
+  .server-tile,
+  .server-group-tile,
+  .server-rail-action {
+    transform: none;
+  }
+}
+
+.add-server-choice {
+  min-height: 10rem;
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-soft);
+  padding: 1rem;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent) inset,
+    var(--shadow-glow);
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+.add-server-choice:is(:hover, :focus-visible) {
+  background: var(--color-surface-feature);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent) inset,
+    var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .add-server-choice {
+    transition: none;
+    transform: none;
+  }
+}

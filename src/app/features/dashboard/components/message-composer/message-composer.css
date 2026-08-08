@@ -1,0 +1,38 @@
+:host {
+  display: block;
+  flex: 0 0 auto;
+  padding: 0 1rem 1rem;
+  background: var(--color-canvas);
+}
+
+.composer-shell {
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
+    var(--shadow-card);
+  transition:
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.composer-shell:focus-within {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-primary-soft) 32%, transparent),
+    var(--shadow-card);
+}
+
+.composer-core {
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+}
+
+@media (max-width: 39.999rem) {
+  :host {
+    padding-inline: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-shell {
+    transition: none;
+  }
+}

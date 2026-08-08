@@ -1,9 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { ChatToolbar } from '../components/chat-toolbar/chat-toolbar';
-import { MemberPanel } from '../components/member-panel/member-panel';
 import { MessageComposer } from '../components/message-composer/message-composer';
 import { ShellData } from '../../../core/api/shell-data';
 import { Avatar } from '../../../shared/ui/avatar/avatar';
@@ -12,7 +11,7 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 /** Tin nhắn riêng — `/channels/@me/:conversationId`. */
 @Component({
   selector: 'app-conversation-page',
-  imports: [Avatar, ChatToolbar, EmptyState, MemberPanel, MessageComposer],
+  imports: [Avatar, ChatToolbar, EmptyState, MessageComposer],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col' },
   templateUrl: './conversation.html',
@@ -21,8 +20,6 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 export class ConversationPage {
   private readonly route = inject(ActivatedRoute);
   private readonly shell = inject(ShellData);
-
-  protected readonly detailsOpen = signal(true);
 
   private readonly conversationId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('conversationId'))),

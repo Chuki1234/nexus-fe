@@ -1,0 +1,120 @@
+import { ShellData } from './shell-data';
+
+describe('ShellData demo mode', () => {
+  it('mặc định giữ đúng trạng thái tài khoản mới rỗng của UI-3', () => {
+    const shell = new ShellData();
+
+    expect(shell.demoEnabled()).toBe(false);
+    expect(shell.servers()).toEqual([]);
+    expect(shell.serverGroups()).toEqual([]);
+    expect(shell.channelsOf('lofi')).toEqual([]);
+    expect(shell.conversations()).toEqual([]);
+    expect(shell.totalMentions()).toBe(0);
+  });
+
+  it('bật demo thì cùng lúc có server, group, channel, DM và mention', () => {
+    const shell = new ShellData();
+
+    shell.setDemoEnabled(true);
+
+    expect(shell.demoEnabled()).toBe(true);
+    expect(shell.servers().map((server) => server.id)).toEqual(['lofi', 'xp', 'itss', 'peak']);
+    expect(shell.serverGroups()).toEqual([
+      { id: 'study', name: 'Học tập', serverIds: ['lofi', 'itss'] },
+    ]);
+    expect(shell.channelsOf('lofi').map((channel) => channel.id)).toEqual([
+      'chung',
+      'nhac',
+      'phong-hop',
+    ]);
+    expect(shell.conversations().length).toBe(6);
+    expect(shell.totalMentions()).toBe(1);
+    expect(shell.serverOf('itss')?.name).toBe('ITSS Lab');
+    expect(shell.channelOf('itss', 'do-an')?.name).toBe('đồ-án');
+    expect(shell.conversationOf('mon')?.name).toBe('Phan Thế Mon');
+  });
+
+  it('toggle lần nữa trả toàn bộ shell về dữ liệu live rỗng', () => {
+    const shell = new ShellData();
+
+    shell.toggleDemoData();
+    expect(shell.demoEnabled()).toBe(true);
+
+    shell.toggleDemoData();
+
+    expect(shell.demoEnabled()).toBe(false);
+    expect(shell.servers()).toEqual([]);
+    expect(shell.channelsOf('lofi')).toEqual([]);
+    expect(shell.conversations()).toEqual([]);
+  });
+
+  it('kéo hai server rời tạo group mới mà không làm mất group demo cũ', () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+
+    shell.groupServers('xp', 'peak');
+
+    expect(shell.serverGroups()).toHaveLength(2);
+    expect(shell.serverGroups().find((group) => group.serverIds.includes('xp'))?.serverIds).toEqual(
+      ['peak', 'xp'],
+    );
+  });
+
+  it('move server vào group khác không duplicate và tự rã group còn một member', () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    shell.groupServers('xp', 'peak');
+    const target = shell.serverGroups().find((group) => group.serverIds.includes('xp'))!;
+
+    shell.addServerToGroup('lofi', target.id);
+
+    expect(shell.serverGroups()).toHaveLength(1);
+    expect(shell.serverGroups()[0].serverIds).toEqual(['peak', 'xp', 'lofi']);
+    expect(new Set(shell.serverGroups()[0].serverIds).size).toBe(3);
+
+    shell.addServerToGroup('lofi', target.id);
+    expect(shell.serverGroups()[0].serverIds).toEqual(['peak', 'xp', 'lofi']);
+  });
+
+  it('kéo server ra ngoài group đặt đúng drop slot và tự giải phóng group còn một member', () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+
+    shell.moveServerOutsideGroups('lofi', 1);
+
+    expect(shell.serverGroups()).toEqual([]);
+    expect(shell.servers().map((server) => server.id)).toEqual(['xp', 'lofi', 'itss', 'peak']);
+  });
+
+  it('reorder server ngoài group theo đúng insertion index mà không duplicate', () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+
+    shell.moveServerOutsideGroups('peak', 0);
+
+    expect(shell.servers().map((server) => server.id)).toEqual(['peak', 'xp', 'lofi', 'itss']);
+    expect(new Set(shell.servers().map((server) => server.id)).size).toBe(4);
+    expect(shell.serverGroups()[0].serverIds).toEqual(['lofi', 'itss']);
+  });
+
+  it('reorder server trong group theo drop slot và giữ nguyên membership', () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+
+    shell.moveServerToGroup('itss', 'study', 0);
+
+    expect(shell.serverGroups()).toEqual([
+      { id: 'study', name: 'Học tập', serverIds: ['itss', 'lofi'] },
+    ]);
+  });
+
+  it('move server từ ngoài vào giữa group theo drop slot', () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+
+    shell.moveServerToGroup('xp', 'study', 1);
+
+    expect(shell.serverGroups()[0].serverIds).toEqual(['lofi', 'xp', 'itss']);
+    expect(new Set(shell.serverGroups()[0].serverIds).size).toBe(3);
+  });
+});

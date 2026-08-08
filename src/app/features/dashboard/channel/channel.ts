@@ -3,15 +3,15 @@ import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { ChatToolbar } from '../components/chat-toolbar/chat-toolbar';
+import { ContextPanel } from '../components/context-panel/context-panel';
 import { MessageComposer } from '../components/message-composer/message-composer';
 import { ShellData } from '../../../core/api/shell-data';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
-import { SectionLabel } from '../../../shared/ui/section-label/section-label';
 
 /** Kênh trong server — `/channels/:serverId/:channelId`. */
 @Component({
   selector: 'app-channel-page',
-  imports: [ChatToolbar, EmptyState, MessageComposer, SectionLabel],
+  imports: [ChatToolbar, ContextPanel, EmptyState, MessageComposer],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col' },
   templateUrl: './channel.html',
@@ -21,7 +21,7 @@ export class ChannelPage {
   private readonly route = inject(ActivatedRoute);
   private readonly shell = inject(ShellData);
 
-  protected readonly detailsOpen = signal(true);
+  protected readonly detailsOpen = signal(false);
 
   private readonly params = toSignal(
     this.route.paramMap.pipe(

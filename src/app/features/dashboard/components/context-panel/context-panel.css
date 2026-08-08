@@ -1,0 +1,93 @@
+.context-panel__backdrop {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  border: 0;
+  background: color-mix(in srgb, var(--color-canvas-dark) 44%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-base) var(--ease-nexus-out);
+}
+
+.context-panel__backdrop--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.context-panel {
+  position: fixed;
+  z-index: 41;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(21rem, calc(100vw - 3.5rem));
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  box-shadow:
+    -1px 0 0 color-mix(in srgb, var(--color-ink) 6%, transparent),
+    var(--shadow-modal);
+  visibility: hidden;
+  transform: translateX(100%);
+  transition:
+    transform var(--motion-base) var(--ease-nexus-out),
+    visibility 0s var(--motion-base);
+}
+
+.context-panel__header {
+  box-shadow: 0 -1px 0 color-mix(in srgb, var(--color-hairline) 62%, transparent) inset;
+}
+
+.context-panel--open {
+  visibility: visible;
+  transform: translateX(0);
+  transition-delay: 0s;
+}
+
+@media (min-width: 1280px) {
+  .context-panel__backdrop {
+    display: none;
+  }
+
+  .context-panel {
+    position: relative;
+    z-index: auto;
+    display: flex;
+    overflow: hidden;
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    height: 100%;
+    flex: 0 0 auto;
+    border-radius: 0;
+    box-shadow: none;
+    visibility: hidden;
+    transform: translateX(1rem);
+    transition:
+      width var(--motion-base) var(--ease-nexus-out),
+      min-width var(--motion-base) var(--ease-nexus-out),
+      max-width var(--motion-base) var(--ease-nexus-out),
+      transform var(--motion-base) var(--ease-nexus-out),
+      visibility 0s var(--motion-base);
+  }
+
+  .context-panel--open,
+  .context-panel--pinned {
+    width: 21rem;
+    min-width: 21rem;
+    max-width: 21rem;
+    box-shadow: -1px 0 0 color-mix(in srgb, var(--color-hairline) 64%, transparent);
+    visibility: visible;
+    transform: translateX(0);
+    transition-delay: 0s;
+  }
+
+  .context-panel--pinned:not(.context-panel--open) .context-panel__close {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .context-panel,
+  .context-panel__backdrop {
+    transition: none;
+  }
+}

@@ -35,14 +35,21 @@ describe('ChannelSidebar', () => {
     expect(fixture.nativeElement.querySelector('app-conversation-list')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('app-channel-list')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('app-search-field')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.channel-sidebar__header')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('nav')?.classList.contains('nexus-scrollbar')).toBe(
+      true,
+    );
+    expect(fixture.nativeElement.classList.contains('min-w-0')).toBe(true);
+    expect(fixture.nativeElement.classList.contains('flex-1')).toBe(true);
   });
 
-  it('có serverId thì đổi sang danh sách kênh và hiện tên server', async () => {
-    const fixture = await mount('itss');
+  it('có serverId chưa tồn tại thì vẫn giữ khung danh sách kênh an toàn', async () => {
+    const fixture = await mount('server-chua-tai');
 
     expect(fixture.nativeElement.querySelector('app-channel-list')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('app-conversation-list')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('h2').textContent).toContain('ITSS Lab');
+    expect(fixture.nativeElement.querySelector('h2').textContent).toContain('Máy chủ');
+    expect(fixture.nativeElement.textContent).toContain('chưa có kênh nào');
   });
 
   // Hai lần mount trong cùng một `it` không được: TestBed đã cấu hình rồi thì
@@ -54,7 +61,7 @@ describe('ChannelSidebar', () => {
   });
 
   it('có khối người dùng ở đáy khi đang mở server', async () => {
-    const fixture = await mount('itss');
+    const fixture = await mount('server-chua-tai');
 
     expect(fixture.nativeElement.querySelector('app-user-panel')).toBeTruthy();
   });

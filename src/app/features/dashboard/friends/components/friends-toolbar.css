@@ -3,3 +3,31 @@
   --mat-toolbar-container-text-color: var(--color-ink);
   --mat-toolbar-standard-height: 48px;
 }
+
+.friends-toolbar {
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-hairline) 64%, transparent);
+}
+
+.friends-segmented,
+.friends-toolbar__actions {
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 5%, transparent) inset;
+}
+
+@media (max-width: 39.999rem) {
+  .friends-toolbar__title {
+    flex: 1 1 auto;
+  }
+
+  .friends-segmented {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  .friends-segmented::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,12 +1,12 @@
-<header class="shrink-0 border-b border-hairline p-2">
+<header class="channel-sidebar__header shrink-0 px-3 pt-3 pb-2">
   @if (serverId(); as id) {
-    <h2 class="truncate px-2 py-1 text-body-md-medium text-ink">{{ title() }}</h2>
+    <h2 class="truncate px-2 py-1 text-body-md-medium text-charcoal">{{ title() }}</h2>
   } @else {
     <app-search-field placeholder="Tìm hoặc bắt đầu cuộc trò chuyện" [disabled]="true" />
   }
 </header>
 
-<nav class="flex-1 overflow-y-auto px-2 py-3" [attr.aria-label]="title()">
+<nav class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-2 py-2" [attr.aria-label]="title()">
   @if (serverId(); as id) {
     <app-channel-list [serverId]="id" />
   } @else {
