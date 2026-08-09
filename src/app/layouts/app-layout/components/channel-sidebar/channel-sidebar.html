@@ -2,7 +2,11 @@
   @if (serverId(); as id) {
     <h2 class="truncate px-2 py-1 text-body-md-medium text-charcoal">{{ title() }}</h2>
   } @else {
-    <app-search-field placeholder="Tìm hoặc bắt đầu cuộc trò chuyện" [disabled]="true" />
+    <app-search-field
+      data-search-scope="contacts"
+      placeholder="Tìm người hoặc cuộc trò chuyện"
+      [(value)]="conversationQuery"
+    />
   }
 </header>
 
@@ -10,7 +14,7 @@
   @if (serverId(); as id) {
     <app-channel-list [serverId]="id" />
   } @else {
-    <app-conversation-list />
+    <app-conversation-list [query]="conversationQuery()" />
   }
 </nav>
 

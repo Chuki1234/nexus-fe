@@ -41,6 +41,20 @@ describe('UserPanel', () => {
     ).toBe(true);
   });
 
+  it('giữ trạng thái menu-open trên khối danh tính để hover và active dùng chung tín hiệu', async () => {
+    const fixture = await mount();
+    const identity = fixture.nativeElement.querySelector(
+      'button.user-panel__identity',
+    ) as HTMLButtonElement;
+
+    expect(identity.getAttribute('aria-expanded')).toBe('false');
+    identity.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(identity.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('chưa có tên hiển thị thì rơi về tên đăng nhập', async () => {
     profile.current = () => ({ id: 'u1', username: 'minhtai', displayName: null });
     const fixture = await mount();

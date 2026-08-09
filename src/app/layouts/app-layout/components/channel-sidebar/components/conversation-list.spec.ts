@@ -4,12 +4,13 @@ import { ShellData } from '../../../../../core/api/shell-data';
 import { ConversationList } from './conversation-list';
 
 describe('ConversationList', () => {
-  const mount = async (shell: ShellData = new ShellData()) => {
+  const mount = async (shell: ShellData = new ShellData(), query = '') => {
     await TestBed.configureTestingModule({
       imports: [ConversationList],
       providers: [provideRouter([]), { provide: ShellData, useValue: shell }],
     }).compileComponents();
     const fixture = TestBed.createComponent(ConversationList);
+    fixture.componentRef.setInput('query', query);
     fixture.detectChanges();
     return fixture;
   };
@@ -63,5 +64,25 @@ describe('ConversationList', () => {
         (slot) => !slot.querySelector('app-avatar')?.classList.contains('mat-mdc-list-item-icon'),
       ),
     ).toBe(true);
+  });
+
+  it('lọc tên và trạng thái không phân biệt dấu tiếng Việt', async () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    const fixture = await mount(shell, 'binh');
+    const results = fixture.nativeElement.querySelectorAll('[data-conversation-id]');
+
+    expect(results).toHaveLength(1);
+    expect(results[0].getAttribute('data-conversation-id')).toBe('binh');
+    expect(fixture.nativeElement.textContent).toContain('Kết quả · 1');
+  });
+
+  it('query không khớp dùng empty state danh bạ thay vì empty state tài khoản mới', async () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    const fixture = await mount(shell, 'không tồn tại');
+
+    expect(fixture.nativeElement.textContent).toContain('Không tìm thấy trong danh bạ');
+    expect(fixture.nativeElement.textContent).not.toContain('Chưa có cuộc trò chuyện');
   });
 });

@@ -103,11 +103,22 @@ export class ServerRail {
     const query = this.normalizeSearch(this.commandQuery());
     const items = this.commandItems();
     if (!query) {
-      return items.slice(0, 9);
+      const conversations = items.filter((item) => item.kind === 'conversation').slice(0, 3);
+      const servers = items.filter((item) => item.kind === 'server').slice(0, 3);
+      const channels = items
+        .filter((item) => item.kind === 'text-channel' || item.kind === 'voice-channel')
+        .slice(0, 3);
+      return [...conversations, ...servers, ...channels];
     }
 
     return items
-      .filter((item) => this.normalizeSearch(item.searchableText).includes(query))
+      .map((item) => ({ item, score: this.commandScore(item, query) }))
+      .filter((result) => Number.isFinite(result.score))
+      .sort(
+        (left, right) =>
+          left.score - right.score || left.item.label.localeCompare(right.item.label, 'vi'),
+      )
+      .map((result) => result.item)
       .slice(0, 12);
   });
 
@@ -270,7 +281,7 @@ export class ServerRail {
   protected openCommandCenter(template: TemplateRef<unknown> = this.commandDialog()): void {
     this.commandQuery.set('');
     this.dialog.open(template, {
-      ariaLabel: 'Tìm nhanh trong NexusCord',
+      ariaLabel: 'Điều hướng nhanh trong NexusCord',
       autoFocus: '.command-center__input',
       maxHeight: 'min(42rem, calc(100vh - 2rem))',
       maxWidth: '42rem',
@@ -302,7 +313,7 @@ export class ServerRail {
       case 'voice-channel':
         return 'Kênh thoại';
       case 'conversation':
-        return 'Tin nhắn trực tiếp';
+        return 'Tin nhắn riêng';
     }
   }
 
@@ -372,6 +383,26 @@ export class ServerRail {
       .toLocaleLowerCase('vi')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  private commandScore(item: CommandResult, query: string): number {
+    const label = this.normalizeSearch(item.label);
+    const context = this.normalizeSearch(item.context);
+    const searchable = this.normalizeSearch(item.searchableText);
+
+    if (label === query) {
+      return 0;
+    }
+    if (label.startsWith(query)) {
+      return 1;
+    }
+    if (label.includes(query)) {
+      return 2;
+    }
+    if (context.includes(query)) {
+      return 3;
+    }
+    return searchable.includes(query) ? 4 : Number.POSITIVE_INFINITY;
   }
 
   private canGroupWithTarget(

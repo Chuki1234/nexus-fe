@@ -62,6 +62,15 @@ describe('AppLayout', () => {
     expect(query('.dashboard-nav-shell')?.classList.contains('overflow-hidden')).toBe(true);
     expect(query('.dashboard-workspace')?.classList.contains('h-full')).toBe(true);
     expect(query('.dashboard-content')).toBeTruthy();
+    expect(query('.dashboard-shell')?.getAttribute('data-atmosphere')).toBe('hybrid');
+  });
+
+  it('gắn Atmosphere đã lưu lên toàn bộ Dashboard shell', async () => {
+    localStorage.setItem('nexuscord-dashboard-atmosphere', 'sage');
+
+    await harness.navigateByUrl('/channels/@me');
+
+    expect(query('.dashboard-shell')?.getAttribute('data-atmosphere')).toBe('sage');
   });
 
   it('tài khoản mới có danh sách bạn bè, DM và hoạt động đều rỗng', async () => {

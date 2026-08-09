@@ -14,7 +14,7 @@
   </a>
 </mat-nav-list>
 
-<app-section-label class="mt-5 mb-2 block" text="Tin nhắn trực tiếp">
+<app-section-label class="mt-5 mb-2 block" [text]="sectionTitle()">
   <button
     slot="action"
     type="button"
@@ -37,6 +37,7 @@
       [activated]="link.isActive"
       [attr.aria-current]="link.isActive ? 'page' : null"
       [lines]="conversation.statusMessage ? 2 : 1"
+      [attr.data-conversation-id]="conversation.id"
       class="conversation-row nexus-nav-item !mb-1 !h-auto !min-h-14 !rounded-lg"
     >
       <span
@@ -65,9 +66,15 @@
     </a>
   } @empty {
     <div class="mx-1 rounded-xl bg-surface-soft px-3 py-5 text-center shadow-glow">
-      <mat-icon aria-hidden="true" class="text-steel">chat_bubble_outline</mat-icon>
-      <p class="mt-2 text-body-sm-medium text-ink">Chưa có cuộc trò chuyện</p>
-      <p class="mt-1 text-caption text-steel">Thêm bạn để bắt đầu nhắn tin trên NexusCord.</p>
+      @if (hasQuery()) {
+        <mat-icon aria-hidden="true" class="text-steel">person_search</mat-icon>
+        <p class="mt-2 text-body-sm-medium text-ink">Không tìm thấy trong danh bạ</p>
+        <p class="mt-1 text-caption text-steel">Thử tên khác hoặc mở Bạn bè để thêm người mới.</p>
+      } @else {
+        <mat-icon aria-hidden="true" class="text-steel">chat_bubble_outline</mat-icon>
+        <p class="mt-2 text-body-sm-medium text-ink">Chưa có cuộc trò chuyện</p>
+        <p class="mt-1 text-caption text-steel">Thêm bạn để bắt đầu nhắn tin trên NexusCord.</p>
+      }
     </div>
   }
 </mat-nav-list>

@@ -2,8 +2,10 @@
   [(tab)]="tab"
   [(theme)]="theme"
   [activityOpen]="activityExpanded()"
+  [atmosphereOpen]="atmosphereExpanded()"
   [demoEnabled]="demoEnabled()"
   (toggleActivity)="toggleActivity()"
+  (toggleAtmosphere)="toggleAtmosphere()"
   (toggleDemo)="toggleDemoData()"
 />
 
@@ -81,12 +83,16 @@
     </main>
 
     <app-context-panel
-      title="Đang hoạt động"
+      [title]="contextTitle()"
       [open]="contextOpen()"
       [pinned]="true"
       (closed)="closeContext()"
     >
-      <app-activity-panel [people]="onlineFriends()" />
+      @if (atmosphereExpanded()) {
+        <app-theme-studio [selected]="atmosphere()" (selectedChange)="selectAtmosphere($event)" />
+      } @else {
+        <app-activity-panel [people]="onlineFriends()" />
+      }
     </app-context-panel>
   </div>
 }

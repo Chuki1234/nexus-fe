@@ -1485,6 +1485,227 @@ Status: APPROVED
 - Đánh giá Data: không sửa ShellData/mock collection/API/DTO/backend/database/permission/realtime, không persistence
   reaction/action; không đụng `layouts/**`, `shared/**`, Auth, Profile hoặc Settings. Component mới được tạo bằng CLI.
 
+### Phase UI-19 — Nexus Atmospheres và xem trước palette Dashboard
+
+Status: APPROVED
+
+> Tài gửi các mẫu Theme Preview của Discord và đã cho phép append phase UI ở trạng thái `APPROVED`. Phase này không
+> sao chép paywall Nitro hay bảng màu nguyên bản; nó chuyển ý tưởng thành hệ “Nexus Atmospheres” thuộc riêng Dashboard.
+> Trước khi code, Tài đã được báo chính xác hai folder/file mới và ngoại lệ tối thiểu ở `layouts/app-layout` +
+> `src/styles.css` để palette có thể phủ đúng toàn bộ shell.
+
+#### Chẩn đoán và hướng thẩm mỹ
+
+- Theme hiện tại chỉ có một cặp Hybrid light/dark. Nó nhất quán nhưng chưa cho người dùng lựa chọn bầu không khí như
+  các ảnh tham chiếu; nếu chỉ phủ một màu lên toàn trang sẽ làm rail, sidebar, workspace và panel chìm vào nhau.
+- Nexus Atmospheres dùng các bộ màu tuyển chọn, mỗi bộ có cặp light/dark riêng và phân cấp bốn lớp bề mặt. Xanh Nexus
+  vẫn là màu duy nhất cho CTA và trạng thái sống; palette chỉ thay canvas/surface/hairline/text neutral.
+- “Chữ ký” của phase là swatch bốn mảnh mô phỏng đúng bốn vùng của Dashboard. Người dùng nhìn swatch sẽ hiểu trước
+  màu nào đi vào rail, sidebar, workspace và panel, thay vì chọn một ô gradient trang trí không nói lên cấu trúc.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:** panel trượt bên phải dùng ContextPanel hiện có; palette là radio card có swatch bốn vùng, tên và mô tả
+  ngắn. Chọn áp dụng tức thì, có selected/focus/pressed rõ, tương phản ổn ở cả light/dark và tôn trọng reduced motion.
+  Không dùng gradient fill, không thêm accent cạnh tranh với xanh Nexus.
+- **Feature:** nút `palette` nằm trong cụm công cụ Friends cạnh demo/theme; mở Theme Studio và tạm thay Activity Panel.
+  Có 6 lựa chọn gồm Hybrid nguyên bản, Sage café, Apricot dusk, Lilac circuit, Teal lagoon và Midnight ink. Lựa chọn
+  được lưu localStorage, giữ nguyên khi đổi route/F5; đổi light/dark không làm mất Atmosphere đã chọn.
+- **Data:** chỉ lưu một id palette không nhạy cảm ở trình duyệt, validate allow-list và fallback về Hybrid khi storage
+  sai/bị chặn. Không thêm mock user/server, API, DTO, backend, database, Auth, Profile hoặc Settings.
+
+#### File/folder dự kiến
+
+- `plans/dashboard.PLAN.md` — gate và kết quả phase.
+- Tạo bằng Angular CLI: `src/app/features/dashboard/components/theme-studio/**`.
+- Tạo bằng Angular CLI: `src/app/features/dashboard/services/dashboard-appearance.ts|spec.ts`.
+- `src/app/features/dashboard/friends/components/friends-toolbar.ts|html|spec.ts` — nút mở palette panel.
+- `src/app/features/dashboard/friends/friends.ts|html|spec.ts` — điều phối Activity/Theme Studio trong một ContextPanel.
+- `src/app/layouts/app-layout/app-layout.ts|html|spec.ts` — **ngoại lệ shared shell đã báo trước**, chỉ inject signal và
+  gắn `data-atmosphere`; không đổi route, auth guard hoặc cấu trúc layout.
+- `src/styles.css` — **ngoại lệ style dùng chung đã báo trước**, palette chỉ scope dưới `.dashboard-shell` nên các trang
+  ngoài Dashboard không bị ảnh hưởng.
+- Không sửa `core/**`, `shared/**`, Auth, Profile, Settings; không thêm dependency hoặc folder ngoài danh sách trên.
+
+#### Kiểm chứng và tiêu chí hoàn thành
+
+- Service đọc/ghi allow-list an toàn, fallback Hybrid khi storage sai và giữ state khi khởi tạo lại.
+- ThemeStudio có radio semantics, selected marker, emit đúng palette và swatch dùng token cục bộ.
+- Friends mở/đóng đúng Theme Studio, Activity Panel vẫn hoạt động; toolbar phản ánh `aria-expanded` đúng panel.
+- AppLayout gắn đúng `data-atmosphere`; theme light/dark hiện có vẫn lưu và hoạt động qua điều hướng.
+- `npm run build`, toàn bộ unit/component test, Prettier và `git diff --check` pass; Tài tự kiểm tra trực tiếp cả sáu
+  Atmosphere ở hai mode và F5 để xác nhận persistence.
+
+#### Kết quả Phase UI-19
+
+- Ngày hoàn thành code/test: 2026-08-09 trên branch `page/tai`; chờ Tài kiểm tra trực tiếp sáu palette ở cả
+  light/dark. Browser nội bộ của Codex lỗi môi trường trước khi tạo tab nên không ghi nhận visual QA tự động và không
+  thêm Playwright/Codex artifact vào repo theo đúng yêu cầu của Tài.
+- Commit/push: không tự thực hiện vì Tài chưa yêu cầu.
+- Kết quả test: toàn bộ frontend `40/40` test file và `197/197` unit/component test pass; `npm run build` pass
+  browser/SSR/prerender, initial bundle `623.59 kB` dưới budget warning `700 kB`, không có warning
+  `anyComponentStyle`; Prettier và `git diff --check` pass.
+- Đánh giá UI/UX: Theme Studio dùng panel phải hiện có, radio semantics và Material Ripple/Icon; sáu swatch bốn mảnh
+  mô tả đúng rail/sidebar/workspace/context panel. Mỗi Atmosphere có cặp neutral light/dark riêng, trong khi CTA,
+  online/unread và semantic state vẫn giữ xanh Nexus; focus, selected, pressed và reduced-motion đã có.
+- Đánh giá Feature: nút palette nằm giữa demo và light/dark; Theme Studio tạm thay Activity Panel rồi trả lại nội dung
+  ghim khi đóng. Chọn palette áp dụng ngay lên `data-atmosphere` của Dashboard shell, lưu qua F5/đổi route; mode và
+  Atmosphere độc lập. Storage sai fallback Hybrid.
+- Đánh giá Data: chỉ lưu allow-listed palette id trong localStorage; không sửa ShellData/mock/API/DTO/backend/database,
+  không đụng Auth, Profile hoặc Settings. Component và service mới đều được scaffold bằng Angular CLI; ngoại lệ
+  `layouts/app-layout` chỉ gắn một data attribute đã khai trước trong phase.
+
+### Phase UI-20 — Menu tùy chọn bạn bè dạng UI preview
+
+Status: APPROVED
+
+> Tài đã yêu cầu thiết kế menu mở từ nút ba chấm của mỗi hàng bạn bè và xác nhận các lệnh chưa được tương tác.
+> Phase này chỉ sửa các file Dashboard UI hiện có, không tạo folder/file component mới và không nối sang Profile,
+> Settings, backend hoặc database.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:** nút ba chấm có nhãn truy cập theo tên người dùng và mở một Material menu gọn, phân cấp thành nhận diện,
+  liên lạc, quản lý và an toàn. Menu dùng token Hybrid/Nexus, tương phản tốt ở light/dark, có focus rõ và đánh dấu
+  “Bản xem trước · chờ kết nối” để người dùng không hiểu nhầm đây là chức năng đã hoàn thiện.
+- **Feature:** hiển thị sáu lệnh mẫu gồm gọi thoại, gọi video, tắt thông báo, thêm biệt danh, xóa khỏi danh sách bạn
+  và chặn. Trigger mở/đóng được; toàn bộ lệnh bên trong disabled, không phát event, không điều hướng và không hiện
+  trạng thái thành công giả. Nút nhắn tin hiện có vẫn hoạt động độc lập.
+- **Data:** chỉ đọc `ConversationSummary` hiện có để hiển thị avatar, tên và trạng thái. Không sửa fake data,
+  ShellData, API, DTO, permission, persistence, backend hoặc database.
+
+#### File dự kiến
+
+- `plans/dashboard.PLAN.md` — gate và kết quả phase.
+- `src/app/features/dashboard/friends/components/friend-row.ts|html|css|spec.ts` — trigger, Material menu, bố cục và test.
+- `src/styles.css` — style overlay tối thiểu scope bằng `.nexus-friend-options-menu`, vì Material menu render ngoài cây
+  Dashboard qua CDK overlay.
+- Không thêm dependency, folder hoặc file code mới; không sửa Auth, Profile, Settings hay phần của thành viên khác.
+
+#### Kiểm chứng và tiêu chí hoàn thành
+
+- Click nút “Tùy chọn cho <tên>” mở đúng menu của hàng tương ứng; menu có đủ sáu lệnh và tất cả đều disabled.
+- Header menu dùng đúng dữ liệu của người bạn được chọn, trạng thái preview dễ nhận biết nhưng không lấn nội dung.
+- Existing DM link, nút nhắn tin, hover/focus của hàng bạn bè không hồi quy.
+- `npm run build`, toàn bộ unit/component test, Prettier và `git diff --check` pass; Tài tự kiểm tra trực tiếp light/dark.
+
+#### Kết quả Phase UI-20
+
+- Ngày hoàn thành code/test: 2026-08-09 trên branch `page/tai`; chờ Tài kiểm tra trực tiếp menu ở light/dark và các
+  Nexus Atmosphere. Commit/push không tự thực hiện vì Tài chưa yêu cầu.
+- Kết quả test: targeted FriendRow `8/8` test pass; toàn bộ frontend `40/40` test file và `199/199` unit/component
+  test pass. `npm run build` pass browser/SSR/prerender, initial bundle `626.34 kB` dưới budget warning `700 kB`;
+  Prettier và `git diff --check` pass.
+- Đánh giá UI/UX: trigger ba chấm có accessible label theo đúng tên bạn bè và active state thống nhất. Material menu
+  có header avatar/trạng thái, nhãn preview và ba nhóm Liên lạc/Quản lý/An toàn; bề mặt, divider, chữ phụ và danger
+  đều dùng token Hybrid/Nexus, style overlay được scope riêng nên không đổi menu của trang thành viên khác.
+- Đánh giá Feature: menu mở/đóng được, hiển thị đủ gọi thoại, gọi video, tắt thông báo, thêm biệt danh, xóa bạn và
+  chặn. Cả sáu lệnh đều dùng trạng thái disabled thật; nút DM hiện có vẫn hoạt động và không có success state giả.
+- Đánh giá Data: chỉ đọc `ConversationSummary` để render tên/avatar/presence; không sửa ShellData, fake data, API,
+  DTO, permission, persistence, backend, database, Auth, Profile hoặc Settings; không thêm dependency/folder/file code.
+
+### Phase UI-21 — Tăng tương phản hover/focus cho khối người dùng
+
+Status: APPROVED
+
+> Tài đã gửi ảnh light/dark cho thấy khối avatar + tên ở đáy sidebar gần như hòa vào nền khi hover, trong khi mic
+> và tai nghe có tín hiệu màu đúng. Theo quyền append phase UI đã được Tài duyệt, phase này chỉ hiệu chỉnh state của
+> `UserPanel`; không mở rộng giao diện Profile/Settings và không tạo folder/file mới.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:** hover, keyboard focus và trạng thái menu đang mở của khối danh tính phải có nền `surface-feature` pha
+  xanh Nexus, hairline xanh vừa đủ và elevation nhẹ. Tên đổi sang `primary-soft`, trạng thái tăng lên `slate`; avatar
+  có vòng nhận diện nhỏ. Các tín hiệu dùng token trong `DESIGN-nexuscord-hybrid.md`, rõ ở cả warm-cream light và
+  deep-teal dark nhưng không biến toàn bộ khối thành CTA xanh.
+- **Feature:** giữ nguyên MatMenu đăng xuất hiện có; `aria-expanded=true` dùng chung state hình ảnh với hover/focus,
+  click/keyboard vẫn mở menu bình thường. Mic, tai nghe và Settings không đổi logic hay vị trí.
+- **Data:** không sửa ProfileService/AuthService, dữ liệu người dùng, API, fake data, backend hoặc database.
+
+#### File dự kiến
+
+- `plans/dashboard.PLAN.md` — gate và kết quả phase.
+- `src/app/layouts/app-layout/components/user-panel/user-panel.css|spec.ts` — state nhận diện và test menu-open.
+- Đây là ngoại lệ `layouts/**` tối thiểu đã báo trước vì UserPanel thuộc shared shell của Dashboard; không sửa component
+  Profile/Settings, không thêm dependency, folder hoặc file code.
+
+#### Kiểm chứng và tiêu chí hoàn thành
+
+- Hover/focus/menu-open của khối danh tính tách rõ khỏi nền sidebar ở light/dark và không làm layout dịch chuyển.
+- Trigger MatMenu phản ánh `aria-expanded` đúng; tên dài, audio toggle và Settings integration seam không hồi quy.
+- Targeted UserPanel test, toàn bộ unit/component test, `npm run build`, Prettier và `git diff --check` pass.
+
+#### Kết quả Phase UI-21
+
+- Ngày hoàn thành code/test: 2026-08-09 trên branch `page/tai`; chờ Tài F5 và kiểm tra trực tiếp light/dark. Browser
+  nội bộ của Codex không khởi tạo được môi trường kiểm tra nên không ghi visual QA tự động và không thêm artifact
+  kiểm kê vào repo theo yêu cầu của Tài. Commit/push không tự thực hiện.
+- Kết quả test: targeted UserPanel `7/7` test pass; toàn bộ frontend `40/40` test file và `200/200` unit/component
+  test pass. `npm run build` pass browser/SSR/prerender, initial bundle `626.34 kB` dưới budget warning `700 kB`;
+  Prettier và `git diff --check` pass.
+- Đánh giá UI/UX: state hover/focus/menu-open dùng chung nền `surface-feature` pha 15% `primary-soft`, inner hairline
+  xanh và shadow level nhẹ; tên chuyển `primary-soft`, trạng thái sang `slate`, avatar có vòng nhận diện. Tất cả dùng
+  token Hybrid/Atmosphere, không hardcode hex và reduced-motion tắt transition/scale.
+- Đánh giá Feature: trigger đăng xuất vẫn là MatMenu hiện có và phản ánh `aria-expanded`; mic/deafen giữ local toggle,
+  Settings vẫn disabled integration seam. Không thay geometry nên không phát sinh overflow hoặc layout shift.
+- Đánh giá Data: không sửa HTML/TypeScript service, ProfileService/AuthService, dữ liệu người dùng, API, fake data,
+  backend, database, Auth, Profile hoặc Settings; không thêm dependency/folder/file code.
+
+### Phase UI-22 — Phân tách tìm kiếm danh bạ và điều hướng toàn cục
+
+Status: APPROVED
+
+> Tài yêu cầu làm rõ ô tìm kiếm trên sidebar Bạn bè khác gì kính lúp trên server rail và đặt kết quả người dùng ở
+> đâu. Theo quyền append phase UI đã được duyệt, phase này kích hoạt lọc dữ liệu shell hiện có và sửa copy/phân cấp
+> của Command Center; không thêm folder, không giả lập tìm nội dung tin nhắn và không nối backend.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:** ô đầu sidebar mang nhãn “Tìm người hoặc cuộc trò chuyện”, luôn nằm trên lối vào Bạn bè; khi nhập, các
+  hàng người dùng/DM được lọc ngay tại vị trí danh sách Tin nhắn trực tiếp, section label hiện số kết quả và có empty
+  state hướng người dùng sang Bạn bè để thêm người mới. Kính lúp rail được gọi rõ là “Điều hướng toàn Nexus”, dialog
+  có dải phạm vi tĩnh Máy chủ/Kênh/Tin nhắn riêng để không bị hiểu là ô tìm nội dung chat.
+- **Feature:** sidebar lọc tên và status không phân biệt hoa/thường hoặc dấu tiếng Việt. Command Center mặc định cân
+  bằng tối đa ba DM, ba server và ba channel; khi nhập sẽ ưu tiên khớp đầu tên, rồi khớp trong tên, context và keyword.
+  Ctrl/Cmd+K, route link và empty state người dùng mới tiếp tục hoạt động.
+- **Data:** chỉ lọc các signal `conversations/servers/channels` trong ShellData hiện có. Không tìm người lạ hoặc nội
+  dung message khi chưa có API/permission/pagination; không sửa ShellData collection, backend hay database.
+
+#### File dự kiến
+
+- `plans/dashboard.PLAN.md` — gate và kết quả phase.
+- `src/app/layouts/app-layout/components/channel-sidebar/channel-sidebar.ts|html|spec.ts` — query sidebar và binding.
+- `src/app/layouts/app-layout/components/channel-sidebar/components/conversation-list.ts|html|spec.ts` — lọc, vị trí
+  kết quả người dùng và empty state theo query.
+- `src/app/layouts/app-layout/components/server-rail/server-rail.ts|html|spec.ts` — phạm vi, cân bằng và ranking Command.
+- `src/styles.css` — style dải scope trong dialog overlay, được scope dưới `.nexus-add-server-dialog .command-center`.
+- Đây là ngoại lệ `layouts/**` và global overlay style tối thiểu đã báo trước; không thêm dependency/folder/file code,
+  không sửa Auth, Profile hoặc Settings.
+
+#### Kiểm chứng và tiêu chí hoàn thành
+
+- Sidebar search enabled, lọc đúng demo conversation theo tên/status, bỏ dấu và hiển thị empty state tìm kiếm riêng.
+- Friends route vẫn cố định phía trên; user/DM result không chạy sang rail hoặc workspace.
+- Rail tooltip/aria/copy không tuyên bố tìm nội dung message; default có đủ DM/server/channel và query ranking đúng.
+- Targeted test, toàn bộ unit/component test, `npm run build`, Prettier và `git diff --check` pass.
+
+#### Kết quả Phase UI-22
+
+- Ngày hoàn thành code/test: 2026-08-09 trên branch `page/tai`; chờ Tài kiểm tra trực tiếp hai phạm vi search tại
+  `localhost:4200`. Commit/push không tự thực hiện vì Tài chưa yêu cầu.
+- Kết quả test: ba targeted spec `24/24` test pass; toàn bộ frontend `40/40` test file và `203/203` unit/component
+  test pass. `npm run build` pass browser/SSR/prerender, initial bundle `627.08 kB` dưới budget warning `700 kB`;
+  Prettier và `git diff --check` pass.
+- Đánh giá UI/UX: sidebar dùng copy “Tìm người hoặc cuộc trò chuyện”, giữ Friends cố định phía trên và render kết quả
+  người/DM tại đúng danh sách với count/empty riêng. Command Center đổi thành “Điều hướng toàn Nexus” và có ba badge
+  phạm vi Máy chủ/Kênh/Tin nhắn riêng dùng Material icon + token Hybrid, không lẫn với content search.
+- Đánh giá Feature: sidebar lọc tên/status không phân biệt dấu/hoa thường. Command mặc định cân bằng 3 DM + 3 server +
+  3 channel; query rank exact → starts-with → contains → context → keyword. Ctrl/Cmd+K, route link, new-user empty và
+  nút xóa query tiếp tục hoạt động; ví dụ `binh` tìm được `bình'`, `lofi` đưa DM đúng tên lên trước, `standup` ra voice.
+- Đánh giá Data: chỉ computed/filter các signal ShellData đã có; không sửa collection hay tạo dữ liệu giả mới, không
+  giả tìm người ngoài danh bạ hoặc message content, không sửa API/backend/database/Auth/Profile/Settings và không thêm
+  dependency/folder/file code.
+
 ---
 
 ## Phạm vi

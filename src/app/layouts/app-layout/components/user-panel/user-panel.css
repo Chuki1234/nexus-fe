@@ -19,6 +19,30 @@
   background: transparent;
   color: var(--color-ink);
   text-align: left;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.user-panel__identity:is(:hover, :focus-visible, [aria-expanded='true']) {
+  background: color-mix(in srgb, var(--color-primary-soft) 15%, var(--color-surface-feature));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-primary-soft) 34%, var(--color-hairline)) inset,
+    0 0.25rem 0.75rem color-mix(in srgb, var(--color-canvas-dark) 14%, transparent);
+}
+
+.user-panel__identity:active {
+  transform: scale(0.985);
+}
+
+.user-panel__identity app-avatar {
+  border-radius: var(--radius-full);
+  transition: box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.user-panel__identity:is(:hover, :focus-visible, [aria-expanded='true']) app-avatar {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-soft) 32%, var(--color-canvas));
 }
 
 .user-panel__identity-copy {
@@ -43,11 +67,21 @@
   color: var(--color-ink);
   font-size: var(--text-caption);
   font-weight: 600;
+  transition: color var(--motion-fast) var(--ease-nexus-out);
 }
 
 .user-panel__status {
   color: var(--color-steel);
   font-size: var(--text-micro);
+  transition: color var(--motion-fast) var(--ease-nexus-out);
+}
+
+.user-panel__identity:is(:hover, :focus-visible, [aria-expanded='true']) .user-panel__name {
+  color: var(--color-primary-soft);
+}
+
+.user-panel__identity:is(:hover, :focus-visible, [aria-expanded='true']) .user-panel__status {
+  color: var(--color-slate);
 }
 
 .user-panel__controls {
@@ -93,7 +127,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .user-panel__identity,
+  .user-panel__identity app-avatar,
+  .user-panel__name,
+  .user-panel__status,
   .user-panel__control .mat-icon {
+    transition: none;
     transform: none;
   }
 }

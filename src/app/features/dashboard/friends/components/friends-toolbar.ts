@@ -35,9 +35,11 @@ export class FriendsToolbar {
   readonly theme = model.required<ThemeMode>();
   readonly canAddFriend = input<boolean>(false);
   readonly activityOpen = input<boolean>(false);
+  readonly atmosphereOpen = input<boolean>(false);
   readonly demoEnabled = input<boolean>(false);
 
   readonly toggleActivity = output<void>();
+  readonly toggleAtmosphere = output<void>();
   readonly toggleDemo = output<void>();
 
   protected readonly tabs = TABS;

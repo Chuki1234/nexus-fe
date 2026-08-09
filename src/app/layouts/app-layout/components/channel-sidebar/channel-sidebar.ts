@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { ShellData } from '../../../../core/api/shell-data';
 import { SearchField } from '../../../../shared/ui/search-field/search-field';
 import { UserPanel } from '../user-panel/user-panel';
@@ -26,6 +26,8 @@ export class ChannelSidebar {
 
   /** Rỗng = khu tin nhắn trực tiếp. */
   readonly serverId = input<string | null>(null);
+
+  protected readonly conversationQuery = signal('');
 
   protected readonly title = computed(() => {
     const id = this.serverId();

@@ -297,9 +297,9 @@
 <button
   type="button"
   (click)="openCommandCenter(commandDialog)"
-  matTooltip="Tìm tin nhắn, kênh chữ, kênh thoại và máy chủ"
+  matTooltip="Đi tới máy chủ, kênh hoặc tin nhắn riêng"
   matTooltipPosition="right"
-  aria-label="Tìm tin nhắn, kênh chữ, kênh thoại và máy chủ"
+  aria-label="Điều hướng tới máy chủ, kênh hoặc tin nhắn trực tiếp"
   aria-keyshortcuts="Control+K Meta+K"
   data-action="global-search"
   class="server-rail-action nexus-icon-control flex size-12 items-center justify-center rounded-full"
@@ -319,7 +319,7 @@
 
       <span class="min-w-0 flex-1">
         <p class="text-micro-uppercase text-steel">Nexus Command</p>
-        <h2 id="command-center-title" class="text-heading-5 text-ink">Đi tới đúng nơi</h2>
+        <h2 id="command-center-title" class="text-heading-5 text-ink">Điều hướng toàn Nexus</h2>
       </span>
 
       <kbd class="command-center__shortcut hidden sm:inline-flex">Ctrl K</kbd>
@@ -340,8 +340,8 @@
         <input
           type="search"
           class="command-center__input min-w-0 flex-1 bg-transparent text-body-md text-ink placeholder:text-steel focus:outline-none"
-          placeholder="Máy chủ, kênh hoặc người bạn..."
-          aria-label="Tìm trong NexusCord"
+          placeholder="Máy chủ, kênh hoặc tin nhắn riêng..."
+          aria-label="Tìm điểm đến trong NexusCord"
           autocomplete="off"
           [value]="commandQuery()"
           (input)="updateCommandQuery($event)"
@@ -356,6 +356,14 @@
             <mat-icon aria-hidden="true" class="!text-lg">close</mat-icon>
           </button>
         }
+      </div>
+
+      <div class="command-center__scope" role="list" aria-label="Phạm vi điều hướng">
+        <span role="listitem"><mat-icon aria-hidden="true">dns</mat-icon>Máy chủ</span>
+        <span role="listitem"><mat-icon aria-hidden="true">tag</mat-icon>Kênh</span>
+        <span role="listitem"
+          ><mat-icon aria-hidden="true">alternate_email</mat-icon>Tin nhắn riêng</span
+        >
       </div>
     </div>
 
@@ -417,7 +425,10 @@
       class="command-center__footer flex items-center gap-2 px-5 py-3 text-caption text-steel"
     >
       <mat-icon aria-hidden="true" class="!text-lg">search_activity</mat-icon>
-      <span>Tìm nội dung tin nhắn sẽ xuất hiện khi kết nối backend.</span>
+      <span
+        >Tìm nội dung tin nhắn thuộc thanh công cụ cuộc trò chuyện và sẽ bật khi kết nối
+        backend.</span
+      >
     </footer>
   </section>
 </ng-template>

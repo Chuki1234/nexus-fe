@@ -107,15 +107,16 @@ describe('ServerRail', () => {
     expect(fixture.nativeElement.querySelectorAll('[data-server-id]').length).toBe(0);
   });
 
-  it('nút tìm kiếm mô tả đủ phạm vi dù chưa nối API', async () => {
+  it('nút Command mô tả phạm vi điều hướng mà không giả là tìm nội dung chat', async () => {
     const fixture = await mount();
     const search = fixture.nativeElement.querySelector(
       '[data-action="global-search"]',
     ) as HTMLButtonElement;
 
-    expect(search.getAttribute('aria-label')).toContain('tin nhắn');
-    expect(search.getAttribute('aria-label')).toContain('kênh thoại');
+    expect(search.getAttribute('aria-label')).toContain('tin nhắn trực tiếp');
+    expect(search.getAttribute('aria-label')).toContain('kênh');
     expect(search.getAttribute('aria-label')).toContain('máy chủ');
+    expect(search.getAttribute('aria-label')).not.toContain('nội dung');
     expect(search.getAttribute('aria-keyshortcuts')).toContain('Control+K');
     expect(search.classList.contains('nexus-icon-control')).toBe(true);
   });
@@ -137,8 +138,25 @@ describe('ServerRail', () => {
     const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
 
     expect(dialog.textContent).toContain('Nexus Command');
+    expect(dialog.textContent).toContain('Điều hướng toàn Nexus');
+    expect(dialog.querySelector('.command-center__scope')?.textContent).toContain('Máy chủ');
+    expect(dialog.querySelector('.command-center__scope')?.textContent).toContain('Kênh');
+    expect(dialog.querySelector('.command-center__scope')?.textContent).toContain('Tin nhắn riêng');
     expect(dialog.querySelector('[data-command-result="conversation"]')).toBeTruthy();
     expect(dialog.querySelector('[data-command-result="server"]')).toBeTruthy();
+    expect(
+      dialog.querySelector(
+        '[data-command-result="text-channel"], [data-command-result="voice-channel"]',
+      ),
+    ).toBeTruthy();
+
+    input.value = 'lofi';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(dialog.querySelector('[data-command-result]')?.getAttribute('data-command-result')).toBe(
+      'conversation',
+    );
 
     input.value = 'standup';
     input.dispatchEvent(new Event('input'));

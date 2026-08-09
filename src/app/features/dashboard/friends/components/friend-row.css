@@ -21,6 +21,11 @@
   opacity: 1;
 }
 
+.friend-row__actions .nexus-icon-control[aria-expanded='true'] {
+  color: var(--color-primary-soft);
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .friend-row__name,
   .friend-row__actions {

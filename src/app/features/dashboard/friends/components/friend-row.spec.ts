@@ -51,6 +51,43 @@ describe('FriendRow', () => {
     expect(action.classList.contains('nexus-icon-control')).toBe(true);
   });
 
+  it('nút ba chấm mở menu đúng người bạn với đủ nhóm tùy chọn', async () => {
+    const fixture = await mount();
+    const trigger = fixture.nativeElement.querySelector(
+      'button[aria-label="Tùy chọn cho ho_be"]',
+    ) as HTMLButtonElement;
+
+    expect(trigger.disabled).toBe(false);
+    trigger.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const menu = document.body.querySelector('.nexus-friend-options-menu') as HTMLElement;
+    expect(menu).toBeTruthy();
+    expect(menu.textContent).toContain('ho_be');
+    expect(menu.textContent).toContain('Bản xem trước · chờ kết nối');
+    expect(menu.textContent).toContain('Gọi thoại');
+    expect(menu.textContent).toContain('Tắt thông báo');
+    expect(menu.textContent).toContain('Xóa khỏi danh sách bạn');
+  });
+
+  it('mọi lệnh trong menu tùy chọn chỉ là preview và đều bị khóa', async () => {
+    const fixture = await mount();
+    const trigger = fixture.nativeElement.querySelector(
+      'button[aria-label="Tùy chọn cho ho_be"]',
+    ) as HTMLButtonElement;
+
+    trigger.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const actions = Array.from(
+      document.body.querySelectorAll('.nexus-friend-options-menu button[mat-menu-item]'),
+    ) as HTMLButtonElement[];
+    expect(actions).toHaveLength(6);
+    expect(actions.every((action) => action.disabled)).toBe(true);
+  });
+
   it('avatar nằm trong link DM và không dựng action hồ sơ của team khác', async () => {
     const fixture = await mount();
     const profileAction = fixture.nativeElement.querySelector(
