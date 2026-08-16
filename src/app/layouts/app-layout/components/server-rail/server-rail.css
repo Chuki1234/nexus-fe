@@ -1,27 +1,26 @@
 :host {
   border-radius: var(--radius-xl);
-  background: var(--nexus-surface-well);
+  background: var(--color-surface);
   border: 1px solid var(--nexus-border-subtle);
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
-    var(--shadow-glow);
+  box-shadow: var(--shadow-glow);
 }
 
-/* Nexus Thread: một đường trạng thái có "nút nối" ở giữa, dùng lại cùng ngôn ngữ
-   với reply/unread trong vùng chat thay vì thêm một hiệu ứng trang trí độc lập. */
+/* Nexus Seam Marker: Đường chỉ báo vị trí active thanh lịch với node kết nối */
 .nexus-thread-marker {
-  width: 2px;
+  width: 3px;
   overflow: visible;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 15%, transparent);
 }
 
 .nexus-thread-marker::after {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 6px;
-  height: 6px;
-  border: 2px solid var(--color-canvas);
+  width: 5px;
+  height: 5px;
+  border: 1.5px solid var(--color-canvas);
   border-radius: var(--radius-full);
   background: var(--color-primary);
   content: '';
@@ -32,6 +31,7 @@
 .server-group-tile {
   color: var(--color-ink);
   font-weight: 600;
+  font-size: var(--text-body-sm-medium);
 }
 
 .server-rail-action {
@@ -41,7 +41,7 @@
 .server-tile,
 .server-group-tile,
 .server-rail-action {
-  background: transparent;
+  background: var(--nexus-surface-well);
   border: 1px solid transparent;
   box-shadow: none;
   transition:
@@ -57,7 +57,7 @@
 .server-rail-action:not(:active):is(:hover, :focus-visible) {
   background: var(--nexus-surface-hover);
   color: var(--color-ink);
-  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--nexus-border-subtle));
   box-shadow: var(--shadow-glow);
 }
 
@@ -73,14 +73,14 @@
 }
 
 .server-tile[aria-current='page'] {
-  background: color-mix(in srgb, var(--color-primary-soft) 12%, var(--nexus-surface-hover));
-  border-color: color-mix(in srgb, var(--color-primary) 60%, transparent);
+  background: var(--nexus-surface-selected);
+  border-color: color-mix(in srgb, var(--color-primary) 50%, var(--nexus-border-subtle));
   color: var(--color-ink);
 }
 
 .server-tile[aria-current='page']:is(:hover, :focus-visible) {
-  background: color-mix(in srgb, var(--color-primary-soft) 18%, var(--nexus-surface-hover));
-  border-color: color-mix(in srgb, var(--color-primary) 75%, transparent);
+  background: color-mix(in srgb, var(--color-primary-soft) 16%, var(--nexus-surface-hover));
+  border-color: color-mix(in srgb, var(--color-primary) 65%, var(--nexus-border-subtle));
 }
 
 .server-drag-source {
@@ -104,7 +104,7 @@
 .server-drop-indicator {
   width: 2rem;
   height: 2px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-full);
   background: transparent;
   opacity: 0;
   transform: scaleX(0.45);
@@ -145,3 +145,4 @@
     transform: none;
   }
 }
+

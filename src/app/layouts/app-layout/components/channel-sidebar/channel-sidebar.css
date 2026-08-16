@@ -16,11 +16,10 @@
   border-radius: var(--radius-xl);
   background: var(--color-surface);
   border: 1px solid var(--nexus-border-subtle);
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
-    var(--shadow-glow);
+  box-shadow: var(--shadow-glow);
 }
 
 .channel-sidebar__header {
-  box-shadow: 0 -1px 0 color-mix(in srgb, var(--color-hairline) 58%, transparent) inset;
+  border-bottom: 1px solid var(--nexus-border-subtle);
 }
+

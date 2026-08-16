@@ -1,20 +1,19 @@
 .friends-content {
   padding-bottom: 2rem;
-  animation: friends-content-enter 360ms var(--ease-nexus-out) both;
+  animation: friends-content-enter 320ms var(--ease-nexus-out) both;
 }
 
 .friends-list-well {
-  background: var(--nexus-surface-well);
+  background: var(--color-surface);
   border: 1px solid var(--nexus-border-subtle);
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--color-ink) 5%, transparent) inset,
-    var(--shadow-glow);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-glow);
 }
 
 @keyframes friends-content-enter {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
 
   to {
@@ -28,3 +27,4 @@
     animation: none;
   }
 }
+

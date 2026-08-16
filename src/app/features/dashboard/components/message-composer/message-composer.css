@@ -89,27 +89,25 @@
 }
 
 .composer-shell {
-  background: var(--nexus-surface-well);
+  background: var(--color-surface);
   border: 1px solid var(--nexus-border-subtle);
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
-    var(--shadow-card);
+  box-shadow: var(--shadow-card);
   transition:
-    box-shadow var(--motion-base) var(--ease-nexus-out),
-    transform var(--motion-fast) var(--ease-nexus-out);
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
 }
 
 .composer-shell:focus-within {
-  border-color: var(--nexus-border-focus);
+  border-color: color-mix(in srgb, var(--color-primary) 50%, var(--nexus-border-subtle));
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--color-primary-soft) 32%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--color-primary-soft) 22%, transparent),
     var(--shadow-card);
 }
 
 .composer-core {
-  background: var(--nexus-surface-input);
+  background: var(--color-canvas);
   border: 1px solid var(--nexus-border-strong);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 5%, transparent) inset;
 }
 
 .composer-thread {
@@ -117,12 +115,13 @@
   top: 50%;
   left: -0.125rem;
   width: 0.25rem;
-  height: 1.5rem;
+  height: 1.25rem;
   border-radius: var(--radius-full);
   background: var(--color-primary);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 9%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 15%, transparent);
   transform: translateY(-50%);
 }
+
 
 .composer-send {
   display: inline-grid;

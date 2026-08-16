@@ -1,13 +1,14 @@
 :host {
   --mat-toolbar-container-background-color: var(--color-canvas);
   --mat-toolbar-container-text-color: var(--color-ink);
-  --mat-toolbar-standard-height: 48px;
+  --mat-toolbar-standard-height: 56px;
 }
 
 .friends-toolbar {
   position: relative;
   z-index: 2;
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-hairline) 64%, transparent);
+  border-bottom: 1px solid var(--nexus-border-subtle);
+  background: var(--color-canvas);
 }
 
 .friends-toolbar__badge {
@@ -16,10 +17,10 @@
   height: 2.25rem;
   flex: 0 0 2.25rem;
   place-items: center;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   background: var(--color-surface-feature);
   color: var(--color-primary-soft);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset;
+  box-shadow: var(--shadow-glow);
 }
 
 .friends-toolbar__badge .mat-icon {
@@ -33,7 +34,9 @@
 
 .friends-segmented,
 .friends-toolbar__actions {
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 5%, transparent) inset;
+  background: var(--color-surface);
+  border: 1px solid var(--nexus-border-subtle);
+  box-shadow: var(--shadow-glow);
 }
 
 @media (max-width: 39.999rem) {
@@ -52,3 +55,4 @@
     display: none;
   }
 }
+

@@ -1,5 +1,7 @@
+import { describe, expect, it, vi } from 'vitest';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+
 import { provideRouter, Router } from '@angular/router';
 import {
   CANONICAL_SERVER_TEMPLATES,
@@ -126,8 +128,17 @@ describe('ServerRail', () => {
           unread: false,
           mentionCount: 0,
         },
+        {
+          id: 'voice-room',
+          name: 'Phòng học nhóm',
+          type: 'voice',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+        },
       ],
     };
+
 
     return {
       servers: signal(servers),
@@ -385,4 +396,305 @@ describe('ServerRail', () => {
     expect(dialog.textContent).toContain('Tên máy chủ đã được sử dụng.');
     (dialog.querySelector('button[aria-label="Đóng thêm máy chủ"]') as HTMLButtonElement)?.click();
   });
+
+  describe('Quick Switcher theo tiền tố (*, @, #, !)', () => {
+    it('lọc đúng MÁY CHỦ khi gõ tiền tố * hoặc * kèm từ khóa', async () => {
+      const fixture = await mount(groupedShell());
+      const search = fixture.nativeElement.querySelector(
+        '[data-action="global-search"]',
+      ) as HTMLButtonElement;
+      search.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+      const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+      const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+
+      input.value = '*';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const results = Array.from(dialog.querySelectorAll('[data-command-result]'));
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.every((el) => el.getAttribute('data-command-result') === 'server')).toBe(true);
+
+      input.value = '* Alpha';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const filtered = Array.from(dialog.querySelectorAll('[data-command-result]'));
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].textContent).toContain('Alpha');
+
+      (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
+    });
+
+    it('lọc đúng TIN NHẮN RIÊNG khi gõ tiền tố @ hoặc @ kèm từ khóa', async () => {
+      const fixture = await mount(groupedShell());
+      const search = fixture.nativeElement.querySelector(
+        '[data-action="global-search"]',
+      ) as HTMLButtonElement;
+      search.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+      const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+      const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+
+      input.value = '@';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const results = Array.from(dialog.querySelectorAll('[data-command-result]'));
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.every((el) => el.getAttribute('data-command-result') === 'conversation')).toBe(
+        true,
+      );
+
+      input.value = '@ lofi';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const filtered = Array.from(dialog.querySelectorAll('[data-command-result]'));
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].textContent).toContain('Lofi Girl');
+
+      (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
+    });
+
+    it('lọc đúng KÊNH CHỮ khi gõ tiền tố # mà không lẫn kênh thoại', async () => {
+      const fixture = await mount(groupedShell());
+      const search = fixture.nativeElement.querySelector(
+        '[data-action="global-search"]',
+      ) as HTMLButtonElement;
+      search.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+      const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+      const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+
+      input.value = '#';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const results = Array.from(dialog.querySelectorAll('[data-command-result]'));
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.every((el) => el.getAttribute('data-command-result') === 'text-channel')).toBe(
+        true,
+      );
+
+      (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
+    });
+
+    it('lọc đúng KÊNH THOẠI khi gõ tiền tố ! mà không lẫn kênh chữ', async () => {
+      const fixture = await mount(groupedShell());
+      const search = fixture.nativeElement.querySelector(
+        '[data-action="global-search"]',
+      ) as HTMLButtonElement;
+      search.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+      const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+      const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+
+      input.value = '!';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const results = Array.from(dialog.querySelectorAll('[data-command-result]'));
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.every((el) => el.getAttribute('data-command-result') === 'voice-channel')).toBe(
+        true,
+      );
+      expect(results[0].textContent).toContain('Phòng học nhóm');
+
+      (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
+    });
+
+    it('prefix có hoặc không có khoảng trắng cho cùng kết quả', async () => {
+      const fixture = await mount(groupedShell());
+      const search = fixture.nativeElement.querySelector(
+        '[data-action="global-search"]',
+      ) as HTMLButtonElement;
+      search.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+      const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+      const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+
+      input.value = '@lofi';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      const countWithoutSpace = dialog.querySelectorAll('[data-command-result]').length;
+
+      input.value = '@ lofi';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      const countWithSpace = dialog.querySelectorAll('[data-command-result]').length;
+
+      expect(countWithoutSpace).toBe(countWithSpace);
+      expect(countWithSpace).toBe(1);
+
+      (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
+    });
+
+    it('tìm không dấu tiếng Việt vẫn match từ khóa có dấu', async () => {
+      const fixture = await mount(groupedShell());
+      const search = fixture.nativeElement.querySelector(
+        '[data-action="global-search"]',
+      ) as HTMLButtonElement;
+      search.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+      const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+      const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+
+      input.value = '! phong hoc';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const results = Array.from(dialog.querySelectorAll('[data-command-result]'));
+      expect(results.length).toBe(1);
+      expect(results[0].textContent).toContain('Phòng học nhóm');
+
+      (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
+    });
+
+    it('bấm chip tiền tố cập nhật input, scope và active chip', async () => {
+      const fixture = await mount(groupedShell());
+      const search = fixture.nativeElement.querySelector(
+        '[data-action="global-search"]',
+      ) as HTMLButtonElement;
+      search.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+      const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+      const serverChip = dialog.querySelector(
+        'button[aria-label="Lọc theo máy chủ (*)"]',
+      ) as HTMLButtonElement;
+
+      serverChip.click();
+      fixture.detectChanges();
+
+      const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+      expect(input.value.startsWith('*')).toBe(true);
+      expect(serverChip.classList.contains('command-chip--active')).toBe(true);
+
+      const results = Array.from(dialog.querySelectorAll('[data-command-result]'));
+      expect(results.every((el) => el.getAttribute('data-command-result') === 'server')).toBe(true);
+
+      const allChip = Array.from(dialog.querySelectorAll('.command-chip')).find(
+        (chip) => chip.textContent?.trim() === 'Tất cả',
+      ) as HTMLButtonElement;
+      allChip.click();
+      fixture.detectChanges();
+
+      expect(allChip.classList.contains('command-chip--active')).toBe(true);
+
+      (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
+    });
+
+    it('điều hướng danh sách bằng phím ArrowDown/ArrowUp và Enter để mở', async () => {
+      const fixture = await mount(groupedShell());
+      const router = TestBed.inject(Router);
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      const search = fixture.nativeElement.querySelector(
+        '[data-action="global-search"]',
+      ) as HTMLButtonElement;
+
+      search.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+      const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+      const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+
+      input.value = '*';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const options = dialog.querySelectorAll('[role="option"]');
+      expect(options.length).toBeGreaterThan(1);
+      expect(options[0].getAttribute('aria-selected')).toBe('true');
+
+      // Nhấn ArrowDown di chuyển active index
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+      fixture.detectChanges();
+      expect(options[1].getAttribute('aria-selected')).toBe('true');
+
+      // Nhấn ArrowUp quay lại
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+      fixture.detectChanges();
+      expect(options[0].getAttribute('aria-selected')).toBe('true');
+
+      // Nhấn Enter điều hướng
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(navigateSpy).toHaveBeenCalled();
+    });
+
+    it('hiển thị empty state phù hợp theo từng scope', async () => {
+      const fixture = await mount(groupedShell());
+      const search = fixture.nativeElement.querySelector(
+        '[data-action="global-search"]',
+      ) as HTMLButtonElement;
+      search.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+      const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+      const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+
+      input.value = '! khong-co-kenh-thoai-nay';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      expect(dialog.textContent).toContain('Không tìm thấy kênh thoại phù hợp');
+      expect(dialog.querySelector('[data-command-result]')).toBeNull();
+
+      (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
+    });
+
+    it('đảm bảo đầy đủ thuộc tính Accessibility combobox/listbox/option', async () => {
+      const fixture = await mount(groupedShell());
+      const search = fixture.nativeElement.querySelector(
+        '[data-action="global-search"]',
+      ) as HTMLButtonElement;
+      search.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+      const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+      const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
+
+      expect(input.getAttribute('role')).toBe('combobox');
+      expect(input.getAttribute('aria-autocomplete')).toBe('list');
+      expect(input.getAttribute('aria-controls')).toBe('command-results-list');
+      expect(input.getAttribute('aria-describedby')).toBe('command-prefix-guide');
+
+      const listbox = dialog.querySelector('#command-results-list');
+      expect(listbox?.getAttribute('role')).toBe('listbox');
+
+      (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
+    });
+  });
 });
+

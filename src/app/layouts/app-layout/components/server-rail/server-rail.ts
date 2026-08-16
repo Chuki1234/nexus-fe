@@ -33,7 +33,31 @@ import {
   ShellData,
 } from '../../../../core/api/shell-data';
 
-interface CommandResult {
+export type CommandScope = 'all' | 'server' | 'conversation' | 'text-channel' | 'voice-channel';
+export type CommandPrefix = '*' | '@' | '#' | '!';
+
+export const PREFIX_TO_SCOPE: Record<CommandPrefix, CommandScope> = {
+  '*': 'server',
+  '@': 'conversation',
+  '#': 'text-channel',
+  '!': 'voice-channel',
+};
+
+export const SCOPE_TO_PREFIX: Record<Exclude<CommandScope, 'all'>, CommandPrefix> = {
+  server: '*',
+  conversation: '@',
+  'text-channel': '#',
+  'voice-channel': '!',
+};
+
+export interface ParsedCommandQuery {
+  raw: string;
+  scope: CommandScope;
+  prefix: CommandPrefix | null;
+  searchTerm: string;
+}
+
+export interface CommandResult {
   id: string;
   icon: string;
   kind: 'server' | 'text-channel' | 'voice-channel' | 'conversation';
@@ -98,6 +122,7 @@ export class ServerRail {
   protected readonly draggingServerId = signal<string | null>(null);
   protected readonly addServerStep = signal<'choose' | 'template-list' | 'create' | 'join'>('choose');
   protected readonly commandQuery = signal('');
+  protected readonly activeResultIndex = signal(0);
 
   protected readonly templates = signal<ServerTemplate[]>([...CANONICAL_SERVER_TEMPLATES]);
   protected readonly selectedTemplate = signal<ServerTemplate>(CANONICAL_SERVER_TEMPLATES[0]);
@@ -121,6 +146,26 @@ export class ServerRail {
   protected readonly isSubmitting = signal(false);
   protected readonly createErrorMessage = signal<string | null>(null);
 
+  protected readonly parsedQuery = computed<ParsedCommandQuery>(() => {
+    const raw = this.commandQuery();
+    const trimmedStart = raw.trimStart();
+    if (!trimmedStart) {
+      return { raw, scope: 'all', prefix: null, searchTerm: '' };
+    }
+
+    const firstChar = trimmedStart[0];
+    if (firstChar === '*' || firstChar === '@' || firstChar === '#' || firstChar === '!') {
+      const prefix = firstChar as CommandPrefix;
+      const scope = PREFIX_TO_SCOPE[prefix];
+      const rest = trimmedStart.slice(1).trimStart();
+      return { raw, scope, prefix, searchTerm: rest };
+    }
+
+    return { raw, scope: 'all', prefix: null, searchTerm: raw.trim() };
+  });
+
+  protected readonly commandScope = computed(() => this.parsedQuery().scope);
+
   private readonly commandItems = computed<CommandResult[]>(() => {
     const servers = this.servers();
     const serverItems = servers.map((server) => this.serverCommand(server));
@@ -135,19 +180,29 @@ export class ServerRail {
   });
 
   protected readonly commandResults = computed(() => {
-    const query = this.normalizeSearch(this.commandQuery());
+    const parsed = this.parsedQuery();
     const items = this.commandItems();
-    if (!query) {
-      const conversations = items.filter((item) => item.kind === 'conversation').slice(0, 3);
-      const servers = items.filter((item) => item.kind === 'server').slice(0, 3);
-      const channels = items
-        .filter((item) => item.kind === 'text-channel' || item.kind === 'voice-channel')
-        .slice(0, 3);
-      return [...conversations, ...servers, ...channels];
+
+    const scopedItems =
+      parsed.scope === 'all'
+        ? items
+        : items.filter((item) => item.kind === parsed.scope);
+
+    const normalizedTerm = this.normalizeSearch(parsed.searchTerm);
+    if (!normalizedTerm) {
+      if (parsed.scope === 'all') {
+        const conversations = items.filter((item) => item.kind === 'conversation').slice(0, 3);
+        const servers = items.filter((item) => item.kind === 'server').slice(0, 3);
+        const channels = items
+          .filter((item) => item.kind === 'text-channel' || item.kind === 'voice-channel')
+          .slice(0, 3);
+        return [...conversations, ...servers, ...channels];
+      }
+      return scopedItems.slice(0, 12);
     }
 
-    return items
-      .map((item) => ({ item, score: this.commandScore(item, query) }))
+    return scopedItems
+      .map((item) => ({ item, score: this.commandScore(item, normalizedTerm) }))
       .filter((result) => Number.isFinite(result.score))
       .sort(
         (left, right) =>
@@ -156,6 +211,74 @@ export class ServerRail {
       .map((result) => result.item)
       .slice(0, 12);
   });
+
+  protected readonly activeResultId = computed(() => {
+    const results = this.commandResults();
+    const index = this.activeResultIndex();
+    const activeItem = results[index];
+    return activeItem ? `result-opt-${activeItem.id}` : null;
+  });
+
+  protected readonly scopeHeading = computed(() => {
+    const parsed = this.parsedQuery();
+    switch (parsed.scope) {
+      case 'server':
+        return 'Máy chủ';
+      case 'conversation':
+        return 'Tin nhắn riêng';
+      case 'text-channel':
+        return 'Kênh chữ';
+      case 'voice-channel':
+        return 'Kênh thoại';
+      case 'all':
+      default:
+        return parsed.searchTerm ? 'Kết quả phù hợp' : 'Lối tắt trong không gian của bạn';
+    }
+  });
+
+  protected readonly emptyStateData = computed(() => {
+    const parsed = this.parsedQuery();
+    switch (parsed.scope) {
+      case 'server':
+        return {
+          title: parsed.searchTerm ? 'Không tìm thấy máy chủ phù hợp' : 'Không có máy chủ nào',
+          hint: 'Thử đổi từ khóa hoặc bấm "Tất cả" để tìm trong toàn bộ không gian.',
+        };
+      case 'conversation':
+        return {
+          title: parsed.searchTerm
+            ? 'Không tìm thấy tin nhắn riêng phù hợp'
+            : 'Không có tin nhắn riêng nào',
+          hint: 'Thử đổi tên người bạn hoặc bấm "Tất cả" để tìm kiếm.',
+        };
+      case 'text-channel':
+        return {
+          title: parsed.searchTerm ? 'Không tìm thấy kênh chữ phù hợp' : 'Không có kênh chữ nào',
+          hint: 'Thử đổi tên kênh chữ hoặc bấm "Tất cả" để tìm kiếm.',
+        };
+      case 'voice-channel':
+        return {
+          title: parsed.searchTerm ? 'Không tìm thấy kênh thoại phù hợp' : 'Không có kênh thoại nào',
+          hint: 'Thử đổi tên kênh thoại hoặc bấm "Tất cả" để tìm kiếm.',
+        };
+      case 'all':
+      default:
+        return {
+          title: parsed.searchTerm ? 'Không tìm thấy nơi phù hợp' : 'Không gian của bạn đang trống',
+          hint: parsed.searchTerm
+            ? 'Thử tên máy chủ, kênh hoặc người bạn khác.'
+            : 'Thêm máy chủ, kết bạn hoặc bật dữ liệu demo để xem Quick Switcher hoạt động.',
+        };
+    }
+  });
+
+  protected readonly resultAnnouncement = computed(() => {
+    const count = this.commandResults().length;
+    const scope = this.commandScope();
+    const label = this.commandScopeLabel(scope);
+    return `${count} kết quả ${label}`;
+  });
+
 
   protected readonly ungroupedServers = computed(() => {
     const groupedIds = new Set(this.serverGroups().flatMap((group) => group.serverIds));
@@ -380,6 +503,7 @@ export class ServerRail {
 
   protected openCommandCenter(template: TemplateRef<unknown> = this.commandDialog()): void {
     this.commandQuery.set('');
+    this.activeResultIndex.set(0);
     this.dialog.open(template, {
       ariaLabel: 'Điều hướng nhanh trong NexusCord',
       autoFocus: '.command-center__input',
@@ -405,6 +529,69 @@ export class ServerRail {
 
   protected updateCommandQuery(event: Event): void {
     this.commandQuery.set((event.target as HTMLInputElement | null)?.value ?? '');
+    this.activeResultIndex.set(0);
+  }
+
+  protected selectScopeChip(targetScope: CommandScope, inputEl?: HTMLInputElement): void {
+    const current = this.parsedQuery();
+    if (targetScope === 'all' || current.scope === targetScope) {
+      this.commandQuery.set(current.searchTerm);
+    } else {
+      const prefix = SCOPE_TO_PREFIX[targetScope];
+      this.commandQuery.set(current.searchTerm ? `${prefix} ${current.searchTerm}` : `${prefix} `);
+    }
+    this.activeResultIndex.set(0);
+    if (inputEl) {
+      inputEl.focus();
+    }
+  }
+
+  protected handleCommandInputKeydown(event: KeyboardEvent): void {
+    const results = this.commandResults();
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (results.length > 0) {
+        this.activeResultIndex.update((i) => (i + 1) % results.length);
+      }
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (results.length > 0) {
+        this.activeResultIndex.update((i) => (i - 1 + results.length) % results.length);
+      }
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const activeItem = results[this.activeResultIndex()];
+      if (activeItem) {
+        this.selectResult(activeItem);
+      }
+      return;
+    }
+  }
+
+  protected async selectResult(result: CommandResult): Promise<void> {
+    this.dialog.closeAll();
+    await this.router.navigate(result.link);
+  }
+
+  protected commandScopeLabel(scope: CommandScope): string {
+    switch (scope) {
+      case 'server':
+        return 'máy chủ';
+      case 'text-channel':
+        return 'kênh chữ';
+      case 'voice-channel':
+        return 'kênh thoại';
+      case 'conversation':
+        return 'tin nhắn riêng';
+      case 'all':
+        return 'tổng hợp';
+    }
   }
 
   protected commandKindLabel(kind: CommandResult['kind']): string {
@@ -419,6 +606,7 @@ export class ServerRail {
         return 'Tin nhắn riêng';
     }
   }
+
 
   protected groupMentions(servers: ServerSummary[]): number {
     return servers.reduce((total, server) => total + server.mentionCount, 0);

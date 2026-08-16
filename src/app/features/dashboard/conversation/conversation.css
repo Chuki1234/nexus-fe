@@ -27,19 +27,18 @@
 }
 
 .chat-intro {
-  animation: chat-intro-enter 420ms var(--ease-nexus-out) both;
+  animation: chat-intro-enter 360ms var(--ease-nexus-out) both;
 }
 
 .chat-intro__avatar {
   border-radius: var(--radius-xxl);
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 10%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
-
 
 @keyframes chat-intro-enter {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
 
   to {
@@ -53,3 +52,4 @@
     animation: none;
   }
 }
+

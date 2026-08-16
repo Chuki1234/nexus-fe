@@ -1683,10 +1683,11 @@ app-server-rail .server-ungroup-zone--active {
 }
 
 .nexus-add-server-dialog .command-center__mark {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-primary) 10%, transparent);
+  background: var(--color-surface-feature);
+  color: var(--color-primary-soft);
+  box-shadow: var(--shadow-glow);
 }
+
 
 .nexus-add-server-dialog .command-center__shortcut {
   align-items: center;
@@ -1725,24 +1726,67 @@ app-server-rail .server-ungroup-zone--active {
   margin-top: 0.625rem;
 }
 
-.nexus-add-server-dialog .command-center__scope span {
+.nexus-add-server-dialog .command-chip {
   display: inline-flex;
-  min-height: 1.625rem;
+  min-height: 2rem;
   align-items: center;
-  gap: 0.25rem;
-  border: 1px solid var(--color-hairline);
+  gap: 0.375rem;
+  border: 1px solid var(--nexus-border-subtle);
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--color-surface-soft) 72%, transparent);
-  padding: 0.1875rem 0.5rem;
+  background: var(--nexus-surface-well);
+  padding: 0.1875rem 0.625rem;
   color: var(--color-slate);
   font-size: var(--text-micro);
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: none;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
 }
 
-.nexus-add-server-dialog .command-center__scope .mat-icon {
-  width: 0.875rem;
-  height: 0.875rem;
+.nexus-add-server-dialog .command-chip:hover {
+  background: var(--nexus-surface-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--nexus-border-subtle));
+  color: var(--color-ink);
+  box-shadow: var(--shadow-glow);
+}
+
+.nexus-add-server-dialog .command-chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.nexus-add-server-dialog .command-chip:active {
+  transform: scale(0.97);
+}
+
+.nexus-add-server-dialog .command-chip--active {
+  background: var(--nexus-surface-selected);
+  border-color: color-mix(in srgb, var(--color-primary) 65%, var(--nexus-border-subtle));
+  color: var(--color-ink);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 35%, transparent) inset;
+}
+
+.nexus-add-server-dialog .command-chip__prefix {
   color: var(--color-primary-soft);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.nexus-add-server-dialog .command-chip .mat-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
+  color: var(--color-steel);
+}
+
+.nexus-add-server-dialog .command-chip--active .mat-icon {
+  color: var(--color-primary-soft);
 }
 
 .nexus-add-server-dialog .command-center__body {
@@ -1757,7 +1801,7 @@ app-server-rail .server-ungroup-zone--active {
     transform var(--motion-fast) var(--ease-nexus-out);
 }
 
-.nexus-add-server-dialog .command-result:is(:hover, :focus-visible) {
+.nexus-add-server-dialog .command-result:is(:hover, :focus-visible, .command-result--active) {
   background: var(--color-surface-feature);
   box-shadow: 3px 0 0 var(--color-primary) inset;
   transform: translateX(2px);
@@ -1777,10 +1821,11 @@ app-server-rail .server-ungroup-zone--active {
     transform var(--motion-fast) var(--ease-nexus-out);
 }
 
-.nexus-add-server-dialog .command-result:is(:hover, :focus-visible) .command-result__arrow {
+.nexus-add-server-dialog .command-result:is(:hover, :focus-visible, .command-result--active) .command-result__arrow {
   opacity: 1;
   transform: translateX(0);
 }
+
 
 .nexus-add-server-dialog .command-center__footer {
   background: color-mix(in srgb, var(--color-surface-soft) 68%, var(--color-canvas));
@@ -1818,10 +1863,11 @@ app-server-rail .server-ungroup-zone--active {
 
   :is(app-channel-page, app-conversation-page)
     :is(.message-card, .message-actions, .message-row__compact-time),
-  .nexus-add-server-dialog :is(.command-center__search, .command-result, .command-result__arrow) {
+  .nexus-add-server-dialog :is(.command-center__search, .command-result, .command-result__arrow, .command-chip) {
     transition: none;
     transform: none;
   }
+
 
   .nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option {
     transition: none;

@@ -1,14 +1,15 @@
-<section class="max-w-2xl rounded-lg border border-hairline bg-surface p-5 shadow-glow sm:p-6">
+<section class="max-w-2xl rounded-xl border border-hairline bg-surface p-5 shadow-glow sm:p-6">
   <span
-    class="flex size-11 items-center justify-center rounded-full bg-brand-green-soft text-brand-green-dark"
+    class="flex size-11 items-center justify-center rounded-xl bg-surface-feature text-primary-soft shadow-glow"
   >
     <mat-icon aria-hidden="true">person_add</mat-icon>
   </span>
 
-  <h2 class="mt-4 text-heading-4 text-charcoal">Thêm bạn</h2>
+  <h2 class="mt-4 text-heading-4 text-ink">Thêm bạn</h2>
   <p class="mt-2 text-body-sm text-slate">
     Nhập chính xác tên người dùng NexusCord. Đây là bản UI, chưa gửi dữ liệu tới máy chủ.
   </p>
+
 
   <form class="mt-5" (submit)="submitPreview(); $event.preventDefault()">
     <mat-form-field appearance="outline" class="w-full">
@@ -36,11 +37,12 @@
 
   @if (submitted()) {
     <p
-      class="mt-4 rounded-lg border border-hairline bg-surface-feature p-3 text-body-sm text-slate"
+      class="mt-4 rounded-xl border border-hairline bg-surface-feature p-3 text-body-sm text-slate shadow-glow"
       role="status"
     >
-      Bản xem trước đã nhận tên <strong class="text-charcoal">{{ username.value }}</strong
+      Bản xem trước đã nhận tên <strong class="text-ink">{{ username.value }}</strong
       >; thao tác gửi thật sẽ được nối ở phase chức năng.
     </p>
   }
 </section>
+

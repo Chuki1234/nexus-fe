@@ -5,18 +5,18 @@
   overflow: hidden;
 }
 
-/* Shell dùng các lớp surface lồng nhau thay vì đường kẻ chia cột cứng. */
+/* Shell dùng các lớp surface phân tầng: Canvas nền ngoài, Rail/Sidebar surface, Workspace canvas */
 :host {
   --mat-sidenav-container-divider-color: transparent;
-  --mat-sidenav-container-background-color: var(--color-surface-soft);
-  --mat-sidenav-content-background-color: var(--color-surface-soft);
+  --mat-sidenav-container-background-color: var(--color-canvas);
+  --mat-sidenav-content-background-color: var(--color-canvas);
 }
 
 .dashboard-nav-drawer {
   width: min(23.5rem, calc(100vw - 0.5rem));
   max-width: 100%;
   overflow: hidden;
-  background: var(--color-surface-soft);
+  background: var(--color-canvas);
   box-shadow: none;
 }
 
@@ -46,9 +46,9 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--color-canvas);
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
-    var(--shadow-card);
+  border: 1px solid var(--nexus-border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-glow);
 }
 
 @media (max-width: 47.999rem) {
@@ -62,6 +62,8 @@
 
   .dashboard-workspace {
     border-radius: 0;
+    border: 0;
     box-shadow: none;
   }
 }
+

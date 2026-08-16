@@ -1,6 +1,7 @@
 .friend-row {
   background-color: transparent;
   border: 1px solid transparent;
+  border-radius: var(--radius-lg);
   box-shadow: none;
   transition:
     color var(--motion-fast) var(--ease-nexus-out),
@@ -11,7 +12,7 @@
 
 .friend-row:is(:hover, :focus-within) {
   background-color: var(--nexus-surface-hover);
-  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--nexus-border-subtle));
   box-shadow: var(--shadow-glow);
 }
 
@@ -56,3 +57,4 @@
     transition: none;
   }
 }
+
