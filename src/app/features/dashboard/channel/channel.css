@@ -10,7 +10,7 @@
   inset: 0;
   background-color: var(--color-primary);
   content: '';
-  opacity: 0.08;
+  opacity: 0.05;
   pointer-events: none;
   -webkit-mask-image: url('/assets/doodle.svg');
   mask-image: url('/assets/doodle.svg');
@@ -23,7 +23,7 @@
 }
 
 :host-context(html[data-theme='light']) .chat-history::before {
-  opacity: 0.12;
+  opacity: 0.08;
 }
 
 .chat-intro {
@@ -37,14 +37,24 @@
 }
 
 .context-member {
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  background: transparent;
   transition:
     background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
     box-shadow var(--motion-base) var(--ease-nexus-out);
 }
 
-.context-member:hover {
-  background: var(--color-surface-feature);
-  box-shadow: 3px 0 0 var(--color-primary) inset;
+.context-member:is(:hover, :focus-visible) {
+  background: var(--nexus-surface-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+  box-shadow: var(--shadow-glow);
+}
+
+.context-member:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .live-presence {

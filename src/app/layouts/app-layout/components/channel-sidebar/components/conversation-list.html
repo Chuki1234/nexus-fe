@@ -27,7 +27,7 @@
   </button>
 </app-section-label>
 
-<mat-nav-list class="!px-1 !py-0">
+<mat-nav-list class="!px-1 !py-0 flex flex-col gap-1.5">
   @for (conversation of conversations(); track conversation.id) {
     <a
       mat-list-item
@@ -38,7 +38,7 @@
       [attr.aria-current]="link.isActive ? 'page' : null"
       [lines]="conversation.statusMessage ? 2 : 1"
       [attr.data-conversation-id]="conversation.id"
-      class="conversation-row nexus-nav-item !mb-1 !h-auto !min-h-14 !rounded-lg"
+      class="conversation-row nexus-nav-item !h-auto !min-h-14 !rounded-lg"
     >
       <span
         matListItemIcon

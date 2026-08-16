@@ -1,7 +1,7 @@
 @for (group of groups(); track group.type) {
-  <app-section-label class="mt-3 mb-1 block" [text]="group.label" />
+  <app-section-label class="mt-4 mb-2 block px-1" [text]="group.label" />
 
-  <mat-nav-list class="!py-0">
+  <mat-nav-list class="!px-1 !py-0 flex flex-col gap-1.5">
     @for (channel of group.channels; track channel.id) {
       <a
         mat-list-item
@@ -10,10 +10,10 @@
         #link="routerLinkActive"
         [activated]="link.isActive"
         [attr.aria-current]="link.isActive ? 'page' : null"
-        class="nexus-nav-item"
+        class="channel-row nexus-nav-item !h-auto !min-h-9 !rounded-lg"
       >
-        <mat-icon matListItemIcon aria-hidden="true">{{ group.icon }}</mat-icon>
-        <span matListItemTitle [class.text-ink]="!link.isActive && channel.unread">
+        <mat-icon matListItemIcon aria-hidden="true" class="!mr-2.5 !size-5 !text-xl">{{ group.icon }}</mat-icon>
+        <span matListItemTitle class="truncate text-body-sm font-medium" [class.text-ink]="!link.isActive && channel.unread">
           {{ channel.name }}
         </span>
         <app-unread-badge

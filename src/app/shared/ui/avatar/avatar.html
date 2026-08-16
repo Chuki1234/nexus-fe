@@ -8,8 +8,12 @@
 } @else {
   <span
     aria-hidden="true"
+    [attr.data-avatar-tone]="tone()"
     [class]="
-      'flex items-center justify-center rounded-full bg-surface text-ink ' + box() + ' ' + text()
+      'avatar-fallback flex items-center justify-center rounded-full bg-surface text-ink font-semibold ' +
+      box() +
+      ' ' +
+      text()
     "
   >
     {{ initials() }}
@@ -19,7 +23,7 @@
 
 @if (presence(); as status) {
   <app-status-dot
-    class="absolute right-0 bottom-0"
+    class="absolute right-0 bottom-0 z-10"
     [presence]="status"
     [size]="dotSize()"
     [ring]="ring()"

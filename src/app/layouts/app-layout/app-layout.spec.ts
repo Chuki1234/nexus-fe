@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { ServersApiService } from '../../core/api/servers-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
 import { dashboardRoutes } from '../../features/dashboard/dashboard.routes';
@@ -25,6 +26,22 @@ class ProfileServiceStub {
   reset = () => undefined;
 }
 
+class ServersApiServiceStub {
+  createServer = () =>
+    Promise.resolve({
+      server: { id: 's1', name: 'Server 1', iconUrl: null, unread: false, mentionCount: 0 },
+      defaultChannel: {
+        id: 'c1',
+        name: 'chung',
+        type: 'text' as const,
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+      },
+    });
+  listServers = () => Promise.resolve([]);
+}
+
 describe('AppLayout', () => {
   let harness: RouterTestingHarness;
 
@@ -42,6 +59,7 @@ describe('AppLayout', () => {
         provideRouter([{ path: 'channels', children: dashboardRoutes }]),
         { provide: AuthService, useValue: new AuthServiceStub() },
         { provide: ProfileService, useValue: new ProfileServiceStub() },
+        { provide: ServersApiService, useValue: new ServersApiServiceStub() },
       ],
     });
     harness = await RouterTestingHarness.create();

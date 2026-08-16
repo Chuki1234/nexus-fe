@@ -11,9 +11,9 @@
   align-items: center;
   gap: 0.625rem;
   margin-bottom: 0.5rem;
-  border: 1px solid var(--color-hairline);
+  border: 1px solid var(--nexus-border-subtle);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-canvas));
+  background: var(--nexus-surface-card);
   padding: 0.5rem 0.5rem 0.5rem 0.75rem;
   box-shadow:
     3px 0 0 color-mix(in srgb, var(--color-primary) 70%, transparent) inset,
@@ -30,11 +30,27 @@
   color: var(--color-primary-soft);
 }
 
+.composer-context__close {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  place-items: center;
+  border-radius: var(--radius-full);
+  padding: 0;
+
+  --mat-icon-button-state-layer-size: 2rem;
+  --mat-icon-button-touch-target-display: none;
+}
+
 .composer-context__icon .mat-icon,
 .composer-context__close .mat-icon {
+  display: grid;
   width: 1.125rem;
   height: 1.125rem;
+  place-items: center;
   font-size: 1.125rem;
+  line-height: 1;
 }
 
 .composer-context__copy {
@@ -73,6 +89,8 @@
 }
 
 .composer-shell {
+  background: var(--nexus-surface-well);
+  border: 1px solid var(--nexus-border-subtle);
   box-shadow:
     0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
     var(--shadow-card);
@@ -82,12 +100,15 @@
 }
 
 .composer-shell:focus-within {
+  border-color: var(--nexus-border-focus);
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--color-primary-soft) 32%, transparent),
     var(--shadow-card);
 }
 
 .composer-core {
+  background: var(--nexus-surface-input);
+  border: 1px solid var(--nexus-border-strong);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
 }
 
@@ -104,14 +125,55 @@
 }
 
 .composer-send {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  place-items: center;
+  border-radius: var(--radius-full);
   background: var(--color-primary);
   color: var(--color-on-primary);
+  padding: 0;
+
+  --mat-icon-button-state-layer-size: 2rem;
+  --mat-icon-button-touch-target-display: none;
+}
+
+.composer-send .mat-icon {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .composer-send:disabled {
   background: color-mix(in srgb, var(--color-primary) 72%, var(--color-surface));
   color: var(--color-on-primary);
   opacity: 1;
+}
+
+.composer-action {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  place-items: center;
+  border-radius: var(--radius-full);
+  padding: 0;
+
+  --mat-icon-button-state-layer-size: 2rem;
+  --mat-icon-button-touch-target-display: none;
+}
+
+.composer-action .mat-icon {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .composer-action:disabled {

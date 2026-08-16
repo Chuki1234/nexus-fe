@@ -10,7 +10,7 @@
   inset: 0;
   background-color: var(--color-primary);
   content: '';
-  opacity: 0.08;
+  opacity: 0.05;
   pointer-events: none;
   -webkit-mask-image: url('/assets/doodle.svg');
   mask-image: url('/assets/doodle.svg');
@@ -23,7 +23,7 @@
 }
 
 :host-context(html[data-theme='light']) .chat-history::before {
-  opacity: 0.12;
+  opacity: 0.08;
 }
 
 .chat-intro {
@@ -35,13 +35,6 @@
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
-.message-row--mine .message-card {
-  background: color-mix(in srgb, var(--color-surface-feature) 76%, var(--color-surface));
-}
-
-.message-row--mine:is(:hover, :focus-within) .message-card {
-  background: color-mix(in srgb, var(--color-surface-feature) 88%, var(--color-surface));
-}
 
 @keyframes chat-intro-enter {
   from {

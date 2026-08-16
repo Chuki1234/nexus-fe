@@ -281,6 +281,16 @@ html[data-theme='light'] {
   --shadow-glow: 0 0 0.5px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.18);
   --shadow-card: 0 0 0.5px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.18);
   --shadow-modal: 0 20px 56px rgba(30, 57, 50, 0.22), 0 3px 8px rgba(0, 0, 0, 0.1);
+
+  --nexus-surface-overlay: #ffffff;
+  --nexus-dialog-backdrop: rgba(24, 43, 38, 0.48);
+  --nexus-dialog-backdrop-blur: 8px;
+}
+
+:root {
+  --nexus-surface-overlay: var(--color-surface);
+  --nexus-dialog-backdrop: rgba(0, 15, 23, 0.75);
+  --nexus-dialog-backdrop-blur: 8px;
 }
 
 /* ===========================================================================
@@ -288,6 +298,45 @@ html[data-theme='light'] {
    Brand green và semantic state tiếp tục lấy từ Hybrid Design System. Mỗi bộ
    phối có cặp light/dark riêng, nên đổi mode không làm mất lựa chọn không khí.
    ========================================================================== */
+
+.dashboard-shell {
+  /* ---- Semantic Surface Hierarchy (Dark Mode baseline) ----
+     canvas/base < section/well < raised/card < hover < selected/active */
+  --nexus-surface-canvas: var(--color-canvas);
+  --nexus-surface-well: color-mix(in srgb, var(--color-surface-soft) 85%, var(--color-canvas));
+  --nexus-surface-card: color-mix(in srgb, var(--color-surface-feature) 72%, var(--color-surface));
+  --nexus-surface-input: color-mix(in srgb, var(--color-surface-soft) 90%, var(--color-surface-feature));
+  --nexus-surface-hover: color-mix(in srgb, var(--color-surface-feature) 88%, var(--color-surface));
+  --nexus-surface-selected: var(--color-surface-feature);
+  --nexus-surface-overlay: color-mix(in srgb, var(--color-surface) 92%, var(--color-surface-soft));
+
+  --nexus-border-subtle: color-mix(in srgb, var(--color-hairline) 65%, transparent);
+  --nexus-border-strong: var(--color-hairline-strong);
+  --nexus-border-focus: var(--color-primary-soft);
+
+  --nexus-shadow-card: 0 1px 3px color-mix(in srgb, var(--color-canvas-dark) 20%, transparent),
+    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset;
+  --nexus-shadow-hover: 0 2px 8px color-mix(in srgb, var(--color-canvas-dark) 25%, transparent),
+    0 1px 0 color-mix(in srgb, var(--color-ink) 9%, transparent) inset;
+}
+
+html[data-theme='light'] .dashboard-shell {
+  /* ---- Semantic Surface Hierarchy (Light Mode) ---- */
+  --nexus-surface-canvas: var(--color-canvas);
+  --nexus-surface-well: color-mix(in srgb, var(--color-surface-soft) 78%, var(--color-canvas));
+  --nexus-surface-card: #ffffff;
+  --nexus-surface-input: #ffffff;
+  --nexus-surface-hover: color-mix(in srgb, var(--color-surface-feature) 65%, var(--color-surface));
+  --nexus-surface-selected: var(--color-surface-feature);
+  --nexus-surface-overlay: #ffffff;
+
+  --nexus-border-subtle: var(--color-hairline);
+  --nexus-border-strong: var(--color-hairline-strong);
+  --nexus-border-focus: var(--color-primary);
+
+  --nexus-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--color-hairline-soft);
+  --nexus-shadow-hover: 0 4px 12px rgba(30, 57, 50, 0.08), 0 0 0 1px var(--color-hairline);
+}
 
 .dashboard-shell[data-atmosphere='sage'] {
   --color-canvas: #061c1a;
@@ -657,6 +706,7 @@ html {
 .nexus-filter-tab {
   border-color: transparent;
   color: var(--color-slate);
+  background-color: transparent;
   transition:
     color var(--motion-fast) var(--ease-nexus-out),
     border-color var(--motion-fast) var(--ease-nexus-out),
@@ -667,14 +717,14 @@ html {
 
 .nexus-filter-tab:not([aria-pressed='true']):is(:hover, :focus-visible) {
   border-color: transparent;
-  background-color: color-mix(in srgb, var(--color-surface-feature) 72%, var(--color-surface));
+  background-color: var(--nexus-surface-hover);
   color: var(--color-primary-soft);
   box-shadow: var(--shadow-glow);
 }
 
 .nexus-filter-tab[aria-pressed='true'] {
-  border-color: color-mix(in srgb, var(--color-primary) 24%, transparent);
-  background-color: var(--color-canvas);
+  border-color: color-mix(in srgb, var(--color-primary) 28%, var(--nexus-border-subtle));
+  background-color: var(--nexus-surface-card);
   color: var(--color-ink);
   box-shadow:
     0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent) inset,
@@ -686,7 +736,7 @@ html {
 }
 
 .nexus-icon-control {
-  color: var(--color-slate);
+  color: var(--color-steel);
   transition:
     color var(--motion-fast) var(--ease-nexus-out),
     background-color var(--motion-fast) var(--ease-nexus-out),
@@ -695,13 +745,13 @@ html {
 }
 
 .nexus-icon-control:not(:disabled):is(:hover, :focus-visible) {
-  background-color: color-mix(in srgb, var(--color-surface-feature) 76%, var(--color-surface));
+  background-color: var(--nexus-surface-hover);
   color: var(--color-primary-soft);
   box-shadow: var(--shadow-glow);
 }
 
 .nexus-icon-control:is([aria-expanded='true'], [aria-current='page']) {
-  background-color: var(--color-surface-feature);
+  background-color: var(--nexus-surface-selected);
   color: var(--color-primary-soft);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent) inset;
 }
@@ -723,41 +773,147 @@ html {
 }
 
 .nexus-add-server-dialog .mat-mdc-dialog-surface {
+  position: relative;
   overflow: hidden;
-  border: 0;
+  border: 1px solid var(--color-hairline);
   border-radius: var(--radius-xxl);
-  background-color: var(--color-canvas);
+  background-color: var(--color-surface);
+  background: var(--color-surface);
   color: var(--color-ink);
   box-shadow:
     0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent) inset,
-    var(--shadow-modal);
+    0 24px 64px -12px rgba(0, 0, 0, 0.65),
+    0 0 0 1px color-mix(in srgb, var(--color-primary-soft) 18%, transparent);
+}
+
+html[data-theme='light'] .nexus-add-server-dialog .mat-mdc-dialog-surface {
+  border-color: var(--color-hairline);
+  background-color: #ffffff;
+  background: #ffffff;
+  color: var(--color-ink);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 20px 56px -10px rgba(30, 57, 50, 0.22),
+    0 0 0 1px var(--color-hairline);
+}
+
+.nexus-add-server-dialog .add-server-choice {
+  min-height: 10rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-soft);
+  padding: 1.25rem 1rem;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent) inset,
+    var(--shadow-glow);
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .add-server-choice:is(:hover, :focus-visible) {
+  background: var(--color-surface-feature);
+  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent) inset,
+    var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+.nexus-add-server-dialog .add-server-template-card {
+  min-height: 3rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-soft);
+  padding: 0.75rem 1rem;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .add-server-template-card:is(:hover, :focus-visible) {
+  background: var(--color-surface-feature);
+  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent) inset,
+    var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.nexus-add-server-dialog .template-channel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* ===========================================================================
+   NEXUS MODAL BACKDROP SYSTEM
+   Phủ toàn bộ app viewport, dim + blur tinh tế (8px) cho modal & dialog,
+   không áp dụng cho tooltip, menu nhỏ hay popover.
+   ========================================================================== */
+.cdk-overlay-backdrop.cdk-overlay-dark-backdrop,
+.cdk-overlay-backdrop.mat-mdc-dialog-backdrop {
+  background-color: var(--nexus-dialog-backdrop, rgba(0, 15, 23, 0.75));
+  backdrop-filter: blur(var(--nexus-dialog-backdrop-blur, 8px));
+  -webkit-backdrop-filter: blur(var(--nexus-dialog-backdrop-blur, 8px));
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    backdrop-filter 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cdk-overlay-backdrop.cdk-overlay-transparent-backdrop {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cdk-overlay-backdrop.cdk-overlay-dark-backdrop,
+  .cdk-overlay-backdrop.mat-mdc-dialog-backdrop {
+    transition: none;
+  }
 }
 
 /* Shared UI chỉ đổi diện mạo khi nằm trong Dashboard, tránh chạm source/folder
    dùng chung của các thành viên khác. */
 app-dashboard-shell app-search-field > div {
-  border: 0;
+  border: 1px solid var(--nexus-border-strong);
   border-radius: var(--radius-lg);
-  background-color: var(--color-surface-soft);
+  background-color: var(--nexus-surface-input);
   box-shadow:
     0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
     var(--shadow-glow);
   transition:
+    border-color var(--motion-fast) var(--ease-nexus-out),
     background-color var(--motion-fast) var(--ease-nexus-out),
     box-shadow var(--motion-base) var(--ease-nexus-out);
 }
 
 app-dashboard-shell app-search-field > div:focus-within {
-  background-color: var(--color-canvas);
+  border-color: var(--nexus-border-focus);
+  background-color: var(--nexus-surface-input);
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--color-primary-soft) 36%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--color-primary-soft) 24%, transparent),
     var(--shadow-card);
 }
 
 app-dashboard-shell app-empty-state > div {
-  border: 0;
+  border: 1px solid var(--nexus-border-subtle);
   border-radius: var(--radius-xxl);
-  background-color: color-mix(in srgb, var(--color-surface-soft) 76%, transparent);
+  background-color: var(--nexus-surface-well);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
 }
 
@@ -796,37 +952,132 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
 }
 
 .nexus-interactive-row:is(:hover, :focus-within) {
-  background-color: color-mix(in srgb, var(--color-surface-feature) 70%, var(--color-canvas));
+  background-color: var(--nexus-surface-hover);
   box-shadow: var(--shadow-glow);
 }
 
+/* Dashboard avatar fallback: raised surface with subtle border, crisp contrast & deterministic tone palette */
+app-dashboard-shell app-avatar > span[aria-hidden='true'],
+app-avatar .avatar-fallback {
+  background-color: var(--nexus-surface-card);
+  color: var(--color-ink);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--nexus-border-subtle) inset;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-fast) var(--ease-nexus-out);
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='emerald'] {
+  background-color: color-mix(in srgb, var(--color-primary-soft) 22%, var(--nexus-surface-card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 36%, var(--nexus-border-subtle)) inset;
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='teal'] {
+  background-color: color-mix(in srgb, #00b4d8 20%, var(--nexus-surface-card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, #00b4d8 36%, var(--nexus-border-subtle)) inset;
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='slate'] {
+  background-color: color-mix(in srgb, var(--color-surface-feature) 88%, var(--color-surface));
+  box-shadow: 0 0 0 1px var(--nexus-border-subtle) inset;
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='indigo'] {
+  background-color: color-mix(in srgb, #818cf8 22%, var(--nexus-surface-card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, #818cf8 36%, var(--nexus-border-subtle)) inset;
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='amber'] {
+  background-color: color-mix(in srgb, var(--color-warning) 22%, var(--nexus-surface-card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-warning) 36%, var(--nexus-border-subtle)) inset;
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='rose'] {
+  background-color: color-mix(in srgb, #fb7185 20%, var(--nexus-surface-card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, #fb7185 36%, var(--nexus-border-subtle)) inset;
+}
+
+app-dashboard-shell :is(.nexus-nav-item, .friend-row, .context-member):hover app-avatar > span[aria-hidden='true'] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 42%, var(--nexus-border-subtle)) inset;
+}
+
 .nexus-nav-item.mat-mdc-list-item {
+  --mat-list-active-indicator-color: transparent;
+  --mat-nav-list-active-indicator-color: transparent;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  color: var(--color-slate);
+  box-shadow: none;
   transition:
     color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
     background-color var(--motion-fast) var(--ease-nexus-out),
     box-shadow var(--motion-base) var(--ease-nexus-out);
 }
 
-.nexus-nav-item.mat-mdc-list-item:not([aria-current='page']):is(:hover, :focus-visible) {
-  background-color: color-mix(in srgb, var(--color-surface-feature) 72%, var(--color-surface));
+.nexus-nav-item.mat-mdc-list-item .mat-mdc-list-item-active-indicator {
+  display: none;
+}
+
+.nexus-nav-item.mat-mdc-list-item:not([aria-current='page']):not(.mdc-list-item--activated):is(:hover, :focus-visible) {
+  background-color: var(--nexus-surface-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
   color: var(--color-primary-soft);
   box-shadow: var(--shadow-glow);
 }
 
-.nexus-nav-item.mat-mdc-list-item[aria-current='page'] {
-  background-color: var(--color-surface-feature);
+.nexus-nav-item.mat-mdc-list-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.nexus-nav-item.mat-mdc-list-item:is([aria-current='page'], .mdc-list-item--activated) {
+  background-color: color-mix(in srgb, var(--color-primary-soft) 12%, var(--nexus-surface-hover));
+  border-color: color-mix(in srgb, var(--color-primary) 60%, transparent);
   color: var(--color-ink);
   box-shadow: 3px 0 0 var(--color-primary) inset;
 }
 
-.nexus-nav-item.mat-mdc-list-item:not([aria-current='page']):is(:hover, :focus-visible)
+.nexus-nav-item.mat-mdc-list-item:is([aria-current='page'], .mdc-list-item--activated):is(:hover, :focus-visible) {
+  background-color: color-mix(in srgb, var(--color-primary-soft) 18%, var(--nexus-surface-hover));
+  border-color: color-mix(in srgb, var(--color-primary) 75%, transparent);
+  box-shadow: 3px 0 0 var(--color-primary) inset, var(--shadow-glow);
+}
+
+.nexus-nav-item.mat-mdc-list-item .mdc-list-item__primary-text {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.nexus-nav-item.mat-mdc-list-item .mdc-list-item__secondary-text {
+  color: var(--color-slate);
+}
+
+.nexus-nav-item.mat-mdc-list-item:not([aria-current='page']):not(.mdc-list-item--activated):is(:hover, :focus-visible)
   :is(.mat-icon, .mdc-list-item__primary-text, .mdc-list-item__secondary-text) {
   color: var(--color-primary-soft);
 }
 
-.nexus-nav-item.mat-mdc-list-item[aria-current='page']
-  :is(.mat-icon, .mdc-list-item__primary-text, .mdc-list-item__secondary-text) {
+.nexus-nav-item.mat-mdc-list-item:is([aria-current='page'], .mdc-list-item--activated) .mat-icon {
+  color: var(--color-primary-soft);
+}
+
+.nexus-nav-item.mat-mdc-list-item:is([aria-current='page'], .mdc-list-item--activated)
+  :is(.mdc-list-item__primary-text, .mdc-list-item__secondary-text) {
   color: var(--color-ink);
+}
+
+/* Channel & DM Nav Lists: Đảm bảo khoảng thở dọc ổn định 6px (0.375rem / gap-1.5) giữa các hàng */
+:is(app-channel-list, app-conversation-list) .mat-mdc-nav-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.375rem !important;
+}
+
+:is(app-channel-list, app-conversation-list) .mat-mdc-nav-list .nexus-nav-item.mat-mdc-list-item {
+  margin: 0 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -889,7 +1140,7 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
 :is(app-channel-page, app-conversation-page) .message-row {
   position: relative;
   display: grid;
-  grid-template-columns: 2.75rem minmax(0, 1fr);
+  grid-template-columns: 2.5rem minmax(0, 1fr);
   gap: 0.75rem;
   align-items: start;
   animation: nexus-message-enter 360ms var(--ease-nexus-out) both;
@@ -903,24 +1154,33 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
   animation-delay: 120ms;
 }
 
+:is(app-channel-page, app-conversation-page) .message-row app-avatar {
+  position: relative;
+  z-index: 2;
+}
+
 :is(app-channel-page, app-conversation-page) .message-card {
   position: relative;
   min-width: 0;
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  background: var(--nexus-surface-card);
+  border: 1px solid var(--nexus-border-subtle);
   padding: 0.75rem 1rem;
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+  box-shadow: var(--nexus-shadow-card);
   transition:
     background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
     box-shadow var(--motion-base) var(--ease-nexus-out),
     transform var(--motion-fast) var(--ease-nexus-out);
 }
 
-:is(app-channel-page, app-conversation-page) .message-row:is(:hover, :focus-within) .message-card {
-  background: color-mix(in srgb, var(--color-surface-feature) 68%, var(--color-surface));
+:is(app-channel-page, app-conversation-page) .message-row:hover .message-card,
+:is(app-channel-page, app-conversation-page) .message-row:has(:focus-visible) .message-card {
+  background: var(--nexus-surface-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 38%, var(--nexus-border-subtle));
   box-shadow:
     3px 0 0 color-mix(in srgb, var(--color-primary) 72%, transparent) inset,
-    var(--shadow-card);
+    var(--nexus-shadow-hover);
   transform: translateX(2px);
 }
 
@@ -948,9 +1208,9 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
   right: 0.75rem;
   display: flex;
   overflow: hidden;
-  border: 1px solid var(--color-hairline);
+  border: 1px solid var(--color-hairline-strong);
   border-radius: var(--radius-full);
-  background: var(--color-canvas);
+  background: var(--nexus-surface-card);
   padding: 0.125rem;
   box-shadow: var(--shadow-card);
   opacity: 0;
@@ -962,7 +1222,10 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
 }
 
 :is(app-channel-page, app-conversation-page)
-  .message-row:is(:hover, :focus-within)
+  .message-row:hover
+  .message-actions,
+:is(app-channel-page, app-conversation-page)
+  .message-row:has(:focus-visible)
   .message-actions {
   opacity: 1;
   pointer-events: auto;
@@ -1019,10 +1282,23 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
   place-items: center;
   border-radius: var(--radius-md);
   padding: 0;
-  font-size: 1.125rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  text-align: center;
+  justify-content: center;
+  align-content: center;
   transition:
     background-color var(--motion-fast) var(--ease-nexus-out),
     transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option .mat-mdc-menu-item-text {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  line-height: 1;
+  text-align: center;
 }
 
 .nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option:is(:hover, :focus-visible) {
@@ -1170,25 +1446,13 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
 }
 
 :is(app-channel-page, app-conversation-page) .message-reply {
-  position: relative;
   display: flex;
   min-width: 0;
   align-items: center;
   gap: 0.375rem;
   color: var(--color-steel);
   font-size: var(--text-caption);
-}
-
-:is(app-channel-page, app-conversation-page) .message-reply::before {
-  position: absolute;
-  top: 50%;
-  left: -2.25rem;
-  width: 1.75rem;
-  height: 1rem;
-  border-top: 2px solid var(--color-primary-soft);
-  border-left: 2px solid var(--color-primary-soft);
-  border-radius: var(--radius-md) 0 0 0;
-  content: '';
+  margin-bottom: 0.25rem;
 }
 
 :is(app-channel-page, app-conversation-page) .message-reply__avatar {
@@ -1213,6 +1477,7 @@ app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  padding-block: 0.25rem;
   color: var(--color-primary-soft);
   font-size: var(--text-micro);
   font-weight: 600;
@@ -1254,10 +1519,13 @@ app-server-rail .server-group-shell {
 }
 
 app-server-rail .server-group-shell--expanded {
-  background: color-mix(in srgb, var(--color-surface-soft) 88%, var(--color-canvas));
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-hairline-strong) 34%, transparent) inset,
-    0 1px 0 color-mix(in srgb, var(--color-ink) 5%, transparent);
+  background: transparent;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-hairline-strong) 24%, transparent) inset;
+}
+
+app-server-rail .server-group-shell--expanded:hover {
+  background: var(--nexus-surface-hover);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 68%, transparent) inset;
 }
 
 app-server-rail .server-group-shell--expanded::before {
@@ -1298,7 +1566,8 @@ app-server-rail .server-group-caption .mat-icon {
 }
 
 app-server-rail .server-group-tile--expanded {
-  background: color-mix(in srgb, var(--color-surface-feature) 86%, var(--color-surface));
+  background: transparent;
+  color: var(--color-ink);
 }
 
 app-server-rail :is(.server-drop-target, .server-group-dropzone) {
@@ -1535,11 +1804,6 @@ app-server-rail .server-ungroup-zone--active {
     opacity: 1;
     pointer-events: auto;
     transform: none;
-  }
-
-  :is(app-channel-page, app-conversation-page) .message-reply::before {
-    left: -1.75rem;
-    width: 1.25rem;
   }
 
   .nexus-add-server-dialog .command-result__kind {

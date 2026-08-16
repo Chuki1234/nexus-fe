@@ -198,6 +198,53 @@ export class ShellData {
     this.demoMode.update((enabled) => !enabled);
   }
 
+  /**
+   * Nạp danh sách server và channels thực tế từ backend (sau khi đăng nhập hoặc refresh).
+   */
+  hydrateServers(serversWithChannels: Array<ServerSummary & { channels: ChannelSummary[] }>): void {
+    const servers: ServerSummary[] = serversWithChannels.map((s) => ({
+      id: s.id,
+      name: s.name,
+      iconUrl: s.iconUrl,
+      unread: s.unread ?? false,
+      mentionCount: s.mentionCount ?? 0,
+    }));
+
+    const channelMap: Record<string, ChannelSummary[]> = {};
+    for (const s of serversWithChannels) {
+      channelMap[s.id] = s.channels ?? [];
+    }
+
+    this.serverList.set(servers);
+    this.channelsByServer.set(channelMap);
+    this.serverOrderList.set(servers.map((s) => s.id));
+  }
+
+  /**
+   * Thêm hoặc cập nhật một server và các kênh đi kèm vào live state.
+   */
+  upsertServerWithChannels(server: ServerSummary, channels: ChannelSummary[]): void {
+    this.serverList.update((current) => {
+      const exists = current.some((s) => s.id === server.id);
+      if (exists) {
+        return current.map((s) => (s.id === server.id ? server : s));
+      }
+      return [...current, server];
+    });
+
+    this.channelsByServer.update((current) => ({
+      ...current,
+      [server.id]: channels,
+    }));
+
+    this.serverOrderList.update((order) => {
+      if (order.includes(server.id)) {
+        return order;
+      }
+      return [...order, server.id];
+    });
+  }
+
   /** Kéo một server lên server khác: tạo group mới hoặc nhập vào group của server đích. */
   groupServers(sourceServerId: string, targetServerId: string): void {
     if (

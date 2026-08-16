@@ -33,11 +33,13 @@
           @if (visible().length > 0) {
             <app-section-label class="mt-6 block" [text]="sectionLabel()" />
 
-            <ul class="mt-2 space-y-1" aria-label="Danh sách bạn bè">
-              @for (person of visible(); track person.id) {
-                <li><app-friend-row [person]="person" /></li>
-              }
-            </ul>
+            <div class="friends-list-well mt-3 rounded-2xl p-2">
+              <ul class="flex flex-col gap-2" aria-label="Danh sách bạn bè">
+                @for (person of visible(); track person.id) {
+                  <li><app-friend-row [person]="person" /></li>
+                }
+              </ul>
+            </div>
           } @else if (query()) {
             <app-empty-state
               class="mt-6 flex min-h-0 flex-1"
@@ -57,17 +59,19 @@
           <app-section-label [text]="'Chờ duyệt — ' + pendingRequests().length" />
 
           @if (pendingRequests().length > 0) {
-            <ul class="mt-2 space-y-1" aria-label="Lời mời kết bạn đang chờ">
-              @for (request of pendingRequests(); track request.id) {
-                <li>
-                  <app-friend-request-item
-                    [person]="request"
-                    (accepted)="removeRequest($event)"
-                    (dismissed)="removeRequest($event)"
-                  />
-                </li>
-              }
-            </ul>
+            <div class="friends-list-well mt-3 rounded-2xl p-2">
+              <ul class="flex flex-col gap-2" aria-label="Lời mời kết bạn đang chờ">
+                @for (request of pendingRequests(); track request.id) {
+                  <li>
+                    <app-friend-request-item
+                      [person]="request"
+                      (accepted)="removeRequest($event)"
+                      (dismissed)="removeRequest($event)"
+                    />
+                  </li>
+                }
+              </ul>
+            </div>
           } @else {
             <app-empty-state
               class="mt-6 flex min-h-0 flex-1"

@@ -91,8 +91,9 @@
   gap: 0.125rem;
   border-radius: var(--radius-lg);
   padding: 0.125rem;
-  background: color-mix(in srgb, var(--color-surface-soft) 58%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-hairline) 56%, transparent) inset;
+  background: var(--nexus-surface-well);
+  border: 1px solid var(--nexus-border-subtle);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 5%, transparent) inset;
 }
 
 .user-panel__control {

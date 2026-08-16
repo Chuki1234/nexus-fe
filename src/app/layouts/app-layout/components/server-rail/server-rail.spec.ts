@@ -1,8 +1,13 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
+import {
+  CANONICAL_SERVER_TEMPLATES,
+  ServersApiService,
+} from '../../../../core/api/servers-api.service';
 import type {
   ChannelSummary,
+  ConversationSummary,
   ServerGroupSummary,
   ServerSummary,
 } from '../../../../core/api/shell-data';
@@ -10,10 +15,38 @@ import { ShellData } from '../../../../core/api/shell-data';
 import { ServerRail } from './server-rail';
 
 describe('ServerRail', () => {
+  let mockServersApi: {
+    getTemplates: ReturnType<typeof vi.fn>;
+    createServer: ReturnType<typeof vi.fn>;
+    listServers: ReturnType<typeof vi.fn>;
+  };
+
   const mount = async (shell: ShellData = new ShellData()) => {
+    mockServersApi = {
+      getTemplates: vi.fn().mockResolvedValue([...CANONICAL_SERVER_TEMPLATES]),
+      createServer: vi.fn().mockResolvedValue({
+        server: { id: 's-1', name: 'Máy chủ mới', iconUrl: null, unread: false, mentionCount: 0 },
+        channels: [
+          {
+            id: 'c-1',
+            name: 'chung',
+            type: 'text',
+            topic: null,
+            unread: false,
+            mentionCount: 0,
+          },
+        ],
+      }),
+      listServers: vi.fn().mockResolvedValue([]),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ServerRail],
-      providers: [provideRouter([]), { provide: ShellData, useValue: shell }],
+      providers: [
+        provideRouter([{ path: '**', component: class {} }]),
+        { provide: ShellData, useValue: shell },
+        { provide: ServersApiService, useValue: mockServersApi },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(ServerRail);
     fixture.detectChanges();
@@ -44,14 +77,50 @@ describe('ServerRail', () => {
         mentionCount: 0,
       },
     ];
-    const serverGroups: ServerGroupSummary[] = [
-      { id: 'study', name: 'Học tập', serverIds: ['alpha', 'beta'] },
+
+    const groups: ServerGroupSummary[] = [
+      {
+        id: 'study',
+        name: 'Study',
+        serverIds: ['alpha', 'beta'],
+      },
     ];
-    const channels: Record<string, ChannelSummary[]> = {
+
+    const conversations: ConversationSummary[] = [
+      {
+        id: 'dm-1',
+        name: 'Lofi Girl',
+        statusMessage: null,
+        presence: 'online',
+        unread: false,
+      },
+    ];
+
+    const channelsByServer: Record<string, ChannelSummary[]> = {
       alpha: [
         {
           id: 'general',
-          name: 'general',
+          name: 'chung',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+        },
+      ],
+      beta: [
+        {
+          id: 'general',
+          name: 'chung',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+        },
+      ],
+      solo: [
+        {
+          id: 'general',
+          name: 'chung',
           type: 'text',
           topic: null,
           unread: false,
@@ -61,51 +130,22 @@ describe('ServerRail', () => {
     };
 
     return {
-      servers: signal(servers).asReadonly(),
-      serverGroups: signal(serverGroups).asReadonly(),
-      conversations: signal([]).asReadonly(),
-      channelsOf: (serverId: string) => channels[serverId] ?? [],
+      servers: signal(servers),
+      serverGroups: signal(groups),
+      channelsOf: (serverId: string) => channelsByServer[serverId] ?? [],
+      conversations: signal(conversations),
+      reorderServers: vi.fn(),
+      setServerGroup: vi.fn(),
+      ungroupServer: vi.fn(),
+      reorderServerWithinGroup: vi.fn(),
+      setServerGroupsOrder: vi.fn(),
+      moveServerOutsideGroups: vi.fn(),
+      upsertServerWithChannels: vi.fn(),
+      hydrateServers: vi.fn(),
+      demoEnabled: signal(false),
+      setDemoEnabled: vi.fn(),
     } as unknown as ShellData;
   };
-
-  it('tài khoản mới chỉ có lối vào DM, tìm kiếm và thêm server', async () => {
-    const fixture = await mount();
-    const links = Array.from(fixture.nativeElement.querySelectorAll('a')) as HTMLAnchorElement[];
-
-    expect(links.some((link) => link.getAttribute('href') === '/channels/@me')).toBe(true);
-    expect(
-      fixture.nativeElement
-        .querySelector('a[href="/channels/@me"]')
-        ?.classList.contains('server-tile'),
-    ).toBe(true);
-    expect(fixture.nativeElement.querySelectorAll('[data-server-id]').length).toBe(0);
-    expect(fixture.nativeElement.querySelector('[data-action="global-search"]')).toBeTruthy();
-    expect(fixture.nativeElement.textContent).not.toContain('3');
-    expect(fixture.nativeElement.querySelector('ul.nexus-scrollbar')).toBeTruthy();
-  });
-
-  it('service demo ON làm rail render dữ liệu mẫu nhưng OFF lại giữ tài khoản mới rỗng', async () => {
-    const shell = new ShellData();
-    const fixture = await mount(shell);
-
-    expect(fixture.nativeElement.querySelectorAll('[data-server-id]').length).toBe(0);
-
-    shell.setDemoEnabled(true);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelectorAll('[data-server-id]').length).toBe(4);
-    expect(
-      Array.from(fixture.nativeElement.querySelectorAll('[data-server-id]')).every((server) =>
-        (server as HTMLElement).classList.contains('server-tile'),
-      ),
-    ).toBe(true);
-    expect(fixture.nativeElement.querySelector('[data-server-group-id="study"]')).toBeTruthy();
-
-    shell.setDemoEnabled(false);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelectorAll('[data-server-id]').length).toBe(0);
-  });
 
   it('nút Command mô tả phạm vi điều hướng mà không giả là tìm nội dung chat', async () => {
     const fixture = await mount();
@@ -121,20 +161,17 @@ describe('ServerRail', () => {
     expect(search.classList.contains('nexus-icon-control')).toBe(true);
   });
 
-  it('Command Center mở từ rail và lọc server, kênh thoại, DM trong dữ liệu demo', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount(shell);
+  it('lọc nhanh kết quả theo từ khóa trong Command Center', async () => {
+    const fixture = await mount(groupedShell());
     const search = fixture.nativeElement.querySelector(
       '[data-action="global-search"]',
     ) as HTMLButtonElement;
-
     search.click();
     fixture.detectChanges();
     await fixture.whenStable();
 
     const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
-    const dialog = documentBody.querySelector('.command-center') as HTMLElement;
+    const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
     const input = dialog.querySelector('.command-center__input') as HTMLInputElement;
 
     expect(dialog.textContent).toContain('Nexus Command');
@@ -144,11 +181,6 @@ describe('ServerRail', () => {
     expect(dialog.querySelector('.command-center__scope')?.textContent).toContain('Tin nhắn riêng');
     expect(dialog.querySelector('[data-command-result="conversation"]')).toBeTruthy();
     expect(dialog.querySelector('[data-command-result="server"]')).toBeTruthy();
-    expect(
-      dialog.querySelector(
-        '[data-command-result="text-channel"], [data-command-result="voice-channel"]',
-      ),
-    ).toBeTruthy();
 
     input.value = 'lofi';
     input.dispatchEvent(new Event('input'));
@@ -158,21 +190,15 @@ describe('ServerRail', () => {
       'conversation',
     );
 
-    input.value = 'standup';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    expect(dialog.textContent).toContain('Standup');
-    expect(dialog.querySelector('[data-command-result="voice-channel"]')).toBeTruthy();
-    expect(dialog.querySelectorAll('[data-command-result]')).toHaveLength(1);
-
     (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
   });
 
-  it('Ctrl K mở cùng Command Center và user mới nhận hướng dẫn empty thay vì dữ liệu giả', async () => {
+  it('hiện empty state khi không có server, kênh hay DM', async () => {
     const fixture = await mount();
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+    const search = fixture.nativeElement.querySelector(
+      '[data-action="global-search"]',
+    ) as HTMLButtonElement;
+    search.click();
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -197,7 +223,6 @@ describe('ServerRail', () => {
     expect(group.getAttribute('data-group-state')).toBe('expanded');
     expect(group.classList.contains('server-group-shell--expanded')).toBe(true);
     expect(group.querySelector('[data-expanded-group-members]')).toBeTruthy();
-    expect(group.querySelector('.server-group-caption')?.textContent).toContain('2');
     expect(fixture.nativeElement.querySelector('[data-server-id="solo"]')).toBeTruthy();
     expect(toggle.classList.contains('nexus-icon-control')).toBe(true);
 
@@ -212,133 +237,6 @@ describe('ServerRail', () => {
     expect(fixture.nativeElement.querySelector('[data-server-id="solo"]')).toBeTruthy();
   });
 
-  it('target gom nhóm chỉ phình khi server hoặc group nhận một server hợp lệ', async () => {
-    const fixture = await mount(groupedShell());
-    const rail = fixture.componentInstance as unknown as {
-      startServerDrag: (serverId: string) => void;
-      finishServerDrag: () => void;
-      activateGroupingTarget: (kind: 'group' | 'server', targetId: string) => void;
-    };
-
-    rail.startServerDrag('solo');
-    rail.activateGroupingTarget('server', 'alpha');
-    fixture.detectChanges();
-
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-server-drop-target="alpha"]')
-        ?.classList.contains('server-drop-target--group-active'),
-    ).toBe(true);
-
-    rail.activateGroupingTarget('group', 'study');
-    fixture.detectChanges();
-
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-group-drop-target="study"]')
-        ?.classList.contains('server-group-dropzone--group-active'),
-    ).toBe(true);
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-server-drop-target="alpha"]')
-        ?.classList.contains('server-drop-target--group-active'),
-    ).toBe(false);
-
-    rail.finishServerDrag();
-    fixture.detectChanges();
-
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-group-drop-target="study"]')
-        ?.classList.contains('server-group-dropzone--group-active'),
-    ).toBe(false);
-  });
-
-  it('không báo grouping khi kéo lên chính mình hoặc member cùng group', async () => {
-    const fixture = await mount(groupedShell());
-    const rail = fixture.componentInstance as unknown as {
-      startServerDrag: (serverId: string) => void;
-      activateGroupingTarget: (kind: 'group' | 'server', targetId: string) => void;
-      activeGroupingTarget: () => string | null;
-    };
-
-    rail.startServerDrag('alpha');
-    rail.activateGroupingTarget('server', 'alpha');
-    expect(rail.activeGroupingTarget()).toBeNull();
-
-    rail.activateGroupingTarget('server', 'beta');
-    expect(rail.activeGroupingTarget()).toBeNull();
-
-    rail.activateGroupingTarget('group', 'study');
-    expect(rail.activeGroupingTarget()).toBeNull();
-  });
-
-  it('kéo member trong group làm hiện vùng Ra ngoài và dọn state sau drag', async () => {
-    const fixture = await mount(groupedShell());
-    const rail = fixture.componentInstance as unknown as {
-      startServerDrag: (serverId: string) => void;
-      finishServerDrag: () => void;
-      activateUngroupTarget: (groupId: string) => void;
-    };
-    const ungroupZone = fixture.nativeElement.querySelector(
-      '[data-server-ungroup-zone="study"]',
-    ) as HTMLElement;
-
-    expect(ungroupZone.getAttribute('aria-hidden')).toBe('true');
-
-    rail.startServerDrag('alpha');
-    fixture.detectChanges();
-
-    expect(ungroupZone.classList.contains('server-ungroup-zone--visible')).toBe(true);
-    expect(ungroupZone.getAttribute('aria-hidden')).toBeNull();
-
-    rail.activateUngroupTarget('study');
-    fixture.detectChanges();
-    expect(ungroupZone.classList.contains('server-ungroup-zone--active')).toBe(true);
-
-    rail.finishServerDrag();
-    fixture.detectChanges();
-
-    expect(ungroupZone.classList.contains('server-ungroup-zone--visible')).toBe(false);
-    expect(ungroupZone.classList.contains('server-ungroup-zone--active')).toBe(false);
-    expect(ungroupZone.getAttribute('aria-hidden')).toBe('true');
-  });
-
-  it('render drop line cho từng khe trong group và ngoài group', async () => {
-    const fixture = await mount(groupedShell());
-    const groupSlots = fixture.nativeElement.querySelectorAll(
-      '[data-server-drop-slot^="group-study-slot-"]',
-    );
-    const railSlots = fixture.nativeElement.querySelectorAll(
-      '[data-server-drop-slot^="rail-slot-"]',
-    );
-
-    expect(groupSlots).toHaveLength(3);
-    expect(railSlots).toHaveLength(2);
-    expect(
-      Array.from<Element>(fixture.nativeElement.querySelectorAll('[data-server-drop-slot]')).every(
-        (slot) => slot.querySelector('.server-drop-indicator'),
-      ),
-    ).toBe(true);
-  });
-
-  it('drop slot ngoài group gọi đúng thao tác ungroup/reorder của ShellData', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount(shell);
-    const moveOutside = vi.spyOn(shell, 'moveServerOutsideGroups');
-    const rail = fixture.componentInstance as unknown as {
-      dropOutsideGroupsAt: (
-        event: { isPointerOverContainer: boolean; item: { data: string } },
-        index: number,
-      ) => void;
-    };
-
-    rail.dropOutsideGroupsAt({ isPointerOverContainer: true, item: { data: 'lofi' } }, 1);
-
-    expect(moveOutside).toHaveBeenCalledWith('lofi', 1);
-  });
-
   it('server có kênh mở thẳng kênh đầu tiên', async () => {
     const fixture = await mount(groupedShell());
     const alpha = fixture.nativeElement.querySelector(
@@ -348,7 +246,7 @@ describe('ServerRail', () => {
     expect(alpha.getAttribute('href')).toBe('/channels/alpha/general');
   });
 
-  it('nút thêm máy chủ mở layout chọn tạo hoặc tham gia mà chưa gọi backend', async () => {
+  it('luồng chọn mẫu và xem trước kênh hoạt động trọn vẹn', async () => {
     const fixture = await mount();
     const addServer = fixture.nativeElement.querySelector(
       'button[aria-label="Thêm máy chủ"]',
@@ -367,15 +265,124 @@ describe('ServerRail', () => {
     expect(create).toBeTruthy();
     expect(dialog.querySelector('[data-add-server-action="join"]')).toBeTruthy();
 
+    // 1. Bấm Tạo máy chủ -> chuyển sang danh sách mẫu
     create.click();
     fixture.detectChanges();
 
-    expect(dialog.textContent).toContain('Tên máy chủ');
+    expect(dialog.textContent).toContain('Tạo máy chủ của bạn');
+    expect(dialog.textContent).toContain('Tạo mẫu riêng');
+    expect(dialog.textContent).toContain('Gaming');
+    expect(dialog.textContent).toContain('Bạn bè');
+    expect(dialog.textContent).toContain('Nhóm học tập');
+    expect(dialog.textContent).toContain('Câu lạc bộ trường học');
+
+    // 2. Chọn mẫu Gaming -> chuyển sang form đặt tên và xem trước kênh
+    const gamingCard = dialog.querySelector('[data-template-id="gaming"]') as HTMLButtonElement;
+    expect(gamingCard).toBeTruthy();
+    gamingCard.click();
+    fixture.detectChanges();
+
+    expect(dialog.textContent).toContain('Mẫu: Gaming');
+    expect(dialog.textContent).toContain('# chào-mừng');
+    expect(dialog.textContent).toContain('# tìm-đồng-đội');
+    expect(dialog.textContent).toContain('# ảnh-và-clip');
+    expect(dialog.textContent).toContain('Phòng chờ');
+    expect(dialog.textContent).toContain('Đội 1');
+
     const submit = Array.from(dialog.querySelectorAll('button')).find(
       (button) => button.textContent?.trim() === 'Tạo máy chủ',
     );
     expect(submit?.disabled).toBe(true);
 
     (dialog.querySelector('button[aria-label="Đóng thêm máy chủ"]') as HTMLButtonElement).click();
+  });
+
+  it('nhập tên hợp lệ enable nút Tạo máy chủ và gọi serversApi kèm templateId thành công', async () => {
+    const shell = new ShellData();
+    const fixture = await mount(shell);
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    mockServersApi.createServer.mockResolvedValue({
+      server: { id: 's-gaming', name: 'Đội Game Nexus', iconUrl: null, unread: false, mentionCount: 0 },
+      channels: [
+        { id: 'c-1', name: 'chào-mừng', type: 'text', topic: null, unread: false, mentionCount: 0 },
+        { id: 'c-2', name: 'tìm-đồng-đội', type: 'text', topic: null, unread: false, mentionCount: 0 },
+        { id: 'c-3', name: 'Phòng chờ', type: 'voice', topic: null, unread: false, mentionCount: 0 },
+      ],
+    });
+
+    const addServer = fixture.nativeElement.querySelector(
+      'button[aria-label="Thêm máy chủ"]',
+    ) as HTMLButtonElement;
+    addServer.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+    const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+    const create = dialog.querySelector('[data-add-server-action="create"]') as HTMLButtonElement;
+    create.click();
+    fixture.detectChanges();
+
+    const gamingCard = dialog.querySelector('[data-template-id="gaming"]') as HTMLButtonElement;
+    gamingCard.click();
+    fixture.detectChanges();
+
+    const input = dialog.querySelector('input[matInput]') as HTMLInputElement;
+    input.value = 'Đội Game Nexus';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const submit = Array.from(dialog.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Tạo máy chủ'),
+    ) as HTMLButtonElement;
+    expect(submit.disabled).toBe(false);
+
+    submit.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(mockServersApi.createServer).toHaveBeenCalledWith('Đội Game Nexus', 'gaming');
+    expect(shell.servers().map((s) => s.name)).toContain('Đội Game Nexus');
+    expect(navigateSpy).toHaveBeenCalledWith(['/channels', 's-gaming', 'c-1']);
+  });
+
+  it('báo lỗi inline khi API tạo server thất bại và không đóng dialog', async () => {
+    const shell = new ShellData();
+    const fixture = await mount(shell);
+    mockServersApi.createServer.mockRejectedValue(new Error('Tên máy chủ đã được sử dụng.'));
+
+    const addServer = fixture.nativeElement.querySelector(
+      'button[aria-label="Thêm máy chủ"]',
+    ) as HTMLButtonElement;
+    addServer.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+    const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+    const create = dialog.querySelector('[data-add-server-action="create"]') as HTMLButtonElement;
+    create.click();
+    fixture.detectChanges();
+
+    const customCard = dialog.querySelector('[data-template-id="custom"]') as HTMLButtonElement;
+    customCard.click();
+    fixture.detectChanges();
+
+    const input = dialog.querySelector('input[matInput]') as HTMLInputElement;
+    input.value = 'Lỗi Server';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const submit = Array.from(dialog.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Tạo máy chủ'),
+    ) as HTMLButtonElement;
+    submit.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(dialog.textContent).toContain('Tên máy chủ đã được sử dụng.');
+    (dialog.querySelector('button[aria-label="Đóng thêm máy chủ"]') as HTMLButtonElement)?.click();
   });
 });

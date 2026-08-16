@@ -1,5 +1,23 @@
 .friend-row {
-  box-shadow: 0 1px 0 transparent inset;
+  background-color: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.friend-row:is(:hover, :focus-within) {
+  background-color: var(--nexus-surface-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+  box-shadow: var(--shadow-glow);
+}
+
+.friend-row:has(:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .friend-row__name,
@@ -9,12 +27,17 @@
     opacity var(--motion-fast) var(--ease-nexus-out);
 }
 
+.friend-row__name {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
 .friend-row__actions {
-  opacity: 0.58;
+  opacity: 0.72;
 }
 
 .friend-row:is(:hover, :focus-within) .friend-row__name {
-  color: var(--color-charcoal);
+  color: var(--color-ink);
 }
 
 .friend-row:is(:hover, :focus-within) .friend-row__actions {
@@ -27,6 +50,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .friend-row,
   .friend-row__name,
   .friend-row__actions {
     transition: none;

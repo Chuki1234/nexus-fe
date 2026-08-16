@@ -1,5 +1,5 @@
 <article
-  class="friend-row nexus-interactive-row group flex min-h-16 items-center gap-3 rounded-xl px-3 py-2"
+  class="friend-row nexus-interactive-row group flex min-h-16 items-center gap-3 rounded-xl px-3.5 py-2.5"
 >
   <a
     [routerLink]="['/channels/@me', person().id]"
@@ -13,7 +13,7 @@
       <span class="friend-row__name block truncate text-body-sm-medium text-ink">
         {{ person().name }}
       </span>
-      <span class="block truncate text-caption text-steel">{{ subtitle() }}</span>
+      <span class="block truncate text-caption text-slate">{{ subtitle() }}</span>
     </span>
   </a>
 

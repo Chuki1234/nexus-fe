@@ -1,4 +1,4 @@
-<article class="nexus-interactive-row group flex min-h-16 items-center gap-3 rounded-lg px-2 py-2">
+<article class="friend-row nexus-interactive-row group flex min-h-16 items-center gap-3 rounded-xl px-3.5 py-2.5">
   <app-avatar [name]="person().name" [presence]="person().presence" size="lg" ring="canvas" />
 
   <span class="min-w-0 flex-1">
@@ -7,7 +7,7 @@
     >
       {{ person().name }}
     </span>
-    <span class="block text-caption text-steel">
+    <span class="block truncate text-caption text-slate">
       {{ person().statusMessage ?? 'Đã gửi một lời mời kết bạn' }}
     </span>
   </span>

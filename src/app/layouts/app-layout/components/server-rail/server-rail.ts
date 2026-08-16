@@ -9,12 +9,21 @@ import {
 } from '@angular/core';
 import { CdkDrag, type CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon';
+import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import {
+  CANONICAL_SERVER_TEMPLATES,
+  type ChannelTemplateSeed,
+  formatApiError,
+  type ServerTemplate,
+  ServersApiService,
+} from '../../../../core/api/servers-api.service';
+import { SectionLabel } from '../../../../shared/ui/section-label/section-label';
 import { UnreadBadge } from '../../../../shared/ui/unread-badge/unread-badge';
 import {
   type ChannelSummary,
@@ -59,8 +68,10 @@ type GroupingTargetKind = 'group' | 'server';
     MatIconModule,
     MatInputModule,
     MatTooltipModule,
+    ReactiveFormsModule,
     RouterLink,
     RouterLinkActive,
+    SectionLabel,
     UnreadBadge,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,6 +85,8 @@ type GroupingTargetKind = 'group' | 'server';
 export class ServerRail {
   private readonly shell = inject(ShellData);
   private readonly dialog = inject(MatDialog);
+  private readonly serversApi = inject(ServersApiService);
+  private readonly router = inject(Router);
   private readonly commandDialog = viewChild.required<TemplateRef<unknown>>('commandDialog');
 
   protected readonly servers = this.shell.servers;
@@ -83,8 +96,30 @@ export class ServerRail {
   protected readonly activeGroupingTarget = signal<string | null>(null);
   protected readonly activeUngroupTarget = signal<string | null>(null);
   protected readonly draggingServerId = signal<string | null>(null);
-  protected readonly addServerStep = signal<'choose' | 'create' | 'join'>('choose');
+  protected readonly addServerStep = signal<'choose' | 'template-list' | 'create' | 'join'>('choose');
   protected readonly commandQuery = signal('');
+
+  protected readonly templates = signal<ServerTemplate[]>([...CANONICAL_SERVER_TEMPLATES]);
+  protected readonly selectedTemplate = signal<ServerTemplate>(CANONICAL_SERVER_TEMPLATES[0]);
+  protected readonly customTemplate = computed(
+    () => this.templates().find((t) => t.id === 'custom') ?? CANONICAL_SERVER_TEMPLATES[0],
+  );
+  protected readonly presetTemplates = computed(() =>
+    this.templates().filter((t) => t.id !== 'custom'),
+  );
+  protected readonly textChannelsOfSelected = computed(() =>
+    this.selectedTemplate().channels.filter((c) => c.type === 'text'),
+  );
+  protected readonly voiceChannelsOfSelected = computed(() =>
+    this.selectedTemplate().channels.filter((c) => c.type === 'voice'),
+  );
+
+  protected readonly serverNameControl = new FormControl('', {
+    nonNullable: true,
+    validators: [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
+  });
+  protected readonly isSubmitting = signal(false);
+  protected readonly createErrorMessage = signal<string | null>(null);
 
   private readonly commandItems = computed<CommandResult[]>(() => {
     const servers = this.servers();
@@ -267,6 +302,20 @@ export class ServerRail {
 
   protected openAddServer(template: TemplateRef<unknown>): void {
     this.addServerStep.set('choose');
+    this.selectedTemplate.set(CANONICAL_SERVER_TEMPLATES[0]);
+    this.serverNameControl.reset('');
+    this.isSubmitting.set(false);
+    this.createErrorMessage.set(null);
+
+    this.serversApi
+      .getTemplates()
+      .then((tpls) => {
+        if (tpls && tpls.length > 0) {
+          this.templates.set(tpls);
+        }
+      })
+      .catch(() => {});
+
     this.dialog.open(template, {
       ariaLabel: 'Thêm máy chủ',
       autoFocus: 'dialog',
@@ -276,6 +325,57 @@ export class ServerRail {
       restoreFocus: true,
       width: 'calc(100vw - 2rem)',
     });
+  }
+
+  protected setAddServerStep(step: 'choose' | 'template-list' | 'create' | 'join'): void {
+    this.addServerStep.set(step);
+    this.createErrorMessage.set(null);
+    if (step === 'create' && !this.serverNameControl.value) {
+      this.serverNameControl.reset('');
+    }
+  }
+
+  protected chooseTemplate(template: ServerTemplate): void {
+    this.selectedTemplate.set(template);
+    this.addServerStep.set('create');
+    this.createErrorMessage.set(null);
+  }
+
+  protected async submitCreateServer(): Promise<void> {
+    if (this.serverNameControl.invalid || this.isSubmitting()) {
+      this.serverNameControl.markAsTouched();
+      return;
+    }
+
+    const serverName = this.serverNameControl.value.trim();
+    if (serverName.length < 2) {
+      this.serverNameControl.markAsTouched();
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.createErrorMessage.set(null);
+
+    try {
+      const template = this.selectedTemplate();
+      const result = await this.serversApi.createServer(serverName, template.id);
+      this.shell.upsertServerWithChannels(result.server, result.channels);
+      if (this.shell.demoEnabled()) {
+        this.shell.setDemoEnabled(false);
+      }
+      this.dialog.closeAll();
+
+      // Điều hướng tới kênh chữ có position nhỏ nhất (hoặc kênh đầu tiên)
+      const firstTextChannel =
+        result.channels.find((c) => c.type === 'text') ?? result.channels[0];
+      if (firstTextChannel) {
+        await this.router.navigate(['/channels', result.server.id, firstTextChannel.id]);
+      }
+    } catch (err: unknown) {
+      this.createErrorMessage.set(formatApiError(err));
+    } finally {
+      this.isSubmitting.set(false);
+    }
   }
 
   protected openCommandCenter(template: TemplateRef<unknown> = this.commandDialog()): void {
@@ -297,6 +397,9 @@ export class ServerRail {
     }
 
     event.preventDefault();
+    if (this.dialog.openDialogs.length > 0) {
+      return;
+    }
     this.openCommandCenter();
   }
 

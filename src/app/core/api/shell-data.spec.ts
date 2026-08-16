@@ -117,4 +117,93 @@ describe('ShellData demo mode', () => {
     expect(shell.serverGroups()[0].serverIds).toEqual(['lofi', 'xp', 'itss']);
     expect(new Set(shell.serverGroups()[0].serverIds).size).toBe(3);
   });
+
+  it('hydrateServers nạp danh sách server và channels vào live state', () => {
+    const shell = new ShellData();
+
+    shell.hydrateServers([
+      {
+        id: 's-1',
+        name: 'Máy chủ thật',
+        iconUrl: null,
+        unread: false,
+        mentionCount: 0,
+        channels: [
+          {
+            id: 'c-1',
+            name: 'chung',
+            type: 'text',
+            topic: null,
+            unread: false,
+            mentionCount: 0,
+          },
+        ],
+      },
+    ]);
+
+    expect(shell.servers()).toEqual([
+      {
+        id: 's-1',
+        name: 'Máy chủ thật',
+        iconUrl: null,
+        unread: false,
+        mentionCount: 0,
+      },
+    ]);
+    expect(shell.channelsOf('s-1')).toEqual([
+      {
+        id: 'c-1',
+        name: 'chung',
+        type: 'text',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+      },
+    ]);
+  });
+
+  it('upsertServerWithChannels thêm server mới vào live state', () => {
+    const shell = new ShellData();
+
+    shell.upsertServerWithChannels(
+      {
+        id: 's-new',
+        name: 'Máy chủ mới',
+        iconUrl: null,
+        unread: false,
+        mentionCount: 0,
+      },
+      [
+        {
+          id: 'c-new',
+          name: 'chung',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+        },
+      ],
+    );
+
+    expect(shell.servers()).toEqual([
+      {
+        id: 's-new',
+        name: 'Máy chủ mới',
+        iconUrl: null,
+        unread: false,
+        mentionCount: 0,
+      },
+    ]);
+    expect(shell.channelsOf('s-new')).toEqual([
+      {
+        id: 'c-new',
+        name: 'chung',
+        type: 'text',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+      },
+    ]);
+  });
 });
+

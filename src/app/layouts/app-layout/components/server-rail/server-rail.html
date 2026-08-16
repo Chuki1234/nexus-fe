@@ -28,7 +28,7 @@
 
 <ul
   cdkDropListGroup
-  class="nexus-scrollbar flex min-h-0 w-full flex-1 flex-col items-center overflow-y-auto"
+  class="nexus-scrollbar flex min-h-0 w-full flex-1 flex-col items-center overflow-x-hidden overflow-y-auto px-1 pb-2"
   aria-label="Máy chủ của bạn"
   aria-describedby="server-drag-help"
 >
@@ -68,7 +68,7 @@
               @for (server of groupServers.slice(0, 4); track server.id) {
                 <span
                   data-server-miniature
-                  class="flex size-4 items-center justify-center overflow-hidden rounded-xs bg-canvas text-micro-uppercase text-ink"
+                  class="flex size-4 items-center justify-center overflow-hidden rounded-xs bg-surface-feature text-micro-uppercase font-semibold text-ink"
                 >
                   @if (server.iconUrl) {
                     <img [src]="server.iconUrl" alt="" class="size-full object-cover" />
@@ -87,7 +87,7 @@
             ></span>
           }
           <app-unread-badge
-            class="absolute -right-1 -bottom-1"
+            class="pointer-events-none absolute -right-1 -bottom-1"
             [count]="groupMentions(groupServers)"
             label="lượt nhắc tên trong nhóm chưa đọc"
           />
@@ -165,7 +165,7 @@
                 }
 
                 <app-unread-badge
-                  class="absolute -right-1 -bottom-1"
+                  class="pointer-events-none absolute -right-1 -bottom-1"
                   [count]="server.mentionCount"
                   label="lượt nhắc tên chưa đọc"
                 />
@@ -270,7 +270,7 @@
       }
 
       <app-unread-badge
-        class="absolute -right-1 -bottom-1"
+        class="pointer-events-none absolute -right-1 -bottom-1"
         [count]="server.mentionCount"
         label="lượt nhắc tên chưa đọc"
       />
@@ -446,40 +446,63 @@
 </button>
 
 <ng-template #addServerDialog>
-  <header class="flex items-center gap-3 border-b border-hairline px-5 py-4">
-    @if (addServerStep() !== 'choose') {
+  <header class="flex items-center justify-between border-b border-hairline px-5 py-4">
+    @if (addServerStep() === 'template-list') {
       <button
         mat-icon-button
         type="button"
         class="nexus-icon-control"
-        aria-label="Quay lại chọn cách thêm máy chủ"
-        (click)="addServerStep.set('choose')"
+        aria-label="Quay lại chọn bước"
+        (click)="setAddServerStep('choose')"
       >
         <mat-icon aria-hidden="true">arrow_back</mat-icon>
       </button>
-    } @else {
-      <span
-        class="flex size-10 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+    } @else if (addServerStep() === 'create') {
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control"
+        aria-label="Quay lại chọn mẫu"
+        [disabled]="isSubmitting()"
+        (click)="setAddServerStep('template-list')"
       >
-        <mat-icon aria-hidden="true">add_circle</mat-icon>
-      </span>
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      </button>
+    } @else if (addServerStep() === 'join') {
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control"
+        aria-label="Quay lại chọn bước"
+        (click)="setAddServerStep('choose')"
+      >
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      </button>
     }
 
-    <span class="min-w-0 flex-1">
+    <span class="flex-1 px-2">
       <h2 class="text-heading-5 text-ink">
-        @switch (addServerStep()) {
-          @case ('create') {
-            Tạo máy chủ
-          }
-          @case ('join') {
-            Tham gia máy chủ
-          }
-          @default {
-            Thêm máy chủ
-          }
+        @if (addServerStep() === 'choose') {
+          Thêm máy chủ
+        } @else if (addServerStep() === 'template-list') {
+          Tạo máy chủ của bạn
+        } @else if (addServerStep() === 'create') {
+          Tùy chỉnh máy chủ
+        } @else {
+          Tham gia máy chủ
         }
       </h2>
-      <p class="text-caption text-steel">Bản xem trước UI · chưa nối backend</p>
+      <p class="text-caption text-steel">
+        @if (addServerStep() === 'choose') {
+          Không gian của bạn trong NexusCord
+        } @else if (addServerStep() === 'template-list') {
+          Bắt đầu từ một mẫu hoặc tự thiết kế theo ý bạn
+        } @else if (addServerStep() === 'create') {
+          Đặt tên và xem trước các kênh sẽ được tạo
+        } @else {
+          Dùng liên kết hoặc mã lời mời
+        }
+      </p>
     </span>
 
     <button
@@ -504,7 +527,7 @@
           type="button"
           data-add-server-action="create"
           class="add-server-choice text-left"
-          (click)="addServerStep.set('create')"
+          (click)="setAddServerStep('template-list')"
         >
           <span
             class="flex size-11 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
@@ -519,7 +542,7 @@
           type="button"
           data-add-server-action="join"
           class="add-server-choice text-left"
-          (click)="addServerStep.set('join')"
+          (click)="setAddServerStep('join')"
         >
           <span
             class="flex size-11 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
@@ -530,21 +553,156 @@
           <span class="mt-1 block text-caption text-steel">Dùng liên kết hoặc mã lời mời.</span>
         </button>
       </div>
-    } @else if (addServerStep() === 'create') {
-      <div class="flex flex-col items-center text-center">
-        <span
-          class="flex size-20 items-center justify-center rounded-full border border-dashed border-hairline-strong bg-surface-soft text-primary-soft"
+    } @else if (addServerStep() === 'template-list') {
+      <div class="flex max-h-[60vh] flex-col gap-2 overflow-y-auto pr-1 nexus-scrollbar">
+        <!-- Mẫu riêng custom -->
+        <button
+          type="button"
+          class="add-server-template-card flex items-center justify-between text-left"
+          [attr.data-template-id]="customTemplate().id"
+          (click)="chooseTemplate(customTemplate())"
         >
-          <mat-icon aria-hidden="true" class="!size-9 !text-4xl">add_a_photo</mat-icon>
-        </span>
-        <h3 class="mt-4 text-heading-5 text-ink">Đặt tên không gian của bạn</h3>
-        <p class="mt-1 text-body-sm text-slate">Ảnh máy chủ và thành viên có thể thêm sau.</p>
+          <div class="flex items-center gap-3">
+            <span
+              class="flex size-10 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+            >
+              <mat-icon aria-hidden="true">{{ customTemplate().icon }}</mat-icon>
+            </span>
+            <div>
+              <span class="block text-body-md-medium text-ink">{{ customTemplate().name }}</span>
+              <span class="block text-caption text-steel">{{ customTemplate().description }}</span>
+            </div>
+          </div>
+          <mat-icon class="text-steel" aria-hidden="true">chevron_right</mat-icon>
+        </button>
+
+        <!-- Section Mẫu có sẵn -->
+        <app-section-label text="BẮT ĐẦU TỪ MẪU" class="mt-3 mb-1" />
+
+        @for (tpl of presetTemplates(); track tpl.id) {
+          <button
+            type="button"
+            class="add-server-template-card flex items-center justify-between text-left"
+            [attr.data-template-id]="tpl.id"
+            (click)="chooseTemplate(tpl)"
+          >
+            <div class="flex items-center gap-3">
+              <span
+                class="flex size-10 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+              >
+                <mat-icon aria-hidden="true">{{ tpl.icon }}</mat-icon>
+              </span>
+              <div>
+                <span class="block text-body-md-medium text-ink">{{ tpl.name }}</span>
+                <span class="block text-caption text-steel">{{ tpl.description }}</span>
+              </div>
+            </div>
+            <mat-icon class="text-steel" aria-hidden="true">chevron_right</mat-icon>
+          </button>
+        }
+
+        <!-- Tham gia máy chủ link -->
+        <div class="mt-3 rounded-xl border border-hairline bg-surface-soft p-3 text-center">
+          <p class="text-caption text-slate">Bạn đã nhận được lời mời rồi?</p>
+          <button
+            mat-button
+            type="button"
+            class="mt-1 !text-primary-soft"
+            (click)="setAddServerStep('join')"
+          >
+            Tham gia máy chủ
+          </button>
+        </div>
+      </div>
+    } @else if (addServerStep() === 'create') {
+      <!-- Banner mẫu đã chọn -->
+      <div
+        class="flex items-center justify-between rounded-xl border border-hairline bg-surface-soft px-3.5 py-2.5"
+      >
+        <div class="flex items-center gap-2.5">
+          <span
+            class="flex size-8 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+          >
+            <mat-icon class="!size-4 !text-base" aria-hidden="true">{{ selectedTemplate().icon }}</mat-icon>
+          </span>
+          <div>
+            <span class="text-caption font-semibold uppercase tracking-wider text-steel">
+              Mẫu: {{ selectedTemplate().name }}
+            </span>
+          </div>
+        </div>
+        <button
+          mat-button
+          type="button"
+          class="!text-xs !text-primary-soft"
+          [disabled]="isSubmitting()"
+          (click)="setAddServerStep('template-list')"
+        >
+          Đổi mẫu
+        </button>
       </div>
 
-      <mat-form-field appearance="outline" class="mt-5 w-full">
-        <mat-label>Tên máy chủ</mat-label>
-        <input matInput placeholder="Ví dụ: Nhóm học Nexus" />
-      </mat-form-field>
+      <form (ngSubmit)="submitCreateServer()" class="mt-4 w-full">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Tên máy chủ</mat-label>
+          <input
+            matInput
+            [formControl]="serverNameControl"
+            placeholder="Ví dụ: Nhóm học Nexus"
+            maxlength="100"
+            autocomplete="off"
+          />
+          @if (serverNameControl.hasError('required') && serverNameControl.touched) {
+            <mat-error>Tên máy chủ không được để trống</mat-error>
+          } @else if (serverNameControl.hasError('minlength') && serverNameControl.touched) {
+            <mat-error>Tên máy chủ phải có ít nhất 2 ký tự</mat-error>
+          }
+        </mat-form-field>
+
+        @if (createErrorMessage()) {
+          <p class="mt-2 text-caption text-danger" role="alert">
+            {{ createErrorMessage() }}
+          </p>
+        }
+      </form>
+
+      <!-- Xem trước kênh của mẫu -->
+      <div class="mt-2 rounded-xl border border-hairline bg-surface-soft p-3.5">
+        <app-section-label text="XEM TRƯỚC CÁC KÊNH SẼ ĐƯỢC TẠO" class="mb-2.5" />
+        <div class="flex max-h-36 flex-col gap-2.5 overflow-y-auto pr-1 nexus-scrollbar">
+          @if (textChannelsOfSelected().length > 0) {
+            <div>
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-steel">
+                Kênh chữ ({{ textChannelsOfSelected().length }})
+              </span>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                @for (c of textChannelsOfSelected(); track c.name) {
+                  <span class="template-channel-chip">
+                    <span class="font-mono font-bold text-primary-soft">#</span>
+                    {{ c.name }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
+
+          @if (voiceChannelsOfSelected().length > 0) {
+            <div>
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-steel">
+                Kênh thoại ({{ voiceChannelsOfSelected().length }})
+              </span>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                @for (c of voiceChannelsOfSelected(); track c.name) {
+                  <span class="template-channel-chip">
+                    <mat-icon class="!size-3.5 !text-sm text-steel" aria-hidden="true">volume_up</mat-icon>
+                    {{ c.name }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
     } @else {
       <div class="flex flex-col items-center text-center">
         <span
@@ -565,15 +723,55 @@
 
   @if (addServerStep() !== 'choose') {
     <mat-dialog-actions align="end" class="!border-t !border-hairline !px-5 !py-4">
-      <button mat-button type="button" (click)="addServerStep.set('choose')">Quay lại</button>
-      <button
-        mat-flat-button
-        type="button"
-        disabled
-        matTooltip="Chức năng sẽ được nối khi backend máy chủ sẵn sàng"
-      >
-        {{ addServerStep() === 'create' ? 'Tạo máy chủ' : 'Tham gia' }}
-      </button>
+      @if (addServerStep() === 'template-list') {
+        <button
+          mat-button
+          type="button"
+          (click)="setAddServerStep('choose')"
+        >
+          Quay lại
+        </button>
+      } @else if (addServerStep() === 'create') {
+        <button
+          mat-button
+          type="button"
+          [disabled]="isSubmitting()"
+          (click)="setAddServerStep('template-list')"
+        >
+          Quay lại
+        </button>
+        <button
+          mat-flat-button
+          type="button"
+          [disabled]="serverNameControl.invalid || isSubmitting()"
+          (click)="submitCreateServer()"
+        >
+          @if (isSubmitting()) {
+            <span class="flex items-center gap-1.5">
+              <mat-icon class="!size-4 !text-base animate-spin">refresh</mat-icon>
+              Đang tạo...
+            </span>
+          } @else {
+            Tạo máy chủ
+          }
+        </button>
+      } @else {
+        <button
+          mat-button
+          type="button"
+          (click)="setAddServerStep('choose')"
+        >
+          Quay lại
+        </button>
+        <button
+          mat-flat-button
+          type="button"
+          disabled
+          matTooltip="Chức năng sẽ được nối khi backend máy chủ sẵn sàng"
+        >
+          Tham gia
+        </button>
+      }
     </mat-dialog-actions>
   }
 </ng-template>
