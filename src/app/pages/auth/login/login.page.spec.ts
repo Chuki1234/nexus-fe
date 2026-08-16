@@ -7,6 +7,12 @@ import { LoginPage } from './login.page';
 
 class AuthServiceStub {
   signInWithPassword = vi.fn().mockResolvedValue({});
+  /**
+   * Trang đăng nhập hỏi trạng thái provider ngoài lúc khởi tạo để quyết định có
+   * hiện nút Google hay không. Trả false: các test dưới đây chỉ quan tâm luồng
+   * email/mật khẩu, và nút Google ẩn đi không ảnh hưởng gì tới chúng.
+   */
+  isProviderEnabled = vi.fn().mockResolvedValue(false);
 }
 
 describe('LoginPage', () => {

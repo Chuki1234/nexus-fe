@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { Session, User } from '@supabase/supabase-js';
+import { environment } from '../../../environments/environment';
 import { SupabaseService } from '../supabase/supabase.service';
 
 export interface SignInCredentials {
@@ -13,6 +14,9 @@ export class AuthService {
   private readonly supabase = inject(SupabaseService);
 
   private readonly currentSession = signal<Session | null>(null);
+
+  /** Nhớ kết quả `/auth/v1/settings` để mọi lời gọi sau dùng chung một request. */
+  private externalProviders: Promise<Record<string, boolean>> | null = null;
 
   /**
    * Restoring a session from storage is async, so anything that reads
@@ -40,6 +44,40 @@ export class AuthService {
   /** Access token của phiên hiện tại — dùng để gọi API backend cần xác thực. */
   accessToken(): string | null {
     return this.currentSession()?.access_token ?? null;
+  }
+
+  /**
+   * Provider ngoài (google, github…) có được bật ở project Supabase hay không.
+   *
+   * Cần biết TRƯỚC khi hiện nút: `signInWithOAuth` đẩy trình duyệt rời khỏi ứng
+   * dụng rồi Supabase mới trả lỗi, nên không có khối catch nào của ta chạy được —
+   * người dùng rơi thẳng vào một trang JSON trần `{"msg":"Unsupported provider"}`
+   * và chỉ còn nút Back để thoát.
+   *
+   * Kết quả được nhớ lại: cấu hình provider không đổi giữa chừng một phiên.
+   */
+  async isProviderEnabled(provider: string): Promise<boolean> {
+    this.externalProviders ??= this.fetchExternalProviders();
+    return (await this.externalProviders)[provider] === true;
+  }
+
+  private async fetchExternalProviders(): Promise<Record<string, boolean>> {
+    try {
+      // Endpoint công khai, chỉ cần publishable key. Không dùng supabase-js vì
+      // client không phơi ra hàm nào đọc được phần cấu hình này.
+      const response = await fetch(`${environment.supabaseUrl}/auth/v1/settings`, {
+        headers: { apikey: environment.supabaseKey },
+      });
+      if (!response.ok) {
+        return {};
+      }
+      const settings = (await response.json()) as { external?: Record<string, boolean> };
+      return settings.external ?? {};
+    } catch {
+      // Hỏi không được thì coi như không có provider nào: thà giấu một nút vẫn
+      // dùng được, còn hơn hiện một nút đẩy người dùng ra khỏi ứng dụng.
+      return {};
+    }
   }
 
   /**

@@ -4,6 +4,10 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
 import { SupabaseService } from '../supabase/supabase.service';
+import { withTimeout } from '../utils/with-timeout';
+
+/** Quá thời hạn này thì coi như mạng/Supabase đang có vấn đề, không chờ nữa. */
+const PROFILE_CHECK_TIMEOUT_MS = 15_000;
 
 /** Thân request của POST /api/auth/complete-profile — khớp `CompleteProfileDto`. */
 export interface CompleteProfilePayload {
@@ -56,19 +60,34 @@ export class ProfileService {
     return this.refresh();
   }
 
-  /** Truy vấn lại từ Supabase, bỏ qua giá trị đã nhớ. */
+  /**
+   * Truy vấn lại từ Supabase, bỏ qua giá trị đã nhớ.
+   *
+   * Ném lỗi khi quá hạn thay vì đoán bừa true/false — đoán sai ở đây kéo người
+   * dùng có hồ sơ sang màn hoàn tất hồ sơ, hoặc ngược lại. Nơi gọi (route guard)
+   * tự quyết định làm gì tiếp khi gặp lỗi.
+   */
   async refresh(): Promise<boolean> {
     const user = this.auth.user();
     if (!user) {
       this.state.set(false);
       return false;
     }
-    // RLS cho phép người đã đăng nhập đọc profiles; chỉ cần biết có tồn tại.
-    const { data } = await this.supabase.client
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle();
+    // Vai trò `authenticated` được GRANT SELECT và có policy đọc mọi hồ sơ; chỉ
+    // cần biết dòng đó có tồn tại hay không.
+    const { data, error } = await withTimeout(
+      this.supabase.client.from('profiles').select('id').eq('id', user.id).maybeSingle(),
+      PROFILE_CHECK_TIMEOUT_MS,
+      'Kiểm tra hồ sơ quá lâu — mạng chậm hoặc Supabase đang khởi động lại.',
+    );
+
+    // Bỏ qua `error` ở đây là im lặng biến mọi trục trặc (thiếu quyền trên bảng,
+    // PostgREST trả lỗi…) thành `data === null`, tức "chưa có hồ sơ" — người dùng
+    // đã có hồ sơ bị đẩy sang trang hoàn tất hồ sơ rồi nhận 409 ở đó, không hiểu
+    // vì sao. Ném ra để nơi gọi xử lý, đúng như ghi chú của hàm này.
+    if (error) {
+      throw new Error(`Không đọc được hồ sơ từ Supabase: ${error.message}`);
+    }
 
     const has = data !== null;
     this.state.set(has);
@@ -86,6 +105,9 @@ export class ProfileService {
 
   /** Gửi hồ sơ lên backend. Backend mới là bên ghi xuống `profiles`. */
   async complete(payload: CompleteProfilePayload): Promise<void> {
+    // Phiên đăng nhập được khôi phục bất đồng bộ lúc app khởi động; đọc token
+    // sớm hơn có thể lấy nhầm giá trị null dù người dùng thực ra đã đăng nhập.
+    await this.auth.whenReady();
     const token = this.auth.accessToken();
     await firstValueFrom(
       this.http.post(`${environment.apiUrl}/auth/complete-profile`, payload, {

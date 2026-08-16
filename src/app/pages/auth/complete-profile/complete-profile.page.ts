@@ -86,6 +86,11 @@ export class CompleteProfilePage {
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
       await this.router.navigateByUrl(returnUrl);
     } catch (error) {
+      // Cố tình KHÔNG tự điều hướng sang /login khi gặp 401. Phiên phía client
+      // vẫn còn hợp lệ (401 này là backend không xác thực được token, có thể do
+      // chính backend cấu hình sai), nên `guestGuard` sẽ đá ngược về '/' rồi
+      // `profileGuard` đá về đây — một vòng lặp không đổi gì trên màn hình,
+      // người dùng chỉ thấy "bấm nút mà không có gì xảy ra".
       this.submitting.set(false);
       this.errorMessage.set(toCompleteProfileErrorMessage(error));
       this.focusFirst('#complete-profile-error');

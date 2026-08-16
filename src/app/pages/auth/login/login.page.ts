@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  inject,
+  PLATFORM_ID,
+  signal,
+} from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -29,6 +37,21 @@ export class LoginPage {
 
   /** Bật true khi /assets/logo.png chưa có (hoặc lỗi tải) → dùng logo SVG dự phòng. */
   protected readonly logoFailed = signal(false);
+
+  /**
+   * Bắt đầu là false rồi mới bật lên khi biết chắc project có bật Google.
+   *
+   * Ngược lại (hiện trước, ẩn sau) thì nút nhấp nháy rồi biến mất ngay dưới con
+   * trỏ — và ai bấm kịp trong khoảnh khắc đó sẽ văng khỏi ứng dụng.
+   */
+  protected readonly googleEnabled = signal(false);
+
+  constructor() {
+    // Trang này được prerender; lúc đó chưa có gì để hỏi và cũng không nên hỏi.
+    if (isPlatformBrowser(inject(PLATFORM_ID))) {
+      void this.auth.isProviderEnabled('google').then((enabled) => this.googleEnabled.set(enabled));
+    }
+  }
 
   protected togglePasswordVisibility(): void {
     this.passwordVisible.update((visible) => !visible);

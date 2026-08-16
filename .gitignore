@@ -42,3 +42,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Cấu hình skill của Claude Code — công cụ cá nhân, không phải code ứng dụng.
+.agents/
+skills-lock.json

@@ -62,12 +62,19 @@ export const profileGuard: CanActivateFn = async (_route, state) => {
     return true; // authGuard lo phần chưa đăng nhập.
   }
 
-  return (
-    (await profile.ensureLoaded()) ||
-    router.createUrlTree(['/complete-profile'], {
-      queryParams: { returnUrl: state.url },
-    })
-  );
+  try {
+    return (
+      (await profile.ensureLoaded()) ||
+      router.createUrlTree(['/complete-profile'], {
+        queryParams: { returnUrl: state.url },
+      })
+    );
+  } catch (error) {
+    // Supabase không phản hồi kịp (mạng chậm, project mới "thức dậy"…). Đừng để
+    // navigation treo vô thời hạn — quay về /login để người dùng thử lại.
+    console.error('Không kiểm tra được hồ sơ:', error);
+    return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
+  }
 };
 
 /**
@@ -88,5 +95,10 @@ export const completeProfileGuard: CanActivateFn = async () => {
     return router.createUrlTree(['/login']);
   }
 
-  return (await profile.ensureLoaded()) ? router.createUrlTree(['/']) : true;
+  try {
+    return (await profile.ensureLoaded()) ? router.createUrlTree(['/']) : true;
+  } catch (error) {
+    console.error('Không kiểm tra được hồ sơ:', error);
+    return router.createUrlTree(['/login']);
+  }
 };

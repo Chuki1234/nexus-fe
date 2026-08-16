@@ -1,0 +1,173 @@
+<div class="min-h-dvh bg-canvas">
+  <!-- Thanh trên chỉ dành cho mobile: mở/đóng danh sách mục. Từ md trở lên,
+       thanh bên luôn hiện nên nút này thừa. -->
+  <header class="border-b border-hairline md:hidden">
+    <div class="flex items-center gap-3 px-4 py-3">
+      <button
+        type="button"
+        (click)="navOpen.set(!navOpen())"
+        [attr.aria-expanded]="navOpen()"
+        aria-controls="settings-nav"
+        class="inline-flex items-center gap-2 rounded-lg border border-hairline-strong px-3 py-2 text-body-sm text-ink transition-colors hover:border-primary hover:text-primary"
+      >
+        <svg
+          aria-hidden="true"
+          class="size-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        {{ 'settings.title' | translate }}
+      </button>
+      <a routerLink="/" class="ml-auto text-body-sm text-body transition-colors hover:text-ink">
+        {{ 'settings.backToApp' | translate }}
+      </a>
+    </div>
+  </header>
+
+  <div class="md:flex">
+    <!-- ══ Thanh bên ══ -->
+    <nav
+      id="settings-nav"
+      [attr.aria-label]="'settings.title' | translate"
+      class="border-hairline bg-canvas-soft/40 md:sticky md:top-0 md:block md:h-dvh md:w-72 md:shrink-0 md:overflow-y-auto md:border-r"
+      [class.hidden]="!navOpen()"
+    >
+      <div class="flex min-h-full flex-col px-3 py-4">
+        <a
+          routerLink="/"
+          class="mb-4 hidden items-center gap-2 px-2 text-eyebrow text-mute uppercase transition-colors hover:text-ink md:inline-flex"
+        >
+          <svg
+            aria-hidden="true"
+            class="size-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          {{ 'settings.backToApp' | translate }}
+        </a>
+
+        <!-- ══ Khối danh tính ══
+             Cài đặt là chỗ người ta sửa thứ thuộc về mình, nên phải thấy ngay
+             mình đang là ai — nhất là khi một máy có nhiều tài khoản dùng chung. -->
+        @if (me(); as person) {
+          <a
+            routerLink="/settings/profile"
+            (click)="closeNav()"
+            class="mb-4 flex items-center gap-3 rounded-lg border border-hairline bg-canvas p-2.5 transition-colors hover:border-primary"
+          >
+            <app-avatar [src]="person.avatarUrl" [name]="myName()" size="sm" />
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-body-sm-strong font-semibold text-ink">
+                {{ myName() }}
+              </span>
+              <span class="block truncate text-caption text-mute">
+                &commat;{{ person.username }}
+              </span>
+            </span>
+            <svg
+              aria-hidden="true"
+              class="size-4 shrink-0 text-mute"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+              />
+            </svg>
+          </a>
+        }
+
+        <!-- track theo labelKey + subject: hai nhóm kênh dùng chung labelKey
+             'settings.nav.channel', chỉ khác tên kênh. -->
+        @for (group of groups(); track group.labelKey + (group.subject ?? '')) {
+          <div class="mt-5 first:mt-0">
+            <p class="px-2 text-caption-strong font-bold uppercase tracking-wider text-mute">
+              {{ group.labelKey | translate }}
+            </p>
+            @if (group.subject; as subject) {
+              <p class="truncate px-2 pt-0.5 text-caption text-mute">{{ subject }}</p>
+            }
+
+            <ul class="mt-1.5 flex flex-col gap-0.5">
+              @for (item of group.items; track item.path) {
+                <li>
+                  <a
+                    [routerLink]="item.path"
+                    routerLinkActive="bg-primary/12 text-ink-strong"
+                    #active="routerLinkActive"
+                    [routerLinkActiveOptions]="{ exact: false }"
+                    ariaCurrentWhenActive="page"
+                    (click)="closeNav()"
+                    class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-body-sm text-body transition-colors hover:bg-canvas hover:text-ink"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="size-4 shrink-0"
+                      [class.text-primary]="active.isActive"
+                      [class.text-mute]="!active.isActive"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="item.icon" />
+                    </svg>
+                    <span class="min-w-0 truncate">{{ item.labelKey | translate }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        <!-- mt-auto: đăng xuất bị đẩy xuống đáy thanh bên. Nó là hành động rời
+             đi, không cùng loại với các mục điều hướng ở trên. -->
+        <div class="mt-auto border-t border-hairline pt-3">
+          <button
+            type="button"
+            (click)="onSignOut()"
+            [disabled]="signingOut()"
+            class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-body-sm text-danger transition-colors hover:bg-danger-surface disabled:cursor-not-allowed disabled:text-mute"
+          >
+            <svg
+              aria-hidden="true"
+              class="size-4 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+            {{
+              signingOut()
+                ? ('settings.account.signingOut' | translate)
+                : ('settings.nav.signOut' | translate)
+            }}
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ══ Nội dung ══ -->
+    <main class="min-w-0 flex-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>
