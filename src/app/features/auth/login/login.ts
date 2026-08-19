@@ -81,6 +81,9 @@ export class LoginPage {
     } catch (error) {
       this.errorMessage.set(toLoginErrorMessage(error));
       this.form.controls.password.reset();
+      // Tắt cờ submitted để ô mật khẩu vừa reset không hiện thêm lỗi "Vui lòng
+      // nhập mật khẩu" chồng lên banner "sai thông tin đăng nhập".
+      this.submitted.set(false);
       this.focusFirst('#login-error');
     } finally {
       this.submitting.set(false);

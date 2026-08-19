@@ -124,6 +124,27 @@ describe('ForgotPasswordPage', () => {
     expect(fixture.nativeElement.querySelector('#forgot-password-error').textContent).toContain(
       'hết hạn',
     );
+    // Không hiện thêm lỗi field "Mã gồm đúng 6 chữ số" chồng lên banner.
+    expect(fixture.nativeElement.querySelector('#code-error')).toBeFalsy();
+  });
+
+  it('xoá banner lỗi cũ khi bấm "Đổi email" quay lại bước nhập email', async () => {
+    auth.verifyPasswordResetCode.mockRejectedValue(new AuthError('expired', 400, 'otp_expired'));
+    setInput('email', 'ban@vidu.com');
+    await submit();
+    setInput('code', '000000');
+    await submit();
+    // Đang có banner lỗi ở bước mã.
+    expect(fixture.nativeElement.querySelector('#forgot-password-error')).toBeTruthy();
+
+    fixture.nativeElement
+      .querySelectorAll('button[type="button"]')
+      .forEach((b: HTMLButtonElement) => b.textContent?.includes('Đổi email') && b.click());
+    fixture.detectChanges();
+
+    expect(heading()).toContain('Quên mật khẩu');
+    // Lỗi của bước mã không được dính lại sang bước email.
+    expect(fixture.nativeElement.querySelector('#forgot-password-error')).toBeFalsy();
   });
 
   it('refuses to update when the two passwords differ', async () => {
