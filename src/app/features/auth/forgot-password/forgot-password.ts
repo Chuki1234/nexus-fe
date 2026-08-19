@@ -210,6 +210,9 @@ export class ForgotPasswordPage {
   private goTo(step: Step): void {
     this.submitting.set(false);
     this.submitted.set(false);
+    // Xoá banner lỗi của bước trước: đổi bước là ngữ cảnh mới, lỗi cũ không còn
+    // đúng (vd bấm "Đổi email" sau khi nhập sai mã — lỗi mã không nên dính lại).
+    this.errorMessage.set(null);
     this.step.set(step);
     // Đưa tiêu điểm về đầu bước mới để trình đọc màn hình đọc lại ngữ cảnh.
     this.focusFirst('[data-step-heading]');
@@ -217,6 +220,10 @@ export class ForgotPasswordPage {
 
   private fail(message: string): void {
     this.submitting.set(false);
+    // Tắt cờ submitted để lỗi cấp-field ("Mã gồm đúng 6 chữ số"...) ẩn đi — banner
+    // phía trên đã giải thích lỗi rồi, hiện thêm lỗi field trên ô vừa bị reset chỉ
+    // gây nhiễu.
+    this.submitted.set(false);
     this.errorMessage.set(message);
     this.focusFirst('#forgot-password-error');
   }

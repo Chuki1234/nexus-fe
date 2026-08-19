@@ -14,7 +14,9 @@ const MESSAGES: Record<string, string> = {
   over_email_send_rate_limit: 'Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi một lát rồi thử lại.',
   same_password: 'Mật khẩu mới phải khác mật khẩu hiện tại.',
   weak_password: 'Mật khẩu quá yếu. Hãy chọn mật khẩu dài và khó đoán hơn.',
-  otp_expired: 'Mã xác thực đã hết hạn. Hãy bấm gửi lại mã.',
+  // Supabase trả `otp_expired` cho cả mã sai LẪN mã hết hạn (không phân biệt được),
+  // nên câu chữ phải phủ cả hai để không gây hiểu nhầm là gõ đúng nhưng trễ giờ.
+  otp_expired: 'Mã không đúng hoặc đã hết hạn. Hãy thử lại hoặc bấm gửi lại mã.',
 };
 
 /**

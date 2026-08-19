@@ -84,6 +84,21 @@ describe('LoginPage', () => {
     expect((fixture.nativeElement.querySelector('#password') as HTMLInputElement).value).toBe('');
   });
 
+  it('does not stack a field error on top of the wrong-credentials banner', async () => {
+    // Sau khi đăng nhập sai, ô mật khẩu bị reset. Không được hiện thêm "Vui lòng
+    // nhập mật khẩu" chồng lên banner — banner đã nói rõ lý do rồi.
+    auth.signIn.mockRejectedValue(
+      new HttpErrorResponse({ status: 401, error: { message: 'bất kỳ' } }),
+    );
+
+    setInput('identifier', 'ban@vidu.com');
+    setInput('password', 'sai-mat-khau');
+    await submit();
+
+    expect(fixture.nativeElement.querySelector('#login-error')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#password-error')).toBeFalsy();
+  });
+
   it('does not reveal whether the account exists', async () => {
     // Hai nguyên nhân khác hẳn nhau phải ra đúng một câu, nếu không thì người
     // ngoài dò được email/tên đăng nhập nào đã có người dùng.
