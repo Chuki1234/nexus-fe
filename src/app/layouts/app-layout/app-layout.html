@@ -1,29 +1,38 @@
-<mat-sidenav-container class="h-full" [hasBackdrop]="isCompact()">
+<mat-sidenav-container
+  class="dashboard-shell h-full"
+  [hasBackdrop]="isCompact()"
+  [attr.data-theme]="theme()"
+  [attr.data-atmosphere]="atmosphere()"
+>
   <mat-sidenav
     #drawer
     [mode]="isCompact() ? 'over' : 'side'"
     [opened]="!isCompact()"
-    class="!border-r !border-hairline"
+    class="dashboard-nav-drawer !border-0"
   >
-    <div class="flex h-full">
+    <div class="dashboard-nav-shell flex h-full w-full gap-2 overflow-hidden p-2 pr-0">
       <app-server-rail />
       <app-channel-sidebar [serverId]="serverId()" />
     </div>
   </mat-sidenav>
 
-  <mat-sidenav-content class="flex h-full flex-col">
+  <mat-sidenav-content class="dashboard-content h-full min-h-0 p-2">
     @if (isCompact()) {
       <button
         mat-icon-button
         type="button"
         (click)="drawer.toggle()"
         matTooltip="Mở danh sách kênh"
-        class="absolute top-2 left-2 z-10"
+        class="nexus-icon-control absolute top-3 left-3 z-10 bg-surface shadow-card"
       >
         <mat-icon>menu</mat-icon>
         <span class="sr-only">Mở danh sách kênh</span>
       </button>
     }
-    <router-outlet />
+    <main
+      class="dashboard-workspace flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl"
+    >
+      <router-outlet />
+    </main>
   </mat-sidenav-content>
 </mat-sidenav-container>

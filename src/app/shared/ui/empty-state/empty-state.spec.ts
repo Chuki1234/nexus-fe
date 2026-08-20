@@ -34,4 +34,14 @@ describe('EmptyState', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('h2').textContent).toContain('Kênh thoại');
   });
+
+  it('không tự ép h-full và card có lớp phân tách khỏi canvas', async () => {
+    const fixture = await mount();
+    const host = fixture.nativeElement.querySelector('app-empty-state') as HTMLElement;
+    const card = host.firstElementChild as HTMLElement;
+
+    expect(host.classList.contains('h-full')).toBe(false);
+    expect(card.classList.contains('border-hairline')).toBe(true);
+    expect(card.classList.contains('shadow-glow')).toBe(true);
+  });
 });

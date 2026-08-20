@@ -15,9 +15,8 @@
    Dựa trên DESIGN-nexuscord-hybrid.md. Mọi trang PHẢI dùng token dưới đây;
    không hardcode mã màu / px trong component.
 
-   GIAI ĐOẠN HIỆN TẠI: chỉ DARK mode (bảng màu MongoDB deep-teal).
-   Light mode (Starbucks kem) sẽ bổ sung sau — khi làm, bọc phần màu trong
-   :root[data-theme='light'] và bật nút toggle; typography/shape/spacing giữ nguyên.
+   DARK mode dùng MongoDB deep-teal; LIGHT mode dùng Starbucks warm-cream.
+   Hai mode chỉ đổi token màu, typography/shape/spacing giữ nguyên.
    ========================================================================== */
 
 @theme {
@@ -186,6 +185,12 @@
   --shadow-card: rgba(0, 30, 43, 0.08) 0 4px 12px 0; /* level 2 — feature card */
   --shadow-modal: rgba(0, 30, 43, 0.16) 0 16px 48px -8px; /* level 4 — modal/dropdown */
 
+  /* ---- Motion ----
+     Nhịp thoát nhanh, cuối chuyển động mềm như một khối có trọng lượng. */
+  --motion-fast: 160ms;
+  --motion-base: 220ms;
+  --ease-nexus-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
   /* ---- Container ---- */
   --container-band: 1280px;
   --container-auth-card: 480px;
@@ -226,7 +231,403 @@
   }
 }
 
-/* ==========================================================================
+/* ===========================================================================
+   LIGHT MODE — Starbucks warm ceramic
+   Chỉ đổi token màu/elevation; typography, spacing và geometry giữ nguyên.
+   Dashboard đặt `data-theme` trên <html>, vì vậy app shell và Material cùng đổi
+   palette mà không cần mỗi component tự biết mã màu cụ thể.
+   ========================================================================== */
+
+html[data-theme='light'] {
+  color-scheme: light;
+
+  --color-primary: #006241;
+  --color-primary-soft: #00754a;
+  --color-primary-deep: #1e3932;
+  --color-primary-pressed: #004d33;
+  --color-on-primary: #ffffff;
+  --color-brand-green: #00754a;
+  --color-brand-green-dark: #006241;
+  --color-brand-green-mid: #2b5148;
+  --color-brand-green-soft: #d4e9e2;
+
+  --color-canvas: #f2f0eb;
+  --color-canvas-dark: #1e3932;
+  --color-surface: #f7f5f0;
+  --color-surface-soft: #edebe9;
+  --color-surface-feature: #eaf5f0;
+
+  --color-hairline: #ddd8ce;
+  --color-hairline-soft: #e8e3d9;
+  --color-hairline-strong: #9e9788;
+  --color-hairline-dark: #2b5148;
+
+  --color-ink: rgba(0, 0, 0, 0.87);
+  --color-charcoal: #1e3932;
+  --color-slate: rgba(0, 0, 0, 0.68);
+  --color-steel: rgba(0, 0, 0, 0.58);
+  --color-stone: rgba(0, 0, 0, 0.46);
+  --color-muted: rgba(0, 0, 0, 0.34);
+  --color-on-dark: #ffffff;
+  --color-on-dark-muted: rgba(255, 255, 255, 0.7);
+
+  --color-danger: #c82014;
+  --color-danger-surface: #fdf0ef;
+  --color-danger-border: #e09a95;
+  --color-success: #00754a;
+  --color-warning-bg: #faf6ee;
+  --color-warning-text: #946f3f;
+
+  --shadow-glow: 0 0 0.5px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.18);
+  --shadow-card: 0 0 0.5px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.18);
+  --shadow-modal: 0 20px 56px rgba(30, 57, 50, 0.22), 0 3px 8px rgba(0, 0, 0, 0.1);
+
+  --nexus-surface-overlay: #ffffff;
+  --nexus-dialog-backdrop: rgba(24, 43, 38, 0.48);
+  --nexus-dialog-backdrop-blur: 8px;
+}
+
+:root {
+  --nexus-surface-overlay: var(--color-surface);
+  --nexus-dialog-backdrop: rgba(0, 15, 23, 0.75);
+  --nexus-dialog-backdrop-blur: 8px;
+}
+
+/* ===========================================================================
+   NEXUS ATMOSPHERES — chỉ đổi họ neutral bên trong Dashboard
+   Brand green và semantic state tiếp tục lấy từ Hybrid Design System. Mỗi bộ
+   phối có cặp light/dark riêng, nên đổi mode không làm mất lựa chọn không khí.
+   ========================================================================== */
+
+.dashboard-shell {
+  /* ---- Semantic Surface Hierarchy (Dark Mode baseline) ----
+     canvas/base < section/well < raised/card < hover < selected/active */
+  --nexus-surface-canvas: var(--color-canvas);
+  --nexus-surface-well: color-mix(in srgb, var(--color-surface-soft) 85%, var(--color-canvas));
+  --nexus-surface-card: color-mix(in srgb, var(--color-surface-feature) 72%, var(--color-surface));
+  --nexus-surface-input: color-mix(in srgb, var(--color-surface-soft) 90%, var(--color-surface-feature));
+  --nexus-surface-hover: color-mix(in srgb, var(--color-surface-feature) 88%, var(--color-surface));
+  --nexus-surface-selected: var(--color-surface-feature);
+  --nexus-surface-overlay: color-mix(in srgb, var(--color-surface) 92%, var(--color-surface-soft));
+
+  --nexus-border-subtle: color-mix(in srgb, var(--color-hairline) 65%, transparent);
+  --nexus-border-strong: var(--color-hairline-strong);
+  --nexus-border-focus: var(--color-primary-soft);
+
+  --nexus-shadow-card: 0 1px 3px color-mix(in srgb, var(--color-canvas-dark) 20%, transparent),
+    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset;
+  --nexus-shadow-hover: 0 2px 8px color-mix(in srgb, var(--color-canvas-dark) 25%, transparent),
+    0 1px 0 color-mix(in srgb, var(--color-ink) 9%, transparent) inset;
+}
+
+html[data-theme='light'] .dashboard-shell {
+  /* ---- Semantic Surface Hierarchy (Light Mode) ---- */
+  --nexus-surface-canvas: var(--color-canvas);
+  --nexus-surface-well: color-mix(in srgb, var(--color-surface-soft) 78%, var(--color-canvas));
+  --nexus-surface-card: #ffffff;
+  --nexus-surface-input: #ffffff;
+  --nexus-surface-hover: color-mix(in srgb, var(--color-surface-feature) 65%, var(--color-surface));
+  --nexus-surface-selected: var(--color-surface-feature);
+  --nexus-surface-overlay: #ffffff;
+
+  --nexus-border-subtle: var(--color-hairline);
+  --nexus-border-strong: var(--color-hairline-strong);
+  --nexus-border-focus: var(--color-primary);
+
+  --nexus-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--color-hairline-soft);
+  --nexus-shadow-hover: 0 4px 12px rgba(30, 57, 50, 0.08), 0 0 0 1px var(--color-hairline);
+}
+
+.dashboard-shell[data-atmosphere='sage'] {
+  --color-canvas: #061c1a;
+  --color-canvas-dark: #061c1a;
+  --color-surface: #0d2925;
+  --color-surface-soft: #12332f;
+  --color-surface-feature: #17433b;
+  --color-hairline: #27534b;
+  --color-hairline-soft: #1d453e;
+  --color-hairline-strong: #66827d;
+  --color-hairline-dark: #102d29;
+  --color-ink: #f4fbf7;
+  --color-charcoal: #dce9e2;
+  --color-slate: #b9cbc1;
+  --color-steel: #8ea69a;
+  --color-stone: #789187;
+  --color-muted: #5d756c;
+}
+
+.dashboard-shell[data-atmosphere='apricot'] {
+  --color-canvas: #181625;
+  --color-canvas-dark: #181625;
+  --color-surface: #272032;
+  --color-surface-soft: #32233a;
+  --color-surface-feature: #3d2a42;
+  --color-hairline: #54405b;
+  --color-hairline-soft: #45334d;
+  --color-hairline-strong: #87738d;
+  --color-hairline-dark: #2d2235;
+  --color-ink: #faf7fb;
+  --color-charcoal: #eee8f0;
+  --color-slate: #d0c3d3;
+  --color-steel: #a995ae;
+  --color-stone: #8e7c94;
+  --color-muted: #6e5e76;
+}
+
+.dashboard-shell[data-atmosphere='lilac'] {
+  --color-canvas: #0e0c25;
+  --color-canvas-dark: #0e0c25;
+  --color-surface: #171431;
+  --color-surface-soft: #211b42;
+  --color-surface-feature: #2c2454;
+  --color-hairline: #3d3567;
+  --color-hairline-soft: #302953;
+  --color-hairline-strong: #7f78a2;
+  --color-hairline-dark: #191535;
+  --color-ink: #f7f5ff;
+  --color-charcoal: #e5e0f2;
+  --color-slate: #c5bfd8;
+  --color-steel: #9992b3;
+  --color-stone: #817a9d;
+  --color-muted: #625c7d;
+}
+
+.dashboard-shell[data-atmosphere='lagoon'] {
+  --color-canvas: #031b25;
+  --color-canvas-dark: #031b25;
+  --color-surface: #072731;
+  --color-surface-soft: #0c333b;
+  --color-surface-feature: #11434b;
+  --color-hairline: #20545b;
+  --color-hairline-soft: #17444c;
+  --color-hairline-strong: #67868b;
+  --color-hairline-dark: #092d36;
+  --color-ink: #f3fbfc;
+  --color-charcoal: #dcebee;
+  --color-slate: #b7cdd1;
+  --color-steel: #89a8ad;
+  --color-stone: #729096;
+  --color-muted: #55737a;
+}
+
+.dashboard-shell[data-atmosphere='midnight'] {
+  --color-canvas: #080d26;
+  --color-canvas-dark: #080d26;
+  --color-surface: #101734;
+  --color-surface-soft: #182043;
+  --color-surface-feature: #222c58;
+  --color-hairline: #313b68;
+  --color-hairline-soft: #252e56;
+  --color-hairline-strong: #7079a0;
+  --color-hairline-dark: #121938;
+  --color-ink: #f6f7ff;
+  --color-charcoal: #e2e5f3;
+  --color-slate: #bec4dd;
+  --color-steel: #929ab9;
+  --color-stone: #7b83a4;
+  --color-muted: #5d6688;
+}
+
+html[data-theme='light'] .dashboard-shell[data-atmosphere='sage'] {
+  --color-canvas: #edf3ec;
+  --color-canvas-dark: #183a32;
+  --color-surface: #f7f8f2;
+  --color-surface-soft: #dfeade;
+  --color-surface-feature: #d4e9df;
+  --color-hairline: #c4d4c4;
+  --color-hairline-soft: #d5e2d3;
+  --color-hairline-strong: #7d9482;
+  --color-hairline-dark: #31594d;
+  --color-ink: #13251e;
+  --color-charcoal: #18372c;
+  --color-slate: #435e54;
+  --color-steel: #5f776e;
+  --color-stone: #6e8079;
+  --color-muted: #899a94;
+}
+
+html[data-theme='light'] .dashboard-shell[data-atmosphere='apricot'] {
+  --color-canvas: #f8eee5;
+  --color-canvas-dark: #432d35;
+  --color-surface: #fff8f0;
+  --color-surface-soft: #f2dfd0;
+  --color-surface-feature: #f3e5dc;
+  --color-hairline: #dfcabb;
+  --color-hairline-soft: #ead8ca;
+  --color-hairline-strong: #9c7f6d;
+  --color-hairline-dark: #654751;
+  --color-ink: #2a201c;
+  --color-charcoal: #442f28;
+  --color-slate: #66544e;
+  --color-steel: #7a6963;
+  --color-stone: #887873;
+  --color-muted: #a2928d;
+}
+
+html[data-theme='light'] .dashboard-shell[data-atmosphere='lilac'] {
+  --color-canvas: #f0eff7;
+  --color-canvas-dark: #292743;
+  --color-surface: #f8f7fb;
+  --color-surface-soft: #e4e4f1;
+  --color-surface-feature: #e0e8f1;
+  --color-hairline: #cecfdf;
+  --color-hairline-soft: #dcdeea;
+  --color-hairline-strong: #87899f;
+  --color-hairline-dark: #4b4c68;
+  --color-ink: #22243a;
+  --color-charcoal: #282b45;
+  --color-slate: #50536c;
+  --color-steel: #6c6f84;
+  --color-stone: #7b7d90;
+  --color-muted: #9597a8;
+}
+
+html[data-theme='light'] .dashboard-shell[data-atmosphere='lagoon'] {
+  --color-canvas: #e9f3f2;
+  --color-canvas-dark: #173b3d;
+  --color-surface: #f4f8f6;
+  --color-surface-soft: #d6e8e5;
+  --color-surface-feature: #d2e8e3;
+  --color-hairline: #bfd4d0;
+  --color-hairline-soft: #d0e0dd;
+  --color-hairline-strong: #748e89;
+  --color-hairline-dark: #315b5a;
+  --color-ink: #153131;
+  --color-charcoal: #153c3c;
+  --color-slate: #426160;
+  --color-steel: #607b79;
+  --color-stone: #708a87;
+  --color-muted: #8da29f;
+}
+
+html[data-theme='light'] .dashboard-shell[data-atmosphere='midnight'] {
+  --color-canvas: #edf0f5;
+  --color-canvas-dark: #202b49;
+  --color-surface: #f7f8fa;
+  --color-surface-soft: #dde3ec;
+  --color-surface-feature: #dfe7f0;
+  --color-hairline: #c5ceda;
+  --color-hairline-soft: #d5dce5;
+  --color-hairline-strong: #738196;
+  --color-hairline-dark: #3b4a67;
+  --color-ink: #1d2638;
+  --color-charcoal: #202a42;
+  --color-slate: #4d586f;
+  --color-steel: #6d778a;
+  --color-stone: #7c8597;
+  --color-muted: #969ead;
+}
+
+/* Preview bốn vùng: rail · sidebar · workspace · context panel. */
+.theme-atmosphere-preview[data-atmosphere-preview='hybrid'] {
+  --preview-rail: #001e2b;
+  --preview-sidebar: #002634;
+  --preview-workspace: #001e2b;
+  --preview-panel: #082b38;
+  --preview-hairline: #1c4553;
+  --preview-ink: #ffffff;
+}
+
+.theme-atmosphere-preview[data-atmosphere-preview='sage'] {
+  --preview-rail: #061c1a;
+  --preview-sidebar: #0d2925;
+  --preview-workspace: #061c1a;
+  --preview-panel: #12332f;
+  --preview-hairline: #27534b;
+  --preview-ink: #f4fbf7;
+}
+
+.theme-atmosphere-preview[data-atmosphere-preview='apricot'] {
+  --preview-rail: #181625;
+  --preview-sidebar: #272032;
+  --preview-workspace: #181625;
+  --preview-panel: #32233a;
+  --preview-hairline: #54405b;
+  --preview-ink: #faf7fb;
+}
+
+.theme-atmosphere-preview[data-atmosphere-preview='lilac'] {
+  --preview-rail: #0e0c25;
+  --preview-sidebar: #171431;
+  --preview-workspace: #0e0c25;
+  --preview-panel: #211b42;
+  --preview-hairline: #3d3567;
+  --preview-ink: #f7f5ff;
+}
+
+.theme-atmosphere-preview[data-atmosphere-preview='lagoon'] {
+  --preview-rail: #031b25;
+  --preview-sidebar: #072731;
+  --preview-workspace: #031b25;
+  --preview-panel: #0c333b;
+  --preview-hairline: #20545b;
+  --preview-ink: #f3fbfc;
+}
+
+.theme-atmosphere-preview[data-atmosphere-preview='midnight'] {
+  --preview-rail: #080d26;
+  --preview-sidebar: #101734;
+  --preview-workspace: #080d26;
+  --preview-panel: #182043;
+  --preview-hairline: #313b68;
+  --preview-ink: #f6f7ff;
+}
+
+html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='hybrid'] {
+  --preview-rail: #f2f0eb;
+  --preview-sidebar: #f7f5f0;
+  --preview-workspace: #f2f0eb;
+  --preview-panel: #edebe9;
+  --preview-hairline: #ddd8ce;
+  --preview-ink: rgba(0, 0, 0, 0.87);
+}
+
+html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='sage'] {
+  --preview-rail: #edf3ec;
+  --preview-sidebar: #f7f8f2;
+  --preview-workspace: #edf3ec;
+  --preview-panel: #dfeade;
+  --preview-hairline: #c4d4c4;
+  --preview-ink: #13251e;
+}
+
+html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='apricot'] {
+  --preview-rail: #f8eee5;
+  --preview-sidebar: #fff8f0;
+  --preview-workspace: #f8eee5;
+  --preview-panel: #f2dfd0;
+  --preview-hairline: #dfcabb;
+  --preview-ink: #2a201c;
+}
+
+html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='lilac'] {
+  --preview-rail: #f0eff7;
+  --preview-sidebar: #f8f7fb;
+  --preview-workspace: #f0eff7;
+  --preview-panel: #e4e4f1;
+  --preview-hairline: #cecfdf;
+  --preview-ink: #22243a;
+}
+
+html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='lagoon'] {
+  --preview-rail: #e9f3f2;
+  --preview-sidebar: #f4f8f6;
+  --preview-workspace: #e9f3f2;
+  --preview-panel: #d6e8e5;
+  --preview-hairline: #bfd4d0;
+  --preview-ink: #153131;
+}
+
+html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='midnight'] {
+  --preview-rail: #edf0f5;
+  --preview-sidebar: #f7f8fa;
+  --preview-workspace: #edf0f5;
+  --preview-panel: #dde3ec;
+  --preview-hairline: #c5ceda;
+  --preview-ink: #1d2638;
+}
+
+/* ===========================================================================
    GHI ĐÈ ANGULAR MATERIAL
    `mat.theme()` sinh ra bộ biến `--mat-sys-*`; ánh xạ chúng sang token Nexus để
    cả thư viện mang diện mạo NexusCord. Nút Material dùng corner-full (pill).
@@ -240,8 +641,11 @@ html {
   --mat-sys-on-primary-container: var(--color-ink);
   --mat-sys-secondary: var(--color-primary-soft);
   --mat-sys-on-secondary: var(--color-on-primary);
+  --mat-sys-secondary-container: var(--color-primary);
+  --mat-sys-on-secondary-container: var(--color-on-primary);
   --mat-sys-tertiary: var(--color-primary-deep);
   --mat-sys-on-tertiary: var(--color-on-primary);
+  --mat-sys-surface-tint: var(--color-primary);
 
   /* ---- Bề mặt ---- */
   --mat-sys-background: var(--color-canvas);
@@ -293,6 +697,1459 @@ html {
   outline-offset: 2px;
 }
 
+/* --------------------------------------------------------------------------
+   INTERACTION STATES
+   Selected dùng brand fill; hover dùng feature surface + primary-soft outline.
+   Không dùng state-layer xám làm tín hiệu chính vì nó quá gần canvas ở cả hai mode.
+   -------------------------------------------------------------------------- */
+
+.nexus-filter-tab {
+  border-color: transparent;
+  color: var(--color-slate);
+  background-color: transparent;
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-filter-tab:not([aria-pressed='true']):is(:hover, :focus-visible) {
+  border-color: transparent;
+  background-color: var(--nexus-surface-hover);
+  color: var(--color-primary-soft);
+  box-shadow: var(--shadow-glow);
+}
+
+.nexus-filter-tab[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--color-primary) 28%, var(--nexus-border-subtle));
+  background-color: var(--nexus-surface-card);
+  color: var(--color-ink);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent) inset,
+    var(--shadow-card);
+}
+
+.nexus-filter-tab:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.nexus-icon-control {
+  color: var(--color-steel);
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-icon-control:not(:disabled):is(:hover, :focus-visible) {
+  background-color: var(--nexus-surface-hover);
+  color: var(--color-primary-soft);
+  box-shadow: var(--shadow-glow);
+}
+
+.nexus-icon-control:is([aria-expanded='true'], [aria-current='page']) {
+  background-color: var(--nexus-surface-selected);
+  color: var(--color-primary-soft);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent) inset;
+}
+
+.nexus-icon-control:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.nexus-icon-control.nexus-demo-toggle[aria-pressed='true'] {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: none;
+}
+
+.nexus-icon-control.nexus-audio-toggle[aria-pressed='true'] {
+  background-color: var(--color-danger-surface);
+  color: var(--color-danger);
+  box-shadow: inset 0 0 0 1px var(--color-danger-border);
+}
+
+.nexus-add-server-dialog .mat-mdc-dialog-surface {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-xxl);
+  background-color: var(--color-surface);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent) inset,
+    0 24px 64px -12px rgba(0, 0, 0, 0.65),
+    0 0 0 1px color-mix(in srgb, var(--color-primary-soft) 18%, transparent);
+}
+
+html[data-theme='light'] .nexus-add-server-dialog .mat-mdc-dialog-surface {
+  border-color: var(--color-hairline);
+  background-color: #ffffff;
+  background: #ffffff;
+  color: var(--color-ink);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 20px 56px -10px rgba(30, 57, 50, 0.22),
+    0 0 0 1px var(--color-hairline);
+}
+
+.nexus-add-server-dialog .add-server-choice {
+  min-height: 10rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-soft);
+  padding: 1.25rem 1rem;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent) inset,
+    var(--shadow-glow);
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .add-server-choice:is(:hover, :focus-visible) {
+  background: var(--color-surface-feature);
+  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent) inset,
+    var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+.nexus-add-server-dialog .add-server-template-card {
+  min-height: 3rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-soft);
+  padding: 0.75rem 1rem;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .add-server-template-card:is(:hover, :focus-visible) {
+  background: var(--color-surface-feature);
+  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent) inset,
+    var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.nexus-add-server-dialog .template-channel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* ===========================================================================
+   NEXUS MODAL BACKDROP SYSTEM
+   Phủ toàn bộ app viewport, dim + blur tinh tế (8px) cho modal & dialog,
+   không áp dụng cho tooltip, menu nhỏ hay popover.
+   ========================================================================== */
+.cdk-overlay-backdrop.cdk-overlay-dark-backdrop,
+.cdk-overlay-backdrop.mat-mdc-dialog-backdrop {
+  background-color: var(--nexus-dialog-backdrop, rgba(0, 15, 23, 0.75));
+  backdrop-filter: blur(var(--nexus-dialog-backdrop-blur, 8px));
+  -webkit-backdrop-filter: blur(var(--nexus-dialog-backdrop-blur, 8px));
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    backdrop-filter 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cdk-overlay-backdrop.cdk-overlay-transparent-backdrop {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cdk-overlay-backdrop.cdk-overlay-dark-backdrop,
+  .cdk-overlay-backdrop.mat-mdc-dialog-backdrop {
+    transition: none;
+  }
+}
+
+/* Shared UI chỉ đổi diện mạo khi nằm trong Dashboard, tránh chạm source/folder
+   dùng chung của các thành viên khác. */
+app-dashboard-shell app-search-field > div {
+  border: 1px solid var(--nexus-border-strong);
+  border-radius: var(--radius-lg);
+  background-color: var(--nexus-surface-input);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset,
+    var(--shadow-glow);
+  transition:
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+app-dashboard-shell app-search-field > div:focus-within {
+  border-color: var(--nexus-border-focus);
+  background-color: var(--nexus-surface-input);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary-soft) 24%, transparent),
+    var(--shadow-card);
+}
+
+app-dashboard-shell app-empty-state > div {
+  border: 1px solid var(--nexus-border-subtle);
+  border-radius: var(--radius-xxl);
+  background-color: var(--nexus-surface-well);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+}
+
+/* MatSidenav mặc định cho inner container cuộn cả hai trục. Dashboard đã có
+   scrollbar riêng cho rail/sidebar, vì vậy khóa lớp vỏ để không sinh thanh
+   cuộn ngang khi tổng chiều rộng hai cột sát drawer. */
+app-dashboard-shell .dashboard-nav-drawer .mat-drawer-inner-container {
+  overflow: hidden;
+}
+
+.nexus-icon-control:disabled {
+  background-color: transparent;
+  color: var(--color-muted);
+  box-shadow: none;
+}
+
+.nexus-avatar-trigger {
+  transition:
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-avatar-trigger:is(:hover, :focus-visible) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-soft) 28%, transparent);
+}
+
+.nexus-avatar-trigger:active {
+  transform: scale(0.97);
+}
+
+.nexus-interactive-row {
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-interactive-row:is(:hover, :focus-within) {
+  background-color: var(--nexus-surface-hover);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Dashboard avatar fallback: raised surface with subtle border, crisp contrast & deterministic tone palette */
+app-dashboard-shell app-avatar > span[aria-hidden='true'],
+app-avatar .avatar-fallback {
+  background-color: var(--nexus-surface-card);
+  color: var(--color-ink);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--nexus-border-subtle) inset;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-fast) var(--ease-nexus-out);
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='emerald'] {
+  background-color: color-mix(in srgb, var(--color-primary-soft) 22%, var(--nexus-surface-card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 36%, var(--nexus-border-subtle)) inset;
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='teal'] {
+  background-color: color-mix(in srgb, #00b4d8 20%, var(--nexus-surface-card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, #00b4d8 36%, var(--nexus-border-subtle)) inset;
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='slate'] {
+  background-color: color-mix(in srgb, var(--color-surface-feature) 88%, var(--color-surface));
+  box-shadow: 0 0 0 1px var(--nexus-border-subtle) inset;
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='indigo'] {
+  background-color: color-mix(in srgb, #818cf8 22%, var(--nexus-surface-card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, #818cf8 36%, var(--nexus-border-subtle)) inset;
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='amber'] {
+  background-color: color-mix(in srgb, var(--color-warning) 22%, var(--nexus-surface-card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-warning) 36%, var(--nexus-border-subtle)) inset;
+}
+
+app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='rose'] {
+  background-color: color-mix(in srgb, #fb7185 20%, var(--nexus-surface-card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, #fb7185 36%, var(--nexus-border-subtle)) inset;
+}
+
+app-dashboard-shell :is(.nexus-nav-item, .friend-row, .context-member):hover app-avatar > span[aria-hidden='true'] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 42%, var(--nexus-border-subtle)) inset;
+}
+
+.nexus-nav-item.mat-mdc-list-item {
+  --mat-list-active-indicator-color: transparent;
+  --mat-nav-list-active-indicator-color: transparent;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  color: var(--color-slate);
+  box-shadow: none;
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-nav-item.mat-mdc-list-item .mat-mdc-list-item-active-indicator {
+  display: none;
+}
+
+.nexus-nav-item.mat-mdc-list-item:not([aria-current='page']):not(.mdc-list-item--activated):is(:hover, :focus-visible) {
+  background-color: var(--nexus-surface-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+  color: var(--color-primary-soft);
+  box-shadow: var(--shadow-glow);
+}
+
+.nexus-nav-item.mat-mdc-list-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.nexus-nav-item.mat-mdc-list-item:is([aria-current='page'], .mdc-list-item--activated) {
+  background-color: color-mix(in srgb, var(--color-primary-soft) 12%, var(--nexus-surface-hover));
+  border-color: color-mix(in srgb, var(--color-primary) 60%, transparent);
+  color: var(--color-ink);
+  box-shadow: 3px 0 0 var(--color-primary) inset;
+}
+
+.nexus-nav-item.mat-mdc-list-item:is([aria-current='page'], .mdc-list-item--activated):is(:hover, :focus-visible) {
+  background-color: color-mix(in srgb, var(--color-primary-soft) 18%, var(--nexus-surface-hover));
+  border-color: color-mix(in srgb, var(--color-primary) 75%, transparent);
+  box-shadow: 3px 0 0 var(--color-primary) inset, var(--shadow-glow);
+}
+
+.nexus-nav-item.mat-mdc-list-item .mdc-list-item__primary-text {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.nexus-nav-item.mat-mdc-list-item .mdc-list-item__secondary-text {
+  color: var(--color-slate);
+}
+
+.nexus-nav-item.mat-mdc-list-item:not([aria-current='page']):not(.mdc-list-item--activated):is(:hover, :focus-visible)
+  :is(.mat-icon, .mdc-list-item__primary-text, .mdc-list-item__secondary-text) {
+  color: var(--color-primary-soft);
+}
+
+.nexus-nav-item.mat-mdc-list-item:is([aria-current='page'], .mdc-list-item--activated) .mat-icon {
+  color: var(--color-primary-soft);
+}
+
+.nexus-nav-item.mat-mdc-list-item:is([aria-current='page'], .mdc-list-item--activated)
+  :is(.mdc-list-item__primary-text, .mdc-list-item__secondary-text) {
+  color: var(--color-ink);
+}
+
+/* Channel & DM Nav Lists: Đảm bảo khoảng thở dọc ổn định 6px (0.375rem / gap-1.5) giữa các hàng */
+:is(app-channel-list, app-conversation-list) .mat-mdc-nav-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.375rem !important;
+}
+
+:is(app-channel-list, app-conversation-list) .mat-mdc-nav-list .nexus-nav-item.mat-mdc-list-item {
+  margin: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-filter-tab,
+  .nexus-icon-control,
+  .nexus-avatar-trigger,
+  .nexus-interactive-row,
+  .nexus-nav-item.mat-mdc-list-item {
+    transition: none;
+  }
+}
+
+/* Thanh cuộn dùng chung cho các vùng nội dung độc lập của Dashboard.
+   Lúc nghỉ thumb gần như chìm vào nền; hover/focus mới tăng tương phản. */
+.nexus-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-canvas-dark) 16%, transparent) transparent;
+}
+
+.nexus-scrollbar:is(:hover, :focus-within) {
+  scrollbar-color: color-mix(in srgb, var(--color-primary) 52%, var(--color-hairline-strong))
+    color-mix(in srgb, var(--color-canvas-dark) 10%, transparent);
+}
+
+.nexus-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.nexus-scrollbar::-webkit-scrollbar-track {
+  border-radius: var(--radius-full);
+  background: transparent;
+}
+
+.nexus-scrollbar::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--radius-full);
+  background-color: color-mix(in srgb, var(--color-canvas-dark) 16%, transparent);
+  background-clip: padding-box;
+}
+
+.nexus-scrollbar:is(:hover, :focus-within)::-webkit-scrollbar-track {
+  background-color: color-mix(in srgb, var(--color-canvas-dark) 10%, transparent);
+}
+
+.nexus-scrollbar:is(:hover, :focus-within)::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-primary) 52%, var(--color-hairline-strong));
+}
+
+.nexus-scrollbar::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* ===========================================================================
+   DASHBOARD CHAT TIMELINE — Nexus Thread
+   Khóa selector vào hai route chat của Dashboard để Channel và DM dùng chung
+   geometry mà không nhân đôi component CSS hoặc ảnh hưởng trang member khác.
+   ========================================================================== */
+
+:is(app-channel-page, app-conversation-page) .message-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  animation: nexus-message-enter 360ms var(--ease-nexus-out) both;
+}
+
+:is(app-channel-page, app-conversation-page) .message-row:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+:is(app-channel-page, app-conversation-page) .message-row:nth-child(4) {
+  animation-delay: 120ms;
+}
+
+:is(app-channel-page, app-conversation-page) .message-row app-avatar {
+  position: relative;
+  z-index: 2;
+}
+
+:is(app-channel-page, app-conversation-page) .message-card {
+  position: relative;
+  min-width: 0;
+  border-radius: var(--radius-lg);
+  background: var(--nexus-surface-card);
+  border: 1px solid var(--nexus-border-subtle);
+  padding: 0.75rem 1rem;
+  box-shadow: var(--nexus-shadow-card);
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+:is(app-channel-page, app-conversation-page) .message-row:hover .message-card,
+:is(app-channel-page, app-conversation-page) .message-row:has(:focus-visible) .message-card {
+  background: var(--nexus-surface-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 38%, var(--nexus-border-subtle));
+  box-shadow:
+    3px 0 0 color-mix(in srgb, var(--color-primary) 72%, transparent) inset,
+    var(--nexus-shadow-hover);
+  transform: translateX(2px);
+}
+
+:is(app-channel-page, app-conversation-page) .message-row--compact {
+  margin-top: -0.125rem;
+}
+
+:is(app-channel-page, app-conversation-page) .message-row__compact-time {
+  align-self: center;
+  text-align: right;
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-nexus-out);
+}
+
+:is(app-channel-page, app-conversation-page)
+  .message-row--compact:hover
+  .message-row__compact-time {
+  opacity: 1;
+}
+
+:is(app-channel-page, app-conversation-page) .message-actions {
+  position: absolute;
+  z-index: 2;
+  top: -1.125rem;
+  right: 0.75rem;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--color-hairline-strong);
+  border-radius: var(--radius-full);
+  background: var(--nexus-surface-card);
+  padding: 0.125rem;
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+:is(app-channel-page, app-conversation-page)
+  .message-row:hover
+  .message-actions,
+:is(app-channel-page, app-conversation-page)
+  .message-row:has(:focus-visible)
+  .message-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+:is(app-channel-page, app-conversation-page) .message-actions button {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-steel);
+
+  --mat-icon-button-state-layer-size: 2rem;
+  --mat-icon-button-touch-target-display: none;
+}
+
+:is(app-channel-page, app-conversation-page) .message-actions button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+:is(app-channel-page, app-conversation-page) .message-actions mat-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+}
+
+:is(app-channel-page, app-conversation-page)
+  .message-actions
+  button:not(:disabled):is(:hover, :focus-visible, [aria-expanded='true']) {
+  background: var(--color-surface-feature);
+  color: var(--color-primary-soft);
+}
+
+/* MatMenu render qua CDK overlay ngoài Dashboard route, nên panel cần class scope
+   riêng thay vì selector theo app-channel-page/app-conversation-page. */
+.nexus-message-reaction-menu .mat-mdc-menu-content {
+  display: grid;
+  grid-template-columns: repeat(5, 2.5rem);
+  gap: 0.25rem;
+  padding: 0.375rem;
+}
+
+.nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option {
+  display: grid;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  place-items: center;
+  border-radius: var(--radius-md);
+  padding: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  text-align: center;
+  justify-content: center;
+  align-content: center;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option .mat-mdc-menu-item-text {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  line-height: 1;
+  text-align: center;
+}
+
+.nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option:is(:hover, :focus-visible) {
+  background: var(--color-surface-feature);
+  transform: translateY(-1px);
+}
+
+.nexus-message-more-menu .mat-mdc-menu-item {
+  min-height: 2.75rem;
+}
+
+.nexus-message-more-menu .message-menu-copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.nexus-message-more-menu .message-menu-copy small {
+  color: var(--color-steel);
+  font-size: var(--text-micro);
+}
+
+.nexus-message-more-menu .message-menu-danger,
+.nexus-message-more-menu .message-menu-danger .mat-icon {
+  color: var(--color-danger);
+}
+
+/* Friend options cũng render trong CDK overlay. Class riêng giữ style chỉ thuộc Dashboard
+   mà không làm thay đổi các Material menu của Auth/Profile/Settings. */
+.nexus-friend-options-menu.mat-mdc-menu-panel {
+  min-width: 17.5rem;
+  max-width: min(20rem, calc(100vw - 1rem));
+  overflow: hidden;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent) inset,
+    var(--shadow-modal);
+}
+
+.nexus-friend-options-menu .mat-mdc-menu-content {
+  padding: 0.5rem;
+}
+
+.nexus-friend-options-menu .friend-options__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.625rem 0.625rem;
+}
+
+.nexus-friend-options-menu .friend-options__identity-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+
+.nexus-friend-options-menu .friend-options__identity-copy :is(strong, small) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nexus-friend-options-menu .friend-options__identity-copy strong {
+  color: var(--color-ink);
+  font-size: var(--text-body-sm);
+  font-weight: var(--text-body-sm-medium--font-weight);
+}
+
+.nexus-friend-options-menu .friend-options__identity-copy small {
+  color: var(--color-steel);
+  font-size: var(--text-caption);
+}
+
+.nexus-friend-options-menu .friend-options__preview {
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface-feature) 74%, var(--color-surface));
+  padding: 0.375rem 0.625rem;
+  color: var(--color-slate);
+  font-size: var(--text-micro);
+}
+
+.nexus-friend-options-menu .friend-options__preview .mat-icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-primary-soft);
+  font-size: 1rem;
+}
+
+.nexus-friend-options-menu .friend-options__section-label {
+  margin: 0;
+  padding: 0.75rem 0.625rem 0.25rem;
+  color: var(--color-steel);
+  font-size: var(--text-micro-uppercase);
+  font-weight: var(--text-micro-uppercase--font-weight);
+  letter-spacing: var(--text-micro-uppercase--letter-spacing);
+  line-height: var(--text-micro-uppercase--line-height);
+  text-transform: uppercase;
+}
+
+.nexus-friend-options-menu .mat-mdc-menu-item {
+  min-height: 2.625rem;
+  border-radius: var(--radius-md);
+  color: var(--color-charcoal);
+}
+
+.nexus-friend-options-menu .mat-mdc-menu-item .mat-icon {
+  color: var(--color-steel);
+}
+
+.nexus-friend-options-menu .mat-mdc-menu-item[disabled] {
+  cursor: not-allowed;
+  opacity: 0.76;
+}
+
+.nexus-friend-options-menu .friend-options__divider {
+  height: 1px;
+  margin: 0.5rem 0.375rem 0;
+  background: var(--color-hairline-soft);
+}
+
+.nexus-friend-options-menu .mat-mdc-menu-item.friend-options__danger,
+.nexus-friend-options-menu .mat-mdc-menu-item.friend-options__danger .mat-icon {
+  color: var(--color-danger);
+}
+
+:is(app-channel-page, app-conversation-page) .reaction-chip {
+  display: inline-flex;
+  min-height: 1.75rem;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary-soft) 32%, var(--color-hairline));
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-surface-feature) 72%, var(--color-canvas));
+  padding: 0.125rem 0.625rem;
+  color: var(--color-slate);
+  font-size: var(--text-caption);
+}
+
+:is(app-channel-page, app-conversation-page) .message-reply {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-steel);
+  font-size: var(--text-caption);
+  margin-bottom: 0.25rem;
+}
+
+:is(app-channel-page, app-conversation-page) .message-reply__avatar {
+  display: grid;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
+  font-size: var(--text-micro);
+}
+
+:is(app-channel-page, app-conversation-page) .message-reply strong {
+  flex: 0 0 auto;
+  color: var(--color-slate);
+  font-weight: 600;
+}
+
+:is(app-channel-page, app-conversation-page) .nexus-unread-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.25rem;
+  color: var(--color-primary-soft);
+  font-size: var(--text-micro);
+  font-weight: 600;
+}
+
+:is(app-channel-page, app-conversation-page) .nexus-unread-divider::before,
+:is(app-channel-page, app-conversation-page) .nexus-unread-divider::after {
+  height: 2px;
+  flex: 1 1 auto;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-primary-soft) 64%, transparent);
+  content: '';
+}
+
+@keyframes nexus-message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Server group là một surface liên tục khi mở. Interaction grouping dùng target
+   phình/halo; drop line chỉ còn mang nghĩa reorder; vùng Ra ngoài chỉ xuất hiện
+   cho server đang thuộc group. Scope giữ tuyệt đối trong app-server-rail. */
+app-server-rail .server-group-shell {
+  position: relative;
+  width: 3.75rem;
+  padding-block: 0.25rem;
+  background: transparent;
+  box-shadow: 0 0 0 1px transparent inset;
+  transition:
+    background-color var(--motion-base) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+app-server-rail .server-group-shell--expanded {
+  background: transparent;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-hairline-strong) 24%, transparent) inset;
+}
+
+app-server-rail .server-group-shell--expanded:hover {
+  background: var(--nexus-surface-hover);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 68%, transparent) inset;
+}
+
+app-server-rail .server-group-shell--expanded::before {
+  position: absolute;
+  top: 3.75rem;
+  bottom: 0.75rem;
+  left: 0.25rem;
+  width: 2px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-primary) 42%, var(--color-hairline));
+  content: '';
+  opacity: 0.78;
+}
+
+app-server-rail .server-group-members {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding-bottom: 0.125rem;
+}
+
+app-server-rail .server-group-caption {
+  display: flex;
+  min-height: 1.125rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  color: var(--color-steel);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+app-server-rail .server-group-caption .mat-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  font-size: 0.75rem;
+}
+
+app-server-rail .server-group-tile--expanded {
+  background: transparent;
+  color: var(--color-ink);
+}
+
+app-server-rail :is(.server-drop-target, .server-group-dropzone) {
+  transform-origin: center;
+  transition:
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+app-server-rail :is(.server-drop-target--group-active, .server-group-dropzone--group-active) {
+  z-index: 4;
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 32%, transparent),
+    var(--shadow-card);
+}
+
+app-server-rail .server-drop-target--group-active .server-tile,
+app-server-rail .server-group-dropzone--group-active .server-group-tile {
+  background: var(--color-surface-feature);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 52%, transparent) inset;
+}
+
+app-server-rail .server-ungroup-zone {
+  display: flex;
+  width: 3.25rem;
+  height: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-soft);
+  color: var(--color-steel);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.86);
+  visibility: hidden;
+  box-shadow: 0 0 0 1px var(--color-hairline-strong) inset;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-fast) var(--ease-nexus-out),
+    color var(--motion-fast) var(--ease-nexus-out),
+    height var(--motion-base) var(--ease-nexus-out),
+    margin var(--motion-base) var(--ease-nexus-out),
+    opacity var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+app-server-rail .server-ungroup-zone .mat-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
+}
+
+app-server-rail .server-ungroup-zone--visible {
+  height: 2.25rem;
+  min-height: 2.25rem;
+  margin: 0.125rem 0 0.5rem;
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+  visibility: visible;
+}
+
+app-server-rail .server-ungroup-zone--active {
+  background: var(--color-surface-feature);
+  color: var(--color-ink);
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 28%, transparent),
+    0 0 0 1px var(--color-primary) inset;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  app-server-rail
+    :is(.server-drop-target, .server-group-dropzone, .server-group-shell, .server-ungroup-zone) {
+    transition: none;
+  }
+
+  app-server-rail
+    :is(
+      .server-drop-target--group-active,
+      .server-group-dropzone--group-active,
+      .server-ungroup-zone,
+      .server-ungroup-zone--active
+    ) {
+    transform: none;
+  }
+}
+
+/* Command Center render qua CDK overlay ngoài app-server-rail, nên scope bằng đúng
+   panel class của dialog thay vì để rule toàn cục trôi sang modal khác. */
+.nexus-add-server-dialog .command-center {
+  display: flex;
+  min-height: min(34rem, calc(100dvh - 2rem));
+  max-height: calc(100dvh - 2rem);
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-canvas);
+}
+
+.nexus-add-server-dialog :is(.command-center__header, .command-center__footer) {
+  flex: 0 0 auto;
+}
+
+.nexus-add-server-dialog .command-center__header {
+  box-shadow: 0 -1px 0 color-mix(in srgb, var(--color-hairline) 72%, transparent) inset;
+}
+
+.nexus-add-server-dialog .command-center__mark {
+  background: var(--color-surface-feature);
+  color: var(--color-primary-soft);
+  box-shadow: var(--shadow-glow);
+}
+
+
+.nexus-add-server-dialog .command-center__shortcut {
+  align-items: center;
+  min-height: 1.75rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+  padding: 0 0.5rem;
+  color: var(--color-steel);
+  font-size: var(--text-micro);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset;
+}
+
+.nexus-add-server-dialog .command-center__search {
+  border: 1px solid var(--color-hairline-strong);
+  background: var(--color-surface-soft);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+  transition:
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .command-center__search:focus-within {
+  border-color: var(--color-primary-soft);
+  background: var(--color-canvas);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary-soft) 18%, transparent),
+    var(--shadow-card);
+}
+
+.nexus-add-server-dialog .command-center__scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+}
+
+.nexus-add-server-dialog .command-chip {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--nexus-border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--nexus-surface-well);
+  padding: 0.1875rem 0.625rem;
+  color: var(--color-slate);
+  font-size: var(--text-micro);
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: none;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .command-chip:hover {
+  background: var(--nexus-surface-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--nexus-border-subtle));
+  color: var(--color-ink);
+  box-shadow: var(--shadow-glow);
+}
+
+.nexus-add-server-dialog .command-chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.nexus-add-server-dialog .command-chip:active {
+  transform: scale(0.97);
+}
+
+.nexus-add-server-dialog .command-chip--active {
+  background: var(--nexus-surface-selected);
+  border-color: color-mix(in srgb, var(--color-primary) 65%, var(--nexus-border-subtle));
+  color: var(--color-ink);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 35%, transparent) inset;
+}
+
+.nexus-add-server-dialog .command-chip__prefix {
+  color: var(--color-primary-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.nexus-add-server-dialog .command-chip .mat-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
+  color: var(--color-steel);
+}
+
+.nexus-add-server-dialog .command-chip--active .mat-icon {
+  color: var(--color-primary-soft);
+}
+
+.nexus-add-server-dialog .command-center__body {
+  flex: 1 1 auto;
+}
+
+.nexus-add-server-dialog .command-result {
+  color: var(--color-ink);
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .command-result:is(:hover, :focus-visible, .command-result--active) {
+  background: var(--color-surface-feature);
+  box-shadow: 3px 0 0 var(--color-primary) inset;
+  transform: translateX(2px);
+}
+
+.nexus-add-server-dialog .command-result__icon {
+  background: color-mix(in srgb, var(--color-surface-soft) 82%, var(--color-canvas));
+  color: var(--color-primary-soft);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset;
+}
+
+.nexus-add-server-dialog .command-result__arrow {
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-add-server-dialog .command-result:is(:hover, :focus-visible, .command-result--active) .command-result__arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+
+.nexus-add-server-dialog .command-center__footer {
+  background: color-mix(in srgb, var(--color-surface-soft) 68%, var(--color-canvas));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-hairline) 72%, transparent) inset;
+}
+
+@media (max-width: 39.999rem) {
+  :is(app-channel-page, app-conversation-page) .message-row {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  :is(app-channel-page, app-conversation-page) .message-card {
+    padding-inline: 0.75rem;
+  }
+
+  :is(app-channel-page, app-conversation-page) .message-actions {
+    position: static;
+    width: fit-content;
+    margin-top: 0.5rem;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .nexus-add-server-dialog .command-result__kind {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(app-channel-page, app-conversation-page) .message-row {
+    animation: none;
+  }
+
+  :is(app-channel-page, app-conversation-page)
+    :is(.message-card, .message-actions, .message-row__compact-time),
+  .nexus-add-server-dialog :is(.command-center__search, .command-result, .command-result__arrow, .command-chip) {
+    transition: none;
+    transform: none;
+  }
+
+
+  .nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   NEXUS ORBIT BOOT — fallback trước Angular + overlay khi vào Dashboard
+   Scope riêng để index.html và component NexusBoot dùng cùng một geometry.
+   ========================================================================== */
+
+.nexus-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  overflow: hidden;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  isolation: isolate;
+  animation: nexus-boot-enter 320ms var(--ease-nexus-out) both;
+  transition:
+    opacity var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-boot::after {
+  position: absolute;
+  z-index: -1;
+  content: '';
+  pointer-events: none;
+}
+
+.nexus-boot::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-hairline-soft));
+  opacity: 0.42;
+}
+
+.nexus-boot--static {
+  animation: nexus-boot-static-reveal 1ms linear 140ms both;
+}
+
+.nexus-boot--leaving {
+  opacity: 0;
+  transform: scale(1.012);
+}
+
+.nexus-boot__content {
+  display: grid;
+  width: min(22rem, calc(100vw - 3rem));
+  justify-items: center;
+  text-align: center;
+}
+
+.nexus-boot__mark {
+  position: relative;
+  display: grid;
+  width: 9.5rem;
+  aspect-ratio: 1;
+  place-items: center;
+  isolation: isolate;
+}
+
+.nexus-boot__mark::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: -1;
+  width: min(68vmin, 34rem);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 10%, var(--color-hairline));
+  border-radius: var(--radius-full);
+  content: '';
+  opacity: 0.46;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.nexus-boot__orbits {
+  position: absolute;
+  inset: 0;
+  animation: nexus-boot-orbit-turn 7.2s linear infinite;
+}
+
+.nexus-boot__orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8.7rem;
+  height: 3.65rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 62%, var(--color-hairline));
+  border-radius: var(--radius-full);
+}
+
+.nexus-boot__orbit--one {
+  transform: translate(-50%, -50%) rotate(28deg);
+}
+
+.nexus-boot__orbit--two {
+  border-color: color-mix(in srgb, var(--color-primary) 36%, var(--color-hairline));
+  transform: translate(-50%, -50%) rotate(-28deg);
+}
+
+.nexus-boot__node {
+  position: absolute;
+  width: 0.65rem;
+  aspect-ratio: 1;
+  border: 2px solid var(--color-canvas);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 54%, transparent);
+  transform: translate(-50%, -50%);
+  animation: nexus-boot-node-breathe 1.8s var(--ease-nexus-out) infinite;
+}
+
+.nexus-boot__node--one {
+  top: 50%;
+  left: 0;
+}
+
+.nexus-boot__node--two {
+  top: 50%;
+  left: 100%;
+}
+
+.nexus-boot__node--three,
+.nexus-boot__node--four {
+  top: 50%;
+}
+
+.nexus-boot__node--three {
+  left: 0;
+}
+
+.nexus-boot__node--four {
+  left: 100%;
+}
+
+.nexus-boot__monogram {
+  position: relative;
+  display: grid;
+  width: 3.8rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-hairline));
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.08em;
+  line-height: 1;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent) inset,
+    var(--shadow-card);
+}
+
+.nexus-boot__copy {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1.35rem;
+}
+
+.nexus-boot__copy strong {
+  color: var(--color-ink);
+  font-size: var(--text-heading-5);
+  font-weight: var(--text-heading-5--font-weight);
+  letter-spacing: -0.025em;
+}
+
+.nexus-boot__copy span {
+  color: var(--color-steel);
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  text-wrap: balance;
+}
+
+.nexus-boot__progress {
+  position: relative;
+  display: block;
+  width: 7.5rem;
+  height: 2px;
+  margin-top: 1.25rem;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-hairline);
+}
+
+.nexus-boot__progress > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  animation: nexus-boot-progress 1.35s var(--ease-nexus-out) infinite;
+}
+
+@keyframes nexus-boot-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes nexus-boot-static-reveal {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes nexus-boot-orbit-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nexus-boot-node-breathe {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) scale(0.84);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+@keyframes nexus-boot-progress {
+  from {
+    transform: translateX(-135%);
+  }
+
+  to {
+    transform: translateX(340%);
+  }
+}
+
+@media (max-width: 29.999rem) {
+  .nexus-boot__mark {
+    width: 8.5rem;
+  }
+
+  .nexus-boot__orbit {
+    width: 7.8rem;
+    height: 3.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-boot,
+  .nexus-boot__orbits,
+  .nexus-boot__node {
+    animation: none;
+  }
+
+  .nexus-boot {
+    transition: opacity 1ms linear;
+  }
+
+  .nexus-boot__progress {
+    display: none;
+  }
+}
+
 /* ==========================================================================
    GHI CHÚ CHO TEAM
 
@@ -309,6 +2166,6 @@ html {
    4. Nút LUÔN pill (`rounded-full`); badge trạng thái cũng pill. Card `rounded-lg`
       (12px). Xanh brand chỉ cho CTA + chỉ báo trạng thái, không dùng làm chữ thân bài.
 
-   5. Chưa có light mode. Khi thêm: chỉ đổi khối `--color-*` theo
-      :root[data-theme='light'], phần còn lại giữ nguyên.
+   5. Light mode đổi token trong `html[data-theme='light']`; geometry và semantic state
+      phải dùng chung với dark mode, không tách hai bộ component.
    ========================================================================== */

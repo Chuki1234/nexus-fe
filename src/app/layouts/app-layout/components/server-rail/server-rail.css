@@ -1,0 +1,148 @@
+:host {
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  border: 1px solid var(--nexus-border-subtle);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Nexus Seam Marker: Đường chỉ báo vị trí active thanh lịch với node kết nối */
+.nexus-thread-marker {
+  width: 3px;
+  overflow: visible;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+
+.nexus-thread-marker::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border: 1.5px solid var(--color-canvas);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  content: '';
+  transform: translate(-50%, -50%);
+}
+
+.server-tile,
+.server-group-tile {
+  color: var(--color-ink);
+  font-weight: 600;
+  font-size: var(--text-body-sm-medium);
+}
+
+.server-rail-action {
+  color: var(--color-steel);
+}
+
+.server-tile,
+.server-group-tile,
+.server-rail-action {
+  background: var(--nexus-surface-well);
+  border: 1px solid transparent;
+  box-shadow: none;
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.server-tile:not(:active):is(:hover, :focus-visible),
+.server-group-tile:not(:active):is(:hover, :focus-visible),
+.server-rail-action:not(:active):is(:hover, :focus-visible) {
+  background: var(--nexus-surface-hover);
+  color: var(--color-ink);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--nexus-border-subtle));
+  box-shadow: var(--shadow-glow);
+}
+
+.server-rail-action:not(:active):is(:hover, :focus-visible) {
+  color: var(--color-primary-soft);
+}
+
+.server-tile:focus-visible,
+.server-group-tile:focus-visible,
+.server-rail-action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.server-tile[aria-current='page'] {
+  background: var(--nexus-surface-selected);
+  border-color: color-mix(in srgb, var(--color-primary) 50%, var(--nexus-border-subtle));
+  color: var(--color-ink);
+}
+
+.server-tile[aria-current='page']:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--color-primary-soft) 16%, var(--nexus-surface-hover));
+  border-color: color-mix(in srgb, var(--color-primary) 65%, var(--nexus-border-subtle));
+}
+
+.server-drag-source {
+  cursor: grab;
+  user-select: none;
+}
+
+.server-drag-source:active {
+  cursor: grabbing;
+}
+
+.server-drop-slot {
+  display: flex;
+  width: 3rem;
+  height: 0.5rem;
+  flex: 0 0 0.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.server-drop-indicator {
+  width: 2rem;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  opacity: 0;
+  transform: scaleX(0.45);
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-fast) var(--ease-nexus-out),
+    opacity var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.server-drop-slot--active .server-drop-indicator {
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-soft) 18%, transparent);
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.server-drag-source.cdk-drag-preview {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+}
+
+.server-drag-source.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.server-drag-source.cdk-drag-animating {
+  transition: transform var(--motion-base) var(--ease-nexus-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .server-tile,
+  .server-group-tile,
+  .server-rail-action,
+  .server-drag-source.cdk-drag-animating,
+  .server-drop-indicator {
+    transition: none;
+    transform: none;
+  }
+}
+

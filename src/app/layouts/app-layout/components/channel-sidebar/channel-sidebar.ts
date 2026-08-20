@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+
 import { ShellData } from '../../../../core/api/shell-data';
 import { SearchField } from '../../../../shared/ui/search-field/search-field';
 import { UserPanel } from '../user-panel/user-panel';
@@ -27,7 +28,7 @@ import { UserSettingsService, SettingsTab } from '../../../../features/settings/
     MatTooltipModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex h-full w-60 shrink-0 flex-col bg-surface' },
+  host: { class: 'flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface' },
   styleUrl: './channel-sidebar.css',
   templateUrl: './channel-sidebar.html',
 })
@@ -37,6 +38,8 @@ export class ChannelSidebar {
 
   /** Rỗng = khu tin nhắn trực tiếp. */
   readonly serverId = input<string | null>(null);
+
+  protected readonly conversationQuery = signal('');
 
   protected readonly title = computed(() => {
     const id = this.serverId();

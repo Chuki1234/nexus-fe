@@ -1,0 +1,48 @@
+<section class="max-w-2xl rounded-xl border border-hairline bg-surface p-5 shadow-glow sm:p-6">
+  <span
+    class="flex size-11 items-center justify-center rounded-xl bg-surface-feature text-primary-soft shadow-glow"
+  >
+    <mat-icon aria-hidden="true">person_add</mat-icon>
+  </span>
+
+  <h2 class="mt-4 text-heading-4 text-ink">Thêm bạn</h2>
+  <p class="mt-2 text-body-sm text-slate">
+    Nhập chính xác tên người dùng NexusCord. Đây là bản UI, chưa gửi dữ liệu tới máy chủ.
+  </p>
+
+
+  <form class="mt-5" (submit)="submitPreview(); $event.preventDefault()">
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Tên người dùng</mat-label>
+      <input
+        matInput
+        type="text"
+        maxlength="32"
+        autocomplete="off"
+        [formControl]="username"
+        aria-describedby="add-friend-note"
+      />
+      <mat-icon matPrefix aria-hidden="true">alternate_email</mat-icon>
+      <mat-hint align="end">{{ username.value.length }}/32</mat-hint>
+      @if (username.hasError('required')) {
+        <mat-error>Hãy nhập tên người dùng.</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="mt-3 flex flex-wrap items-center gap-3">
+      <button mat-flat-button type="submit" [disabled]="username.invalid">Gửi lời mời</button>
+      <span id="add-friend-note" class="text-caption text-steel">Không có API nào được gọi.</span>
+    </div>
+  </form>
+
+  @if (submitted()) {
+    <p
+      class="mt-4 rounded-xl border border-hairline bg-surface-feature p-3 text-body-sm text-slate shadow-glow"
+      role="status"
+    >
+      Bản xem trước đã nhận tên <strong class="text-ink">{{ username.value }}</strong
+      >; thao tác gửi thật sẽ được nối ở phase chức năng.
+    </p>
+  }
+</section>
+

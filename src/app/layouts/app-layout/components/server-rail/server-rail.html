@@ -6,34 +6,255 @@
   matTooltip="Tin nhắn trực tiếp"
   matTooltipPosition="right"
   [attr.aria-current]="dmLink.isActive ? 'page' : null"
-  class="relative flex size-12 items-center justify-center rounded-md transition-colors"
-  [class.bg-primary]="dmLink.isActive"
-  [class.text-on-primary]="dmLink.isActive"
-  [class.bg-surface]="!dmLink.isActive"
-  [class.text-ink]="!dmLink.isActive"
+  class="server-tile nexus-icon-control relative flex size-12 items-center justify-center rounded-xl"
 >
   <mat-icon aria-hidden="true">forum</mat-icon>
   <span class="sr-only">Tin nhắn trực tiếp</span>
   @if (dmLink.isActive) {
-    <span aria-hidden="true" class="absolute -left-3 h-10 w-1 rounded-full bg-primary"></span>
+    <span
+      aria-hidden="true"
+      class="nexus-thread-marker absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
+      data-nexus-thread="server-active"
+    ></span>
   }
 </a>
 
 <hr class="my-1 w-8 border-t border-hairline" aria-hidden="true" />
 
-<ul class="flex flex-col items-center gap-2" aria-label="Máy chủ của bạn">
-  @for (server of servers(); track server.id) {
-    <li class="relative">
+<span id="server-drag-help" class="sr-only">
+  Giữ và kéo một máy chủ lên máy chủ hoặc folder đang phình để gom nhóm, thả vào đường ngang để sắp
+  xếp, hoặc thả vào vùng Ra ngoài để đưa máy chủ ra khỏi nhóm.
+</span>
+
+<ul
+  cdkDropListGroup
+  class="nexus-scrollbar flex min-h-0 w-full flex-1 flex-col items-center overflow-x-hidden overflow-y-auto px-1 pb-2"
+  aria-label="Máy chủ của bạn"
+  aria-describedby="server-drag-help"
+>
+  @for (group of serverGroups(); track group.id) {
+    @let groupServers = serversInGroup(group);
+    @if (groupServers.length > 0) {
+      <li
+        class="server-group-shell mb-2 flex flex-col items-center rounded-xl"
+        [class.server-group-shell--expanded]="groupIsExpanded(group.id)"
+        [attr.data-server-group-id]="group.id"
+        [attr.data-group-state]="groupIsExpanded(group.id) ? 'expanded' : 'collapsed'"
+      >
+        <div
+          cdkDropList
+          [cdkDropListData]="group.id"
+          [cdkDropListSortingDisabled]="true"
+          (cdkDropListEntered)="activateGroupingTarget('group', group.id)"
+          (cdkDropListExited)="deactivateGroupingTarget('group', group.id)"
+          (cdkDropListDropped)="dropOnGroup($event, group.id)"
+          class="server-group-dropzone relative rounded-lg"
+          [class.server-group-dropzone--group-active]="groupingTargetIsActive('group', group.id)"
+          [attr.data-group-drop-target]="group.id"
+        >
+          <button
+            type="button"
+            class="server-group-tile nexus-icon-control flex size-12 items-center justify-center rounded-xl"
+            [class.server-group-tile--expanded]="groupIsExpanded(group.id)"
+            [attr.aria-expanded]="groupIsExpanded(group.id)"
+            [attr.aria-label]="
+              'Nhóm máy chủ ' + group.name + ', ' + groupServers.length + ' máy chủ'
+            "
+            [matTooltip]="group.name + ' · ' + groupServers.length + ' máy chủ'"
+            matTooltipPosition="right"
+            (click)="toggleGroup(group.id)"
+          >
+            <span aria-hidden="true" class="grid size-9 grid-cols-2 gap-0.5 rounded-md p-0.5">
+              @for (server of groupServers.slice(0, 4); track server.id) {
+                <span
+                  data-server-miniature
+                  class="flex size-4 items-center justify-center overflow-hidden rounded-xs bg-surface-feature text-micro-uppercase font-semibold text-ink"
+                >
+                  @if (server.iconUrl) {
+                    <img [src]="server.iconUrl" alt="" class="size-full object-cover" />
+                  } @else {
+                    {{ initialsOf(server.name) }}
+                  }
+                </span>
+              }
+            </span>
+          </button>
+
+          @if (!groupIsExpanded(group.id) && groupHasUnread(groupServers)) {
+            <span
+              aria-hidden="true"
+              class="absolute top-5 -left-3 size-2 rounded-full bg-ink"
+            ></span>
+          }
+          <app-unread-badge
+            class="pointer-events-none absolute -right-1 -bottom-1"
+            [count]="groupMentions(groupServers)"
+            label="lượt nhắc tên trong nhóm chưa đọc"
+          />
+        </div>
+
+        @if (groupIsExpanded(group.id)) {
+          <ul
+            class="server-group-members flex flex-col items-center"
+            [attr.aria-label]="group.name"
+            data-expanded-group-members
+          >
+            <li class="server-group-caption" aria-hidden="true">
+              <mat-icon>folder_open</mat-icon>
+              <span>{{ groupServers.length }}</span>
+            </li>
+
+            @for (server of groupServers; track server.id; let index = $index) {
+              @let slotId = groupSlotId(group.id, index);
+              <li
+                cdkDropList
+                [cdkDropListData]="slotId"
+                [cdkDropListSortingDisabled]="true"
+                (cdkDropListEntered)="activateDropSlot(slotId)"
+                (cdkDropListExited)="deactivateDropSlot(slotId)"
+                (cdkDropListDropped)="dropIntoGroupAt($event, group.id, index)"
+                class="server-drop-slot"
+                [class.server-drop-slot--active]="activeDropSlot() === slotId"
+                [attr.data-server-drop-slot]="slotId"
+                [attr.aria-label]="'Vị trí ' + (index + 1) + ' trong nhóm ' + group.name"
+              >
+                <span class="server-drop-indicator" aria-hidden="true"></span>
+              </li>
+
+              <li
+                cdkDropList
+                [cdkDropListData]="server.id"
+                [cdkDropListSortingDisabled]="true"
+                (cdkDropListEntered)="activateGroupingTarget('server', server.id)"
+                (cdkDropListExited)="deactivateGroupingTarget('server', server.id)"
+                (cdkDropListDropped)="dropOnServer($event, server.id)"
+                class="server-drop-target relative rounded-md"
+                [class.server-drop-target--group-active]="
+                  groupingTargetIsActive('server', server.id)
+                "
+                [attr.data-server-drop-target]="server.id"
+              >
+                <a
+                  cdkDrag
+                  [cdkDragData]="server.id"
+                  (cdkDragStarted)="startServerDrag(server.id)"
+                  (cdkDragEnded)="finishServerDrag()"
+                  [routerLink]="linkFor(server.id)"
+                  routerLinkActive
+                  #groupServerLink="routerLinkActive"
+                  [matTooltip]="server.name"
+                  matTooltipPosition="right"
+                  [attr.aria-current]="groupServerLink.isActive ? 'page' : null"
+                  [attr.data-server-id]="server.id"
+                  class="server-tile server-drag-source nexus-icon-control flex size-12 items-center justify-center rounded-xl text-body-md-medium"
+                >
+                  {{ initialsOf(server.name) }}
+                </a>
+
+                @if (groupServerLink.isActive) {
+                  <span
+                    aria-hidden="true"
+                    class="nexus-thread-marker absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
+                    data-nexus-thread="server-active"
+                  ></span>
+                } @else if (server.unread) {
+                  <span
+                    aria-hidden="true"
+                    class="absolute top-5 -left-3 size-2 rounded-full bg-ink"
+                  ></span>
+                }
+
+                <app-unread-badge
+                  class="pointer-events-none absolute -right-1 -bottom-1"
+                  [count]="server.mentionCount"
+                  label="lượt nhắc tên chưa đọc"
+                />
+              </li>
+            }
+
+            @let finalGroupSlotId = groupSlotId(group.id, groupServers.length);
+            <li
+              cdkDropList
+              [cdkDropListData]="finalGroupSlotId"
+              [cdkDropListSortingDisabled]="true"
+              (cdkDropListEntered)="activateDropSlot(finalGroupSlotId)"
+              (cdkDropListExited)="deactivateDropSlot(finalGroupSlotId)"
+              (cdkDropListDropped)="dropIntoGroupAt($event, group.id, groupServers.length)"
+              class="server-drop-slot"
+              [class.server-drop-slot--active]="activeDropSlot() === finalGroupSlotId"
+              [attr.data-server-drop-slot]="finalGroupSlotId"
+              [attr.aria-label]="'Vị trí cuối nhóm ' + group.name"
+            >
+              <span class="server-drop-indicator" aria-hidden="true"></span>
+            </li>
+          </ul>
+        }
+      </li>
+
+      <li
+        cdkDropList
+        [cdkDropListData]="'ungroup-' + group.id"
+        [cdkDropListSortingDisabled]="true"
+        [cdkDropListDisabled]="draggingSourceGroupId() !== group.id"
+        (cdkDropListEntered)="activateUngroupTarget(group.id)"
+        (cdkDropListExited)="deactivateUngroupTarget(group.id)"
+        (cdkDropListDropped)="dropOutsideGroupsAt($event, 0)"
+        class="server-ungroup-zone"
+        [class.server-ungroup-zone--visible]="draggingSourceGroupId() === group.id"
+        [class.server-ungroup-zone--active]="activeUngroupTarget() === group.id"
+        [attr.data-server-ungroup-zone]="group.id"
+        [attr.aria-hidden]="draggingSourceGroupId() === group.id ? null : 'true'"
+        aria-label="Thả để đưa máy chủ ra ngoài nhóm"
+        matTooltip="Thả để đưa máy chủ ra ngoài nhóm"
+        matTooltipPosition="right"
+      >
+        <mat-icon aria-hidden="true">folder_off</mat-icon>
+        <span aria-hidden="true">Ra ngoài</span>
+      </li>
+    }
+  }
+
+  @for (server of ungroupedServers(); track server.id; let index = $index) {
+    @let slotId = railSlotId(index);
+    <li
+      cdkDropList
+      [cdkDropListData]="slotId"
+      [cdkDropListSortingDisabled]="true"
+      (cdkDropListEntered)="activateDropSlot(slotId)"
+      (cdkDropListExited)="deactivateDropSlot(slotId)"
+      (cdkDropListDropped)="dropOutsideGroupsAt($event, index)"
+      class="server-drop-slot"
+      [class.server-drop-slot--active]="activeDropSlot() === slotId"
+      [attr.data-server-drop-slot]="slotId"
+      [attr.aria-label]="'Vị trí ' + (index + 1) + ' ngoài nhóm máy chủ'"
+    >
+      <span class="server-drop-indicator" aria-hidden="true"></span>
+    </li>
+
+    <li
+      cdkDropList
+      [cdkDropListData]="server.id"
+      [cdkDropListSortingDisabled]="true"
+      (cdkDropListEntered)="activateGroupingTarget('server', server.id)"
+      (cdkDropListExited)="deactivateGroupingTarget('server', server.id)"
+      (cdkDropListDropped)="dropOnServer($event, server.id)"
+      class="server-drop-target relative rounded-md"
+      [class.server-drop-target--group-active]="groupingTargetIsActive('server', server.id)"
+      [attr.data-server-drop-target]="server.id"
+    >
       <a
+        cdkDrag
+        [cdkDragData]="server.id"
+        (cdkDragStarted)="startServerDrag(server.id)"
+        (cdkDragEnded)="finishServerDrag()"
         [routerLink]="linkFor(server.id)"
         routerLinkActive
         #serverLink="routerLinkActive"
         [matTooltip]="server.name"
         matTooltipPosition="right"
         [attr.aria-current]="serverLink.isActive ? 'page' : null"
-        class="flex size-12 items-center justify-center rounded-md bg-surface text-body-md-medium text-ink transition-colors hover:bg-primary hover:text-on-primary"
-        [class.ring-2]="serverLink.isActive"
-        [class.ring-primary]="serverLink.isActive"
+        [attr.data-server-id]="server.id"
+        class="server-tile server-drag-source nexus-icon-control flex size-12 items-center justify-center rounded-xl text-body-md-medium"
       >
         {{ initialsOf(server.name) }}
       </a>
@@ -41,29 +262,601 @@
       @if (serverLink.isActive) {
         <span
           aria-hidden="true"
-          class="absolute top-1 -left-3 h-10 w-1 rounded-full bg-primary"
+          class="nexus-thread-marker absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
+          data-nexus-thread="server-active"
         ></span>
       } @else if (server.unread) {
         <span aria-hidden="true" class="absolute top-5 -left-3 size-2 rounded-full bg-ink"></span>
       }
 
       <app-unread-badge
-        class="absolute -right-1 -bottom-1"
+        class="pointer-events-none absolute -right-1 -bottom-1"
         [count]="server.mentionCount"
         label="lượt nhắc tên chưa đọc"
       />
     </li>
   }
+
+  @let finalRailSlotId = railSlotId(ungroupedServers().length);
+  <li
+    cdkDropList
+    [cdkDropListData]="finalRailSlotId"
+    [cdkDropListSortingDisabled]="true"
+    (cdkDropListEntered)="activateDropSlot(finalRailSlotId)"
+    (cdkDropListExited)="deactivateDropSlot(finalRailSlotId)"
+    (cdkDropListDropped)="dropOutsideGroupsAt($event, ungroupedServers().length)"
+    class="server-drop-slot"
+    [class.server-drop-slot--active]="activeDropSlot() === finalRailSlotId"
+    [attr.data-server-drop-slot]="finalRailSlotId"
+    aria-label="Vị trí cuối ngoài nhóm máy chủ"
+  >
+    <span class="server-drop-indicator" aria-hidden="true"></span>
+  </li>
 </ul>
 
-<!-- P2 sẽ mở hộp thoại tạo/tham gia server; hiện chỉ là chỗ giữ vị trí. -->
 <button
   type="button"
-  disabled
-  matTooltip="Thêm máy chủ (chưa làm)"
+  (click)="openCommandCenter(commandDialog)"
+  matTooltip="Đi tới máy chủ, kênh hoặc tin nhắn riêng"
   matTooltipPosition="right"
-  class="flex size-12 items-center justify-center rounded-md bg-surface text-primary transition-colors disabled:cursor-not-allowed disabled:text-steel"
+  aria-label="Điều hướng tới máy chủ, kênh hoặc tin nhắn trực tiếp"
+  aria-keyshortcuts="Control+K Meta+K"
+  data-action="global-search"
+  class="server-rail-action nexus-icon-control flex size-12 items-center justify-center rounded-full"
+>
+  <mat-icon aria-hidden="true">search</mat-icon>
+</button>
+
+<ng-template #commandDialog>
+  <section class="command-center" aria-labelledby="command-center-title">
+    <header class="command-center__header flex items-center gap-3 px-5 pt-5 pb-4">
+      <span
+        class="command-center__mark flex size-10 shrink-0 items-center justify-center rounded-full"
+        aria-hidden="true"
+      >
+        <mat-icon>hub</mat-icon>
+      </span>
+
+      <span class="min-w-0 flex-1">
+        <p class="text-micro-uppercase text-steel">Nexus Command · Quick Switcher</p>
+        <h2 id="command-center-title" class="text-heading-5 text-ink">Điều hướng toàn Nexus</h2>
+      </span>
+
+      <kbd class="command-center__shortcut hidden sm:inline-flex">Ctrl K</kbd>
+      <button
+        mat-icon-button
+        mat-dialog-close
+        type="button"
+        class="nexus-icon-control"
+        aria-label="Đóng tìm kiếm"
+      >
+        <mat-icon aria-hidden="true">close</mat-icon>
+      </button>
+    </header>
+
+    <div class="px-5 pb-3">
+      <div class="command-center__search flex h-12 items-center gap-3 rounded-lg px-4">
+        <mat-icon aria-hidden="true" class="text-steel">search</mat-icon>
+        <input
+          #commandInput
+          type="search"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded="true"
+          aria-controls="command-results-list"
+          [attr.aria-activedescendant]="activeResultId()"
+          aria-describedby="command-prefix-guide"
+          class="command-center__input min-w-0 flex-1 bg-transparent text-body-md text-ink placeholder:text-steel focus:outline-none"
+          placeholder="Bạn muốn đi đâu? (Dùng *, @, #, ! để lọc nhanh)"
+          aria-label="Tìm điểm đến trong NexusCord"
+          autocomplete="off"
+          [value]="commandQuery()"
+          (input)="updateCommandQuery($event)"
+          (keydown)="handleCommandInputKeydown($event)"
+        />
+        @if (commandQuery()) {
+          <button
+            type="button"
+            class="nexus-icon-control flex size-8 items-center justify-center rounded-full"
+            aria-label="Xóa từ khóa"
+            (click)="commandQuery.set(''); activeResultIndex.set(0); commandInput.focus()"
+          >
+            <mat-icon aria-hidden="true" class="!text-lg">close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <p id="command-prefix-guide" class="sr-only">
+        Gõ dấu sao * để lọc máy chủ, a còng @ cho tin nhắn riêng, thăng # cho kênh chữ, chấm than ! cho kênh thoại.
+      </p>
+
+      <div class="command-center__scope mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Phạm vi điều hướng">
+        <button
+          type="button"
+          class="command-chip"
+          [class.command-chip--active]="commandScope() === 'all'"
+          [attr.aria-pressed]="commandScope() === 'all'"
+          (click)="selectScopeChip('all', commandInput)"
+        >
+          Tất cả
+        </button>
+        <button
+          type="button"
+          class="command-chip"
+          [class.command-chip--active]="commandScope() === 'server'"
+          [attr.aria-pressed]="commandScope() === 'server'"
+          (click)="selectScopeChip('server', commandInput)"
+          aria-label="Lọc theo máy chủ (*)"
+        >
+          <span class="command-chip__prefix font-mono" aria-hidden="true">*</span>
+          <mat-icon aria-hidden="true">dns</mat-icon>
+          <span>Máy chủ</span>
+        </button>
+        <button
+          type="button"
+          class="command-chip"
+          [class.command-chip--active]="commandScope() === 'conversation'"
+          [attr.aria-pressed]="commandScope() === 'conversation'"
+          (click)="selectScopeChip('conversation', commandInput)"
+          aria-label="Lọc theo tin nhắn riêng (@)"
+        >
+          <span class="command-chip__prefix font-mono" aria-hidden="true">@</span>
+          <mat-icon aria-hidden="true">alternate_email</mat-icon>
+          <span>Tin nhắn riêng</span>
+        </button>
+        <button
+          type="button"
+          class="command-chip"
+          [class.command-chip--active]="commandScope() === 'text-channel'"
+          [attr.aria-pressed]="commandScope() === 'text-channel'"
+          (click)="selectScopeChip('text-channel', commandInput)"
+          aria-label="Lọc theo kênh chữ (#)"
+        >
+          <span class="command-chip__prefix font-mono" aria-hidden="true">#</span>
+          <mat-icon aria-hidden="true">tag</mat-icon>
+          <span>Kênh chữ</span>
+        </button>
+        <button
+          type="button"
+          class="command-chip"
+          [class.command-chip--active]="commandScope() === 'voice-channel'"
+          [attr.aria-pressed]="commandScope() === 'voice-channel'"
+          (click)="selectScopeChip('voice-channel', commandInput)"
+          aria-label="Lọc theo kênh thoại (!)"
+        >
+          <span class="command-chip__prefix font-mono" aria-hidden="true">!</span>
+          <mat-icon aria-hidden="true">volume_up</mat-icon>
+          <span>Kênh thoại</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sr-only" aria-live="polite" aria-atomic="true">
+      {{ resultAnnouncement() }}
+    </div>
+
+    <div class="command-center__body nexus-scrollbar min-h-0 overflow-y-auto px-3 pb-3">
+      @if (commandResults().length > 0) {
+        <p class="px-3 py-2 text-micro-uppercase text-stone">
+          {{ scopeHeading() }}
+        </p>
+
+        <div
+          id="command-results-list"
+          role="listbox"
+          aria-label="Kết quả tìm nhanh"
+          class="grid gap-1"
+        >
+          @for (result of commandResults(); track result.id; let index = $index) {
+            <a
+              [id]="'result-opt-' + result.id"
+              role="option"
+              [attr.aria-selected]="index === activeResultIndex()"
+              [routerLink]="result.link"
+              mat-dialog-close
+              (click)="selectResult(result)"
+              (mouseenter)="activeResultIndex.set(index)"
+              class="command-result group flex min-h-15 items-center gap-3 rounded-lg px-3 py-2"
+              [class.command-result--active]="index === activeResultIndex()"
+              [attr.data-command-result]="result.kind"
+            >
+              <span
+                class="command-result__icon flex size-10 shrink-0 items-center justify-center rounded-lg"
+                aria-hidden="true"
+              >
+                <mat-icon>{{ result.icon }}</mat-icon>
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-body-sm-medium text-ink">{{ result.label }}</span>
+                <span class="block truncate text-caption text-steel">{{ result.context }}</span>
+              </span>
+              <span class="command-result__kind text-micro text-stone">
+                {{ commandKindLabel(result.kind) }}
+              </span>
+              <mat-icon aria-hidden="true" class="command-result__arrow text-steel">
+                arrow_forward
+              </mat-icon>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="command-center__empty flex flex-col items-center px-6 py-10 text-center">
+          <span
+            class="flex size-12 items-center justify-center rounded-full bg-surface-soft text-steel"
+          >
+            <mat-icon aria-hidden="true">travel_explore</mat-icon>
+          </span>
+          <h3 class="mt-4 text-body-md-medium text-ink">
+            {{ emptyStateData().title }}
+          </h3>
+          <p class="mt-1 max-w-sm text-body-sm text-slate">
+            {{ emptyStateData().hint }}
+          </p>
+          @if (commandScope() !== 'all') {
+            <button
+              mat-button
+              type="button"
+              class="mt-4"
+              (click)="selectScopeChip('all', commandInput)"
+            >
+              Xem tất cả không gian
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <footer
+      class="command-center__footer flex items-center gap-2 px-5 py-3 text-caption text-steel"
+    >
+      <mat-icon aria-hidden="true" class="!text-lg">search_activity</mat-icon>
+      <span
+        >Điều hướng nhanh theo tiền tố: * Máy chủ, @ Tin nhắn, # Kênh chữ, ! Kênh thoại. Tìm nội dung tin nhắn thuộc thanh công cụ chat.</span
+      >
+    </footer>
+  </section>
+</ng-template>
+
+
+<button
+  type="button"
+  aria-label="Thêm máy chủ"
+  matTooltip="Thêm máy chủ"
+  matTooltipPosition="right"
+  class="server-rail-action nexus-icon-control flex size-12 items-center justify-center rounded-full"
+  (click)="openAddServer(addServerDialog)"
 >
   <mat-icon aria-hidden="true">add</mat-icon>
   <span class="sr-only">Thêm máy chủ</span>
 </button>
+
+<ng-template #addServerDialog>
+  <header class="flex items-center justify-between border-b border-hairline px-5 py-4">
+    @if (addServerStep() === 'template-list') {
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control"
+        aria-label="Quay lại chọn bước"
+        (click)="setAddServerStep('choose')"
+      >
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      </button>
+    } @else if (addServerStep() === 'create') {
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control"
+        aria-label="Quay lại chọn mẫu"
+        [disabled]="isSubmitting()"
+        (click)="setAddServerStep('template-list')"
+      >
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      </button>
+    } @else if (addServerStep() === 'join') {
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control"
+        aria-label="Quay lại chọn bước"
+        (click)="setAddServerStep('choose')"
+      >
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      </button>
+    }
+
+    <span class="flex-1 px-2">
+      <h2 class="text-heading-5 text-ink">
+        @if (addServerStep() === 'choose') {
+          Thêm máy chủ
+        } @else if (addServerStep() === 'template-list') {
+          Tạo máy chủ của bạn
+        } @else if (addServerStep() === 'create') {
+          Tùy chỉnh máy chủ
+        } @else {
+          Tham gia máy chủ
+        }
+      </h2>
+      <p class="text-caption text-steel">
+        @if (addServerStep() === 'choose') {
+          Không gian của bạn trong NexusCord
+        } @else if (addServerStep() === 'template-list') {
+          Bắt đầu từ một mẫu hoặc tự thiết kế theo ý bạn
+        } @else if (addServerStep() === 'create') {
+          Đặt tên và xem trước các kênh sẽ được tạo
+        } @else {
+          Dùng liên kết hoặc mã lời mời
+        }
+      </p>
+    </span>
+
+    <button
+      mat-icon-button
+      mat-dialog-close
+      type="button"
+      class="nexus-icon-control"
+      aria-label="Đóng thêm máy chủ"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  </header>
+
+  <mat-dialog-content class="!max-h-none !p-5">
+    @if (addServerStep() === 'choose') {
+      <p class="mb-4 text-body-sm text-slate">
+        Bắt đầu không gian mới hoặc tham gia một máy chủ bằng liên kết mời.
+      </p>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          data-add-server-action="create"
+          class="add-server-choice text-left"
+          (click)="setAddServerStep('template-list')"
+        >
+          <span
+            class="flex size-11 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+          >
+            <mat-icon aria-hidden="true">add_home</mat-icon>
+          </span>
+          <span class="mt-4 block text-body-md-medium text-ink">Tạo máy chủ</span>
+          <span class="mt-1 block text-caption text-steel">Tạo một không gian của riêng bạn.</span>
+        </button>
+
+        <button
+          type="button"
+          data-add-server-action="join"
+          class="add-server-choice text-left"
+          (click)="setAddServerStep('join')"
+        >
+          <span
+            class="flex size-11 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+          >
+            <mat-icon aria-hidden="true">link</mat-icon>
+          </span>
+          <span class="mt-4 block text-body-md-medium text-ink">Tham gia máy chủ</span>
+          <span class="mt-1 block text-caption text-steel">Dùng liên kết hoặc mã lời mời.</span>
+        </button>
+      </div>
+    } @else if (addServerStep() === 'template-list') {
+      <div class="flex max-h-[60vh] flex-col gap-2 overflow-y-auto pr-1 nexus-scrollbar">
+        <!-- Mẫu riêng custom -->
+        <button
+          type="button"
+          class="add-server-template-card flex items-center justify-between text-left"
+          [attr.data-template-id]="customTemplate().id"
+          (click)="chooseTemplate(customTemplate())"
+        >
+          <div class="flex items-center gap-3">
+            <span
+              class="flex size-10 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+            >
+              <mat-icon aria-hidden="true">{{ customTemplate().icon }}</mat-icon>
+            </span>
+            <div>
+              <span class="block text-body-md-medium text-ink">{{ customTemplate().name }}</span>
+              <span class="block text-caption text-steel">{{ customTemplate().description }}</span>
+            </div>
+          </div>
+          <mat-icon class="text-steel" aria-hidden="true">chevron_right</mat-icon>
+        </button>
+
+        <!-- Section Mẫu có sẵn -->
+        <app-section-label text="BẮT ĐẦU TỪ MẪU" class="mt-3 mb-1" />
+
+        @for (tpl of presetTemplates(); track tpl.id) {
+          <button
+            type="button"
+            class="add-server-template-card flex items-center justify-between text-left"
+            [attr.data-template-id]="tpl.id"
+            (click)="chooseTemplate(tpl)"
+          >
+            <div class="flex items-center gap-3">
+              <span
+                class="flex size-10 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+              >
+                <mat-icon aria-hidden="true">{{ tpl.icon }}</mat-icon>
+              </span>
+              <div>
+                <span class="block text-body-md-medium text-ink">{{ tpl.name }}</span>
+                <span class="block text-caption text-steel">{{ tpl.description }}</span>
+              </div>
+            </div>
+            <mat-icon class="text-steel" aria-hidden="true">chevron_right</mat-icon>
+          </button>
+        }
+
+        <!-- Tham gia máy chủ link -->
+        <div class="mt-3 rounded-xl border border-hairline bg-surface-soft p-3 text-center">
+          <p class="text-caption text-slate">Bạn đã nhận được lời mời rồi?</p>
+          <button
+            mat-button
+            type="button"
+            class="mt-1 !text-primary-soft"
+            (click)="setAddServerStep('join')"
+          >
+            Tham gia máy chủ
+          </button>
+        </div>
+      </div>
+    } @else if (addServerStep() === 'create') {
+      <!-- Banner mẫu đã chọn -->
+      <div
+        class="flex items-center justify-between rounded-xl border border-hairline bg-surface-soft px-3.5 py-2.5"
+      >
+        <div class="flex items-center gap-2.5">
+          <span
+            class="flex size-8 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+          >
+            <mat-icon class="!size-4 !text-base" aria-hidden="true">{{ selectedTemplate().icon }}</mat-icon>
+          </span>
+          <div>
+            <span class="text-caption font-semibold uppercase tracking-wider text-steel">
+              Mẫu: {{ selectedTemplate().name }}
+            </span>
+          </div>
+        </div>
+        <button
+          mat-button
+          type="button"
+          class="!text-xs !text-primary-soft"
+          [disabled]="isSubmitting()"
+          (click)="setAddServerStep('template-list')"
+        >
+          Đổi mẫu
+        </button>
+      </div>
+
+      <form (ngSubmit)="submitCreateServer()" class="mt-4 w-full">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Tên máy chủ</mat-label>
+          <input
+            matInput
+            [formControl]="serverNameControl"
+            placeholder="Ví dụ: Nhóm học Nexus"
+            maxlength="100"
+            autocomplete="off"
+          />
+          @if (serverNameControl.hasError('required') && serverNameControl.touched) {
+            <mat-error>Tên máy chủ không được để trống</mat-error>
+          } @else if (serverNameControl.hasError('minlength') && serverNameControl.touched) {
+            <mat-error>Tên máy chủ phải có ít nhất 2 ký tự</mat-error>
+          }
+        </mat-form-field>
+
+        @if (createErrorMessage()) {
+          <p class="mt-2 text-caption text-danger" role="alert">
+            {{ createErrorMessage() }}
+          </p>
+        }
+      </form>
+
+      <!-- Xem trước kênh của mẫu -->
+      <div class="mt-2 rounded-xl border border-hairline bg-surface-soft p-3.5">
+        <app-section-label text="XEM TRƯỚC CÁC KÊNH SẼ ĐƯỢC TẠO" class="mb-2.5" />
+        <div class="flex max-h-36 flex-col gap-2.5 overflow-y-auto pr-1 nexus-scrollbar">
+          @if (textChannelsOfSelected().length > 0) {
+            <div>
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-steel">
+                Kênh chữ ({{ textChannelsOfSelected().length }})
+              </span>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                @for (c of textChannelsOfSelected(); track c.name) {
+                  <span class="template-channel-chip">
+                    <span class="font-mono font-bold text-primary-soft">#</span>
+                    {{ c.name }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
+
+          @if (voiceChannelsOfSelected().length > 0) {
+            <div>
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-steel">
+                Kênh thoại ({{ voiceChannelsOfSelected().length }})
+              </span>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                @for (c of voiceChannelsOfSelected(); track c.name) {
+                  <span class="template-channel-chip">
+                    <mat-icon class="!size-3.5 !text-sm text-steel" aria-hidden="true">volume_up</mat-icon>
+                    {{ c.name }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="flex flex-col items-center text-center">
+        <span
+          class="flex size-16 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+        >
+          <mat-icon aria-hidden="true" class="!size-8 !text-3xl">group_add</mat-icon>
+        </span>
+        <h3 class="mt-4 text-heading-5 text-ink">Nhập liên kết lời mời</h3>
+        <p class="mt-1 text-body-sm text-slate">Liên kết thường có dạng nexuscord.gg/ma-moi.</p>
+      </div>
+
+      <mat-form-field appearance="outline" class="mt-5 w-full">
+        <mat-label>Liên kết hoặc mã lời mời</mat-label>
+        <input matInput placeholder="nexuscord.gg/..." />
+      </mat-form-field>
+    }
+  </mat-dialog-content>
+
+  @if (addServerStep() !== 'choose') {
+    <mat-dialog-actions align="end" class="!border-t !border-hairline !px-5 !py-4">
+      @if (addServerStep() === 'template-list') {
+        <button
+          mat-button
+          type="button"
+          (click)="setAddServerStep('choose')"
+        >
+          Quay lại
+        </button>
+      } @else if (addServerStep() === 'create') {
+        <button
+          mat-button
+          type="button"
+          [disabled]="isSubmitting()"
+          (click)="setAddServerStep('template-list')"
+        >
+          Quay lại
+        </button>
+        <button
+          mat-flat-button
+          type="button"
+          [disabled]="serverNameControl.invalid || isSubmitting()"
+          (click)="submitCreateServer()"
+        >
+          @if (isSubmitting()) {
+            <span class="flex items-center gap-1.5">
+              <mat-icon class="!size-4 !text-base animate-spin">refresh</mat-icon>
+              Đang tạo...
+            </span>
+          } @else {
+            Tạo máy chủ
+          }
+        </button>
+      } @else {
+        <button
+          mat-button
+          type="button"
+          (click)="setAddServerStep('choose')"
+        >
+          Quay lại
+        </button>
+        <button
+          mat-flat-button
+          type="button"
+          disabled
+          matTooltip="Chức năng sẽ được nối khi backend máy chủ sẵn sàng"
+        >
+          Tham gia
+        </button>
+      }
+    </mat-dialog-actions>
+  }
+</ng-template>

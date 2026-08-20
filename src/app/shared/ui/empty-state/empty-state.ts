@@ -11,7 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
   selector: 'app-empty-state',
   imports: [MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex h-full items-center justify-center p-8' },
+  host: { class: 'flex items-center justify-center p-8' },
   templateUrl: './empty-state.html',
   styleUrl: './empty-state.css',
 })

@@ -1,0 +1,60 @@
+.friend-row {
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.friend-row:is(:hover, :focus-within) {
+  background-color: var(--nexus-surface-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--nexus-border-subtle));
+  box-shadow: var(--shadow-glow);
+}
+
+.friend-row:has(:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.friend-row__name,
+.friend-row__actions {
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    opacity var(--motion-fast) var(--ease-nexus-out);
+}
+
+.friend-row__name {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.friend-row__actions {
+  opacity: 0.72;
+}
+
+.friend-row:is(:hover, :focus-within) .friend-row__name {
+  color: var(--color-ink);
+}
+
+.friend-row:is(:hover, :focus-within) .friend-row__actions {
+  opacity: 1;
+}
+
+.friend-row__actions .nexus-icon-control[aria-expanded='true'] {
+  color: var(--color-primary-soft);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .friend-row,
+  .friend-row__name,
+  .friend-row__actions {
+    transition: none;
+  }
+}
+

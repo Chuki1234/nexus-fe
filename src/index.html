@@ -1,17 +1,58 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="utf-8" />
-    <title>NexusFe</title>
+    <title>NexusCord</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <script>
+      try {
+        const nexusTheme = localStorage.getItem('nexuscord-theme');
+        if (nexusTheme === 'light' || nexusTheme === 'dark') {
+          document.documentElement.setAttribute('data-theme', nexusTheme);
+        }
+      } catch {
+        // Storage có thể bị chặn; CSS mặc định dark vẫn là fallback hợp lệ.
+      }
+    </script>
     <!-- Font nạp qua styles.css từ @fontsource/inter và material-icons (tự host).
          `ng add @angular/material` mặc định chèn link CDN Google Fonts vào đây;
          đã gỡ theo ghi chú trong styles.css — CDN làm chậm first paint và lộ IP
          người dùng sang máy chủ của Google. -->
   </head>
   <body>
-    <app-root></app-root>
+    <app-root>
+      <section
+        class="nexus-boot nexus-boot--static"
+        data-nexus-boot="static"
+        role="status"
+        aria-live="polite"
+        aria-label="NexusCord đang tải"
+      >
+        <div class="nexus-boot__content">
+          <div class="nexus-boot__mark" aria-hidden="true">
+            <span class="nexus-boot__orbits">
+              <span class="nexus-boot__orbit nexus-boot__orbit--one">
+                <span class="nexus-boot__node nexus-boot__node--one"></span>
+                <span class="nexus-boot__node nexus-boot__node--two"></span>
+              </span>
+              <span class="nexus-boot__orbit nexus-boot__orbit--two">
+                <span class="nexus-boot__node nexus-boot__node--three"></span>
+                <span class="nexus-boot__node nexus-boot__node--four"></span>
+              </span>
+            </span>
+            <span class="nexus-boot__monogram">N</span>
+          </div>
+
+          <div class="nexus-boot__copy">
+            <strong>NexusCord</strong>
+            <span>Đang nối không gian của bạn</span>
+          </div>
+
+          <span class="nexus-boot__progress" aria-hidden="true"><span></span></span>
+        </div>
+      </section>
+    </app-root>
   </body>
 </html>

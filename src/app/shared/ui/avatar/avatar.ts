@@ -65,4 +65,14 @@ export class Avatar {
     const trimmed = this.name().trim();
     return trimmed ? trimmed[0].toUpperCase() : '?';
   });
+
+  protected readonly tone = computed(() => {
+    const name = this.name();
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff;
+    }
+    const tones = ['emerald', 'teal', 'slate', 'indigo', 'amber', 'rose'] as const;
+    return tones[Math.abs(hash) % tones.length];
+  });
 }

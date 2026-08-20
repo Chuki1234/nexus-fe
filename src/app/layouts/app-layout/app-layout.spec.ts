@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { ServersApiService } from '../../core/api/servers-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
 import { dashboardRoutes } from '../../features/dashboard/dashboard.routes';
@@ -25,6 +26,22 @@ class ProfileServiceStub {
   reset = () => undefined;
 }
 
+class ServersApiServiceStub {
+  createServer = () =>
+    Promise.resolve({
+      server: { id: 's1', name: 'Server 1', iconUrl: null, unread: false, mentionCount: 0 },
+      defaultChannel: {
+        id: 'c1',
+        name: 'chung',
+        type: 'text' as const,
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+      },
+    });
+  listServers = () => Promise.resolve([]);
+}
+
 describe('AppLayout', () => {
   let harness: RouterTestingHarness;
 
@@ -35,96 +52,106 @@ describe('AppLayout', () => {
     Array.from(harness.routeNativeElement!.ownerDocument.body.querySelectorAll(selector));
 
   beforeEach(async () => {
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
     TestBed.configureTestingModule({
       providers: [
-        // Gắn dưới 'channels' đúng như app.routes thật. Mount ở gốc thì URL sẽ là
-        // '/itss/do-an' trong khi mọi routerLink trỏ '/channels/itss/do-an', và
-        // `routerLinkActive` không bao giờ khớp.
-        //
-        // Không cần provider animation: Angular Material 21 chạy bằng CSS
-        // animation gốc, gói @angular/animations không còn là dependency.
         provideRouter([{ path: 'channels', children: dashboardRoutes }]),
         { provide: AuthService, useValue: new AuthServiceStub() },
         { provide: ProfileService, useValue: new ProfileServiceStub() },
+        { provide: ServersApiService, useValue: new ServersApiServiceStub() },
       ],
     });
     harness = await RouterTestingHarness.create();
   });
 
-  it('dựng đủ dải server và cột danh sách', async () => {
+  afterEach(() => {
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+  });
+
+  it('dựng đủ server rail và sidebar theo cấu trúc hiện có', async () => {
     await harness.navigateByUrl('/channels/@me');
 
     expect(query('app-server-rail')).toBeTruthy();
     expect(query('app-channel-sidebar')).toBeTruthy();
+    expect(query('.dashboard-nav-shell')).toBeTruthy();
+    expect(query('.dashboard-workspace')).toBeTruthy();
+    expect(query('.dashboard-nav-shell')?.classList.contains('overflow-hidden')).toBe(true);
+    expect(query('.dashboard-workspace')?.classList.contains('h-full')).toBe(true);
+    expect(query('.dashboard-content')).toBeTruthy();
+    expect(query('.dashboard-shell')?.getAttribute('data-atmosphere')).toBe('hybrid');
   });
 
-  it('cột 2 hiện danh sách tin nhắn riêng khi ở khu @me', async () => {
+  it('gắn Atmosphere đã lưu lên toàn bộ Dashboard shell', async () => {
+    localStorage.setItem('nexuscord-dashboard-atmosphere', 'sage');
+
     await harness.navigateByUrl('/channels/@me');
 
-    expect(text()).toContain('Tin nhắn trực tiếp');
-    expect(text()).toContain('ho_be');
-    // Không phải danh sách kênh của server.
-    expect(text()).not.toContain('Kênh thoại');
+    expect(query('.dashboard-shell')?.getAttribute('data-atmosphere')).toBe('sage');
   });
 
-  it('cột 2 đổi sang danh sách kênh khi mở một server', async () => {
-    await harness.navigateByUrl('/channels/itss/do-an');
+  it('tài khoản mới có danh sách bạn bè, DM và hoạt động đều rỗng', async () => {
+    await harness.navigateByUrl('/channels/@me');
 
-    expect(text()).toContain('ITSS Lab');
-    expect(text()).toContain('đồ-án');
-    expect(text()).toContain('Kênh thoại');
+    expect(text()).toContain('Danh sách đang trống');
+    expect(text()).toContain('Chưa có cuộc trò chuyện');
+    expect(text()).toContain('Hiện khá yên tĩnh');
+    expect(queryAll('app-friend-row').length).toBe(0);
+    expect(queryAll('[data-server-id]').length).toBe(0);
   });
 
-  it('mở đúng cuộc trò chuyện theo id trên URL', async () => {
-    await harness.navigateByUrl('/channels/@me/ho-be');
+  it('server rail vẫn có DM, tìm kiếm và thêm server khi dữ liệu rỗng', async () => {
+    await harness.navigateByUrl('/channels/@me');
 
-    expect(text()).toContain('ho_be');
-    expect(text()).toContain('shut the fckup');
+    expect(query('a[href="/channels/@me"]')).toBeTruthy();
+    expect(query('[data-action="global-search"]')).toBeTruthy();
+    expect(query('button[aria-label="Thêm máy chủ"]')).toBeTruthy();
   });
 
-  it('báo rõ khi id cuộc trò chuyện không tồn tại', async () => {
+  it('route cuộc trò chuyện không có dữ liệu báo lỗi rõ ràng', async () => {
     await harness.navigateByUrl('/channels/@me/khong-co-that');
 
     expect(text()).toContain('Không tìm thấy cuộc trò chuyện này');
   });
 
-  it('kênh thoại không có ô soạn tin', async () => {
-    await harness.navigateByUrl('/channels/itss/standup');
+  it('route kênh không có dữ liệu không dựng composer hoặc wallpaper giả', async () => {
+    await harness.navigateByUrl('/channels/server-chua-tai/kenh-chua-tai');
 
-    expect(text()).toContain('Chưa có ai trong kênh thoại này');
+    expect(text()).toContain('Không tìm thấy kênh này');
     expect(query('app-message-composer')).toBeFalsy();
+    expect(query('[data-chat-wallpaper]')).toBeFalsy();
   });
 
-  it('kênh chữ có ô soạn tin', async () => {
-    await harness.navigateByUrl('/channels/itss/do-an');
-
-    expect(query('app-message-composer')).toBeTruthy();
-  });
-
-  it('vào thẳng server chưa chọn kênh thì mời chọn kênh', async () => {
-    await harness.navigateByUrl('/channels/itss');
-
-    expect(text()).toContain('Chọn một kênh để bắt đầu');
-  });
-
-  it('đánh dấu aria-current cho đúng một mục đang mở', async () => {
-    await harness.navigateByUrl('/channels/itss/do-an');
-
-    // `routerLinkActive` đặt `isActive` khi nhận NavigationEnd, tức SAU lượt
-    // change detection mà harness chạy sẵn — cần thêm một lượt nữa thì binding
-    // aria-current mới đọc được giá trị mới.
-    harness.detectChanges();
-
-    // Cột 2 chỉ được có một kênh mang aria-current; nếu không, trình đọc màn hình
-    // sẽ đọc nhiều mục cùng là "trang hiện tại".
-    const current = queryAll('app-channel-sidebar [aria-current="page"]');
-    expect(current.length).toBe(1);
-    expect(current[0].textContent).toContain('đồ-án');
-  });
-
-  it('hiện tên người dùng ở khối đáy cột 2', async () => {
+  it('khối người dùng có tên thật cùng mic, loa và settings', async () => {
     await harness.navigateByUrl('/channels/@me');
 
     expect(query('app-user-panel')?.textContent).toContain('Minh Tài');
+    expect(queryAll('app-user-panel button[aria-pressed]').length).toBe(2);
+    const settings = query(
+      'app-user-panel button[aria-label="Cài đặt — do team Settings phụ trách"]',
+    ) as HTMLButtonElement;
+    expect(settings).toBeTruthy();
+    expect(settings.disabled).toBe(true);
+  });
+
+  it('giữ light mode khi chuyển qua kênh và quay lại trang bạn bè', async () => {
+    await harness.navigateByUrl('/channels/@me');
+    const themeButton = query(
+      'button[aria-label="Chuyển sang giao diện sáng"]',
+    ) as HTMLButtonElement;
+
+    themeButton.click();
+    TestBed.tick();
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(localStorage.getItem('nexuscord-theme')).toBe('light');
+
+    await harness.navigateByUrl('/channels/server-chua-tai/kenh-chua-tai');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+
+    await harness.navigateByUrl('/channels/@me');
+    expect(query('button[aria-label="Chuyển sang giao diện tối"]')).toBeTruthy();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 });

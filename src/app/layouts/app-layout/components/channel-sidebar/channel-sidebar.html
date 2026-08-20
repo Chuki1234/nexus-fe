@@ -1,4 +1,4 @@
-<header class="shrink-0 border-b border-hairline">
+<header class="channel-sidebar__header shrink-0 border-b border-hairline">
   @if (serverId(); as id) {
     @if (canAccessServerSettings()) {
       <!-- Full-width unified server header — 1 nút mở dropdown menu server (bao gồm Tổng quan máy chủ) cho Admin/Mod -->
@@ -66,16 +66,21 @@
     }
   } @else {
     <div class="p-2.5">
-      <app-search-field placeholder="Tìm hoặc bắt đầu cuộc trò chuyện" [disabled]="true" />
+      <app-search-field
+        data-search-scope="contacts"
+        placeholder="Tìm người hoặc cuộc trò chuyện"
+        [(value)]="conversationQuery"
+      />
     </div>
   }
 </header>
 
-<nav class="flex-1 overflow-y-auto px-2 py-3" [attr.aria-label]="title()">
+
+<nav class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-2 py-2" [attr.aria-label]="title()">
   @if (serverId(); as id) {
     <app-channel-list [serverId]="id" />
   } @else {
-    <app-conversation-list />
+    <app-conversation-list [query]="conversationQuery()" />
   }
 </nav>
 

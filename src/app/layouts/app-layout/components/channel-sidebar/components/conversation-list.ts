@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -32,5 +32,31 @@ import { SectionLabel } from '../../../../../shared/ui/section-label/section-lab
 export class ConversationList {
   private readonly shell = inject(ShellData);
 
-  protected readonly conversations = this.shell.conversations;
+  readonly query = input('');
+
+  protected readonly hasQuery = computed(() => this.normalize(this.query()).length > 0);
+
+  protected readonly conversations = computed(() => {
+    const query = this.normalize(this.query());
+    const conversations = this.shell.conversations();
+    if (!query) {
+      return conversations;
+    }
+
+    return conversations.filter((conversation) =>
+      this.normalize(`${conversation.name} ${conversation.statusMessage ?? ''}`).includes(query),
+    );
+  });
+
+  protected readonly sectionTitle = computed(() =>
+    this.hasQuery() ? `Kết quả · ${this.conversations().length}` : 'Tin nhắn trực tiếp',
+  );
+
+  private normalize(value: string): string {
+    return value
+      .trim()
+      .toLocaleLowerCase('vi')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
 }

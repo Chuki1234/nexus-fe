@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { PRESENCE_LABEL } from '../../../../../shared/dto/common';
 import type { ConversationSummary } from '../../../../core/api/shell-data';
@@ -13,7 +16,7 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
  */
 @Component({
   selector: 'app-friend-row',
-  imports: [Avatar, MatIconModule, RouterLink],
+  imports: [Avatar, MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   templateUrl: './friend-row.html',

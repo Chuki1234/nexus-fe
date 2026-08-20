@@ -1,38 +1,137 @@
-@if (conversation(); as person) {
+@if (connectionState(); as state) {
+  <app-dashboard-state [state]="state" layout="chat" (action)="clearUiState()" />
+}
+
+@if (blockingState(); as state) {
+  <app-dashboard-state
+    class="flex min-h-0 flex-1"
+    [state]="state"
+    layout="chat"
+    (action)="clearUiState()"
+  />
+} @else if (conversation(); as person) {
   <app-chat-toolbar
     [title]="person.name"
     [subtitle]="person.statusMessage"
     leadingIcon="alternate_email"
     [showCallActions]="true"
-    [detailsOpen]="detailsOpen()"
-    (toggleDetails)="detailsOpen.set(!detailsOpen())"
+    [showDetailsAction]="false"
   />
 
-  <div class="flex min-h-0 flex-1">
-    <div class="flex min-w-0 flex-1 flex-col">
-      <!-- P3 sẽ thay khối này bằng danh sách tin nhắn thật (cursor pagination). -->
-      <div class="flex flex-1 flex-col justify-end overflow-y-auto px-4 py-6">
-        <app-avatar [name]="person.name" [presence]="person.presence" size="xl" ring="canvas" />
-        <h2 class="mt-4 text-heading-3 text-ink">{{ person.name }}</h2>
-        <p class="mt-2 max-w-prose text-body-md text-slate">
-          Đây là phần mở đầu lịch sử tin nhắn trực tiếp của bạn với
-          <strong class="text-ink">{{ person.name }}</strong
-          >.
-        </p>
-      </div>
+  <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+    <!-- P3 sẽ thay khối này bằng danh sách tin nhắn thật (cursor pagination). -->
+    <div
+      class="chat-history nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-6"
+      data-chat-wallpaper="doodle"
+    >
+      <div class="chat-stage mx-auto flex min-h-full w-full max-w-4xl flex-col justify-start">
+        <section class="chat-intro max-w-2xl">
+          <span class="chat-intro__avatar flex w-fit" aria-hidden="true">
+            <app-avatar [name]="person.name" [presence]="person.presence" size="xl" ring="canvas" />
+          </span>
+          <p class="mt-5 text-micro-uppercase text-steel">Kết nối trực tiếp</p>
+          <h2 class="mt-1 text-heading-3 text-ink">{{ person.name }}</h2>
+          <p class="mt-2 max-w-prose text-body-md text-slate">
+            Đây là phần mở đầu lịch sử tin nhắn trực tiếp của bạn với
+            <strong class="text-ink">{{ person.name }}</strong
+            >.
+          </p>
+        </section>
 
-      <app-message-composer [target]="'@' + person.name" />
+        @if (demoEnabled()) {
+          <ol class="message-list mt-6 grid gap-2.5" aria-label="Tin nhắn trực tiếp demo">
+            <li class="message-row" data-demo-message="dm-1">
+              <app-avatar
+                [name]="person.name"
+                [presence]="person.presence"
+                size="md"
+                ring="canvas"
+              />
+              <article class="message-card">
+                <header class="flex flex-wrap items-baseline gap-x-2">
+                  <strong class="text-body-sm-medium text-ink">{{ person.name }}</strong>
+                  <time class="text-micro text-stone">Hôm nay, 19:42</time>
+                </header>
+                <p class="mt-1 text-body-sm text-charcoal">
+                  Mày xem Dashboard mới chưa? Tao thích cách phần server active nối xuống cuộc trò
+                  chuyện.
+                </p>
+                <app-message-actions
+                  messageId="dm-1"
+                  [author]="person.name"
+                  excerpt="Mày xem Dashboard mới chưa? Tao thích cách phần server active nối xuống cuộc trò chuyện."
+                  (action)="composerContext.set($event)"
+                />
+              </article>
+            </li>
+
+            <li class="message-row message-row--mine" data-demo-message="dm-2">
+              <app-avatar name="Bạn" presence="online" size="md" ring="canvas" />
+              <article class="message-card">
+                <div class="message-reply">
+                  <span class="message-reply__avatar" aria-hidden="true">
+                    {{ person.name.slice(0, 1) }}
+                  </span>
+                  <strong>{{ person.name }}</strong>
+                  <span class="truncate">Mày xem Dashboard mới chưa?</span>
+                </div>
+                <header class="mt-1 flex flex-wrap items-baseline gap-x-2">
+                  <strong class="text-body-sm-medium text-ink">Bạn</strong>
+                  <time class="text-micro text-stone">19:44</time>
+                </header>
+                <p class="mt-1 text-body-sm text-charcoal">
+                  Đang xem đây. Bấm Ctrl K tìm kênh nhanh hơn hẳn, mà giao diện vẫn không bị rối.
+                </p>
+                <div class="message-reactions mt-2 flex flex-wrap gap-1.5" aria-label="Cảm xúc">
+                  <span class="reaction-chip">✨ <span>1</span></span>
+                </div>
+                <app-message-actions
+                  messageId="dm-2"
+                  author="Bạn"
+                  excerpt="Đang xem đây. Bấm Ctrl K tìm kênh nhanh hơn hẳn, mà giao diện vẫn không bị rối."
+                  [editable]="true"
+                  (action)="composerContext.set($event)"
+                />
+              </article>
+            </li>
+
+            <li class="nexus-unread-divider my-3.5" aria-label="Có 1 tin nhắn mới">
+              <span>1 tin nhắn mới</span>
+            </li>
+
+            <li class="message-row" data-demo-message="dm-3">
+              <app-avatar
+                [name]="person.name"
+                [presence]="person.presence"
+                size="md"
+                ring="canvas"
+              />
+              <article class="message-card">
+                <header class="flex flex-wrap items-baseline gap-x-2">
+                  <strong class="text-body-sm-medium text-ink">{{ person.name }}</strong>
+                  <time class="text-micro text-stone">19:47</time>
+                </header>
+                <p class="mt-1 text-body-sm text-charcoal">
+                  Giữ kiểu này đi. Nó có dấu ấn riêng mà không biến thành một đống hiệu ứng.
+                </p>
+                <app-message-actions
+                  messageId="dm-3"
+                  [author]="person.name"
+                  excerpt="Giữ kiểu này đi. Nó có dấu ấn riêng mà không biến thành một đống hiệu ứng."
+                  (action)="composerContext.set($event)"
+                />
+              </article>
+            </li>
+          </ol>
+        }
+      </div>
     </div>
 
-    @if (detailsOpen()) {
-      <aside class="hidden border-l border-hairline xl:block" aria-label="Hồ sơ thành viên">
-        <app-member-panel
-          [name]="person.name"
-          [statusMessage]="person.statusMessage"
-          [presence]="person.presence"
-        />
-      </aside>
-    }
+    <app-message-composer
+      [target]="'@' + person.name"
+      [context]="composerContext()"
+      (contextClosed)="composerContext.set(null)"
+    />
   </div>
 } @else {
   <app-empty-state icon="search_off" message="Không tìm thấy cuộc trò chuyện này." />

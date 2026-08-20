@@ -1,0 +1,30 @@
+.friends-content {
+  padding-bottom: 2rem;
+  animation: friends-content-enter 320ms var(--ease-nexus-out) both;
+}
+
+.friends-list-well {
+  background: var(--color-surface);
+  border: 1px solid var(--nexus-border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-glow);
+}
+
+@keyframes friends-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .friends-content {
+    animation: none;
+  }
+}
+

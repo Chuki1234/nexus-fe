@@ -1,13 +1,93 @@
-<a
-  [routerLink]="['/channels/@me', person().id]"
-  class="flex items-center gap-3 rounded-sm px-2 py-3 hover:bg-surface"
+<article
+  class="friend-row nexus-interactive-row group flex min-h-16 items-center gap-3 rounded-xl px-3.5 py-2.5"
 >
-  <app-avatar [name]="person().name" [presence]="person().presence" size="lg" ring="canvas" />
+  <a
+    [routerLink]="['/channels/@me', person().id]"
+    class="flex min-w-0 flex-1 items-center gap-3 rounded-md"
+  >
+    <span class="flex size-10 shrink-0 items-center justify-center">
+      <app-avatar [name]="person().name" [presence]="person().presence" size="lg" ring="canvas" />
+    </span>
 
-  <span class="min-w-0 flex-1">
-    <span class="block truncate text-body-sm-medium text-ink">{{ person().name }}</span>
-    <span class="block truncate text-caption text-steel">{{ subtitle() }}</span>
+    <span class="min-w-0 flex-1">
+      <span class="friend-row__name block truncate text-body-sm-medium text-ink">
+        {{ person().name }}
+      </span>
+      <span class="block truncate text-caption text-slate">{{ subtitle() }}</span>
+    </span>
+  </a>
+
+  <span class="friend-row__actions flex shrink-0 items-center gap-1">
+    <a
+      mat-icon-button
+      class="nexus-icon-control"
+      [routerLink]="['/channels/@me', person().id]"
+      [attr.aria-label]="'Nhắn tin cho ' + person().name"
+      [matTooltip]="'Nhắn tin cho ' + person().name"
+    >
+      <mat-icon aria-hidden="true">chat_bubble</mat-icon>
+    </a>
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control"
+      [matMenuTriggerFor]="friendOptionsMenu"
+      [attr.aria-label]="'Tùy chọn cho ' + person().name"
+      matTooltip="Tùy chọn bạn bè"
+    >
+      <mat-icon aria-hidden="true">more_vert</mat-icon>
+    </button>
   </span>
+</article>
 
-  <mat-icon aria-hidden="true" class="text-steel">chat_bubble</mat-icon>
-</a>
+<mat-menu
+  #friendOptionsMenu="matMenu"
+  class="nexus-friend-options-menu"
+  xPosition="before"
+  [overlapTrigger]="false"
+>
+  <div class="friend-options__identity" role="presentation">
+    <app-avatar [name]="person().name" [presence]="person().presence" size="md" ring="surface" />
+    <span class="friend-options__identity-copy">
+      <strong>{{ person().name }}</strong>
+      <small>{{ subtitle() }}</small>
+    </span>
+  </div>
+
+  <div class="friend-options__preview" role="note">
+    <mat-icon aria-hidden="true">construction</mat-icon>
+    <span>Bản xem trước · chờ kết nối</span>
+  </div>
+
+  <p class="friend-options__section-label">Liên lạc</p>
+  <button mat-menu-item type="button" disabled>
+    <mat-icon aria-hidden="true">call</mat-icon>
+    <span>Gọi thoại</span>
+  </button>
+  <button mat-menu-item type="button" disabled>
+    <mat-icon aria-hidden="true">videocam</mat-icon>
+    <span>Gọi video</span>
+  </button>
+
+  <div class="friend-options__divider" role="separator"></div>
+  <p class="friend-options__section-label">Quản lý</p>
+  <button mat-menu-item type="button" disabled>
+    <mat-icon aria-hidden="true">notifications_off</mat-icon>
+    <span>Tắt thông báo</span>
+  </button>
+  <button mat-menu-item type="button" disabled>
+    <mat-icon aria-hidden="true">edit_note</mat-icon>
+    <span>Thêm biệt danh</span>
+  </button>
+
+  <div class="friend-options__divider" role="separator"></div>
+  <p class="friend-options__section-label">An toàn</p>
+  <button mat-menu-item type="button" class="friend-options__danger" disabled>
+    <mat-icon aria-hidden="true">person_remove</mat-icon>
+    <span>Xóa khỏi danh sách bạn</span>
+  </button>
+  <button mat-menu-item type="button" class="friend-options__danger" disabled>
+    <mat-icon aria-hidden="true">block</mat-icon>
+    <span>Chặn</span>
+  </button>
+</mat-menu>

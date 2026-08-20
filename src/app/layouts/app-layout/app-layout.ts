@@ -1,5 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,6 +7,11 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
+import { ServersApiService } from '../../core/api/servers-api.service';
+import { ShellData } from '../../core/api/shell-data';
+import { ThemeService } from '../../core/theme/theme.service';
+import { DashboardAppearance } from '../../features/dashboard/services/dashboard-appearance';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
 
@@ -33,10 +38,41 @@ import { ServerRail } from './components/server-rail/server-rail';
   styleUrl: './app-layout.css',
   templateUrl: './app-layout.html',
 })
-export class AppLayout {
+export class AppLayout implements OnInit {
   private readonly breakpoints = inject(BreakpointObserver);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
+  private readonly serversApi = inject(ServersApiService);
+  private readonly shell = inject(ShellData);
+  protected readonly theme = inject(ThemeService).mode;
+  protected readonly atmosphere = inject(DashboardAppearance).atmosphere;
+  private isHydrating = false;
+
+  async ngOnInit(): Promise<void> {
+    await this.hydrateServers();
+  }
+
+  private async hydrateServers(): Promise<void> {
+    if (this.isHydrating) {
+      return;
+    }
+    this.isHydrating = true;
+    try {
+      await this.auth.whenReady();
+      if (!this.auth.isAuthenticated()) {
+        return;
+      }
+      const servers = await this.serversApi.listServers();
+      if (servers.length > 0) {
+        this.shell.hydrateServers(servers);
+      }
+    } catch {
+      // Giữ live state rỗng nếu không kết nối được
+    } finally {
+      this.isHydrating = false;
+    }
+  }
 
   /**
    * Dưới `lg` (1024px) thì hai cột trái thu vào drawer — đúng breakpoint Desktop

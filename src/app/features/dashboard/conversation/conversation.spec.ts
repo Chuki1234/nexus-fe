@@ -1,12 +1,55 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { ShellData } from '../../../core/api/shell-data';
+import {
+  DashboardUiState,
+  type DashboardBlockingState,
+  type DashboardConnectionState,
+  type DashboardUiStateName,
+} from '../services/dashboard-ui-state';
 import { ConversationPage } from './conversation';
 
+const SHELL_STUB = {
+  conversationOf: (id: string) =>
+    id === 'ho-be'
+      ? {
+          id: 'ho-be',
+          name: 'ho_be',
+          statusMessage: 'Đang thử NexusCord',
+          presence: 'online' as const,
+          unread: false,
+        }
+      : undefined,
+};
+
 describe('ConversationPage', () => {
-  const mount = async (id: string) => {
+  const mount = async (id: string, demo = false, uiState: DashboardUiStateName = 'ready') => {
+    const shell = {
+      ...SHELL_STUB,
+      demoEnabled: signal(demo).asReadonly(),
+    };
+    const blockingState = signal<DashboardBlockingState | null>(
+      uiState === 'loading' ||
+        uiState === 'error' ||
+        uiState === 'forbidden' ||
+        uiState === 'missing'
+        ? uiState
+        : null,
+    ).asReadonly();
+    const connectionState = signal<DashboardConnectionState | null>(
+      uiState === 'offline' || uiState === 'reconnecting' ? uiState : null,
+    ).asReadonly();
     TestBed.configureTestingModule({
-      providers: [provideRouter([{ path: 'dm/:conversationId', component: ConversationPage }])],
+      providers: [
+        provideRouter([{ path: 'dm/:conversationId', component: ConversationPage }]),
+        { provide: ShellData, useValue: shell },
+        {
+          provide: DashboardUiState,
+          useValue: { blockingState, connectionState, clearPreview: async () => true },
+        },
+      ],
     });
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl(`/dm/${id}`);
@@ -17,12 +60,68 @@ describe('ConversationPage', () => {
     const harness = await mount('ho-be');
 
     expect(harness.routeNativeElement!.textContent).toContain('ho_be');
-    expect(harness.routeNativeElement!.textContent).toContain('shut the fckup');
+    expect(harness.routeNativeElement!.textContent).toContain('Đang thử NexusCord');
+    expect(
+      harness.routeNativeElement!.querySelector('[data-chat-wallpaper="doodle"]'),
+    ).toBeTruthy();
+    expect(
+      harness
+        .routeNativeElement!.querySelector('.chat-history')
+        ?.classList.contains('nexus-scrollbar'),
+    ).toBe(true);
+    expect(harness.routeNativeElement!.querySelector('.chat-intro')).toBeTruthy();
+    const chatStage = harness.routeNativeElement!.querySelector('.chat-stage');
+    expect(chatStage?.classList.contains('justify-start')).toBe(true);
+    expect(chatStage?.classList.contains('justify-end')).toBe(false);
+    expect(harness.routeNativeElement!.querySelector('[data-demo-message]')).toBeFalsy();
+  });
+
+  it('demo ON hiển thị timeline DM nhưng không thêm panel Profile', async () => {
+    const harness = await mount('ho-be', true);
+
+    expect(harness.routeNativeElement!.querySelectorAll('[data-demo-message]')).toHaveLength(3);
+    expect(harness.routeNativeElement!.querySelectorAll('app-message-actions')).toHaveLength(3);
+    expect(harness.routeNativeElement!.querySelector('.message-reply')).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('.nexus-unread-divider')).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('app-context-panel')).toBeNull();
+
+    const ownMessageEdit = harness.routeNativeElement!.querySelectorAll(
+      'app-message-actions',
+    )[1] as HTMLElement;
+    expect(ownMessageEdit).toBeTruthy();
+    expect(ownMessageEdit.querySelector('button[aria-label="Thêm thao tác"]')).toBeTruthy();
+  });
+
+  it('không dựng panel hoặc action hồ sơ thuộc ownership của trang Profile', async () => {
+    const harness = await mount('ho-be');
+
+    expect(harness.routeNativeElement!.querySelector('app-context-panel')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('button[aria-expanded]')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('button[aria-label^="Xem hồ sơ"]')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('app-avatar')).toBeTruthy();
   });
 
   it('id không tồn tại thì báo rõ thay vì màn hình trắng', async () => {
     const harness = await mount('khong-co-that');
 
     expect(harness.routeNativeElement!.textContent).toContain('Không tìm thấy cuộc trò chuyện');
+  });
+
+  it('forbidden thay toàn bộ cuộc trò chuyện bằng trạng thái quyền truy cập', async () => {
+    const harness = await mount('ho-be', false, 'forbidden');
+
+    expect(
+      harness.routeNativeElement!.querySelector('[data-dashboard-state="forbidden"]'),
+    ).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('app-message-composer')).toBeNull();
+  });
+
+  it('offline vẫn giữ nội dung DM đang mở', async () => {
+    const harness = await mount('ho-be', false, 'offline');
+
+    expect(
+      harness.routeNativeElement!.querySelector('[data-dashboard-state="offline"]'),
+    ).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('app-message-composer')).toBeTruthy();
   });
 });

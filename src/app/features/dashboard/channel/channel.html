@@ -1,9 +1,21 @@
-@if (channel(); as current) {
+@if (connectionState(); as state) {
+  <app-dashboard-state [state]="state" layout="chat" (action)="clearUiState()" />
+}
+
+@if (blockingState(); as state) {
+  <app-dashboard-state
+    class="flex min-h-0 flex-1"
+    [state]="state"
+    layout="chat"
+    (action)="clearUiState()"
+  />
+} @else if (channel(); as current) {
   <app-chat-toolbar
     [title]="current.name"
     [subtitle]="current.topic"
     [leadingIcon]="current.type === 'voice' ? 'volume_up' : 'tag'"
     [detailsOpen]="detailsOpen()"
+    detailsLabel="thành viên"
     (toggleDetails)="detailsOpen.set(!detailsOpen())"
   />
 
@@ -12,30 +24,153 @@
       @if (current.type === 'voice') {
         <!-- Kênh thoại: phần nghe/nói thật thuộc phase C2. -->
         <app-empty-state
+          class="min-h-0 flex-1"
           icon="volume_up"
           [title]="current.name"
           message="Chưa có ai trong kênh thoại này."
         />
       } @else {
         <!-- P3 sẽ thay khối này bằng danh sách tin nhắn thật. -->
-        <div class="flex flex-1 flex-col justify-end overflow-y-auto px-4 py-6">
-          <h2 class="text-heading-3 text-ink">Chào mừng tới #{{ current.name }}</h2>
-          <p class="mt-2 max-w-prose text-body-md text-slate">Đây là phần mở đầu của kênh này.</p>
+        <div
+          class="chat-history nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-6"
+          data-chat-wallpaper="doodle"
+        >
+          <div class="chat-stage mx-auto flex min-h-full w-full max-w-4xl flex-col justify-start">
+            <section class="chat-intro max-w-2xl">
+              <span class="chat-intro__mark flex size-12 items-center justify-center rounded-xl">
+                <mat-icon aria-hidden="true">tag</mat-icon>
+              </span>
+              <p class="mt-5 text-micro-uppercase text-steel">Bắt đầu của một sợi kết nối</p>
+              <h2 class="mt-1 text-heading-3 text-ink">Chào mừng tới #{{ current.name }}</h2>
+              <p class="mt-2 max-w-prose text-body-md text-slate">
+                Đây là phần mở đầu của kênh. Những cuộc trò chuyện mới sẽ nối tiếp từ đây.
+              </p>
+            </section>
+
+            @if (demoEnabled()) {
+              <ol class="message-list mt-6 grid gap-2.5" aria-label="Tin nhắn demo trong kênh">
+                <li class="message-row" data-demo-message="channel-1">
+                  <app-avatar name="Phan Thế Mon" presence="online" size="md" ring="canvas" />
+                  <article class="message-card">
+                    <header class="flex flex-wrap items-baseline gap-x-2">
+                      <strong class="text-body-sm-medium text-ink">Phan Thế Mon</strong>
+                      <time class="text-micro text-stone">Hôm nay, 19:24</time>
+                    </header>
+                    <p class="mt-1 text-body-sm text-charcoal">
+                      Tao vừa gom lại checklist Dashboard. Phần kéo nhóm server giờ nhìn vị trí thả
+                      rõ rồi.
+                    </p>
+                    <div class="message-reactions mt-2 flex flex-wrap gap-1.5" aria-label="Cảm xúc">
+                      <span class="reaction-chip">👌 <span>3</span></span>
+                      <span class="reaction-chip">🌿 <span>2</span></span>
+                    </div>
+                    <app-message-actions
+                      messageId="channel-1"
+                      author="Phan Thế Mon"
+                      excerpt="Tao vừa gom lại checklist Dashboard. Phần kéo nhóm server giờ nhìn vị trí thả rõ rồi."
+                      (action)="composerContext.set($event)"
+                    />
+                  </article>
+                </li>
+
+                <li class="message-row message-row--compact" data-demo-message="channel-2">
+                  <time class="message-row__compact-time text-micro text-stone">19:26</time>
+                  <article class="message-card">
+                    <p class="text-body-sm text-charcoal">
+                      Tao để màu xanh chỉ làm trạng thái sống, không phủ lên cả card nữa.
+                    </p>
+                    <app-message-actions
+                      messageId="channel-2"
+                      author="Phan Thế Mon"
+                      excerpt="Tao để màu xanh chỉ làm trạng thái sống, không phủ lên cả card nữa."
+                      (action)="composerContext.set($event)"
+                    />
+                  </article>
+                </li>
+
+                <li class="nexus-unread-divider my-3.5" aria-label="Có 2 tin nhắn mới">
+                  <span>2 tin nhắn mới</span>
+                </li>
+
+                <li class="message-row" data-demo-message="channel-3">
+                  <app-avatar name="NguyenMinhTai" presence="online" size="md" ring="canvas" />
+                  <article class="message-card">
+                    <div class="message-reply">
+                      <span class="message-reply__avatar" aria-hidden="true">P</span>
+                      <strong>Phan Thế Mon</strong>
+                      <span class="truncate">Tao vừa gom lại checklist Dashboard...</span>
+                    </div>
+                    <header class="mt-1 flex flex-wrap items-baseline gap-x-2">
+                      <strong class="text-body-sm-medium text-ink">NguyenMinhTai</strong>
+                      <time class="text-micro text-stone">19:31</time>
+                    </header>
+                    <p class="mt-1 text-body-sm text-charcoal">
+                      Ổn đó. Tao đang thử “Nexus Thread” để reply, unread và server active nói cùng
+                      một ngôn ngữ.
+                    </p>
+                    <app-message-actions
+                      messageId="channel-3"
+                      author="NguyenMinhTai"
+                      excerpt="Ổn đó. Tao đang thử Nexus Thread để reply, unread và server active nói cùng một ngôn ngữ."
+                      [editable]="true"
+                      (action)="composerContext.set($event)"
+                    />
+                  </article>
+                </li>
+              </ol>
+            }
+          </div>
         </div>
 
-        <app-message-composer [target]="'#' + current.name" />
+        <app-message-composer
+          [target]="'#' + current.name"
+          [context]="composerContext()"
+          (contextClosed)="composerContext.set(null)"
+        />
       }
     </div>
 
-    @if (detailsOpen()) {
-      <aside
-        class="hidden w-60 shrink-0 border-l border-hairline bg-surface p-4 xl:block"
-        aria-label="Thành viên"
-      >
-        <app-section-label text="Thành viên" />
-        <p class="mt-2 px-2 text-body-sm text-steel">Danh sách thành viên sẽ có ở phase sau.</p>
-      </aside>
-    }
+    <app-context-panel title="Thành viên" [open]="detailsOpen()" (closed)="detailsOpen.set(false)">
+      @if (demoEnabled()) {
+        <section class="context-members p-3" aria-label="Thành viên demo">
+          <p class="px-2 pb-2 text-micro-uppercase text-stone">Đang ở đây · 3</p>
+          <div class="grid gap-1">
+            <div class="context-member flex items-center gap-3 rounded-lg px-2 py-2">
+              <app-avatar name="Phan Thế Mon" presence="online" size="sm" ring="surface" />
+              <span class="min-w-0 flex-1">
+                <strong class="block truncate text-body-sm-medium text-ink">Phan Thế Mon</strong>
+                <span class="block truncate text-caption text-steel"
+                  >Đang xem #{{ current.name }}</span
+                >
+              </span>
+              <span class="live-presence" role="img" aria-label="Trực tuyến"></span>
+            </div>
+            <div class="context-member flex items-center gap-3 rounded-lg px-2 py-2">
+              <app-avatar name="NguyenMinhTai" presence="online" size="sm" ring="surface" />
+              <span class="min-w-0 flex-1">
+                <strong class="block truncate text-body-sm-medium text-ink">NguyenMinhTai</strong>
+                <span class="block truncate text-caption text-steel">Đang viết giao diện</span>
+              </span>
+              <span class="live-presence" role="img" aria-label="Trực tuyến"></span>
+            </div>
+            <div class="context-member flex items-center gap-3 rounded-lg px-2 py-2">
+              <app-avatar name="ho_be" presence="dnd" size="sm" ring="surface" />
+              <span class="min-w-0 flex-1">
+                <strong class="block truncate text-body-sm-medium text-ink">ho_be</strong>
+                <span class="block truncate text-caption text-steel">Không làm phiền</span>
+              </span>
+            </div>
+          </div>
+        </section>
+      } @else {
+        <app-empty-state
+          class="flex min-h-full"
+          icon="group"
+          title="Chưa có dữ liệu thành viên"
+          message="Danh sách sẽ xuất hiện tại đây khi máy chủ được kết nối với backend."
+        />
+      }
+    </app-context-panel>
   </div>
 } @else {
   <app-empty-state icon="search_off" message="Không tìm thấy kênh này." />

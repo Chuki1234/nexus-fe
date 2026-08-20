@@ -1,5 +1,20 @@
 :host {
   --mat-toolbar-container-background-color: var(--color-canvas);
   --mat-toolbar-container-text-color: var(--color-ink);
-  --mat-toolbar-standard-height: 48px;
+  --mat-toolbar-standard-height: 56px;
 }
+
+.chat-toolbar {
+  position: relative;
+  z-index: 2;
+  border-bottom: 1px solid var(--nexus-border-subtle);
+  background: var(--color-canvas);
+}
+
+.chat-toolbar__identity-icon {
+  position: relative;
+  background: var(--color-surface-feature);
+  color: var(--color-primary-soft);
+  box-shadow: var(--shadow-glow);
+}
+

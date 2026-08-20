@@ -22,7 +22,9 @@ export class ChatToolbar {
   readonly subtitle = input<string | null>(null);
   readonly leadingIcon = input<string>('tag');
   readonly showCallActions = input<boolean>(false);
-  readonly detailsOpen = input<boolean>(true);
+  readonly showDetailsAction = input<boolean>(true);
+  readonly detailsOpen = input<boolean>(false);
+  readonly detailsLabel = input<string>('hồ sơ');
 
   readonly toggleDetails = output<void>();
 }

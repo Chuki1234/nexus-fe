@@ -1,5 +1,58 @@
 :host {
   --mat-toolbar-container-background-color: var(--color-canvas);
   --mat-toolbar-container-text-color: var(--color-ink);
-  --mat-toolbar-standard-height: 48px;
+  --mat-toolbar-standard-height: 56px;
 }
+
+.friends-toolbar {
+  position: relative;
+  z-index: 2;
+  border-bottom: 1px solid var(--nexus-border-subtle);
+  background: var(--color-canvas);
+}
+
+.friends-toolbar__badge {
+  display: inline-grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-feature);
+  color: var(--color-primary-soft);
+  box-shadow: var(--shadow-glow);
+}
+
+.friends-toolbar__badge .mat-icon {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.friends-segmented,
+.friends-toolbar__actions {
+  background: var(--color-surface);
+  border: 1px solid var(--nexus-border-subtle);
+  box-shadow: var(--shadow-glow);
+}
+
+@media (max-width: 39.999rem) {
+  .friends-toolbar__title {
+    flex: 1 1 auto;
+  }
+
+  .friends-segmented {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  .friends-segmented::-webkit-scrollbar {
+    display: none;
+  }
+}
+

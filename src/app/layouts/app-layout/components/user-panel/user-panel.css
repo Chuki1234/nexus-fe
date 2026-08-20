@@ -1,0 +1,144 @@
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem;
+  border-top: 1px solid var(--nexus-border-subtle);
+  background: var(--color-surface);
+}
+
+.user-panel__identity {
+  display: flex;
+  width: 100%;
+  height: 2.75rem;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  color: var(--color-ink);
+  text-align: left;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.user-panel__identity:is(:hover, :focus-visible, [aria-expanded='true']) {
+  background: var(--nexus-surface-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--nexus-border-subtle));
+  box-shadow: var(--shadow-glow);
+}
+
+.user-panel__identity:active {
+  transform: scale(0.985);
+}
+
+.user-panel__identity app-avatar {
+  border-radius: var(--radius-full);
+  transition: box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.user-panel__identity:is(:hover, :focus-visible, [aria-expanded='true']) app-avatar {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-soft) 32%, var(--color-canvas));
+}
+
+.user-panel__identity-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.0625rem;
+}
+
+.user-panel__name,
+.user-panel__status {
+  display: block;
+  overflow: hidden;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-panel__name {
+  color: var(--color-ink);
+  font-size: var(--text-caption-bold);
+  font-weight: 600;
+  transition: color var(--motion-fast) var(--ease-nexus-out);
+}
+
+.user-panel__status {
+  color: var(--color-steel);
+  font-size: var(--text-micro);
+  transition: color var(--motion-fast) var(--ease-nexus-out);
+}
+
+.user-panel__identity:is(:hover, :focus-visible, [aria-expanded='true']) .user-panel__name {
+  color: var(--color-primary-soft);
+}
+
+.user-panel__identity:is(:hover, :focus-visible, [aria-expanded='true']) .user-panel__status {
+  color: var(--color-slate);
+}
+
+.user-panel__controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.125rem;
+  border-radius: var(--radius-lg);
+  padding: 0.125rem;
+  background: var(--nexus-surface-well);
+  border: 1px solid var(--nexus-border-subtle);
+  box-shadow: var(--shadow-glow);
+}
+
+.user-panel__control {
+  display: inline-grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--radius-md);
+
+  --mat-icon-button-icon-size: 1.25rem;
+  --mat-icon-button-state-layer-size: 2.25rem;
+  --mat-icon-button-touch-target-display: none;
+}
+
+.user-panel__control .mat-icon {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* Glyph mic và headset có trọng tâm thị giác lệch nhẹ dù cùng hộp 20px. */
+.user-panel__control--mic .mat-icon {
+  transform: translateY(-0.03125rem);
+}
+
+.user-panel__control--deafen .mat-icon {
+  transform: translateY(0.03125rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-panel__identity,
+  .user-panel__identity app-avatar,
+  .user-panel__name,
+  .user-panel__status,
+  .user-panel__control .mat-icon {
+    transition: none;
+    transform: none;
+  }
+}
+

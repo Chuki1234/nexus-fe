@@ -1,0 +1,33 @@
+<section
+  class="nexus-boot"
+  [class.nexus-boot--leaving]="leaving()"
+  data-nexus-boot="angular"
+  role="status"
+  aria-live="polite"
+  aria-label="NexusCord đang tải"
+>
+  <div class="nexus-boot__content">
+    <div class="nexus-boot__mark" aria-hidden="true">
+      <span class="nexus-boot__orbits">
+        <span class="nexus-boot__orbit nexus-boot__orbit--one">
+          <span class="nexus-boot__node nexus-boot__node--one"></span>
+          <span class="nexus-boot__node nexus-boot__node--two"></span>
+        </span>
+        <span class="nexus-boot__orbit nexus-boot__orbit--two">
+          <span class="nexus-boot__node nexus-boot__node--three"></span>
+          <span class="nexus-boot__node nexus-boot__node--four"></span>
+        </span>
+      </span>
+      <span class="nexus-boot__monogram">N</span>
+    </div>
+
+    <div class="nexus-boot__copy">
+      <strong>NexusCord</strong>
+      <span>Đang nối không gian của bạn</span>
+    </div>
+
+    <span class="nexus-boot__progress" aria-hidden="true">
+      <span></span>
+    </span>
+  </div>
+</section>

@@ -1,0 +1,87 @@
+@if (isLoading()) {
+  <section
+    class="dashboard-state dashboard-state--loading"
+    data-dashboard-state="loading"
+    role="status"
+    aria-live="polite"
+    aria-busy="true"
+  >
+    <span class="sr-only">{{ copy().title }}. {{ copy().message }}</span>
+
+    <div class="state-skeleton" [attr.data-skeleton-layout]="layout()" aria-hidden="true">
+      @if (layout() === 'list') {
+        <span class="skeleton-block skeleton-search"></span>
+        @for (row of skeletonRows; track row) {
+          <span class="skeleton-row">
+            <span class="skeleton-avatar"></span>
+            <span class="skeleton-copy">
+              <span class="skeleton-block skeleton-name"></span>
+              <span class="skeleton-block skeleton-line"></span>
+            </span>
+            <span class="skeleton-action"></span>
+          </span>
+        }
+      } @else if (layout() === 'chat') {
+        <span class="skeleton-block skeleton-kicker"></span>
+        <span class="skeleton-block skeleton-heading"></span>
+        <span class="skeleton-block skeleton-intro"></span>
+        @for (row of skeletonRows.slice(0, 3); track row) {
+          <span class="skeleton-row skeleton-message">
+            <span class="skeleton-avatar"></span>
+            <span class="skeleton-copy">
+              <span class="skeleton-block skeleton-name"></span>
+              <span class="skeleton-block skeleton-message-line"></span>
+              <span class="skeleton-block skeleton-line"></span>
+            </span>
+          </span>
+        }
+      } @else {
+        <span class="skeleton-orbit"></span>
+        <span class="skeleton-block skeleton-heading"></span>
+        <span class="skeleton-block skeleton-intro"></span>
+      }
+    </div>
+  </section>
+} @else if (isBanner()) {
+  <section
+    class="dashboard-state dashboard-state--banner"
+    [attr.data-dashboard-state]="state()"
+    role="status"
+    aria-live="polite"
+  >
+    <span class="state-mark state-mark--compact" aria-hidden="true">
+      <mat-icon>{{ copy().icon }}</mat-icon>
+    </span>
+    <span class="state-copy min-w-0 flex-1">
+      <strong class="block text-body-sm-medium text-ink">{{ copy().title }}</strong>
+      <span class="block text-caption text-slate">{{ copy().message }}</span>
+    </span>
+    @if (copy().action; as label) {
+      <button mat-button type="button" class="state-action" (click)="action.emit()">
+        {{ label }}
+      </button>
+    }
+  </section>
+} @else {
+  <section
+    class="dashboard-state dashboard-state--panel"
+    [attr.data-dashboard-state]="state()"
+    [attr.role]="state() === 'error' ? 'alert' : 'status'"
+    [attr.aria-live]="state() === 'error' ? 'assertive' : 'polite'"
+  >
+    <div class="state-panel">
+      <span class="state-thread" aria-hidden="true"></span>
+      <span class="state-mark" aria-hidden="true"
+        ><mat-icon>{{ copy().icon }}</mat-icon></span
+      >
+      <p class="mt-5 text-micro-uppercase text-steel">Trạng thái NexusCord</p>
+      <h2 class="mt-1 text-heading-4 text-ink">{{ copy().title }}</h2>
+      <p class="mt-2 max-w-prose text-body-md text-slate">{{ copy().message }}</p>
+      @if (copy().action; as label) {
+        <button mat-flat-button type="button" class="state-action mt-6" (click)="action.emit()">
+          {{ label }}
+        </button>
+      }
+    </div>
+  </section>
+}

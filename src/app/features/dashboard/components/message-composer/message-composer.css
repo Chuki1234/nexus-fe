@@ -1,0 +1,197 @@
+:host {
+  display: block;
+  flex: 0 0 auto;
+  padding: 0 1rem 1rem;
+  background: var(--color-canvas);
+}
+
+.composer-context {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) 2.25rem;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--nexus-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--nexus-surface-card);
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  box-shadow:
+    3px 0 0 color-mix(in srgb, var(--color-primary) 70%, transparent) inset,
+    var(--shadow-glow);
+}
+
+.composer-context__icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-feature);
+  color: var(--color-primary-soft);
+}
+
+.composer-context__close {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  place-items: center;
+  border-radius: var(--radius-full);
+  padding: 0;
+
+  --mat-icon-button-state-layer-size: 2rem;
+  --mat-icon-button-touch-target-display: none;
+}
+
+.composer-context__icon .mat-icon,
+.composer-context__close .mat-icon {
+  display: grid;
+  width: 1.125rem;
+  height: 1.125rem;
+  place-items: center;
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.composer-context__copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.composer-context__copy strong,
+.composer-context__copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-context__copy strong {
+  color: var(--color-ink);
+  font-size: var(--text-caption-bold);
+  font-weight: 600;
+}
+
+.composer-context__copy span {
+  color: var(--color-steel);
+  font-size: var(--text-micro);
+}
+
+.composer-context[data-context-kind='delete'] {
+  box-shadow:
+    3px 0 0 var(--color-danger) inset,
+    var(--shadow-glow);
+}
+
+.composer-context[data-context-kind='delete'] .composer-context__icon {
+  background: var(--color-danger-surface);
+  color: var(--color-danger);
+}
+
+.composer-shell {
+  background: var(--color-surface);
+  border: 1px solid var(--nexus-border-subtle);
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.composer-shell:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 50%, var(--nexus-border-subtle));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-primary-soft) 22%, transparent),
+    var(--shadow-card);
+}
+
+.composer-core {
+  background: var(--color-canvas);
+  border: 1px solid var(--nexus-border-strong);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 5%, transparent) inset;
+}
+
+.composer-thread {
+  position: absolute;
+  top: 50%;
+  left: -0.125rem;
+  width: 0.25rem;
+  height: 1.25rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 15%, transparent);
+  transform: translateY(-50%);
+}
+
+
+.composer-send {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  padding: 0;
+
+  --mat-icon-button-state-layer-size: 2rem;
+  --mat-icon-button-touch-target-display: none;
+}
+
+.composer-send .mat-icon {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.composer-send:disabled {
+  background: color-mix(in srgb, var(--color-primary) 72%, var(--color-surface));
+  color: var(--color-on-primary);
+  opacity: 1;
+}
+
+.composer-action {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  place-items: center;
+  border-radius: var(--radius-full);
+  padding: 0;
+
+  --mat-icon-button-state-layer-size: 2rem;
+  --mat-icon-button-touch-target-display: none;
+}
+
+.composer-action .mat-icon {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.composer-action:disabled {
+  color: var(--color-steel);
+}
+
+.composer-hint {
+  text-wrap: pretty;
+}
+
+@media (max-width: 39.999rem) {
+  :host {
+    padding-inline: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-shell {
+    transition: none;
+  }
+}

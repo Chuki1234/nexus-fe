@@ -1,0 +1,37 @@
+<article class="friend-row nexus-interactive-row group flex min-h-16 items-center gap-3 rounded-xl px-3.5 py-2.5">
+  <app-avatar [name]="person().name" [presence]="person().presence" size="lg" ring="canvas" />
+
+  <span class="min-w-0 flex-1">
+    <span
+      class="block truncate text-body-sm-medium text-ink transition-colors group-hover:text-primary-soft group-focus-within:text-primary-soft"
+    >
+      {{ person().name }}
+    </span>
+    <span class="block truncate text-caption text-slate">
+      {{ person().statusMessage ?? 'Đã gửi một lời mời kết bạn' }}
+    </span>
+  </span>
+
+  <span class="flex shrink-0 items-center gap-1">
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control"
+      (click)="accepted.emit(person().id)"
+      [attr.aria-label]="'Chấp nhận lời mời của ' + person().name"
+      matTooltip="Chấp nhận"
+    >
+      <mat-icon aria-hidden="true">check</mat-icon>
+    </button>
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control"
+      (click)="dismissed.emit(person().id)"
+      [attr.aria-label]="'Từ chối lời mời của ' + person().name"
+      matTooltip="Từ chối"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  </span>
+</article>

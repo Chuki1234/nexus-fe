@@ -43,5 +43,10 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
+# Local notes & handoff
+NEXUSCORD_HANDOFF.md
+NEXUSCORD_MERGE_AUDIT.md
+
 # Local agent session context (per-machine, not for git)
 .claude/student-context.json
+

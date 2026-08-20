@@ -1,19 +1,22 @@
-<mat-toolbar class="!gap-3 !border-b !border-hairline !px-4">
-  <mat-icon aria-hidden="true" class="text-steel">group</mat-icon>
-  <h1 class="text-body-md-medium text-ink">Bạn bè</h1>
+<mat-toolbar class="friends-toolbar !h-auto !min-h-14 !flex-wrap !gap-3 !px-3 !py-2 sm:!px-4">
+  <span class="friends-toolbar__title flex items-center gap-2.5">
+    <span class="friends-toolbar__badge" aria-hidden="true">
+      <mat-icon>group</mat-icon>
+    </span>
+    <h1 class="text-body-md-medium text-ink">Bạn bè</h1>
+  </span>
 
-  <span aria-hidden="true" class="h-5 w-px shrink-0 bg-hairline"></span>
-
-  <div class="flex gap-1" role="group" aria-label="Lọc danh sách bạn bè">
+  <div
+    class="friends-segmented order-3 flex w-full flex-wrap gap-1 rounded-full bg-surface-soft p-1 sm:order-none sm:w-auto"
+    role="group"
+    aria-label="Chọn chế độ bạn bè"
+  >
     @for (option of tabs; track option.id) {
       <button
         type="button"
         (click)="tab.set(option.id)"
         [attr.aria-pressed]="tab() === option.id"
-        class="rounded-sm px-3 py-1 text-body-sm-medium transition-colors"
-        [class.bg-surface]="tab() === option.id"
-        [class.text-ink]="tab() === option.id"
-        [class.text-slate]="tab() !== option.id"
+        class="nexus-filter-tab min-h-9 rounded-full border px-3 text-body-sm-medium"
       >
         {{ option.label }}
       </button>
@@ -22,7 +25,60 @@
 
   <span class="flex-1"></span>
 
-  <button mat-flat-button type="button" [disabled]="true" matTooltip="Thêm bạn (chưa làm)">
-    Thêm bạn
-  </button>
+  <span class="friends-toolbar__actions flex items-center gap-1 rounded-full bg-surface-soft p-1">
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control xl:!hidden"
+      [attr.aria-expanded]="activityOpen()"
+      [attr.aria-label]="activityOpen() ? 'Ẩn hoạt động bạn bè' : 'Hiện hoạt động bạn bè'"
+      [matTooltip]="activityOpen() ? 'Ẩn hoạt động' : 'Hiện hoạt động'"
+      (click)="toggleActivity.emit()"
+    >
+      <mat-icon aria-hidden="true">
+        {{ activityOpen() ? 'right_panel_close' : 'right_panel_open' }}
+      </mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-demo-toggle nexus-icon-control"
+      [attr.aria-pressed]="demoEnabled()"
+      [attr.aria-label]="demoEnabled() ? 'Tắt dữ liệu demo' : 'Bật dữ liệu demo'"
+      [matTooltip]="demoEnabled() ? 'Tắt dữ liệu demo' : 'Bật dữ liệu demo'"
+      (click)="toggleDemo.emit()"
+    >
+      <mat-icon aria-hidden="true">storage</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-atmosphere-toggle nexus-icon-control"
+      [attr.aria-expanded]="atmosphereOpen()"
+      [attr.aria-label]="atmosphereOpen() ? 'Đóng Không khí Nexus' : 'Mở Không khí Nexus'"
+      [matTooltip]="atmosphereOpen() ? 'Đóng Không khí Nexus' : 'Đổi Không khí Nexus'"
+      (click)="toggleAtmosphere.emit()"
+    >
+      <mat-icon aria-hidden="true">palette</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control"
+      (click)="toggleTheme()"
+      [attr.aria-pressed]="theme() === 'light'"
+      [attr.aria-label]="
+        theme() === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'
+      "
+      [matTooltip]="theme() === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'"
+    >
+      <mat-icon>{{ theme() === 'dark' ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      <span class="sr-only">
+        {{ theme() === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối' }}
+      </span>
+    </button>
+  </span>
 </mat-toolbar>

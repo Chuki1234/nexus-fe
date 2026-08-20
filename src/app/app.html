@@ -1,1 +1,5 @@
 <router-outlet />
+
+@if (boot.visible()) {
+  <app-nexus-boot [leaving]="boot.leaving()" />
+}
