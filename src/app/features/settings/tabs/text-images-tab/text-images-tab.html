@@ -1,0 +1,136 @@
+<div class="space-y-8">
+  <!-- Header -->
+  <div>
+    <h2 class="text-heading-4 font-bold text-ink">Văn Bản & Hình Ảnh</h2>
+    <p class="text-caption text-steel mt-1">
+      Kiểm soát cách hình ảnh, video, liên kết và khối mã được định dạng và hiển thị trong kênh chat.
+    </p>
+  </div>
+
+  <!-- Media Display Card -->
+  <div class="rounded-xl border border-hairline bg-surface p-6 space-y-4">
+    <h3 class="text-heading-5 font-bold text-ink flex items-center gap-2">
+      <mat-icon class="text-primary">image</mat-icon>
+      Hiển thị hình ảnh và video
+    </h3>
+
+    <div class="divide-y divide-hairline/60">
+      <div class="flex items-center justify-between gap-4 py-3">
+        <div>
+          <span class="block text-body-sm-medium font-semibold text-ink">Hiển thị hình ảnh, tệp tin và video xem trước trực tiếp</span>
+          <span class="text-caption text-steel">Tự động phát media tải lên thay vì chỉ hiển thị link tệp đính kèm.</span>
+        </div>
+        <mat-slide-toggle
+          [checked]="settingsService.preferences().displayMediaInline"
+          (change)="toggleMediaInline($event.checked)"
+        />
+      </div>
+
+      <div class="flex items-center justify-between gap-4 py-3">
+        <div>
+          <span class="block text-body-sm-medium font-semibold text-ink">Xem trước nội dung liên kết web (Rich Link Embeds)</span>
+          <span class="text-caption text-steel">Tự động trích xuất tiêu đề, hình ảnh thu nhỏ và tóm tắt của trang web khi gửi link.</span>
+        </div>
+        <mat-slide-toggle
+          [checked]="settingsService.preferences().displayLinkPreviews"
+          (change)="toggleLinkPreviews($event.checked)"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- Emoji & Text Formatting Card -->
+  <div class="rounded-xl border border-hairline bg-surface p-6 space-y-4">
+    <h3 class="text-heading-5 font-bold text-ink flex items-center gap-2">
+      <mat-icon class="text-primary">sentiment_satisfied_alt</mat-icon>
+      Emoji & Biểu tượng cảm xúc
+    </h3>
+
+    <div class="divide-y divide-hairline/60">
+      <div class="flex items-center justify-between gap-4 py-3">
+        <div>
+          <span class="block text-body-sm-medium font-semibold text-ink">Tự động chuyển ký tự thành biểu tượng cảm xúc</span>
+          <span class="text-caption text-steel">Ví dụ: khi bạn gõ :) sẽ tự động chuyển thành biểu tượng 😊.</span>
+        </div>
+        <mat-slide-toggle
+          [checked]="settingsService.preferences().convertEmoticons"
+          (change)="toggleConvertEmoticons($event.checked)"
+        />
+      </div>
+
+      <div class="flex items-center justify-between gap-4 py-3">
+        <div>
+          <span class="block text-body-sm-medium font-semibold text-ink">Gợi ý Sticker và Emoji khi gõ tin nhắn</span>
+          <span class="text-caption text-steel">Hiển thị thanh gợi ý nhanh khi bạn gõ các từ khóa như :vui, :buon, :game.</span>
+        </div>
+        <mat-slide-toggle
+          [checked]="settingsService.preferences().suggestStickers"
+          (change)="toggleSuggestStickers($event.checked)"
+        />
+      </div>
+
+      <div class="flex items-center justify-between gap-4 py-3">
+        <div>
+          <span class="block text-body-sm-medium font-semibold text-ink">Tô màu cú pháp khối mã (Code Syntax Highlighting)</span>
+          <span class="text-caption text-steel">Tự động highlight màu từ khóa cho các đoạn mã JavaScript, TypeScript, Python, C++, v.v.</span>
+        </div>
+        <mat-slide-toggle
+          [checked]="settingsService.preferences().codeHighlighting"
+          (change)="toggleCodeHighlighting($event.checked)"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- Spoiler Content Controls -->
+  <div class="rounded-xl border border-hairline bg-surface p-6 space-y-4">
+    <h3 class="text-heading-5 font-bold text-ink flex items-center gap-2">
+      <mat-icon class="text-primary">blur_on</mat-icon>
+      Hiển thị nội dung Spoiler (Cảnh báo tiết lộ trước)
+    </h3>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <button
+        type="button"
+        (click)="setShowSpoilers('click')"
+        class="text-left rounded-lg p-3.5 border transition-all"
+        [class.border-primary]="settingsService.preferences().showSpoilers === 'click'"
+        [class.bg-surface-feature/30]="settingsService.preferences().showSpoilers === 'click'"
+        [class.border-hairline]="settingsService.preferences().showSpoilers !== 'click'"
+        [class.bg-canvas]="settingsService.preferences().showSpoilers !== 'click'"
+      >
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-body-sm-medium font-bold text-ink">Khi bấm vào (Khuyên dùng)</span>
+          <input
+            type="radio"
+            name="spoiler-mode"
+            [checked]="settingsService.preferences().showSpoilers === 'click'"
+            class="accent-primary w-4 h-4 cursor-pointer"
+          />
+        </div>
+        <span class="text-caption text-steel">Che mờ hình ảnh và chữ, chỉ mở khi bạn chủ động nhấp chuột.</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="setShowSpoilers('always')"
+        class="text-left rounded-lg p-3.5 border transition-all"
+        [class.border-primary]="settingsService.preferences().showSpoilers === 'always'"
+        [class.bg-surface-feature/30]="settingsService.preferences().showSpoilers === 'always'"
+        [class.border-hairline]="settingsService.preferences().showSpoilers !== 'always'"
+        [class.bg-canvas]="settingsService.preferences().showSpoilers !== 'always'"
+      >
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-body-sm-medium font-bold text-ink">Luôn hiển thị</span>
+          <input
+            type="radio"
+            name="spoiler-mode"
+            [checked]="settingsService.preferences().showSpoilers === 'always'"
+            class="accent-primary w-4 h-4 cursor-pointer"
+          />
+        </div>
+        <span class="text-caption text-steel">Không che bất kỳ nội dung nào được đánh dấu spoiler.</span>
+      </button>
+    </div>
+  </div>
+</div>

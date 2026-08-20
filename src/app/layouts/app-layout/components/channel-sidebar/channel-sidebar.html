@@ -1,8 +1,73 @@
-<header class="shrink-0 border-b border-hairline p-2">
+<header class="shrink-0 border-b border-hairline">
   @if (serverId(); as id) {
-    <h2 class="truncate px-2 py-1 text-body-md-medium text-ink">{{ title() }}</h2>
+    @if (canAccessServerSettings()) {
+      <!-- Full-width unified server header — 1 nút mở dropdown menu server (bao gồm Tổng quan máy chủ) cho Admin/Mod -->
+      <div
+        [matMenuTriggerFor]="serverMenu"
+        class="flex h-12 w-full items-center justify-between px-4 text-left font-bold text-ink hover:bg-surface-feature transition-colors group cursor-pointer shadow-2xs select-none"
+      >
+        <h2 class="truncate text-body-md-medium font-bold text-ink m-0 flex-1">{{ title() }}</h2>
+        <button
+          type="button"
+          matTooltip="Cài đặt máy chủ"
+          class="w-7 h-7 rounded-md text-steel hover:text-ink hover:bg-surface/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-2"
+        >
+          <mat-icon class="!w-5 !h-5 !text-[20px] leading-none group-hover:text-ink transition-colors">
+            expand_more
+          </mat-icon>
+          <span class="sr-only">Cài đặt máy chủ</span>
+        </button>
+      </div>
+
+      <!-- Server Context Menu -->
+      <mat-menu #serverMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal">
+        @if (canManageOverview()) {
+          <button mat-menu-item type="button" (click)="openServerSettings('server-overview')">
+            <mat-icon>dns</mat-icon>
+            <span>Tổng quan máy chủ</span>
+          </button>
+        }
+        @if (canManageRoles()) {
+          <button mat-menu-item type="button" (click)="openServerSettings('server-roles')">
+            <mat-icon>admin_panel_settings</mat-icon>
+            <span>Vai trò &amp; Phân quyền (Roles)</span>
+          </button>
+        }
+        @if (canManageMembers()) {
+          <button mat-menu-item type="button" (click)="openServerSettings('server-members')">
+            <mat-icon>people</mat-icon>
+            <span>Quản lý thành viên &amp; Ban/Kick</span>
+          </button>
+        }
+        @if (canManageSafety()) {
+          <button mat-menu-item type="button" (click)="openServerSettings('server-safety')">
+            <mat-icon>gavel</mat-icon>
+            <span>Bảo mật &amp; Phê duyệt người mới</span>
+          </button>
+        }
+        @if (canViewAuditLog()) {
+          <button mat-menu-item type="button" (click)="openServerSettings('server-audit-log')">
+            <mat-icon>receipt_long</mat-icon>
+            <span>Nhật ký kiểm toán (Audit Log)</span>
+          </button>
+        }
+
+        <div class="my-1 border-t border-hairline"></div>
+        <button mat-menu-item type="button" class="text-danger">
+          <mat-icon class="!text-danger">logout</mat-icon>
+          <span class="text-danger font-semibold">Rời khỏi máy chủ</span>
+        </button>
+      </mat-menu>
+    } @else {
+      <!-- Non-admin member header: Plain title without gear or dropdown chevron -->
+      <div class="flex h-12 w-full items-center px-4 text-left font-bold text-ink shadow-2xs select-none">
+        <h2 class="truncate text-body-md-medium font-bold text-ink m-0 flex-1">{{ title() }}</h2>
+      </div>
+    }
   } @else {
-    <app-search-field placeholder="Tìm hoặc bắt đầu cuộc trò chuyện" [disabled]="true" />
+    <div class="p-2.5">
+      <app-search-field placeholder="Tìm hoặc bắt đầu cuộc trò chuyện" [disabled]="true" />
+    </div>
   }
 </header>
 

@@ -1,0 +1,4 @@
+/* accessibility-tab.css */
+:host {
+  display: block;
+}

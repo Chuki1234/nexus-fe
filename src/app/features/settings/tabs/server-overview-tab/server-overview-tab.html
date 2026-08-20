@@ -1,0 +1,131 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-hairline pb-4">
+    <div>
+      <h2 class="text-heading-4 font-bold text-ink tracking-tight">Tổng Quan Máy Chủ (Server Overview)</h2>
+      <p class="text-caption text-steel mt-1">
+        Cấu hình thông tin cơ bản, biểu tượng máy chủ, kênh thông báo và các thiết lập toàn hệ thống cho <span class="text-primary font-bold">{{ serverName() }}</span>.
+      </p>
+    </div>
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 text-primary border border-primary/30 text-[11px] font-bold uppercase tracking-wider">
+      <mat-icon class="!w-3.5 !h-3.5 !text-[15px]">verified</mat-icon>
+      <span>Quyền Admin Máy Chủ</span>
+    </span>
+  </div>
+
+  <!-- Server Profile Edit Box -->
+  <div class="card-base space-y-6">
+    <div class="flex flex-col sm:flex-row items-start gap-6">
+      <!-- Server Icon Upload Box -->
+      <div class="w-24 h-24 rounded-2xl bg-surface-feature text-primary font-extrabold text-2xl flex items-center justify-center shadow-md relative group cursor-pointer shrink-0 border-2 border-primary/40">
+        <span>{{ initials() }}</span>
+        <div class="absolute inset-0 rounded-2xl bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-micro font-bold text-white p-1 text-center">
+          <mat-icon class="!w-5 !h-5 !text-[20px] mb-1">photo_camera</mat-icon>
+          Tải ảnh mới
+        </div>
+      </div>
+
+      <div class="flex-1 space-y-4 w-full">
+        <div>
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="input-srv-name">
+            Tên Máy Chủ
+          </label>
+          <input
+            id="input-srv-name"
+            type="text"
+            [value]="serverName()"
+            (input)="updateName($any($event.target).value)"
+            placeholder="Nhập tên máy chủ"
+            class="input-base"
+          />
+        </div>
+
+        <div>
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="input-srv-desc">
+            Mô Tả &amp; Giới Thiệu Máy Chủ
+          </label>
+          <textarea
+            id="input-srv-desc"
+            rows="3"
+            [value]="serverDescription()"
+            (input)="updateDescription($any($event.target).value)"
+            placeholder="Mô tả về chủ đề máy chủ của bạn..."
+            class="w-full bg-canvas border border-hairline-strong rounded-md px-3.5 py-2.5 text-body-sm text-ink focus:outline-none focus:border-primary resize-none transition-colors"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Channel & Notifications -->
+  <div class="card-base space-y-4">
+    <h3 class="text-body-md-medium font-bold text-ink flex items-center gap-2">
+      <mat-icon class="text-primary">volume_up</mat-icon>
+      Kênh Hệ Thống &amp; Thông Báo Chào Mừng
+    </h3>
+
+    <div class="space-y-4 divide-y divide-hairline">
+      <div class="pt-1">
+        <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="select-sys-chan">
+          Kênh Gửi Tin Nhắn Chào Mừng Thành Viên Mới
+        </label>
+        <select
+          id="select-sys-chan"
+          [value]="systemChannel()"
+          (change)="updateSystemChannel($any($event.target).value)"
+          class="input-base cursor-pointer"
+        >
+          @for (chan of availableChannels(); track chan.id) {
+            <option [value]="chan.id"># {{ chan.name }} (Kênh {{ chan.type === 'voice' ? 'thoại' : 'chữ' }})</option>
+          }
+        </select>
+      </div>
+
+      <div class="flex items-center justify-between pt-4">
+        <div>
+          <span class="block text-body-sm-medium font-semibold text-ink">Gửi tin nhắn chào mừng tự động</span>
+          <span class="text-caption text-steel">Tự động phát lời chào thân thiện khi có người mới gia nhập máy chủ.</span>
+        </div>
+        <input
+          type="checkbox"
+          [checked]="sendWelcomeMessage()"
+          (change)="toggleWelcomeMessage()"
+          class="w-5 h-5 accent-primary cursor-pointer"
+        />
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 pt-4 border-t border-hairline">
+      <button
+        type="button"
+        (click)="saveServerOverview()"
+        class="btn-primary"
+      >
+        Lưu Thay Đổi
+      </button>
+      @if (savedNotice()) {
+        <span class="text-caption font-semibold text-success flex items-center gap-1">
+          <mat-icon class="!w-4 !h-4 !text-[16px]">check</mat-icon>
+          Đã lưu thông tin máy chủ thành công!
+        </span>
+      }
+    </div>
+  </div>
+
+  <!-- Danger Zone for Server -->
+  <div class="rounded-xl border border-danger/40 bg-danger-surface p-6 space-y-3">
+    <h3 class="text-body-md-medium font-bold text-danger flex items-center gap-2">
+      <mat-icon class="text-danger">warning</mat-icon>
+      Vùng Nguy Hiểm Máy Chủ
+    </h3>
+    <p class="text-caption text-steel">
+      Xóa vĩnh viễn toàn bộ máy chủ này cùng tất cả kênh thoại, kênh tin nhắn và quyền hạn của thành viên. Hành động này không thể khôi phục.
+    </p>
+    <button
+      type="button"
+      class="btn-danger"
+    >
+      Xóa Máy Chủ Vĩnh Viễn
+    </button>
+  </div>
+</div>
