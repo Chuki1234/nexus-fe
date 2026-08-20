@@ -10,10 +10,14 @@
   </span>
 </button>
 
-<mat-menu #userMenu="matMenu">
+<mat-menu #userMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal">
+  <button mat-menu-item type="button" (click)="openSettings()">
+    <mat-icon aria-hidden="true" class="!text-steel">settings</mat-icon>
+    <span>Cài đặt người dùng</span>
+  </button>
   <button mat-menu-item type="button" (click)="onSignOut()" [disabled]="signingOut()">
-    <mat-icon aria-hidden="true">logout</mat-icon>
-    <span>{{ signingOut() ? 'Đang đăng xuất…' : 'Đăng xuất' }}</span>
+    <mat-icon aria-hidden="true" class="!text-danger">logout</mat-icon>
+    <span class="text-danger font-semibold">{{ signingOut() ? 'Đang đăng xuất…' : 'Đăng xuất' }}</span>
   </button>
 </mat-menu>
 
@@ -49,7 +53,10 @@
     class="user-panel__control user-panel__control--settings nexus-icon-control"
     aria-label="Cài đặt — do team Settings phụ trách"
     matTooltip="Phần Cài đặt do team Settings phụ trách"
+    (click)="openSettings()"
   >
     <mat-icon aria-hidden="true">settings</mat-icon>
   </button>
+
 </div>
+
