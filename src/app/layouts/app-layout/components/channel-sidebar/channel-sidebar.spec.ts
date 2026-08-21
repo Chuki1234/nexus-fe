@@ -1,10 +1,13 @@
 import { ComponentRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
-import { AuthService } from '../../../../core/auth/auth.service';
 import { ShellData } from '../../../../core/api/shell-data';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
+import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
 import { ChannelSidebar } from './channel-sidebar';
+import { CreateChannelDialog } from './components/create-channel-dialog/create-channel-dialog';
 
 class AuthStub {
   signOut = () => Promise.resolve();
@@ -15,7 +18,29 @@ class ProfileStub {
 }
 
 describe('ChannelSidebar', () => {
+  let mockDialog: { open: ReturnType<typeof vi.fn> };
+  let mockSettingsService: {
+    canAccessServerSettings: ReturnType<typeof vi.fn>;
+    canManageOverview: ReturnType<typeof vi.fn>;
+    canManageRoles: ReturnType<typeof vi.fn>;
+    canManageMembers: ReturnType<typeof vi.fn>;
+    canManageSafety: ReturnType<typeof vi.fn>;
+    canViewAuditLog: ReturnType<typeof vi.fn>;
+    openServerSettings: ReturnType<typeof vi.fn>;
+  };
+
   const mount = async (serverId: string | null, shell: ShellData = new ShellData()) => {
+    mockDialog = { open: vi.fn() };
+    mockSettingsService = {
+      canAccessServerSettings: vi.fn().mockReturnValue(true),
+      canManageOverview: vi.fn().mockReturnValue(true),
+      canManageRoles: vi.fn().mockReturnValue(true),
+      canManageMembers: vi.fn().mockReturnValue(true),
+      canManageSafety: vi.fn().mockReturnValue(true),
+      canViewAuditLog: vi.fn().mockReturnValue(true),
+      openServerSettings: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ChannelSidebar],
       providers: [
@@ -23,6 +48,8 @@ describe('ChannelSidebar', () => {
         { provide: AuthService, useValue: new AuthStub() },
         { provide: ProfileService, useValue: new ProfileStub() },
         { provide: ShellData, useValue: shell },
+        { provide: MatDialog, useValue: mockDialog },
+        { provide: UserSettingsService, useValue: mockSettingsService },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(ChannelSidebar);
@@ -74,8 +101,64 @@ describe('ChannelSidebar', () => {
     expect(fixture.nativeElement.textContent).toContain('chưa có kênh nào');
   });
 
-  // Hai lần mount trong cùng một `it` không được: TestBed đã cấu hình rồi thì
-  // không cấu hình lại được nữa. Tách thành hai test riêng.
+  it('hiển thị header máy chủ với chevron và nút mời nhanh ở góc phải khi có serverId', async () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    const fixture = await mount('lofi', shell);
+
+    const header = fixture.nativeElement.querySelector('.channel-sidebar__server-header');
+    expect(header).toBeTruthy();
+    expect(header.textContent).toContain('Lofi Study');
+    expect(header.querySelector('.server-header-chevron')).toBeTruthy();
+    expect(header.querySelector('.server-header-invite-btn')).toBeTruthy();
+  });
+
+  it('gọi openServerSettings khi chọn Cài đặt máy chủ', async () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    const fixture = await mount('lofi', shell);
+
+    fixture.componentInstance['openServerSettings']('server-overview');
+
+    expect(mockSettingsService.openServerSettings).toHaveBeenCalledWith(
+      'server-overview',
+      'lofi',
+    );
+  });
+
+  it('gọi openCreateChannelDialog mở CreateChannelDialog khi chọn Tạo kênh', async () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    const fixture = await mount('lofi', shell);
+
+    fixture.componentInstance['openCreateChannelDialog']();
+
+    expect(mockDialog.open).toHaveBeenCalledWith(
+      CreateChannelDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          serverId: 'lofi',
+          serverName: 'Lofi Study',
+          defaultType: 'text',
+        }),
+      }),
+    );
+  });
+
+  it('toggleHideMutedChannels thay đổi trạng thái checkbox', async () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    const fixture = await mount('lofi', shell);
+
+    expect(fixture.componentInstance['hideMutedChannels']()).toBe(false);
+
+    fixture.componentInstance['toggleHideMutedChannels']();
+    expect(fixture.componentInstance['hideMutedChannels']()).toBe(true);
+
+    fixture.componentInstance['toggleHideMutedChannels']();
+    expect(fixture.componentInstance['hideMutedChannels']()).toBe(false);
+  });
+
   it('có khối người dùng ở đáy khi đang ở khu tin nhắn riêng', async () => {
     const fixture = await mount(null);
 
@@ -88,3 +171,4 @@ describe('ChannelSidebar', () => {
     expect(fixture.nativeElement.querySelector('app-user-panel')).toBeTruthy();
   });
 });
+

@@ -67,18 +67,26 @@ export interface CommandResult {
   searchableText: string;
 }
 
-type GroupingTargetKind = 'group' | 'server';
+/** Mô hình phần tử trong danh sách 1D của Server Rail */
+export type RailItem =
+  | {
+      kind: 'server';
+      id: string;
+      server: ServerSummary;
+    }
+  | {
+      kind: 'folder';
+      id: string;
+      folder: ServerGroupSummary;
+      servers: ServerSummary[];
+      isOpen: boolean;
+    };
+
+type GroupingTargetKind = 'folder' | 'server';
 
 /**
- * Cột 1 — dải icon server dọc mép trái.
- *
- * Chỉ báo "đang mở" là thanh xanh dán vào mép trái, đúng `ex-app-shell-row` trong
- * design system (`activeIndicator: {colors.primary}`). Cùng với chấm presence,
- * đây là chỗ duy nhất ngoài CTA được dùng màu xanh — chỉ báo trạng thái.
- *
- * Trạng thái active đọc từ `routerLinkActive` chứ không tự tách URL: rail nằm
- * ngoài router-outlet nên không có route params, mà tự parse chuỗi thì sẽ lệch
- * ngay khi cấu trúc route đổi.
+ * Cột 1 — dải icon server dọc mép trái chuẩn Discord.
+ * Tái thiết kế toàn diện theo đặc tả Drag & Drop và Folder System.
  */
 @Component({
   selector: 'app-server-rail',
@@ -100,7 +108,8 @@ type GroupingTargetKind = 'group' | 'server';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'flex h-full w-18 shrink-0 flex-col items-center gap-2 overflow-hidden bg-canvas py-3',
+    class:
+      'flex h-full w-18 shrink-0 flex-col items-center gap-2 overflow-hidden bg-canvas py-3 select-none',
     '(document:keydown)': 'handleGlobalShortcut($event)',
   },
   templateUrl: './server-rail.html',
@@ -115,12 +124,79 @@ export class ServerRail {
 
   protected readonly servers = this.shell.servers;
   protected readonly serverGroups = this.shell.serverGroups;
-  private readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
+  protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
+
+  /** Một intent tại một thời điểm: group target hoặc insertion slot. */
+  protected readonly draggingServerId = signal<string | null>(null);
   protected readonly activeDropSlot = signal<string | null>(null);
   protected readonly activeGroupingTarget = signal<string | null>(null);
-  protected readonly activeUngroupTarget = signal<string | null>(null);
-  protected readonly draggingServerId = signal<string | null>(null);
-  protected readonly addServerStep = signal<'choose' | 'template-list' | 'create' | 'join'>('choose');
+  private folderOpenTimer: ReturnType<typeof setTimeout> | null = null;
+
+  protected readonly draggingServer = computed(() => {
+    const serverId = this.draggingServerId();
+    return serverId ? (this.servers().find((server) => server.id === serverId) ?? null) : null;
+  });
+
+  /**
+   * Danh sách 1D thống nhất của Server Rail chứa hỗn hợp Server đơn lẻ và Folder
+   */
+  protected readonly railItems = computed<RailItem[]>(() => {
+    const allServers = this.servers();
+    const groups = this.serverGroups();
+    const collapsed = this.collapsedGroups();
+    const byId = new Map(allServers.map((s) => [s.id, s]));
+
+    const processedGroupIds = new Set<string>();
+    const groupedServerIds = new Set(groups.flatMap((g) => g.serverIds));
+    const items: RailItem[] = [];
+
+    for (const server of allServers) {
+      if (!groupedServerIds.has(server.id)) {
+        items.push({ kind: 'server', id: server.id, server });
+      } else {
+        const parentGroup = groups.find((g) => g.serverIds.includes(server.id));
+        if (parentGroup && !processedGroupIds.has(parentGroup.id)) {
+          processedGroupIds.add(parentGroup.id);
+          const groupServers = parentGroup.serverIds
+            .map((id) => byId.get(id))
+            .filter((s): s is ServerSummary => !!s);
+          if (groupServers.length > 0) {
+            items.push({
+              kind: 'folder',
+              id: parentGroup.id,
+              folder: parentGroup,
+              servers: groupServers,
+              isOpen: !collapsed.has(parentGroup.id),
+            });
+          }
+        }
+      }
+    }
+
+    for (const group of groups) {
+      if (!processedGroupIds.has(group.id)) {
+        processedGroupIds.add(group.id);
+        const groupServers = group.serverIds
+          .map((id) => byId.get(id))
+          .filter((s): s is ServerSummary => !!s);
+        if (groupServers.length > 0) {
+          items.push({
+            kind: 'folder',
+            id: group.id,
+            folder: group,
+            servers: groupServers,
+            isOpen: !collapsed.has(group.id),
+          });
+        }
+      }
+    }
+
+    return items;
+  });
+
+  protected readonly addServerStep = signal<'choose' | 'template-list' | 'create' | 'join'>(
+    'choose',
+  );
   protected readonly commandQuery = signal('');
   protected readonly activeResultIndex = signal(0);
 
@@ -184,9 +260,7 @@ export class ServerRail {
     const items = this.commandItems();
 
     const scopedItems =
-      parsed.scope === 'all'
-        ? items
-        : items.filter((item) => item.kind === parsed.scope);
+      parsed.scope === 'all' ? items : items.filter((item) => item.kind === parsed.scope);
 
     const normalizedTerm = this.normalizeSearch(parsed.searchTerm);
     if (!normalizedTerm) {
@@ -258,7 +332,9 @@ export class ServerRail {
         };
       case 'voice-channel':
         return {
-          title: parsed.searchTerm ? 'Không tìm thấy kênh thoại phù hợp' : 'Không có kênh thoại nào',
+          title: parsed.searchTerm
+            ? 'Không tìm thấy kênh thoại phù hợp'
+            : 'Không có kênh thoại nào',
           hint: 'Thử đổi tên kênh thoại hoặc bấm "Tất cả" để tìm kiếm.',
         };
       case 'all':
@@ -279,33 +355,6 @@ export class ServerRail {
     return `${count} kết quả ${label}`;
   });
 
-
-  protected readonly ungroupedServers = computed(() => {
-    const groupedIds = new Set(this.serverGroups().flatMap((group) => group.serverIds));
-    return this.servers().filter((server) => !groupedIds.has(server.id));
-  });
-
-  protected readonly draggingSourceGroupId = computed(() => {
-    const serverId = this.draggingServerId();
-    if (!serverId) {
-      return null;
-    }
-
-    return this.serverGroups().find((group) => group.serverIds.includes(serverId))?.id ?? null;
-  });
-
-  protected serversInGroup(group: ServerGroupSummary): ServerSummary[] {
-    const byId = new Map(this.servers().map((server) => [server.id, server]));
-    return group.serverIds.flatMap((id) => {
-      const server = byId.get(id);
-      return server ? [server] : [];
-    });
-  }
-
-  protected groupIsExpanded(groupId: string): boolean {
-    return !this.collapsedGroups().has(groupId);
-  }
-
   protected toggleGroup(groupId: string): void {
     this.collapsedGroups.update((collapsed) => {
       const next = new Set(collapsed);
@@ -316,41 +365,6 @@ export class ServerRail {
       }
       return next;
     });
-  }
-
-  protected dropOnServer(event: CdkDragDrop<string, string, string>, targetServerId: string): void {
-    this.clearDropFeedback();
-    if (event.isPointerOverContainer) {
-      this.shell.groupServers(event.item.data, targetServerId);
-    }
-  }
-
-  protected dropOnGroup(event: CdkDragDrop<string, string, string>, targetGroupId: string): void {
-    this.clearDropFeedback();
-    if (event.isPointerOverContainer) {
-      this.shell.addServerToGroup(event.item.data, targetGroupId);
-    }
-  }
-
-  protected dropIntoGroupAt(
-    event: CdkDragDrop<string, string, string>,
-    targetGroupId: string,
-    insertionIndex: number,
-  ): void {
-    this.clearDropFeedback();
-    if (event.isPointerOverContainer) {
-      this.shell.moveServerToGroup(event.item.data, targetGroupId, insertionIndex);
-    }
-  }
-
-  protected dropOutsideGroupsAt(
-    event: CdkDragDrop<string, string, string>,
-    insertionIndex: number,
-  ): void {
-    this.clearDropFeedback();
-    if (event.isPointerOverContainer) {
-      this.shell.moveServerOutsideGroups(event.item.data, insertionIndex);
-    }
   }
 
   protected startServerDrag(serverId: string): void {
@@ -371,8 +385,20 @@ export class ServerRail {
     }
 
     this.activeDropSlot.set(null);
-    this.activeUngroupTarget.set(null);
     this.activeGroupingTarget.set(this.groupingTargetId(kind, targetId));
+
+    if (kind === 'folder' && this.collapsedGroups().has(targetId)) {
+      this.clearFolderOpenTimer();
+      this.folderOpenTimer = setTimeout(() => {
+        if (this.groupingTargetIsActive('folder', targetId)) {
+          this.collapsedGroups.update((collapsed) => {
+            const next = new Set(collapsed);
+            next.delete(targetId);
+            return next;
+          });
+        }
+      }, 650);
+    }
   }
 
   protected deactivateGroupingTarget(kind: GroupingTargetKind, targetId: string): void {
@@ -380,15 +406,33 @@ export class ServerRail {
     if (this.activeGroupingTarget() === target) {
       this.activeGroupingTarget.set(null);
     }
+    if (kind === 'folder') {
+      this.clearFolderOpenTimer();
+    }
   }
 
   protected groupingTargetIsActive(kind: GroupingTargetKind, targetId: string): boolean {
     return this.activeGroupingTarget() === this.groupingTargetId(kind, targetId);
   }
 
+  protected groupIsReceiving(groupId: string): boolean {
+    const target = this.activeGroupingTarget();
+    if (target === this.groupingTargetId('folder', groupId)) {
+      return true;
+    }
+
+    const group = this.serverGroups().find((candidate) => candidate.id === groupId);
+    return !!group?.serverIds.some(
+      (serverId) => target === this.groupingTargetId('server', serverId),
+    );
+  }
+
   protected activateDropSlot(slotId: string): void {
+    if (!this.draggingServerId()) {
+      return;
+    }
+    this.clearFolderOpenTimer();
     this.activeGroupingTarget.set(null);
-    this.activeUngroupTarget.set(null);
     this.activeDropSlot.set(slotId);
   }
 
@@ -398,29 +442,69 @@ export class ServerRail {
     }
   }
 
-  protected activateUngroupTarget(groupId: string): void {
-    if (this.draggingSourceGroupId() !== groupId) {
-      this.activeUngroupTarget.set(null);
-      return;
-    }
-
-    this.activeDropSlot.set(null);
-    this.activeGroupingTarget.set(null);
-    this.activeUngroupTarget.set(groupId);
-  }
-
-  protected deactivateUngroupTarget(groupId: string): void {
-    if (this.activeUngroupTarget() === groupId) {
-      this.activeUngroupTarget.set(null);
-    }
-  }
-
   protected groupSlotId(groupId: string, insertionIndex: number): string {
     return `group-${groupId}-slot-${insertionIndex}`;
   }
 
   protected railSlotId(insertionIndex: number): string {
     return `rail-slot-${insertionIndex}`;
+  }
+
+  protected dropOnServer(event: CdkDragDrop<string, string, string>, targetServerId: string): void {
+    const sourceServerId = event.item.data || this.draggingServerId();
+    const canDrop =
+      event.isPointerOverContainer &&
+      !!sourceServerId &&
+      this.canGroupWithTarget(sourceServerId, 'server', targetServerId);
+    this.clearDropFeedback();
+
+    if (!canDrop || !sourceServerId) {
+      return;
+    }
+
+    const targetWasGrouped = this.serverGroups().some((group) =>
+      group.serverIds.includes(targetServerId),
+    );
+    const groupId = this.shell.groupServers(sourceServerId, targetServerId);
+    if (groupId && !targetWasGrouped) {
+      this.collapsedGroups.update((collapsed) => new Set(collapsed).add(groupId));
+    }
+  }
+
+  protected dropOnGroup(event: CdkDragDrop<string, string, string>, targetGroupId: string): void {
+    const sourceServerId = event.item.data || this.draggingServerId();
+    const canDrop =
+      event.isPointerOverContainer &&
+      !!sourceServerId &&
+      this.canGroupWithTarget(sourceServerId, 'folder', targetGroupId);
+    this.clearDropFeedback();
+
+    if (canDrop && sourceServerId) {
+      this.shell.addServerToGroup(sourceServerId, targetGroupId);
+    }
+  }
+
+  protected dropIntoGroupAt(
+    event: CdkDragDrop<string, string, string>,
+    targetGroupId: string,
+    insertionIndex: number,
+  ): void {
+    const sourceServerId = event.item.data || this.draggingServerId();
+    this.clearDropFeedback();
+    if (event.isPointerOverContainer && sourceServerId) {
+      this.shell.moveServerToGroup(sourceServerId, targetGroupId, insertionIndex);
+    }
+  }
+
+  protected dropOutsideGroupsAt(
+    event: CdkDragDrop<string, string, string>,
+    insertionIndex: number,
+  ): void {
+    const sourceServerId = event.item.data || this.draggingServerId();
+    this.clearDropFeedback();
+    if (event.isPointerOverContainer && sourceServerId) {
+      this.shell.moveServerOutsideGroups(sourceServerId, insertionIndex);
+    }
   }
 
   protected openAddServer(template: TemplateRef<unknown>): void {
@@ -489,8 +573,7 @@ export class ServerRail {
       this.dialog.closeAll();
 
       // Điều hướng tới kênh chữ có position nhỏ nhất (hoặc kênh đầu tiên)
-      const firstTextChannel =
-        result.channels.find((c) => c.type === 'text') ?? result.channels[0];
+      const firstTextChannel = result.channels.find((c) => c.type === 'text') ?? result.channels[0];
       if (firstTextChannel) {
         await this.router.navigate(['/channels', result.server.id, firstTextChannel.id]);
       }
@@ -607,7 +690,6 @@ export class ServerRail {
     }
   }
 
-
   protected groupMentions(servers: ServerSummary[]): number {
     return servers.reduce((total, server) => total + server.mentionCount, 0);
   }
@@ -701,7 +783,7 @@ export class ServerRail {
     kind: GroupingTargetKind,
     targetId: string,
   ): boolean {
-    if (kind === 'group') {
+    if (kind === 'folder') {
       const targetGroup = this.serverGroups().find((group) => group.id === targetId);
       return !!targetGroup && !targetGroup.serverIds.includes(sourceServerId);
     }
@@ -717,12 +799,19 @@ export class ServerRail {
   }
 
   private groupingTargetId(kind: GroupingTargetKind, targetId: string): string {
-    return kind + ':' + targetId;
+    return `${kind}:${targetId}`;
+  }
+
+  private clearFolderOpenTimer(): void {
+    if (this.folderOpenTimer !== null) {
+      clearTimeout(this.folderOpenTimer);
+      this.folderOpenTimer = null;
+    }
   }
 
   private clearDropFeedback(): void {
+    this.clearFolderOpenTimer();
     this.activeDropSlot.set(null);
     this.activeGroupingTarget.set(null);
-    this.activeUngroupTarget.set(null);
   }
 }

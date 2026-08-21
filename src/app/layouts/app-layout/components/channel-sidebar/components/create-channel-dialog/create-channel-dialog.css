@@ -1,0 +1,85 @@
+.nexus-create-channel-dialog {
+  min-width: 440px;
+  max-width: 480px;
+  border-radius: var(--radius-2xl, 1rem);
+}
+
+.channel-type-card {
+  background-color: var(--surface-soft, rgba(255, 255, 255, 0.03));
+  border-color: var(--hairline, rgba(255, 255, 255, 0.08));
+}
+
+.channel-type-card:hover {
+  background-color: var(--surface-feature, rgba(0, 237, 100, 0.06));
+}
+
+.channel-type-card--selected {
+  border-color: var(--primary, #00ed64);
+  background-color: var(--surface-feature, rgba(0, 237, 100, 0.08));
+}
+
+.channel-type-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: var(--canvas, #001e2b);
+  color: var(--steel, #8ca0ac);
+  transition: all 150ms ease;
+}
+
+.channel-type-icon mat-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  font-size: 1.25rem !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+
+.channel-type-card--selected .channel-type-icon {
+  background-color: var(--primary, #00ed64);
+  color: var(--on-primary, #001e2b);
+}
+
+.radio-indicator {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-color: var(--steel, #8ca0ac);
+  transition: all 150ms ease;
+}
+
+.radio-indicator--selected {
+  border-color: var(--primary, #00ed64);
+}
+
+.channel-name-input-wrapper mat-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  font-size: 1.25rem !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.nexus-create-channel-btn:not(:disabled) {
+  background-color: var(--primary, #00ed64);
+  color: var(--on-primary, #001e2b);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.15));
+}
+
+.nexus-create-channel-btn:not(:disabled):hover {
+  background-color: var(--primary-soft, #00b545);
+}
+
+.nexus-create-channel-btn:not(:disabled):active {
+  transform: scale(0.98);
+}
+

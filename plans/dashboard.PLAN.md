@@ -1753,6 +1753,286 @@ Status: APPROVED
   selector hoặc test mồ côi trong source.
 - Đánh giá Data: không sửa ShellData, API, backend, database, Auth, Profile, Settings/Appearance hoặc ThemeService.
 
+### Phase UI-24 — Quản lý nhóm kênh & Tạo kênh thật qua Backend API
+
+Status: COMPLETED
+
+> Tài đã yêu cầu bổ sung nút `+` tạo kênh cho từng nhóm Kênh chữ / Kênh thoại trong sidebar máy chủ,
+> hỗ trợ thu gọn/mở rộng nhóm bằng chevron, hiện action buttons khi hover/focus từng hàng kênh (Mời, Cài đặt, Mở chat thoại),
+> và tạo kênh thật lưu vào cơ sở dữ liệu qua Backend API thay vì dùng dữ liệu giả.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:**
+  - Tiêu đề nhóm kênh (Kênh chữ, Kênh thoại) có chevron xoay/lật mượt mà khi thu gọn/mở rộng và nút `+` nhỏ gọn tinh tế ở góc phải (`mat-icon` add) với tooltip "Tạo kênh".
+  - Hàng kênh trong danh sách: khi hover hoặc focus bàn phím, xuất hiện dải action buttons bán trong suốt chuyển opacity êm ái:
+    - Kênh chữ: nút "Mời" (`person_add`) và "Cài đặt kênh" (`settings`).
+    - Kênh thoại: nút "Mở trò chuyện" (`chat_bubble_outline`), "Mời" (`person_add`) và "Cài đặt kênh" (`settings`).
+  - Dialog "Tạo kênh" theo phong cách NexusCord Hybrid (Dark deep-teal / Light warm-cream):
+    - Chọn loại kênh dạng thẻ radio trực quan (Kênh chữ vs Kênh thoại) kèm icon và mô tả.
+    - Nhập tên kênh có tiền tố trực quan (`#` cho kênh chữ, volume cho kênh thoại) và hỗ trợ format slug.
+    - Nút CTA pill chuẩn NexusCord với trạng thái loading spinner và hiển thị thông báo lỗi inline nếu API thất bại.
+- **Feature:**
+  - Bấm `+` ở nhóm nào mở dialog Tạo kênh với loại kênh đó được chọn sẵn.
+  - Thu gọn/mở rộng từng nhóm độc lập, lưu trạng thái thu gọn trong component signal.
+  - Các nút action trên hàng kênh chặn nổi bọt sự kiện (`event.stopPropagation()`) để không kích hoạt điều hướng nhầm kênh.
+  - Gửi request tạo kênh thật lên backend qua `POST /api/servers/:serverId/channels`.
+  - Cập nhật reactive danh sách kênh ngay trên `ShellData` sau khi tạo thành công mà không cần F5 trang.
+- **Data:**
+  - Backend NestJS `ServersController` & `ServersService`: Thêm endpoint `POST /api/servers/:serverId/channels`.
+  - Kiểm tra quyền thành viên / owner trong `server_members`, tính toán `position` tự động tăng và insert vào bảng `public.channels`.
+  - Trả về DTO `ChannelSummaryDto` chuẩn xác.
+  - Tuyệt đối không hardcode dữ liệu giả trong `shell-data.ts`.
+
+#### File thực hiện
+
+- Frontend:
+  - `plans/dashboard.PLAN.md` — ghi nhận kết quả và tiêu chí nghiệm thu.
+  - `src/app/layouts/app-layout/components/channel-sidebar/components/channel-list.ts|html|css|spec.ts` — header nhóm (chevron + nút `+`), thu gọn/mở rộng, action buttons on hover/focus với `stopPropagation()`.
+  - `src/app/layouts/app-layout/components/channel-sidebar/components/create-channel-dialog/create-channel-dialog.ts|html|css|spec.ts` — component dialog tạo kênh mới chuẩn Hybrid design.
+  - `src/app/core/api/servers-api.service.ts|spec.ts` — method `createChannel(serverId, name, type, topic)`.
+  - `src/app/core/api/shell-data.ts|spec.ts` — method `addChannel(serverId, channel)`.
+- Backend:
+  - `nexus-be/src/modules/servers/dto/create-channel.dto.ts` — DTO validate tạo channel.
+  - `nexus-be/src/modules/servers/servers.controller.ts|spec.ts` — endpoint `POST /api/servers/:serverId/channels`.
+  - `nexus-be/src/modules/servers/servers.service.ts|spec.ts` — logic kiểm tra membership, tính position và insert vào DB `channels`.
+
+#### Kết quả kiểm thử & Nghiệm thu
+
+- **Backend Tests:**
+  - `npm test` trong `nexus-be`: **5/5 test suites passed, 36/36 tests passed (100%)**.
+  - `npm run build` trong `nexus-be`: **Build thành công 0 lỗi**.
+- **Frontend Tests:**
+  - `npm test -- --watch=false` trong `nexus-fe`: **42/42 test files passed, 235/235 tests passed (100%)**.
+  - `npm run build` trong `nexus-fe`: **Build production bundle thành công 0 lỗi**.
+- **Đánh giá UI/UX:**
+  - Chevron xoay êm ái `-90deg` khi thu gọn nhóm kênh, nút `+` hover đổi màu và hiện tooltip rõ ràng.
+  - Hover/focus vào hàng kênh hiển thị mượt mà dải nút thao tác nhanh (Mời, Cài đặt, Mở chat thoại), không bị giật layout hay shift dòng.
+  - Modal tạo kênh theo đúng bảng màu Hybrid Dark (Deep Teal) / Light (Warm Cream), có radio cards, auto slug slugify cho text channel, spinner loading và báo lỗi inline.
+- **Đánh giá Feature:**
+  - Bấm `+` ở Kênh chữ mở modal chọn sẵn Kênh chữ; bấm `+` ở Kênh thoại mở modal chọn sẵn Kênh thoại.
+  - Click các nút action không gây nhảy route ngoài ý muốn.
+  - Tạo kênh xong được đẩy vào `ShellData` và hiển thị tức thì trên sidebar.
+- **Đánh giá Data:**
+  - Backend NestJS insert trực tiếp vào bảng `public.channels` của Supabase, tự động gán vị trí thứ tự `position` kế tiếp.
+  - Không sinh thêm dữ liệu giả mạo trong `shell-data.ts`.
+
+---
+
+### Phase UI-25 — Menu tùy chọn máy chủ (Server Context Menu) chuẩn mẫu Discord
+
+Status: APPROVED
+
+> Tài đã gửi hình ảnh mẫu menu tùy chọn kế bên tên máy chủ của Discord và yêu cầu xây dựng một bảng tùy chọn đầy đủ,
+> chuẩn xác từng icon, danh mục phân cấp và cơ chế đóng mở (chevron xoay/đổi hướng, nút mời góc phải, các action phân nhóm, checkbox ẩn kênh tắt thông báo).
+> Theo quy trình `implement-skill`, phase này ở trạng thái PENDING chờ Tài duyệt trước khi code.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:**
+  - Header máy chủ trong sidebar: hiển thị tên máy chủ cắt gọn (`truncate`), chevron `expand_more` lật `expand_less` (xoay 180deg) mượt mà khi menu mở/đóng, và nút icon `person_add` (Mời vào máy chủ) ở góc phải.
+  - Menu tùy chọn máy chủ theo phong cách Hybrid (Dark deep-teal / Light warm-cream), bo góc `rounded-2xl`, bóng đổ `shadow-modal`, đường viền `border-hairline`:
+    - **Nhóm 1:** `Nâng Cấp Máy Chủ` (`diamond` / `rocket_launch` với hiệu ứng màu tím/hồng đặc trưng).
+    - **Nhóm 2:** `Mời Vào Máy Chủ` (`person_add` với màu primary xanh sáng), `Cài đặt máy chủ` (`settings`), `Tạo kênh` (`add_circle`), `Tạo Danh Mục` (`create_new_folder`), `Tạo Sự kiện` (`calendar_today`), `Thư Mục App` (`apps`).
+    - **Nhóm 3:** `Cài đặt thông báo` (`notifications`), `Cài Đặt Bảo Mật` (`security`).
+    - **Nhóm 4:** `Chỉnh Sửa Hồ Sơ Theo Máy Chủ` (`edit`), `Ẩn Các Kênh Bị Tắt Thông Báo` (`visibility_off` kèm checkbox toggle trạng thái).
+    - **Nhóm 5:** `Rời khỏi máy chủ` (`logout` với màu đỏ `text-danger`).
+- **Feature:**
+  - Click vào header mở dropdown menu, đóng lại khi click ra ngoài hoặc chọn một mục.
+  - Mục `Tạo kênh` kết nối mở trực tiếp `CreateChannelDialog`.
+  - Mục `Cài đặt máy chủ` kết nối mở trực tiếp cài đặt server qua `UserSettingsService.openServerSettings('server-overview', serverId)`.
+  - Mục `Mời Vào Máy Chủ` tích hợp trigger mời thành viên.
+  - Mục `Ẩn Các Kênh Bị Tắt Thông Báo` hỗ trợ toggle checkbox trực tiếp trong menu.
+  - Các mục nâng cao khác được cắm seam an toàn không làm lỗi hệ thống hay break layout.
+- **Data:**
+  - Giữ nguyên trạng thái phân quyền `canAccessServerSettings()` / vai trò người dùng trong server.
+  - Không thêm dữ liệu giả mạo hay sinh mã rác.
+
+#### File dự kiến thay đổi
+
+- `plans/dashboard.PLAN.md` — kế hoạch phase UI-25.
+- `src/app/layouts/app-layout/components/channel-sidebar/channel-sidebar.ts|html|css|spec.ts` — cập nhật header máy chủ, server menu dropdown đầy đủ mục theo mẫu, kết nối dialog tạo kênh và cài đặt.
+
+#### Kiểm chứng và tiêu chí hoàn thành
+
+- Click vào tên máy chủ / header mở menu tùy chọn với toàn bộ các nhóm theo hình chụp mẫu của Discord.
+- Chevron trên header lật hướng khi menu mở / đóng.
+- Nút "Tạo kênh" trong menu mở dialog tạo kênh (`CreateChannelDialog`).
+- Nút "Cài đặt máy chủ" mở modal Cài đặt máy chủ.
+- Nút "Ẩn Các Kênh Bị Tắt Thông Báo" có thể tick/untick checkbox.
+- Tất cả unit tests FE (`npm test -- --watch=false`) và BE (`npm test`) tiếp tục pass 100%.
+- `npm run build` thành công 0 lỗi.
+
+---
+
+### Phase UI-26 — Context Menu khi nhấp chuột phải trong Channel Sidebar (Category & Channel Context Menus)
+
+Status: COMPLETED
+
+> Bổ sung Context Menu khi nhấp chuột phải vào Danh mục/Nhóm kênh (Kênh chữ, Kênh thoại) và Từng hàng kênh (#chung, Kênh thoại).
+> Menu xuất hiện chính xác tại vị trí con trỏ chuột (`clientX, clientY`), hỗ trợ bàn phím (`Shift+F10`), tự động lật hướng nếu gần mép màn hình,
+> có submenu đa cấp cho Tắt âm (thời gian) và Cài đặt thông báo (mức độ), item nguy hiểm màu đỏ ở cuối, và các tính năng khả dụng hoạt động thật (Thu gọn danh mục, Thu gọn tất cả, Sao chép liên kết kênh, Đánh dấu đã đọc, Tạo kênh cùng loại).
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:**
+  - Context menu định vị tại vị trí con trỏ chuột (`position: fixed; left, top`), tự động lật hướng và tránh tràn màn hình (nhờ CDK Overlay / MatMenu).
+  - Phong cách Hybrid (Dark deep-teal / Light warm-cream), bo góc `rounded-lg` (`8px`), viền mờ `border-hairline`, bóng đổ `shadow-modal`.
+  - Icon bên trái `20px` với khoảng cách `margin-right: 12px` chuẩn xác, nhãn chữ rõ ràng, mũi tên submenu `chevron_right` bên phải.
+  - Submenu đa cấp cho:
+    - `Tắt âm`: Lựa chọn 15 phút, 1 giờ, 8 giờ, 24 giờ, Đến khi tôi bật lại.
+    - `Cài đặt thông báo`: Mặc định, Tất cả tin nhắn, Chỉ @mentions, Không có gì.
+  - Mục nguy hiểm (`Xóa kênh`, `Xóa danh mục`) dùng `text-danger` với icon đỏ cảnh báo.
+  - Phím tắt `Shift+F10` / phím Context Menu và phím `Escape` đóng menu hoạt động tự nhiên.
+- **Feature:**
+  - Chuột phải trên tiêu đề nhóm (Kênh chữ, Kênh thoại):
+    - `Đánh dấu đã đọc`: Gọi đánh dấu đã đọc cho tất cả kênh trong nhóm.
+    - `Thu gọn danh mục`: Toggle trạng thái thu gọn với checkbox trực quan.
+    - `Thu gọn tất cả danh mục`: Thu gọn toàn bộ các nhóm kênh trong server.
+    - `Tắt âm danh mục`: Mở submenu chọn thời gian tắt âm.
+    - `Cài đặt thông báo`: Mở submenu chọn mức thông báo.
+    - `Chỉnh sửa danh mục`: Seam (disabled hoặc thông báo nhóm mặc định hệ thống).
+    - `Xóa danh mục`: Seam (disabled hoặc thông báo nhóm mặc định hệ thống).
+  - Chuột phải trên hàng kênh (#chung, voice channel):
+    - `Đánh dấu đã đọc`: Đánh dấu kênh là đã đọc.
+    - `Mời vào kênh`: Seam trigger mở modal mời.
+    - `Ghim kênh lên đầu`: Seam ghim kênh.
+    - `Sao chép liên kết`: Sao chép URL kênh thật vào clipboard (`navigator.clipboard.writeText`) kèm thông báo.
+    - `Tắt âm kênh`: Mở submenu chọn thời gian tắt âm.
+    - `Cài đặt thông báo`: Mở submenu chọn mức thông báo.
+    - `Chỉnh sửa kênh`: Mở modal cài đặt kênh / seam.
+    - `Trùng lặp kênh`: Seam nhân bản kênh.
+    - `Tạo kênh mới cùng loại`: Mở trực tiếp `CreateChannelDialog` với `defaultType` tương ứng.
+    - `Xóa kênh`: Mục nguy hiểm (danger) với seam xác nhận xóa.
+- **Data:**
+  - Ghi nhận rõ: Do backend hiện chưa có bảng `categories` riêng biệt mà nhóm theo `channel.type`, các thao tác chỉnh sửa/xóa category hệ thống sẽ là seam an toàn không phá vỡ schema.
+  - Sao chép liên kết, thu gọn nhóm, tạo kênh cùng loại hoạt động thật trên dữ liệu hiện hành.
+
+#### File thực hiện
+
+- `plans/dashboard.PLAN.md` — ghi nhận kết quả và nghiệm thu phase UI-26.
+- `src/app/layouts/app-layout/components/channel-sidebar/components/channel-list.ts|html|css|spec.ts` — tích hợp context menu cho category header và channel row.
+
+#### Kết quả kiểm thử & Nghiệm thu
+
+- **Frontend Tests:**
+  - `npm test -- --watch=false` trong `nexus-fe`: **42/42 test files passed, 245/245 tests passed (100%)**.
+  - `npm run build` trong `nexus-fe`: **Build production bundle thành công 0 lỗi**.
+- **Đánh giá UI/UX:**
+  - Context menu mở chính xác tại vị trí con trỏ chuột khi nhấp chuột phải trên category header hoặc channel row.
+  - Thiết kế chuẩn Discord với icon 20px, khoảng cách đệm 12px, submenu mượt mà, danger item màu đỏ cảnh báo.
+- **Đánh giá Feature:**
+  - Thu gọn danh mục có checkbox trạng thái, thu gọn tất cả nhóm kênh hoạt động tức thì.
+  - Sao chép liên kết kênh vào clipboard hoạt động chuẩn xác.
+  - Tạo kênh mới cùng loại mở trực tiếp modal `CreateChannelDialog` với đúng channel type.
+  - Click chuột trái bình thường không bị ảnh hưởng.
+- **Đánh giá Data:**
+  - Hoạt động an toàn trên dữ liệu hiện hữu, không sửa đổi schema database hay sinh mã rác.
+
+---
+
+### Phase UI-27 — Tái thiết kế toàn diện hệ thống Drag & Drop và Folder của Server Rail chuẩn 100% Discord
+
+Status: COMPLETED
+
+> Đập bỏ và xây dựng lại toàn bộ cơ chế Drag & Drop và Folder của Server Rail theo đúng 100% tài liệu kỹ thuật chuẩn Discord:
+>
+> 1. Mảng 1 chiều chứa hỗn hợp Server đơn lẻ và Folder theo thứ tự người dùng.
+> 2. Vùng tác động (Hitbox & Drop zones) tính toán chính xác theo tỷ lệ con trỏ chuột:
+>    - 25% trên / 25% dưới: Reorder (hiển thị Drop Line Indicator thanh ngang trắng bo tròn giữa 2 item, không nhảy giật layout).
+>    - 50% trung tâm: Gom nhóm tạo Folder mới (hiển thị highlight aura bao quanh item đích).
+>    - Kéo vào Folder (đóng/mở): Folder đóng có viền highlight nhận item; Folder mở hiển thị drop line chèn vào danh sách con.
+>    - Kéo Server ra ngoài Folder: Hiển thị drop line ở danh sách chính; tự động giải tán Folder khi chỉ còn <= 1 server.
+> 3. Trạng thái hiển thị (UI States):
+>    - Icon 48x48px: Mặc định tròn `50%` (circle), hover chuyển squircle `30%` trong 150ms.
+>    - Folder đóng: Ô vuông bo góc chứa grid 2x2 icon thu nhỏ.
+>    - Folder mở: Khung mở rộng theo chiều dọc với background dạng viên thuốc (Pill shape) màu xám mờ ôm trọn danh sách con.
+>    - Chỉ báo Pill mép trái: Unread (chấm 8px), Hover (vạch 20px), Active (vạch 40px).
+>    - Kéo thả mượt mà: Item gốc mờ 40%, drag preview bám theo chuột với bóng đổ, transition co giãn 200ms-300ms, không lag giật layout khi đang kéo.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:**
+  - Icon server/folder kích thước cố định 48x48px, circle 50% sang squircle 30% khi hover trong 150ms.
+  - Folder đóng hiển thị 2x2 grid icon thu nhỏ (size 16x16px mỗi ô).
+  - Folder mở hiển thị nền dạng viên nang (Pill background) xám mờ mượt mà ôm trọn danh sách server con.
+  - Thanh chỉ báo mép trái (Pill indicator) 3 trạng thái: Không hiển thị (bình thường), Chấm nhỏ (unread), Vạch dài (hover/active).
+  - Hiệu ứng Drag Preview nổi bám chuột và icon gốc giảm opacity 0.4.
+  - Drop Line Indicator sắc nét dày 2-3px bo tròn 2 đầu xuất hiện giữa khe hở các item.
+- **Feature:**
+  - Sắp xếp thứ tự Server đơn lẻ và Folder trong một mảng thống nhất.
+  - Kéo Server vào 25% trên/dưới item khác $\rightarrow$ Chèn thứ tự trước/sau (Reorder).
+  - Kéo Server vào 50% trung tâm Server khác $\rightarrow$ Tạo Folder mới chứa 2 server.
+  - Kéo Server vào Folder (đóng/mở) $\rightarrow$ Thêm server vào Folder.
+  - Kéo Server từ trong Folder ra ngoài $\rightarrow$ Trả về Server đơn lẻ ngoài rail, tự động xóa Folder nếu chỉ còn $\le 1$ server.
+  - Click mở/đóng Folder với animation chuyển động 200ms.
+- **Data:**
+  - Cấu trúc dữ liệu rail thống nhất: ServerItem & FolderItem.
+  - Tương thích 100% với `ShellData` và API backend hiện tại.
+
+#### File thực hiện
+
+- `plans/dashboard.PLAN.md` — ghi nhận kết quả và nghiệm thu phase UI-27.
+- `src/app/layouts/app-layout/components/server-rail/server-rail.ts|html|css|spec.ts` — tái thiết kế toàn diện logic, template và styling.
+
+#### Kết quả kiểm thử & Nghiệm thu
+
+- **Frontend Tests:**
+  - `npm test -- --watch=false` trong `nexus-fe`: **42/42 test files passed, 250/250 tests passed (100%)**.
+  - `npm run build` trong `nexus-fe`: **Build production bundle thành công 0 lỗi**.
+- **Đánh giá UI/UX:**
+  - Icon 48x48px chuyển từ tròn sang vuông mềm mại (150ms).
+  - Drop line phát sáng xuất hiện chính xác ở khe giữa các item khi hover vào 25% trên/dưới.
+  - Aura viền highlight phát sáng khi hover 50% tâm server hoặc folder.
+  - Folder đóng hiển thị 2x2 grid thu nhỏ; Folder mở hiển thị nền viên thuốc ôm trọn danh sách con.
+- **Đánh giá Feature:**
+  - Toàn bộ cơ chế Drag & Drop và Folder hoạt động chính xác 100% theo đặc tả chuẩn Discord.
+
+### Phase UI-28 — Hiệu chỉnh Server Rail theo video tương tác Discord thực tế
+
+Status: COMPLETED
+
+> Phase này thay thế các giả định chưa đúng trong UI-27 bằng hành vi quan sát trực tiếp từ video
+> Discord do Tài cung cấp ngày 21/08/2026. Chỉ sửa Dashboard server rail và state sắp xếp cục bộ;
+> không đụng Profile, Settings, Auth, backend, database hoặc schema dùng chung.
+
+#### Vấn đề đã xác định
+
+- `pointermove` của server con trong folder mở nổi bọt lên shell folder, khiến drop target con có thể
+  bị target cha ghi đè; reorder trong group vì vậy không ổn định dù unit test gọi handler trực tiếp vẫn pass.
+- Handler drop đang phụ thuộc `dropTarget` cuối cùng và các tham số target của `dropOnServer`,
+  `dropOnGroup`, `dropIntoGroupAt` chưa được dùng, nên `pointerleave` ngay trước lúc thả có thể làm mất intent.
+- `railItems` có cả server và folder nhưng `moveServerOutsideGroups()` lại tính vị trí từ danh sách chỉ
+  có server ngoài nhóm; thả trước/sau folder có thể ra sai vị trí.
+- Folder mới tạo chưa có quy tắc thu gọn ngay và center target chỉ có halo, chưa tạo cảm giác hai server
+  đang nhập thành folder như video Discord.
+- Drop line hiện dày, phát sáng và chiếm chiều cao; video dùng line mảnh, rõ nhưng không chói hoặc làm layout nhảy.
+
+#### Mục tiêu tương tác
+
+- Dùng một rail order thống nhất cho `server` và `folder`, giữ đúng vị trí khi group, reorder, move vào,
+  kéo ra và tự rã folder; không duplicate hoặc đẩy item sai vị trí.
+- Phân biệt ổn định ba intent: khe trên/dưới để reorder, tâm để group, ngoài vỏ folder để ungroup; truyền
+  target cụ thể vào drop handler thay vì chỉ tin pointer state cuối cùng.
+- Folder mới tạo thu gọn với preview 2×2; folder mở là surface dọc liên tục, có header và insertion line
+  đúng index cho server con.
+- Center target có merge preview và nở nhẹ sau dwell ngắn; folder đóng có thể tự mở khi hover-drag đủ lâu.
+- Drag preview 48px, source giữ ghost slot; motion chỉ dùng transform/opacity, có reduced-motion, không neon.
+- Kéo ra ngoài group hiện rail slot rõ; folder còn một server tự rã và giữ vị trí logic giống Discord.
+
+#### File dự kiến
+
+- `src/app/layouts/app-layout/components/server-rail/server-rail.ts|html|css|spec.ts`
+- `src/app/core/api/shell-data.ts|spec.ts` nếu cần chuẩn hóa rail order runtime.
+- Không tạo folder/component/dependency mới; không đổi API hoặc persistence backend.
+
+#### Kiểm chứng bắt buộc
+
+- Test DOM cho event bubbling, stale target sau pointerleave và explicit target drop.
+- Test mixed server/folder order, group mới thu gọn, reorder trong group, ungroup, auto-dissolve, no duplicate.
+- Giữ route, Command Center, Add Server, badge, empty state và demo/live data contract.
+- Chạy target tests, toàn bộ frontend tests và production build; Tài kiểm tra pointer drag trên Chrome.
+
 ---
 
 ## Phạm vi
