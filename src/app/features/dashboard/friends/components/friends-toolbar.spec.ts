@@ -10,10 +10,8 @@ import { FriendsToolbar, type FriendsTab, type ThemeMode } from './friends-toolb
       [(tab)]="tab"
       [(theme)]="theme"
       [activityOpen]="activityOpen()"
-      [atmosphereOpen]="atmosphereOpen()"
       [demoEnabled]="demoEnabled()"
       (toggleActivity)="activityToggled.set(true)"
-      (toggleAtmosphere)="atmosphereToggled.set(true)"
       (toggleDemo)="demoEnabled.update((enabled) => !enabled)"
     />
   `,
@@ -23,8 +21,6 @@ class Host {
   readonly theme = signal<ThemeMode>('dark');
   readonly activityOpen = signal(false);
   readonly activityToggled = signal(false);
-  readonly atmosphereOpen = signal(false);
-  readonly atmosphereToggled = signal(false);
   readonly demoEnabled = signal(false);
 }
 
@@ -99,8 +95,7 @@ describe('FriendsToolbar', () => {
 
     expect(demoButton.getAttribute('aria-pressed')).toBe('false');
     expect(demoButton.classList.contains('nexus-demo-toggle')).toBe(true);
-    expect(demoButton.nextElementSibling?.getAttribute('aria-label')).toBe('Mở Không khí Nexus');
-    expect(demoButton.nextElementSibling?.nextElementSibling?.getAttribute('aria-label')).toBe(
+    expect(demoButton.nextElementSibling?.getAttribute('aria-label')).toBe(
       'Chuyển sang giao diện sáng',
     );
 
@@ -110,20 +105,6 @@ describe('FriendsToolbar', () => {
     expect(fixture.componentInstance.demoEnabled()).toBe(true);
     expect(demoButton.getAttribute('aria-pressed')).toBe('true');
     expect(demoButton.getAttribute('aria-label')).toBe('Tắt dữ liệu demo');
-  });
-
-  it('nút palette nằm trước theme và phát sự kiện mở Không khí Nexus', async () => {
-    const fixture = await mount();
-    const atmosphereButton = fixture.nativeElement.querySelector(
-      'button[aria-label="Mở Không khí Nexus"]',
-    ) as HTMLButtonElement;
-
-    expect(atmosphereButton.getAttribute('aria-expanded')).toBe('false');
-    expect(atmosphereButton.classList.contains('nexus-atmosphere-toggle')).toBe(true);
-    atmosphereButton.click();
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.atmosphereToggled()).toBe(true);
   });
 
   it('nút panel hoạt động báo trạng thái expanded và phát sự kiện', async () => {

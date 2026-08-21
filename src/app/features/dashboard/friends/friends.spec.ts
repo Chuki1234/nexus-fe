@@ -205,46 +205,6 @@ describe('FriendsPage', () => {
     ).toBe(true);
   });
 
-  it('mở Theme Studio trong panel hiện có và lưu palette được chọn', async () => {
-    const fixture = await mount();
-    const atmosphereButton = fixture.nativeElement.querySelector(
-      'button[aria-label="Mở Không khí Nexus"]',
-    ) as HTMLButtonElement;
-
-    atmosphereButton.click();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('app-theme-studio')).toBeTruthy();
-    expect(fixture.nativeElement.textContent).toContain('Không khí Nexus');
-
-    const midnight = fixture.nativeElement.querySelector(
-      '[data-atmosphere-option="midnight"]',
-    ) as HTMLButtonElement;
-    midnight.click();
-    fixture.detectChanges();
-
-    expect(midnight.getAttribute('aria-checked')).toBe('true');
-    expect(localStorage.getItem('nexuscord-dashboard-atmosphere')).toBe('midnight');
-  });
-
-  it('đóng Theme Studio trả panel ghim về nội dung hoạt động', async () => {
-    const fixture = await mount(PEOPLE);
-    const atmosphereButton = fixture.nativeElement.querySelector(
-      'button[aria-label="Mở Không khí Nexus"]',
-    ) as HTMLButtonElement;
-
-    atmosphereButton.click();
-    fixture.detectChanges();
-    const close = fixture.nativeElement.querySelector(
-      'app-context-panel button[aria-label="Đóng Không khí Nexus"]',
-    ) as HTMLButtonElement;
-    close.click();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('app-theme-studio')).toBeNull();
-    expect(fixture.nativeElement.querySelector('app-activity-panel')).toBeTruthy();
-  });
-
   it('không dựng hồ sơ nhanh thuộc ownership của trang Profile', async () => {
     const fixture = await mount(PEOPLE);
 

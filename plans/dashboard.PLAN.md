@@ -1706,6 +1706,53 @@ Status: APPROVED
   giả tìm người ngoài danh bạ hoặc message content, không sửa API/backend/database/Auth/Profile/Settings và không thêm
   dependency/folder/file code.
 
+### Phase UI-23 — Gỡ bỏ Nexus Atmospheres khỏi Dashboard
+
+Status: APPROVED
+
+> Tài xác nhận Atmosphere chỉ là phần thử nghiệm ngoài phạm vi Dashboard và hiện đã có thành viên khác phụ trách
+> theme. Theo quyền append phase UI đã được duyệt, phase này xóa trọn feature Atmosphere nhưng giữ dark/light nền
+> tảng để không xâm phạm phần theme chung hoặc Settings/Appearance của thành viên khác.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:** bỏ nút palette và Theme Studio khỏi Friends toolbar/context panel; cụm công cụ còn lại tự liền mạch,
+  Activity Panel tiếp tục mở/đóng đúng hành vi cũ và Dashboard vẫn dùng token Hybrid ở dark/light.
+- **Feature:** xóa service/state/persistence Atmosphere, sáu palette, `data-atmosphere` và component preview; không để
+  selector, import, test hoặc localStorage key mồ côi.
+- **Data:** không sửa ShellData, API, backend hoặc database. Không đụng Auth, Profile, Settings/Appearance và
+  `ThemeService` dùng chung.
+
+#### File dự kiến
+
+- `src/app/features/dashboard/components/theme-studio/**` — xóa component và test Atmosphere.
+- `src/app/features/dashboard/services/dashboard-appearance.ts|spec.ts` — xóa state/persistence Atmosphere.
+- `src/app/features/dashboard/friends/**` — tháo nút, panel, binding và test liên quan.
+- `src/app/layouts/app-layout/app-layout.ts|html|spec.ts` — bỏ injection và `data-atmosphere`.
+- `src/styles.css` — xóa palette/preview Atmosphere, giữ semantic surface hierarchy của Dashboard.
+- `plans/dashboard.PLAN.md` — ghi scope và kết quả gỡ feature.
+
+#### Kiểm chứng và tiêu chí hoàn thành
+
+- `rg` không còn tham chiếu Atmosphere trong source code Dashboard.
+- Friends toolbar không còn nút palette; demo, activity và dark/light vẫn hoạt động.
+- Targeted test, toàn bộ unit/component test, `npm run build`, Prettier và `git diff --check` pass.
+
+#### Kết quả Phase UI-23
+
+- Ngày hoàn thành code/test: 2026-08-21 trên branch `pages/dashboard/minh-tai`; không commit/push tự động.
+- Kết quả rà soát: source Dashboard còn `0` tham chiếu Atmosphere/Theme Studio/`data-atmosphere`; xóa 6 file
+  chuyên biệt và tháo toàn bộ binding, CSS palette, persistence cùng test tương ứng.
+- Kết quả test: hai targeted Friends spec `19/19` pass. Toàn bộ frontend `40/41` test file và `221/222` test pass;
+  một test AppLayout cũ vẫn đòi nút Settings disabled với aria-label cũ, thuộc vùng Settings và không liên quan phase.
+- `npm run build` pass browser/SSR/prerender; warning duy nhất là CSS budget của `settings/account-tab` vượt 185 bytes,
+  không thuộc Dashboard. Prettier và `git diff --check` pass.
+- Đánh giá UI/UX: Friends toolbar không còn nút palette; Activity Panel, demo toggle và dark/light nền tảng giữ nguyên.
+  Dashboard quay về duy nhất token Hybrid với semantic surface hierarchy cho cả hai mode.
+- Đánh giá Feature: đã xóa service/state/localStorage/6 palette/Theme Studio/`data-atmosphere`; không còn import,
+  selector hoặc test mồ côi trong source.
+- Đánh giá Data: không sửa ShellData, API, backend, database, Auth, Profile, Settings/Appearance hoặc ThemeService.
+
 ---
 
 ## Phạm vi

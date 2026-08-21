@@ -55,18 +55,6 @@
     <button
       mat-icon-button
       type="button"
-      class="nexus-atmosphere-toggle nexus-icon-control"
-      [attr.aria-expanded]="atmosphereOpen()"
-      [attr.aria-label]="atmosphereOpen() ? 'Đóng Không khí Nexus' : 'Mở Không khí Nexus'"
-      [matTooltip]="atmosphereOpen() ? 'Đóng Không khí Nexus' : 'Đổi Không khí Nexus'"
-      (click)="toggleAtmosphere.emit()"
-    >
-      <mat-icon aria-hidden="true">palette</mat-icon>
-    </button>
-
-    <button
-      mat-icon-button
-      type="button"
       class="nexus-icon-control"
       (click)="toggleTheme()"
       [attr.aria-pressed]="theme() === 'light'"

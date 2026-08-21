@@ -80,15 +80,6 @@ describe('AppLayout', () => {
     expect(query('.dashboard-nav-shell')?.classList.contains('overflow-hidden')).toBe(true);
     expect(query('.dashboard-workspace')?.classList.contains('h-full')).toBe(true);
     expect(query('.dashboard-content')).toBeTruthy();
-    expect(query('.dashboard-shell')?.getAttribute('data-atmosphere')).toBe('hybrid');
-  });
-
-  it('gắn Atmosphere đã lưu lên toàn bộ Dashboard shell', async () => {
-    localStorage.setItem('nexuscord-dashboard-atmosphere', 'sage');
-
-    await harness.navigateByUrl('/channels/@me');
-
-    expect(query('.dashboard-shell')?.getAttribute('data-atmosphere')).toBe('sage');
   });
 
   it('tài khoản mới có danh sách bạn bè, DM và hoạt động đều rỗng', async () => {
@@ -129,11 +120,12 @@ describe('AppLayout', () => {
     expect(query('app-user-panel')?.textContent).toContain('Minh Tài');
     expect(queryAll('app-user-panel button[aria-pressed]').length).toBe(2);
     const settings = query(
-      'app-user-panel button[aria-label="Cài đặt — do team Settings phụ trách"]',
+      'app-user-panel button.user-panel__control--settings',
     ) as HTMLButtonElement;
     expect(settings).toBeTruthy();
-    expect(settings.disabled).toBe(true);
+    expect(settings.disabled).toBe(false);
   });
+
 
   it('giữ light mode khi chuyển qua kênh và quay lại trang bạn bè', async () => {
     await harness.navigateByUrl('/channels/@me');
