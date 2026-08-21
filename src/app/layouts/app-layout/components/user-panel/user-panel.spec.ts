@@ -5,7 +5,9 @@ import { ProfileService } from '../../../../core/profile/profile.service';
 import { UserPanel } from './user-panel';
 
 class AuthStub {
+  user = () => ({ email: 'mon@nexus.test' });
   signOut = () => Promise.resolve();
+  deleteAccount = () => Promise.resolve();
 }
 
 describe('UserPanel', () => {
@@ -98,7 +100,7 @@ describe('UserPanel', () => {
     ) as HTMLDivElement;
 
     expect(fixture.nativeElement.classList.contains('overflow-hidden')).toBe(true);
-    expect(controls).toHaveLength(3);
+    expect(controls).toHaveLength(2);
     expect(controls.every((control) => control.classList.contains('user-panel__control'))).toBe(
       true,
     );
@@ -107,18 +109,41 @@ describe('UserPanel', () => {
     expect(controlGroup.getAttribute('aria-label')).toBe('Điều khiển âm thanh và ứng dụng');
   });
 
-  it('để nút cài đặt làm integration seam và không dựng UI của team Settings', async () => {
+  it('không hiển thị lối vào Settings sau khi tính năng được gỡ', async () => {
     const fixture = await mount();
-    const settings = fixture.nativeElement.querySelector(
-      'button[aria-label="Cài đặt — do team Settings phụ trách"]',
-    ) as HTMLButtonElement;
+    const settings = fixture.nativeElement.querySelector('button[aria-label*="Cài đặt"]');
 
-    expect(settings).toBeTruthy();
-    expect(settings.disabled).toBe(true);
-    expect(settings.textContent).toContain('settings');
-    expect(settings.classList.contains('nexus-icon-control')).toBe(true);
+    expect(settings).toBeNull();
     expect(fixture.nativeElement.ownerDocument.body.querySelector('.nexus-settings-dialog')).toBe(
       null,
     );
+  });
+
+  it('mở hộp xác nhận xóa tài khoản từ menu hồ sơ', async () => {
+    const fixture = await mount();
+    (fixture.nativeElement.querySelector('button.user-panel__identity') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const deleteItem = Array.from(document.body.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Xóa tài khoản'),
+    ) as HTMLButtonElement;
+    expect(deleteItem).toBeTruthy();
+
+    deleteItem.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const dialog = document.body.querySelector('app-delete-account-dialog') as HTMLElement;
+    const submit = dialog.querySelector('.delete-account__submit') as HTMLButtonElement;
+    const input = dialog.querySelector('input') as HTMLInputElement;
+    expect(dialog.textContent).toContain('Hành động không thể hoàn tác');
+    expect(submit.disabled).toBe(true);
+
+    expect(dialog.textContent).toContain('mon@nexus.test');
+    input.value = 'mon@nexus.test';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(submit.disabled).toBe(false);
   });
 });

@@ -1,5 +1,11 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, signal } from '@angular/core';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { birthdateValidator, EARLIEST_BIRTH_YEAR, toIsoDate } from '../models/birthdate';
@@ -7,6 +13,12 @@ import { DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_PATTERN } from '
 import { RegistrationService, toRegisterErrorMessage } from '../services/registration.service';
 
 type TextField = 'email' | 'displayName' | 'username' | 'password';
+
+const passwordsMatch = (control: AbstractControl): ValidationErrors | null => {
+  const password = control.get('password')?.value;
+  const confirmation = control.get('confirmPassword')?.value;
+  return !confirmation || password === confirmation ? null : { passwordMismatch: true };
+};
 
 @Component({
   selector: 'app-register-page',
@@ -22,21 +34,26 @@ export class RegisterPage {
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  protected readonly form = this.formBuilder.group({
-    email: ['', [Validators.required, Validators.email]],
-    displayName: ['', [Validators.maxLength(DISPLAY_NAME_MAX_LENGTH)]],
-    username: ['', [Validators.required, Validators.pattern(USERNAME_PATTERN)]],
-    password: ['', [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)]],
-    // Nhóm con vì "31 tháng 2" chỉ sai khi nhìn cả ba ô cùng lúc.
-    birthdate: this.formBuilder.group(
-      { day: [''], month: [''], year: [''] },
-      { validators: birthdateValidator },
-    ),
-  });
+  protected readonly form = this.formBuilder.group(
+    {
+      email: ['', [Validators.required, Validators.email]],
+      displayName: ['', [Validators.maxLength(DISPLAY_NAME_MAX_LENGTH)]],
+      username: ['', [Validators.required, Validators.pattern(USERNAME_PATTERN)]],
+      password: ['', [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)]],
+      confirmPassword: ['', [Validators.required]],
+      // Nhóm con vì "31 tháng 2" chỉ sai khi nhìn cả ba ô cùng lúc.
+      birthdate: this.formBuilder.group(
+        { day: [''], month: [''], year: [''] },
+        { validators: birthdateValidator },
+      ),
+    },
+    { validators: passwordsMatch },
+  );
 
   protected readonly submitting = signal(false);
   protected readonly submitted = signal(false);
   protected readonly passwordVisible = signal(false);
+  protected readonly confirmPasswordVisible = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly passwordMinLength = PASSWORD_MIN_LENGTH;
@@ -55,6 +72,10 @@ export class RegisterPage {
     this.passwordVisible.update((visible) => !visible);
   }
 
+  protected toggleConfirmPasswordVisibility(): void {
+    this.confirmPasswordVisible.update((visible) => !visible);
+  }
+
   /** Errors stay hidden until the field is left or the form is submitted. */
   protected showError(field: TextField): boolean {
     const control = this.form.controls[field];
@@ -64,6 +85,14 @@ export class RegisterPage {
   protected showBirthdateError(): boolean {
     const group = this.form.controls.birthdate;
     return group.invalid && (group.touched || this.submitted());
+  }
+
+  protected showConfirmPasswordError(): boolean {
+    const confirmation = this.form.controls.confirmPassword;
+    return (
+      (confirmation.invalid || this.form.hasError('passwordMismatch')) &&
+      (confirmation.touched || this.submitted())
+    );
   }
 
   protected async onSubmit(): Promise<void> {
@@ -97,6 +126,7 @@ export class RegisterPage {
       this.submitting.set(false);
       this.errorMessage.set(toRegisterErrorMessage(error));
       this.form.controls.password.reset();
+      this.form.controls.confirmPassword.reset();
       this.focusFirst('#register-error');
       return;
     }

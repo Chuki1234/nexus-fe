@@ -11,9 +11,9 @@
 </button>
 
 <mat-menu #userMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal">
-  <button mat-menu-item type="button" (click)="openSettings()">
-    <mat-icon aria-hidden="true" class="!text-steel">settings</mat-icon>
-    <span>Cài đặt người dùng</span>
+  <button mat-menu-item type="button" (click)="openDeleteAccount()">
+    <mat-icon aria-hidden="true" class="!text-danger">person_remove</mat-icon>
+    <span class="text-danger font-semibold">Xóa tài khoản</span>
   </button>
   <button mat-menu-item type="button" (click)="onSignOut()" [disabled]="signingOut()">
     <mat-icon aria-hidden="true" class="!text-danger">logout</mat-icon>
@@ -44,18 +44,6 @@
   >
     <mat-icon>{{ deafened() ? 'headset_off' : 'headset' }}</mat-icon>
     <span class="sr-only">{{ deafened() ? 'Bật loa' : 'Tắt loa' }}</span>
-  </button>
-
-  <button
-    mat-icon-button
-    type="button"
-    disabled
-    class="user-panel__control user-panel__control--settings nexus-icon-control"
-    aria-label="Cài đặt — do team Settings phụ trách"
-    matTooltip="Phần Cài đặt do team Settings phụ trách"
-    (click)="openSettings()"
-  >
-    <mat-icon aria-hidden="true">settings</mat-icon>
   </button>
 
 </div>
