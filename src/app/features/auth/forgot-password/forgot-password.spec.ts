@@ -8,6 +8,7 @@ class AuthServiceStub {
   sendPasswordResetCode = vi.fn().mockResolvedValue(undefined);
   verifyPasswordResetCode = vi.fn().mockResolvedValue(undefined);
   updatePassword = vi.fn().mockResolvedValue(undefined);
+  signOut = vi.fn().mockResolvedValue(undefined);
 }
 
 describe('ForgotPasswordPage', () => {
@@ -160,7 +161,7 @@ describe('ForgotPasswordPage', () => {
     );
   });
 
-  it('updates the password and lands the user in the app', async () => {
+  it('updates the password, clears the recovery session and returns to login', async () => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
 
     await reachPasswordStep();
@@ -170,7 +171,8 @@ describe('ForgotPasswordPage', () => {
     await submit();
 
     expect(auth.updatePassword).toHaveBeenCalledWith('matkhaumoi123');
-    expect(navigate).toHaveBeenCalledWith('/');
+    expect(auth.signOut).toHaveBeenCalledOnce();
+    expect(navigate).toHaveBeenCalledWith('/login');
   });
 
   it('lets the user go back and fix a mistyped email', async () => {

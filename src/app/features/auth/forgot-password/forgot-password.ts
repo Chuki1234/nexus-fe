@@ -145,7 +145,7 @@ export class ForgotPasswordPage {
     this.goTo('password');
   }
 
-  /** Bước 3 — đặt mật khẩu mới. Phiên tạm còn hiệu lực nên vào thẳng app. */
+  /** Bước 3 — đặt mật khẩu mới rồi hủy phiên recovery, buộc đăng nhập lại. */
   protected async onSubmitPassword(): Promise<void> {
     if (!this.startSubmit(this.passwordForm)) {
       return;
@@ -158,7 +158,13 @@ export class ForgotPasswordPage {
       return;
     }
 
-    await this.router.navigateByUrl('/');
+    // verifyOtp tạo một session thật. Không đăng xuất ở đây thì app sẽ coi phiên
+    // recovery như đăng nhập bình thường và đưa người dùng thẳng vào dashboard.
+    try {
+      await this.auth.signOut();
+    } finally {
+      await this.router.navigateByUrl('/login');
+    }
   }
 
   protected async onResendCode(): Promise<void> {
