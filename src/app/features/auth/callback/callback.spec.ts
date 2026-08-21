@@ -7,13 +7,17 @@ import { CallbackPage } from './callback';
 class AuthServiceStub {
   readonly authenticated = signal(false);
   isAuthenticated = () => this.authenticated();
+  whenReady = vi.fn().mockResolvedValue(undefined);
+  syncSession = vi.fn().mockResolvedValue(null);
+  completeOAuthSignIn = vi.fn().mockResolvedValue({});
 }
 
 describe('CallbackPage', () => {
   let auth: AuthServiceStub;
 
-  const mount = async () => {
+  const mount = async (authenticated = false) => {
     auth = new AuthServiceStub();
+    auth.authenticated.set(authenticated);
     await TestBed.configureTestingModule({
       imports: [CallbackPage],
       providers: [provideRouter([]), { provide: AuthService, useValue: auth }],
@@ -48,5 +52,33 @@ describe('CallbackPage', () => {
     await fixture.whenStable();
 
     expect(navigate).toHaveBeenCalledWith('/');
+  });
+
+  it('không bị đứng khi phiên đã có trước lúc callback được dựng', async () => {
+    await expect(mount(true)).resolves.toBeTruthy();
+  });
+
+  it('chủ động đọc lại session nếu sự kiện OAuth đã xảy ra trước khi callback lắng nghe', async () => {
+    auth = new AuthServiceStub();
+    const fixture = await mount();
+    await fixture.whenStable();
+
+    expect(auth.whenReady).toHaveBeenCalledOnce();
+    expect(auth.syncSession).toHaveBeenCalledOnce();
+  });
+
+  it('bắt được session hoàn tất muộn mà không cần refresh trang', async () => {
+    vi.useFakeTimers();
+    const fixture = await mount();
+    auth.syncSession.mockImplementation(async () => {
+      auth.authenticated.set(true);
+      return {};
+    });
+
+    await vi.advanceTimersByTimeAsync(250);
+    fixture.detectChanges();
+
+    expect(auth.isAuthenticated()).toBe(true);
+    vi.useRealTimers();
   });
 });
