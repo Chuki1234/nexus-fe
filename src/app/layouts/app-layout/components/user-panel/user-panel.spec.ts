@@ -107,14 +107,14 @@ describe('UserPanel', () => {
     expect(controlGroup.getAttribute('aria-label')).toBe('Điều khiển âm thanh và ứng dụng');
   });
 
-  it('để nút cài đặt làm integration seam và không dựng UI của team Settings', async () => {
+  it('để nút cài đặt có thể bấm tương tác như các control khác', async () => {
     const fixture = await mount();
     const settings = fixture.nativeElement.querySelector(
-      'button[aria-label="Cài đặt — do team Settings phụ trách"]',
+      'button.user-panel__control--settings',
     ) as HTMLButtonElement;
 
     expect(settings).toBeTruthy();
-    expect(settings.disabled).toBe(true);
+    expect(settings.disabled).toBe(false);
     expect(settings.textContent).toContain('settings');
     expect(settings.classList.contains('nexus-icon-control')).toBe(true);
     expect(fixture.nativeElement.ownerDocument.body.querySelector('.nexus-settings-dialog')).toBe(

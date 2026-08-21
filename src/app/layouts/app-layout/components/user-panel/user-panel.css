@@ -92,11 +92,6 @@
   flex: 0 0 auto;
   align-items: center;
   gap: 0.125rem;
-  border-radius: var(--radius-lg);
-  padding: 0.125rem;
-  background: var(--nexus-surface-well);
-  border: 1px solid var(--nexus-border-subtle);
-  box-shadow: var(--shadow-glow);
 }
 
 .user-panel__control {
@@ -106,7 +101,7 @@
   flex: 0 0 2.25rem;
   place-items: center;
   padding: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
 
   --mat-icon-button-icon-size: 1.25rem;
   --mat-icon-button-state-layer-size: 2.25rem;

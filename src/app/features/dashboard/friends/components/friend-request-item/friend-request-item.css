@@ -1,3 +1,27 @@
 :host {
   color: var(--color-ink);
 }
+
+.nexus-icon-control {
+  display: inline-grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--radius-full);
+
+  --mat-icon-button-icon-size: 1.25rem;
+  --mat-icon-button-state-layer-size: 2.25rem;
+  --mat-icon-button-touch-target-display: none;
+}
+
+.nexus-icon-control .mat-icon {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  font-size: 1.25rem;
+  line-height: 1;
+  text-align: center;
+}
