@@ -38,6 +38,7 @@ import { ServerRolesTab } from './tabs/server-roles-tab/server-roles-tab';
 import { ServerMembersTab } from './tabs/server-members-tab/server-members-tab';
 import { ServerSafetyTab } from './tabs/server-safety-tab/server-safety-tab';
 import { ServerAuditLogTab } from './tabs/server-audit-log-tab/server-audit-log-tab';
+import { ProfileStore } from '../profile/profile-store';
 
 export interface NavItem {
   id: SettingsTab;
@@ -86,6 +87,9 @@ export interface NavCategory {
 })
 export class SettingsModal {
   protected readonly settingsService = inject(UserSettingsService);
+  private readonly profileStore = inject(ProfileStore);
+  /** Ảnh đại diện thật của chính mình — để phần xem trước khớp với mọi nơi khác. */
+  protected readonly myAvatarUrl = computed(() => this.profileStore.profile()?.avatarUrl ?? null);
   private readonly authService = inject(AuthService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);

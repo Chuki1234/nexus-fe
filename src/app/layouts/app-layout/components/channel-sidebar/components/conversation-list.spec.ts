@@ -69,11 +69,12 @@ describe('ConversationList', () => {
   it('lọc tên và trạng thái không phân biệt dấu tiếng Việt', async () => {
     const shell = new ShellData();
     shell.setDemoEnabled(true);
-    const fixture = await mount(shell, 'binh');
+    // "duc" phải khớp "Đức Phạm" — bỏ được cả dấu sắc lẫn chữ Đ.
+    const fixture = await mount(shell, 'duc');
     const results = fixture.nativeElement.querySelectorAll('[data-conversation-id]');
 
     expect(results).toHaveLength(1);
-    expect(results[0].getAttribute('data-conversation-id')).toBe('binh');
+    expect(results[0].getAttribute('data-conversation-id')).toBe('ducpham');
     expect(fixture.nativeElement.textContent).toContain('Kết quả · 1');
   });
 

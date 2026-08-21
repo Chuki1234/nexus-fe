@@ -8,7 +8,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:nexus-fe": "node dist/nexus-fe/server/server.mjs",
-    "check:shared": "node scripts/check-shared.mjs"
+    "check:shared": "node scripts/check-shared.mjs",
+    "check:icons": "node scripts/check-icons.mjs"
   },
   "private": true,
   "packageManager": "npm@11.5.1",

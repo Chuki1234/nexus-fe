@@ -44,7 +44,11 @@
         matListItemIcon
         class="conversation-avatar-slot !mr-3 !flex !size-8 !min-w-8 !items-center !justify-center !overflow-visible"
       >
-        <app-avatar
+        <!-- Bấm avatar mở thẻ hồ sơ, KHÔNG đi vào cuộc trò chuyện. `id` của
+             conversation chính là username, xem ghi chú ở DEMO_CONVERSATIONS. -->
+        <app-profile-avatar
+          (click)="$event.preventDefault(); $event.stopPropagation()"
+          [username]="conversation.id"
           [name]="conversation.name"
           [presence]="conversation.presence"
           size="sm"

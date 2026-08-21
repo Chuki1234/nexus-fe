@@ -6,7 +6,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { PRESENCE_LABEL } from '../../../../../shared/dto/common';
 import type { ConversationSummary } from '../../../../core/api/shell-data';
-import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import { ProfileAvatar } from '../../../profile/components/profile-avatar/profile-avatar';
 
 /**
  * Một hàng trong danh sách bạn bè.
@@ -16,7 +16,7 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
  */
 @Component({
   selector: 'app-friend-row',
-  imports: [Avatar, MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule, RouterLink],
+  imports: [ProfileAvatar, MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   templateUrl: './friend-row.html',

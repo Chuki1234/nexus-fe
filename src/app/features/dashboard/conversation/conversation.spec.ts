@@ -76,14 +76,14 @@ describe('ConversationPage', () => {
     expect(harness.routeNativeElement!.querySelector('[data-demo-message]')).toBeFalsy();
   });
 
-  it('demo ON hiển thị timeline DM nhưng không thêm panel Profile', async () => {
+  it('demo ON hiển thị timeline DM kèm panel hồ sơ bên phải', async () => {
     const harness = await mount('ho-be', true);
 
     expect(harness.routeNativeElement!.querySelectorAll('[data-demo-message]')).toHaveLength(3);
     expect(harness.routeNativeElement!.querySelectorAll('app-message-actions')).toHaveLength(3);
     expect(harness.routeNativeElement!.querySelector('.message-reply')).toBeTruthy();
     expect(harness.routeNativeElement!.querySelector('.nexus-unread-divider')).toBeTruthy();
-    expect(harness.routeNativeElement!.querySelector('app-context-panel')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('app-context-panel')).toBeTruthy();
 
     const ownMessageEdit = harness.routeNativeElement!.querySelectorAll(
       'app-message-actions',
@@ -92,12 +92,19 @@ describe('ConversationPage', () => {
     expect(ownMessageEdit.querySelector('button[aria-label="Thêm thao tác"]')).toBeTruthy();
   });
 
-  it('không dựng panel hoặc action hồ sơ thuộc ownership của trang Profile', async () => {
+  /**
+   * Test này trước đây khẳng định trang DM KHÔNG có panel hồ sơ — ranh giới
+   * giữ chỗ trong lúc trang Profile chưa dựng xong.
+   *
+   * Giờ Profile đã có `ProfilePanel`, và trang DM chỉ GẮN component đó vào chứ
+   * không tự viết lại markup hồ sơ — đúng tinh thần của ranh giới cũ. Phần còn
+   * giá trị là: khung chat không được tự dựng avatar/tiểu sử theo kiểu riêng.
+   */
+  it('gắn panel hồ sơ của feature Profile, không tự dựng markup hồ sơ', async () => {
     const harness = await mount('ho-be');
 
-    expect(harness.routeNativeElement!.querySelector('app-context-panel')).toBeNull();
-    expect(harness.routeNativeElement!.querySelector('button[aria-expanded]')).toBeNull();
-    expect(harness.routeNativeElement!.querySelector('button[aria-label^="Xem hồ sơ"]')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('app-context-panel')).toBeTruthy();
+    expect(harness.routeNativeElement!.querySelector('app-profile-panel')).toBeTruthy();
     expect(harness.routeNativeElement!.querySelector('app-avatar')).toBeTruthy();
   });
 

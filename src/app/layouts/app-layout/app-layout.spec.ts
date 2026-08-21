@@ -128,11 +128,21 @@ describe('AppLayout', () => {
 
     expect(query('app-user-panel')?.textContent).toContain('Minh Tài');
     expect(queryAll('app-user-panel button[aria-pressed]').length).toBe(2);
+    // Nút cài đặt trước đây bị khoá vì UI Settings chưa dựng xong; giờ
+    // SettingsModal đã có và đã gắn vào layout nên nó bấm được.
     const settings = query(
-      'app-user-panel button[aria-label="Cài đặt — do team Settings phụ trách"]',
+      'app-user-panel button.user-panel__control--settings',
     ) as HTMLButtonElement;
     expect(settings).toBeTruthy();
-    expect(settings.disabled).toBe(true);
+    expect(settings.disabled).toBe(false);
+  });
+
+  it('gắn SettingsModal vào layout để nút cài đặt có thứ để mở', async () => {
+    await harness.navigateByUrl('/channels/@me');
+
+    // Modal tự ẩn qua isOpen() nên thẻ luôn có mặt trong DOM. Trước đây nó
+    // không được gắn ở đâu cả — bấm nút chỉ đổi tín hiệu, không gì hiện ra.
+    expect(query('app-settings-modal')).toBeTruthy();
   });
 
   it('giữ light mode khi chuyển qua kênh và quay lại trang bạn bè', async () => {

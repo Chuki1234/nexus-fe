@@ -1,25 +1,84 @@
 <button
   type="button"
-  [matMenuTriggerFor]="userMenu"
+  cdkOverlayOrigin
+  #origin="cdkOverlayOrigin"
+  (click)="toggleProfileCard()"
+  [attr.aria-expanded]="popoverOpen()"
+  aria-haspopup="dialog"
   class="user-panel__identity nexus-interactive-row"
 >
-  <app-avatar [name]="displayName()" size="sm" presence="online" ring="canvas" />
+  <app-avatar [name]="displayName()" [src]="avatarUrl()" size="sm" presence="online" ring="canvas" />
   <span class="user-panel__identity-copy">
     <span class="user-panel__name">{{ displayName() }}</span>
     <span class="user-panel__status">Trực tuyến</span>
   </span>
 </button>
 
-<mat-menu #userMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal">
-  <button mat-menu-item type="button" (click)="openSettings()">
-    <mat-icon aria-hidden="true" class="!text-steel">settings</mat-icon>
-    <span>Cài đặt người dùng</span>
-  </button>
-  <button mat-menu-item type="button" (click)="onSignOut()" [disabled]="signingOut()">
-    <mat-icon aria-hidden="true" class="!text-danger">logout</mat-icon>
-    <span class="text-danger font-semibold">{{ signingOut() ? 'Đang đăng xuất…' : 'Đăng xuất' }}</span>
-  </button>
-</mat-menu>
+<!-- Thẻ hồ sơ nhỏ nổi ĐÈ LÊN giao diện, neo vào chính nút danh tính và mọc
+     LÊN TRÊN (thanh này nằm sát đáy màn hình, mọc xuống là bị cắt mất).
+     `push` để thẻ tự đẩy vào trong khi cửa sổ hẹp. -->
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="popoverOpen()"
+  [cdkConnectedOverlayHasBackdrop]="true"
+  cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+  [cdkConnectedOverlayPush]="true"
+  [cdkConnectedOverlayPositions]="[
+    { originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom', offsetY: -8 },
+    { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top', offsetY: 8 }
+  ]"
+  (backdropClick)="popoverOpen.set(false)"
+  (detach)="popoverOpen.set(false)"
+  (overlayKeydown)="onOverlayKeydown($event)"
+>
+  @if (store.profile(); as person) {
+    <!-- Một bảng duy nhất: hồ sơ ở trên, hành động ở dưới — thay vì bấm menu
+         rồi mới ra được thẻ hồ sơ như trước. -->
+    <app-profile-popover [profile]="person">
+      <div class="flex flex-col gap-0.5">
+        <a
+          [routerLink]="['/u', person.username]"
+          (click)="popoverOpen.set(false)"
+          class="flex items-center gap-3 rounded-md px-2.5 py-2 text-body-sm text-ink transition-colors hover:bg-surface-feature"
+        >
+          <mat-icon aria-hidden="true" class="size-5! text-[20px]! text-steel">account_circle</mat-icon>
+          Xem hồ sơ đầy đủ
+        </a>
+
+        <button
+          type="button"
+          (click)="openSettings()"
+          class="flex items-center gap-3 rounded-md px-2.5 py-2 text-left text-body-sm text-ink transition-colors hover:bg-surface-feature"
+        >
+          <mat-icon aria-hidden="true" class="size-5! text-[20px]! text-steel">settings</mat-icon>
+          Cài đặt người dùng
+        </button>
+
+        <button
+          type="button"
+          (click)="onSignOut()"
+          [disabled]="signingOut()"
+          class="flex items-center gap-3 rounded-md px-2.5 py-2 text-left text-body-sm text-danger transition-colors hover:bg-danger-surface disabled:text-muted"
+        >
+          <mat-icon aria-hidden="true" class="size-5! text-[20px]!">logout</mat-icon>
+          {{ signingOut() ? 'Đang đăng xuất…' : 'Đăng xuất' }}
+        </button>
+      </div>
+    </app-profile-popover>
+  } @else {
+    <!-- Khung xám giữ đúng hình dạng thẻ trong lúc hồ sơ đang về, để thẻ không
+         nhảy kích thước khi dữ liệu tới. -->
+    <div class="w-80 overflow-hidden rounded-lg border border-hairline bg-surface shadow-modal">
+      <div class="h-20 w-full animate-pulse bg-surface-soft"></div>
+      <div class="space-y-2 px-4 pb-4 pt-3">
+        <div class="h-5 w-32 animate-pulse rounded-sm bg-surface-soft"></div>
+        <div class="h-3 w-20 animate-pulse rounded-sm bg-surface-soft"></div>
+      </div>
+      <p aria-live="polite" class="sr-only">Đang tải hồ sơ.</p>
+    </div>
+  }
+</ng-template>
 
 <div class="user-panel__controls" role="group" aria-label="Điều khiển âm thanh và ứng dụng">
   <button
@@ -49,13 +108,12 @@
   <button
     mat-icon-button
     type="button"
-    disabled
     class="user-panel__control user-panel__control--settings nexus-icon-control"
-    aria-label="Cài đặt — do team Settings phụ trách"
-    matTooltip="Phần Cài đặt do team Settings phụ trách"
+    matTooltip="Cài đặt người dùng"
     (click)="openSettings()"
   >
     <mat-icon aria-hidden="true">settings</mat-icon>
+    <span class="sr-only">Cài đặt người dùng</span>
   </button>
 
 </div>

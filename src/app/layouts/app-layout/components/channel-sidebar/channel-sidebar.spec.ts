@@ -54,13 +54,13 @@ describe('ChannelSidebar', () => {
     const fixture = await mount(null, shell);
     const input = fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
 
-    input.value = 'binh';
+    input.value = 'duc';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
     const results = fixture.nativeElement.querySelectorAll('[data-conversation-id]');
     expect(results).toHaveLength(1);
-    expect(results[0].getAttribute('data-conversation-id')).toBe('binh');
+    expect(results[0].getAttribute('data-conversation-id')).toBe('ducpham');
     expect(fixture.nativeElement.textContent).toContain('Kết quả · 1');
     expect(fixture.nativeElement.querySelector('a[href="/channels/@me"]')).toBeTruthy();
   });

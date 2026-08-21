@@ -115,8 +115,8 @@ describe('FriendsPage', () => {
     fixture.detectChanges();
 
     expect(demoButton.getAttribute('aria-pressed')).toBe('true');
-    expect(fixture.nativeElement.querySelectorAll('app-friend-row').length).toBe(6);
-    expect(fixture.nativeElement.textContent).toContain('Phan Thế Mon');
+    expect(fixture.nativeElement.querySelectorAll('app-friend-row').length).toBe(4);
+    expect(fixture.nativeElement.textContent).toContain('Mai Trần');
 
     demoButton.click();
     fixture.detectChanges();

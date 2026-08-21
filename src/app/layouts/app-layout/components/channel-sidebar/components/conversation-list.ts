@@ -4,7 +4,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { ShellData } from '../../../../../core/api/shell-data';
-import { Avatar } from '../../../../../shared/ui/avatar/avatar';
+import { ProfileAvatar } from '../../../../../features/profile/components/profile-avatar/profile-avatar';
 import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
 
 /**
@@ -16,10 +16,10 @@ import { SectionLabel } from '../../../../../shared/ui/section-label/section-lab
 @Component({
   selector: 'app-conversation-list',
   imports: [
-    Avatar,
     MatIconModule,
     MatListModule,
     MatTooltipModule,
+    ProfileAvatar,
     RouterLink,
     RouterLinkActive,
     SectionLabel,
@@ -53,10 +53,16 @@ export class ConversationList {
   );
 
   private normalize(value: string): string {
-    return value
-      .trim()
-      .toLocaleLowerCase('vi')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
+    return (
+      value
+        .trim()
+        .toLocaleLowerCase('vi')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        // `\u0111` l\u00e0 CH\u1eee C\u00c1I ri\u00eang (U+0111), kh\u00f4ng ph\u1ea3i `d` k\u00e8m d\u1ea5u, n\u00ean NFD kh\u00f4ng
+        // t\u00e1ch \u0111\u01b0\u1ee3c n\u00f3. Thi\u1ebfu d\u00f2ng n\u00e0y th\u00ec g\u00f5 "duc" kh\u00f4ng bao gi\u1edd ra "\u0110\u1ee9c" \u2014
+        // \u0111\u00fang tr\u01b0\u1eddng h\u1ee3p ph\u1ed5 bi\u1ebfn nh\u1ea5t c\u1ee7a ti\u1ebfng Vi\u1ec7t.
+        .replace(/\u0111/g, 'd')
+    );
   }
 }

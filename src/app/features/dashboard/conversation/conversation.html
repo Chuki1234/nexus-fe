@@ -15,10 +15,12 @@
     [subtitle]="person.statusMessage"
     leadingIcon="alternate_email"
     [showCallActions]="true"
-    [showDetailsAction]="false"
+    detailsLabel="hồ sơ"
+    (toggleDetails)="toggleProfilePanel()"
   />
 
-  <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+  <div class="flex min-h-0 min-w-0 flex-1">
+    <div class="flex min-h-0 min-w-0 flex-1 flex-col">
     <!-- P3 sẽ thay khối này bằng danh sách tin nhắn thật (cursor pagination). -->
     <div
       class="chat-history nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-6"
@@ -27,7 +29,14 @@
       <div class="chat-stage mx-auto flex min-h-full w-full max-w-4xl flex-col justify-start">
         <section class="chat-intro max-w-2xl">
           <span class="chat-intro__avatar flex w-fit" aria-hidden="true">
-            <app-avatar [name]="person.name" [presence]="person.presence" size="xl" ring="canvas" />
+            <app-profile-avatar
+              [username]="person.id"
+              [name]="person.name"
+              [presence]="person.presence"
+              [clickable]="false"
+              size="xl"
+              ring="canvas"
+            />
           </span>
           <p class="mt-5 text-micro-uppercase text-steel">Kết nối trực tiếp</p>
           <h2 class="mt-1 text-heading-3 text-ink">{{ person.name }}</h2>
@@ -41,7 +50,8 @@
         @if (demoEnabled()) {
           <ol class="message-list mt-6 grid gap-2.5" aria-label="Tin nhắn trực tiếp demo">
             <li class="message-row" data-demo-message="dm-1">
-              <app-avatar
+              <app-profile-avatar
+                [username]="person.id"
                 [name]="person.name"
                 [presence]="person.presence"
                 size="md"
@@ -66,7 +76,15 @@
             </li>
 
             <li class="message-row message-row--mine" data-demo-message="dm-2">
-              <app-avatar name="Bạn" presence="online" size="md" ring="canvas" />
+              <!-- Avatar của chính mình lấy từ ProfileStore, để đổi ảnh trong cài đặt là
+                   mọi tin nhắn cũ cũng đổi theo. -->
+              <app-avatar
+                name="Bạn"
+                [src]="myAvatarUrl()"
+                presence="online"
+                size="md"
+                ring="canvas"
+              />
               <article class="message-card">
                 <div class="message-reply">
                   <span class="message-reply__avatar" aria-hidden="true">
@@ -100,7 +118,8 @@
             </li>
 
             <li class="message-row" data-demo-message="dm-3">
-              <app-avatar
+              <app-profile-avatar
+                [username]="person.id"
                 [name]="person.name"
                 [presence]="person.presence"
                 size="md"
@@ -132,6 +151,21 @@
       [context]="composerContext()"
       (contextClosed)="composerContext.set(null)"
     />
+    </div>
+
+    <!-- Hồ sơ người đang nhắn, cố định bên phải như Discord. Dùng
+         `app-context-panel` giống cột "Thành viên" của kênh, để hai chỗ cùng
+         một cách đóng/mở thay vì mỗi nơi một kiểu.
+
+         `conversation.id` chính là username (xem DEMO_CONVERSATIONS), nên panel
+         tự tra được hồ sơ thật. -->
+    <app-context-panel
+      title="Hồ sơ"
+      [open]="profilePanelOpen()"
+      (closed)="profilePanelOpen.set(false)"
+    >
+      <app-profile-panel [username]="person.id" />
+    </app-context-panel>
   </div>
 } @else {
   <app-empty-state icon="search_off" message="Không tìm thấy cuộc trò chuyện này." />

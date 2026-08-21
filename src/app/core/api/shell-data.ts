@@ -119,35 +119,41 @@ const DEMO_CHANNELS_BY_SERVER: Record<string, ChannelSummary[]> = {
   ],
 };
 
+/**
+ * `id` cố ý ĐÚNG BẰNG username có thật trong bảng `profiles` (tạo bằng
+ * `npm run seed` bên nexus-be).
+ *
+ * Nhờ vậy bấm avatar trong danh sách là mở được hồ sơ thật qua
+ * `/api/profiles/:username`, thay vì tên bịa rồi bấm vào nhận 404. Đổi tên ở
+ * đây thì phải đổi cả trong `scripts/seed-profiles.ts`.
+ */
 const DEMO_CONVERSATIONS: ConversationSummary[] = [
   {
-    id: 'mon',
-    name: 'Phan Thế Mon',
-    statusMessage: null,
+    id: 'maitran',
+    name: 'Mai Trần',
+    statusMessage: 'Đang xây một thứ gì đó bằng Angular và quá nhiều cà phê ☕',
     presence: 'online',
     unread: false,
   },
   {
-    id: 'ho-be',
-    name: 'ho_be',
-    statusMessage: 'shut the fckup',
+    id: 'ducpham',
+    name: 'Đức Phạm',
+    statusMessage: 'Học Rust ngày thứ 4. Vẫn đang cãi nhau với borrow checker.',
     presence: 'dnd',
     unread: true,
   },
   {
-    id: 'minh-tai',
-    name: 'NguyenMinhTai',
+    id: 'hoangle',
+    name: 'Hoàng Lê Nguyễn Minh Anh Tuấn',
     statusMessage: null,
-    presence: 'online',
+    presence: 'idle',
     unread: false,
   },
-  { id: 'binh', name: "bình'", statusMessage: null, presence: 'idle', unread: false },
-  { id: 'cyrus', name: 'Cyrus', statusMessage: null, presence: 'offline', unread: false },
   {
-    id: 'lofi-bot',
-    name: 'Lofi',
-    statusMessage: 'Đang phát nhạc',
-    presence: 'online',
+    id: 'linhvo',
+    name: 'linhvo',
+    statusMessage: null,
+    presence: 'offline',
     unread: false,
   },
 ];

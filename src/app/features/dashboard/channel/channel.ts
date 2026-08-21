@@ -10,17 +10,16 @@ import {
   type MessageComposerContext,
 } from '../components/message-composer/message-composer';
 import { MessageActions } from '../components/message-actions/message-actions';
+import { ProfileAvatar } from '../../profile/components/profile-avatar/profile-avatar';
 import { DashboardState } from '../components/dashboard-state/dashboard-state';
 import { DashboardUiState } from '../services/dashboard-ui-state';
 import { ShellData } from '../../../core/api/shell-data';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
-import { Avatar } from '../../../shared/ui/avatar/avatar';
 
 /** Kênh trong server — `/channels/:serverId/:channelId`. */
 @Component({
   selector: 'app-channel-page',
   imports: [
-    Avatar,
     ChatToolbar,
     ContextPanel,
     DashboardState,
@@ -28,6 +27,7 @@ import { Avatar } from '../../../shared/ui/avatar/avatar';
     MatIconModule,
     MessageActions,
     MessageComposer,
+    ProfileAvatar,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col' },

@@ -265,7 +265,13 @@
         </div>
 
         <div class="flex items-start gap-3 mt-3">
-          <app-avatar [name]="settingsService.editDisplayName() || 'Bạn'" size="md" presence="online" ring="canvas" />
+          <app-avatar
+            [name]="settingsService.editDisplayName() || 'Bạn'"
+            [src]="myAvatarUrl()"
+            size="md"
+            presence="online"
+            ring="canvas"
+          />
           <div class="flex-1 min-w-0">
             <div class="flex items-baseline gap-2">
               <span class="text-body-sm font-bold text-primary">{{ settingsService.editDisplayName() || 'Bạn' }}</span>

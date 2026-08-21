@@ -5,18 +5,33 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserSettingsService } from '../../services/user-settings.service';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import { ProfileImages } from '../../../profile/components/profile-images/profile-images';
+import { ProfileStore } from '../../../profile/profile-store';
 
 @Component({
   selector: 'app-profile-tab',
-  imports: [FormsModule, MatIconModule, MatButtonModule, MatTooltipModule, Avatar],
+  imports: [
+    FormsModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    Avatar,
+    ProfileImages,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './profile-tab.html',
   styleUrl: './profile-tab.css',
 })
 export class ProfileTab {
   protected readonly settingsService = inject(UserSettingsService);
+  /** Hồ sơ THẬT từ API — phần xem trước lấy ảnh từ đây thay vì để trống. */
+  protected readonly store = inject(ProfileStore);
 
   protected readonly activeProfileSection = signal<'main' | 'server'>('main');
+
+  constructor() {
+    void this.store.ensureLoaded();
+  }
 
   protected readonly colorPresets = [
     { label: 'Deep Teal', hex: '#003d4f' },

@@ -107,18 +107,24 @@ describe('UserPanel', () => {
     expect(controlGroup.getAttribute('aria-label')).toBe('Điều khiển âm thanh và ứng dụng');
   });
 
-  it('để nút cài đặt làm integration seam và không dựng UI của team Settings', async () => {
+  /**
+   * Test này trước đây khẳng định nút cài đặt phải bị KHOÁ — nó là "integration
+   * seam" giữ chỗ trong lúc team Settings chưa dựng xong UI. Giờ SettingsModal
+   * đã có và đã được gắn vào app-layout, nên chỗ giữ chỗ đó thành nút thật.
+   *
+   * Vẫn kiểm rằng user-panel KHÔNG tự dựng UI cài đặt (chỉ gọi service) — đó
+   * mới là ý nghĩa còn giá trị của test cũ.
+   */
+  it('nút cài đặt bấm được và không tự dựng UI của team Settings', async () => {
     const fixture = await mount();
     const settings = fixture.nativeElement.querySelector(
-      'button[aria-label="Cài đặt — do team Settings phụ trách"]',
+      'button.user-panel__control--settings',
     ) as HTMLButtonElement;
 
     expect(settings).toBeTruthy();
-    expect(settings.disabled).toBe(true);
+    expect(settings.disabled).toBe(false);
     expect(settings.textContent).toContain('settings');
     expect(settings.classList.contains('nexus-icon-control')).toBe(true);
-    expect(fixture.nativeElement.ownerDocument.body.querySelector('.nexus-settings-dialog')).toBe(
-      null,
-    );
+    expect(fixture.nativeElement.querySelector('app-settings-modal')).toBe(null);
   });
 });

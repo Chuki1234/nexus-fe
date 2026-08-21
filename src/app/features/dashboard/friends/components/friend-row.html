@@ -6,7 +6,13 @@
     class="flex min-w-0 flex-1 items-center gap-3 rounded-md"
   >
     <span class="flex size-10 shrink-0 items-center justify-center">
-      <app-avatar [name]="person().name" [presence]="person().presence" size="lg" ring="canvas" />
+      <app-profile-avatar
+        [username]="person().id"
+        [name]="person().name"
+        [presence]="person().presence"
+        size="lg"
+        ring="canvas"
+      />
     </span>
 
     <span class="min-w-0 flex-1">
@@ -47,7 +53,14 @@
   [overlapTrigger]="false"
 >
   <div class="friend-options__identity" role="presentation">
-    <app-avatar [name]="person().name" [presence]="person().presence" size="md" ring="surface" />
+    <app-profile-avatar
+      [username]="person().id"
+      [name]="person().name"
+      [presence]="person().presence"
+      [clickable]="false"
+      size="md"
+      ring="surface"
+    />
     <span class="friend-options__identity-copy">
       <strong>{{ person().name }}</strong>
       <small>{{ subtitle() }}</small>

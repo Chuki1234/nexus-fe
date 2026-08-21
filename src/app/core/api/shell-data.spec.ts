@@ -27,11 +27,13 @@ describe('ShellData demo mode', () => {
       'nhac',
       'phong-hop',
     ]);
-    expect(shell.conversations().length).toBe(6);
+    expect(shell.conversations().length).toBe(4);
     expect(shell.totalMentions()).toBe(1);
     expect(shell.serverOf('itss')?.name).toBe('ITSS Lab');
     expect(shell.channelOf('itss', 'do-an')?.name).toBe('đồ-án');
-    expect(shell.conversationOf('mon')?.name).toBe('Phan Thế Mon');
+    // `id` là username có thật trong bảng profiles — bấm avatar phải mở được
+    // hồ sơ thật, nên tên bịa không dùng được nữa.
+    expect(shell.conversationOf('maitran')?.name).toBe('Mai Trần');
   });
 
   it('toggle lần nữa trả toàn bộ shell về dữ liệu live rỗng', () => {

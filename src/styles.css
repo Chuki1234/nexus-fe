@@ -232,6 +232,101 @@
 }
 
 /* ===========================================================================
+   NGUYÊN LIỆU CHUNG CỦA MÀN CÀI ĐẶT
+
+   `card-base`, `btn-primary`, `btn-secondary`, `input-base` được các tab
+   settings dùng tổng cộng gần 40 lần nhưng chưa từng được định nghĩa ở đâu —
+   Tailwind không biết chúng nên biên dịch ra rỗng. Hậu quả: mọi thẻ và hộp
+   thoại trong settings hiện ra KHÔNG có nền, chữ nổi lơ lửng chồng lên nội dung
+   phía sau (thấy rõ nhất ở hộp thoại "Kết nối với YouTube").
+
+   Định nghĩa lại đúng theo token của design system, không hardcode màu.
+   ========================================================================== */
+@layer components {
+  .card-base {
+    border: 1px solid var(--color-hairline);
+    /* Card 12px theo ghi chú cho team ở cuối file. */
+    border-radius: var(--radius-lg);
+    /* Nền ĐỤC, không dùng alpha: thẻ này còn nằm trong hộp thoại nổi trên nền
+       đã bị làm mờ — nền trong suốt là nhìn xuyên thấu xuống lớp dưới. */
+    background-color: var(--color-surface);
+    padding: 1.25rem;
+    color: var(--color-ink);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    /* Nút LUÔN pill. */
+    border-radius: var(--radius-full);
+    background-color: var(--color-primary);
+    padding: 0.5rem 1.25rem;
+    color: var(--color-on-primary);
+    font-size: var(--text-button-md);
+    font-weight: var(--text-button-md--font-weight);
+    line-height: var(--text-button-md--line-height);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--ease-nexus-out);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-soft);
+  }
+
+  .btn-primary:disabled {
+    background-color: var(--color-muted);
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-full);
+    background-color: transparent;
+    padding: 0.5rem 1.25rem;
+    color: var(--color-ink);
+    font-size: var(--text-button-md);
+    font-weight: var(--text-button-md--font-weight);
+    line-height: var(--text-button-md--line-height);
+    cursor: pointer;
+    transition:
+      border-color var(--motion-fast) var(--ease-nexus-out),
+      color var(--motion-fast) var(--ease-nexus-out);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .input-base {
+    width: 100%;
+    /* hairline-strong: ô nhập là thứ bấm được nên viền phải đạt 3:1 (WCAG 1.4.11). */
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-md);
+    background-color: var(--color-canvas);
+    padding: 0.625rem 0.875rem;
+    color: var(--color-ink);
+    font-size: var(--text-body-sm);
+    line-height: var(--text-body-sm--line-height);
+    transition: border-color var(--motion-fast) var(--ease-nexus-out);
+  }
+
+  .input-base::placeholder {
+    color: var(--color-muted);
+  }
+
+  .input-base:focus {
+    border-color: var(--color-primary);
+  }
+}
+
+/* ===========================================================================
    LIGHT MODE — Starbucks warm ceramic
    Chỉ đổi token màu/elevation; typography, spacing và geometry giữ nguyên.
    Dashboard đặt `data-theme` trên <html>, vì vậy app shell và Material cùng đổi

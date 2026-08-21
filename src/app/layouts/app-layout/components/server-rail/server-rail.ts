@@ -669,11 +669,16 @@ export class ServerRail {
   }
 
   private normalizeSearch(value: string): string {
-    return value
-      .trim()
-      .toLocaleLowerCase('vi')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
+    return (
+      value
+        .trim()
+        .toLocaleLowerCase('vi')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        // `\u0111` l\u00e0 ch\u1eef c\u00e1i ri\u00eang (U+0111), NFD kh\u00f4ng t\u00e1ch ra `d` + d\u1ea5u \u0111\u01b0\u1ee3c \u2014
+        // thi\u1ebfu d\u00f2ng n\u00e0y th\u00ec g\u00f5 "do an" kh\u00f4ng ra server "\u0110\u1ed3 \u00e1n".
+        .replace(/\u0111/g, 'd')
+    );
   }
 
   private commandScore(item: CommandResult, query: string): number {

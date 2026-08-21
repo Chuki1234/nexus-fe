@@ -1,0 +1,109 @@
+@let profile = store.profile();
+
+<div class="space-y-4">
+  @if (errorMessage(); as message) {
+    <p role="alert" class="rounded-md border border-danger-border bg-danger-surface px-3 py-2 text-caption text-ink">
+      {{ message }}
+    </p>
+  }
+
+  <!-- ── Ảnh bìa ── -->
+  <div>
+    <span class="mb-2 block text-micro-uppercase text-stone">Ảnh bìa</span>
+
+    <div
+      class="relative aspect-3/1 w-full overflow-hidden rounded-lg border border-hairline"
+      [style.background]="
+        profile?.bannerUrl ? 'transparent' : 'linear-gradient(135deg, ' + bannerColor() + ' 0%, #001e2b 100%)'
+      "
+    >
+      @if (profile?.bannerUrl; as banner) {
+        <img [src]="banner" alt="" decoding="async" class="size-full object-cover" />
+      } @else {
+        <span class="absolute inset-0 flex items-center justify-center text-caption text-on-dark-muted">
+          Chưa có ảnh bìa — đang dùng màu chủ đạo
+        </span>
+      }
+
+      @if (busy() === 'banner') {
+        <span class="absolute inset-0 flex items-center justify-center bg-canvas/70">
+          <mat-icon aria-hidden="true" class="animate-spin text-ink">refresh</mat-icon>
+          <span class="sr-only">Đang tải ảnh bìa lên…</span>
+        </span>
+      }
+    </div>
+
+    <div class="mt-2 flex flex-wrap items-center gap-2">
+      <!-- label bọc input file: input thật bị ẩn bằng sr-only chứ không phải
+           display:none — ẩn hẳn thì bàn phím không tab tới được. -->
+      <label class="btn-secondary cursor-pointer">
+        <mat-icon aria-hidden="true" class="size-4! text-[16px]!">upload</mat-icon>
+        {{ profile?.bannerUrl ? 'Đổi ảnh bìa' : 'Tải ảnh bìa' }}
+        <input
+          type="file"
+          class="sr-only"
+          [accept]="accept"
+          [disabled]="busy() !== null"
+          (change)="onPick('banner', $event)"
+        />
+      </label>
+
+      @if (profile?.bannerUrl) {
+        <button
+          type="button"
+          (click)="onRemove('banner')"
+          [disabled]="busy() !== null"
+          class="rounded-full px-3 py-2 text-caption text-steel transition-colors hover:text-danger disabled:text-muted"
+        >
+          Gỡ ảnh bìa
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- ── Ảnh đại diện ── -->
+  <div class="border-t border-hairline pt-4">
+    <span class="mb-2 block text-micro-uppercase text-stone">Ảnh đại diện</span>
+
+    <div class="flex flex-wrap items-center gap-4">
+      <span class="relative inline-flex rounded-full ring-4 ring-surface">
+        <app-avatar [name]="name()" [src]="profile?.avatarUrl ?? null" size="xl" ring="surface" />
+        @if (busy() === 'avatar') {
+          <span class="absolute inset-0 flex items-center justify-center rounded-full bg-canvas/70">
+            <mat-icon aria-hidden="true" class="animate-spin text-ink">refresh</mat-icon>
+            <span class="sr-only">Đang tải ảnh đại diện lên…</span>
+          </span>
+        }
+      </span>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="btn-secondary cursor-pointer">
+          <mat-icon aria-hidden="true" class="size-4! text-[16px]!">upload</mat-icon>
+          {{ profile?.avatarUrl ? 'Đổi ảnh' : 'Tải ảnh lên' }}
+          <input
+            type="file"
+            class="sr-only"
+            [accept]="accept"
+            [disabled]="busy() !== null"
+            (change)="onPick('avatar', $event)"
+          />
+        </label>
+
+        @if (profile?.avatarUrl) {
+          <button
+            type="button"
+            (click)="onRemove('avatar')"
+            [disabled]="busy() !== null"
+            class="rounded-full px-3 py-2 text-caption text-steel transition-colors hover:text-danger disabled:text-muted"
+          >
+            Gỡ ảnh
+          </button>
+        }
+      </div>
+    </div>
+
+    <p class="mt-2 text-caption text-steel">
+      JPEG, PNG, WebP, GIF hoặc AVIF — tối đa 5 MB. Ảnh được tự cắt vuông và nén lại.
+    </p>
+  </div>
+</div>

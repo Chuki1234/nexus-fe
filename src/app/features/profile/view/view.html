@@ -3,11 +3,15 @@
     <div class="mx-auto flex max-w-2xl items-center justify-between gap-4 px-4 py-3">
       <a
         routerLink="/channels/@me"
-        class="inline-flex items-center gap-2 text-body-sm text-steel transition-colors hover:text-ink"
+        class="inline-flex shrink-0 items-center gap-2 text-body-sm text-steel transition-colors hover:text-ink"
       >
         <mat-icon aria-hidden="true" class="size-5! text-[20px]!">arrow_back</mat-icon>
-        Quay lại Nexus
+        <span class="hidden sm:inline">Quay lại Nexus</span>
       </a>
+
+      <!-- Tìm người ngay tại đây: hồ sơ chỉ tới được bằng link chia sẻ hoặc gõ
+           tay URL, không có ô này thì muốn xem ai phải biết trước username. -->
+      <app-profile-search class="min-w-0 flex-1 sm:max-w-xs" />
 
       @if (profile()) {
         <div class="flex items-center gap-1">
