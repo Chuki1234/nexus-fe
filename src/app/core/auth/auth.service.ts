@@ -70,7 +70,36 @@ export class AuthService {
 
   private async restoreSession(): Promise<void> {
     const { data } = await this.supabase.client.auth.getSession();
+    // OAuth có thể hoàn tất và onAuthStateChange đã ghi session trong lúc
+    // getSession() còn đang chờ. Không để kết quả null cũ ghi đè session mới.
+    if (data.session || !this.currentSession()) {
+      this.currentSession.set(data.session);
+    }
+  }
+
+  /** Đổi OAuth authorization code trên callback thành session một cách tường minh. */
+  async completeOAuthSignIn(code: string): Promise<Session> {
+    const { data, error } = await this.supabase.client.auth.exchangeCodeForSession(code);
+    if (error || !data.session) {
+      throw error ?? new Error('Không tạo được phiên đăng nhập Google.');
+    }
     this.currentSession.set(data.session);
+    return data.session;
+  }
+
+  /**
+   * Đọc lại session trực tiếp từ Supabase. Callback OAuth dùng hàm này như một
+   * đường dự phòng nếu sự kiện auth xảy ra trước lúc AuthService kịp đăng ký nghe.
+   */
+  async syncSession(): Promise<Session | null> {
+    const { data, error } = await this.supabase.client.auth.getSession();
+    if (error) {
+      throw error;
+    }
+    if (data.session) {
+      this.currentSession.set(data.session);
+    }
+    return data.session;
   }
 
   /**

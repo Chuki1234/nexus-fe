@@ -18,7 +18,10 @@ export class SupabaseService {
     auth: {
       persistSession: this.isBrowser,
       autoRefreshToken: this.isBrowser,
-      detectSessionInUrl: this.isBrowser,
+      // Callback tự đổi OAuth code thành session. Tự động detect ở lúc khởi tạo
+      // client có thể chặn hydration, khiến trang chỉ còn HTML loading render sẵn.
+      detectSessionInUrl: false,
+      flowType: 'pkce',
     },
   });
 }
