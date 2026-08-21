@@ -859,6 +859,23 @@ html[data-theme='light'] .nexus-add-server-dialog .mat-mdc-dialog-surface {
   font-weight: 500;
 }
 
+/* Cửa sổ hồ sơ: bỏ padding mặc định của Material vì ảnh bìa phải chạm sát mép,
+   và cắt góc (overflow hidden) để ảnh không tràn ra ngoài bo góc. */
+.nexus-profile-dialog .mat-mdc-dialog-surface {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-modal);
+}
+
+.nexus-profile-dialog .mat-mdc-dialog-container .mdc-dialog__surface {
+  padding: 0;
+}
+
 /* ===========================================================================
    NEXUS MODAL BACKDROP SYSTEM
    Phủ toàn bộ app viewport, dim + blur tinh tế (8px) cho modal & dialog,

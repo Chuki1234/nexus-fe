@@ -1,0 +1,30 @@
+@if (loading()) {
+  <div class="animate-pulse">
+    <div class="h-40 w-full bg-surface-soft"></div>
+    <div class="space-y-3 px-6 pb-6 pt-4">
+      <div class="h-6 w-40 rounded-sm bg-surface-soft"></div>
+      <div class="h-4 w-24 rounded-sm bg-surface-soft"></div>
+      <div class="h-20 w-full rounded-lg bg-surface-soft"></div>
+    </div>
+  </div>
+  <p aria-live="polite" class="sr-only">Đang tải hồ sơ.</p>
+} @else if (profile(); as person) {
+  <app-profile-card [profile]="person" surface="surface" bannerHeight="lg" />
+} @else {
+  <div role="alert" class="px-6 py-10 text-center">
+    <mat-icon aria-hidden="true" class="text-danger">error_outline</mat-icon>
+    <p class="mt-2 text-body-sm text-charcoal">{{ errorMessage() }}</p>
+  </div>
+}
+
+<!-- Nút đóng dùng nền ĐỤC chứ không trong suốt: nó nằm trên ảnh bìa do người
+     dùng tải lên, để trong suốt thì độ tương phản phụ thuộc vào chính tấm ảnh
+     đó — bìa sáng màu là dấu X chìm hẳn. -->
+<button
+  type="button"
+  (click)="close()"
+  class="absolute right-4 top-4 z-10 flex size-9 items-center justify-center rounded-full border border-hairline-strong bg-surface text-ink shadow-modal transition-colors hover:bg-surface-feature"
+>
+  <mat-icon aria-hidden="true">close</mat-icon>
+  <span class="sr-only">Đóng hồ sơ</span>
+</button>
