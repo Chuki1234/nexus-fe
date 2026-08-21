@@ -3,18 +3,19 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
-import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import { DeleteAccountDialog } from './delete-account-dialog';
 
 /**
  * Khối người dùng ở đáy cột 2: avatar, tên, và các nút mic / tai nghe / cài đặt.
  */
 @Component({
   selector: 'app-user-panel',
-  imports: [Avatar, MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule],
+  imports: [Avatar, MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule, MatDialogModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'm-2 mt-1 min-w-0 self-stretch overflow-hidden rounded-xl bg-canvas p-1.5 shadow-glow',
@@ -27,7 +28,7 @@ export class UserPanel {
   private readonly auth = inject(AuthService);
   private readonly profile = inject(ProfileService);
   private readonly router = inject(Router);
-  private readonly settingsService = inject(UserSettingsService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly micMuted = signal(false);
   protected readonly deafened = signal(false);
@@ -36,12 +37,6 @@ export class UserPanel {
   protected readonly displayName = computed(
     () => this.profile.current()?.displayName ?? this.profile.current()?.username ?? 'Bạn',
   );
-
-  protected openSettings(): void {
-    // openUserSettings ép settingsMode = 'user', tránh dính lại chế độ 'server' nếu
-    // trước đó modal từng mở qua gear của channel-sidebar (openServerSettings).
-    this.settingsService.openUserSettings('account');
-  }
 
   protected async onSignOut(): Promise<void> {
     this.signingOut.set(true);
@@ -52,5 +47,23 @@ export class UserPanel {
     } finally {
       this.signingOut.set(false);
     }
+  }
+
+  protected openDeleteAccount(): void {
+    const ref = this.dialog.open(DeleteAccountDialog, {
+      data: {
+        displayName: this.displayName(),
+        email: this.auth.user()?.email ?? this.profile.current()?.email ?? '',
+      },
+      autoFocus: '#delete-account-confirmation',
+      restoreFocus: true,
+      panelClass: 'nexus-delete-account-dialog',
+    });
+
+    ref.afterClosed().subscribe(async (deleted) => {
+      if (!deleted) return;
+      this.profile.reset();
+      await this.router.navigateByUrl('/login');
+    });
   }
 }

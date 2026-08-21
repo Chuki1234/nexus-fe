@@ -786,6 +786,13 @@ html {
     0 0 0 1px color-mix(in srgb, var(--color-primary-soft) 18%, transparent);
 }
 
+.nexus-delete-account-dialog .mat-mdc-dialog-surface {
+  overflow: visible;
+  border-radius: var(--radius-xl);
+  background: transparent;
+  box-shadow: none;
+}
+
 html[data-theme='light'] .nexus-add-server-dialog .mat-mdc-dialog-surface {
   border-color: var(--color-hairline);
   background-color: #ffffff;
