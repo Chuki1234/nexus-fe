@@ -1,0 +1,299 @@
+<div class="account-tab-root">
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 1 – THÔNG TIN TÀI KHOẢN
+  ════════════════════════════════════════════ -->
+  <h2 class="settings-section-heading" id="account-info-heading">Thông Tin Tài Khoản</h2>
+
+  <div class="settings-row-group" aria-labelledby="account-info-heading">
+
+    <!-- Tên đăng nhập -->
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <span class="settings-row-title">Tên đăng nhập</span>
+        <span class="settings-row-value">{{ username() }}</span>
+      </div>
+      <button
+        type="button"
+        id="btn-edit-username"
+        (click)="goToProfileTab()"
+        class="settings-row-btn"
+      >
+        Chỉnh sửa
+      </button>
+    </div>
+
+    <!-- Email -->
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <span class="settings-row-title">Email</span>
+        <div class="settings-row-value-group">
+          <span class="settings-row-value settings-row-value--mono">
+            {{ showEmail() ? email() : maskedEmail() }}
+          </span>
+          <button
+            type="button"
+            id="btn-toggle-email"
+            (click)="showEmail.set(!showEmail())"
+            class="settings-row-reveal-btn"
+            [attr.aria-label]="showEmail() ? 'Ẩn email' : 'Hiển thị email'"
+          >
+            {{ showEmail() ? 'Ẩn' : 'Hiện thị' }}
+          </button>
+        </div>
+      </div>
+      <button
+        type="button"
+        id="btn-edit-email"
+        (click)="goToProfileTab()"
+        class="settings-row-btn"
+      >
+        Chỉnh sửa
+      </button>
+    </div>
+
+    <!-- Số Điện Thoại -->
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <span class="settings-row-title">Số Điện Thoại</span>
+        <span class="settings-row-value settings-row-value--muted">
+          @if (showPhone()) {
+            +84 987 654 321
+          } @else {
+            Bạn chưa thêm số điện thoại nào cả.
+          }
+        </span>
+      </div>
+      <button
+        type="button"
+        id="btn-add-phone"
+        (click)="showPhone.set(!showPhone())"
+        class="settings-row-btn"
+      >
+        {{ showPhone() ? 'Ẩn số' : 'Thêm' }}
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 2 – MẬT KHẨU & BẢO MẬT
+  ════════════════════════════════════════════ -->
+  <h2 class="settings-section-heading" id="security-heading">Mật Khẩu &amp; Bảo Mật</h2>
+
+  <div class="settings-row-group" aria-labelledby="security-heading">
+
+    <!-- Mật khẩu -->
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <span class="settings-row-title">Mật khẩu</span>
+      </div>
+      <button
+        type="button"
+        id="btn-change-password"
+        (click)="showChangePasswordModal.set(!showChangePasswordModal())"
+        class="settings-row-btn"
+      >
+        Chỉnh sửa
+      </button>
+    </div>
+
+    <!-- Change Password inline form -->
+    @if (showChangePasswordModal()) {
+      <div class="settings-inline-form animate-slide-up">
+        <div class="settings-inline-form-header">
+          <span class="settings-inline-form-title">Đổi mật khẩu tài khoản</span>
+          <button
+            type="button"
+            id="btn-close-change-password"
+            (click)="showChangePasswordModal.set(false)"
+            class="settings-inline-form-close"
+            aria-label="Đóng"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+          </button>
+        </div>
+
+        <div class="settings-inline-form-fields">
+          <div class="settings-field-group">
+            <label class="settings-field-label" for="input-current-pw">Mật khẩu hiện tại</label>
+            <input
+              id="input-current-pw"
+              type="password"
+              [(ngModel)]="currentPassword"
+              placeholder="Nhập mật khẩu hiện tại"
+              class="settings-field-input"
+            />
+          </div>
+          <div class="settings-field-group">
+            <label class="settings-field-label" for="input-new-pw">Mật khẩu mới</label>
+            <input
+              id="input-new-pw"
+              type="password"
+              [(ngModel)]="newPassword"
+              placeholder="Tối thiểu 8 ký tự"
+              class="settings-field-input"
+            />
+          </div>
+          <div class="settings-field-group">
+            <label class="settings-field-label" for="input-confirm-pw">Xác nhận mật khẩu mới</label>
+            <input
+              id="input-confirm-pw"
+              type="password"
+              [(ngModel)]="confirmPassword"
+              placeholder="Nhập lại mật khẩu mới"
+              class="settings-field-input"
+            />
+          </div>
+        </div>
+
+        <div class="settings-inline-form-actions">
+          <button
+            type="button"
+            id="btn-save-password"
+            (click)="submitChangePassword()"
+            class="settings-btn-primary"
+          >
+            Lưu mật khẩu mới
+          </button>
+          <button
+            type="button"
+            (click)="showChangePasswordModal.set(false)"
+            class="settings-btn-ghost"
+          >
+            Hủy
+          </button>
+          @if (passwordChangedSuccess()) {
+            <span class="settings-success-msg">
+              <mat-icon class="!w-4 !h-4 !text-[16px]">check</mat-icon>
+              Đã đổi mật khẩu thành công!
+            </span>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Thiết Bị Đã Đăng Nhập -->
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <span class="settings-row-title">Thiết Bị Đã Đăng Nhập</span>
+      </div>
+      <button
+        type="button"
+        id="btn-view-sessions"
+        class="settings-row-btn settings-row-btn--arrow"
+        (click)="showSessionsPanel.set(!showSessionsPanel())"
+      >
+        {{ settingsService.activeSessions().length }} thiết bị
+        <mat-icon class="!w-4 !h-4 !text-[16px]">chevron_right</mat-icon>
+      </button>
+    </div>
+
+    <!-- Sessions Panel -->
+    @if (showSessionsPanel()) {
+      <div class="settings-sessions-panel animate-slide-up">
+        <div class="settings-sessions-header">
+          <span class="settings-inline-form-title">Phiên đăng nhập đang hoạt động</span>
+          <button
+            type="button"
+            id="btn-logout-others"
+            class="settings-btn-danger-outline"
+          >
+            Đăng xuất các thiết bị khác
+          </button>
+        </div>
+
+        <div class="settings-sessions-list">
+          @for (sess of settingsService.activeSessions(); track sess.id) {
+            <div class="settings-session-item">
+              <mat-icon class="settings-session-icon">{{ sess.icon }}</mat-icon>
+              <div class="settings-session-info">
+                <div class="settings-session-name-row">
+                  <span class="settings-session-name">{{ sess.device }}</span>
+                  @if (sess.current) {
+                    <span class="settings-badge settings-badge--primary">Hiện tại</span>
+                  }
+                </div>
+                <span class="settings-session-meta">{{ sess.os }} · {{ sess.location }}</span>
+                <span class="settings-session-time">{{ sess.lastActive }}</span>
+              </div>
+              @if (!sess.current) {
+                <button
+                  type="button"
+                  [id]="'btn-revoke-' + sess.id"
+                  (click)="settingsService.revokeSession(sess.id)"
+                  class="settings-btn-danger-text"
+                >
+                  Đăng xuất
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 3 – TRẠNG THÁI TÀI KHOẢN
+  ════════════════════════════════════════════ -->
+  <h2 class="settings-section-heading" id="account-status-heading">Trạng Thái Tài Khoản</h2>
+
+  <div class="settings-row-group" aria-labelledby="account-status-heading">
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <div class="flex items-center gap-2">
+          <span class="settings-row-title">Tài khoản của bạn đang ở trạng thái tốt</span>
+          <span class="settings-badge settings-badge--success">Tốt</span>
+        </div>
+        <span class="settings-row-value">Cảm ơn bạn đã giữ cho Nexus là một nơi an toàn! Bạn không có vi phạm hay cảnh báo nào.</span>
+      </div>
+      <button
+        type="button"
+        id="btn-view-guidelines"
+        class="settings-row-btn"
+      >
+        Xem Quy Tắc
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 5 – VÙNG NGUY HIỂM
+  ════════════════════════════════════════════ -->
+  <h2 class="settings-section-heading settings-section-heading--danger" id="danger-zone-heading">
+    Vùng Nguy Hiểm
+  </h2>
+
+  <div class="settings-row-group settings-row-group--danger" aria-labelledby="danger-zone-heading">
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <span class="settings-row-title">Vô hiệu hóa tài khoản</span>
+        <span class="settings-row-value settings-row-value--muted">Tạm thời vô hiệu hóa. Bạn có thể khôi phục bất cứ lúc nào.</span>
+      </div>
+      <button
+        type="button"
+        id="btn-disable-account"
+        class="settings-row-btn settings-row-btn--danger"
+      >
+        Vô hiệu hóa
+      </button>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <span class="settings-row-title">Xóa tài khoản</span>
+        <span class="settings-row-value settings-row-value--muted">Hành động này vĩnh viễn và không thể hoàn tác.</span>
+      </div>
+      <button
+        type="button"
+        id="btn-delete-account"
+        class="settings-row-btn settings-row-btn--danger-fill"
+      >
+        Xóa tài khoản
+      </button>
+    </div>
+  </div>
+
+</div>

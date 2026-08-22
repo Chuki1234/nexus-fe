@@ -30,6 +30,10 @@ import { ConversationList } from './components/conversation-list';
 @Component({
   selector: 'app-channel-sidebar',
   imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatTooltipModule,
     ChannelList,
     ConversationList,
     SearchField,
