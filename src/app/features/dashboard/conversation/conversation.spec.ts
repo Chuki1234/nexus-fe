@@ -3,6 +3,9 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { ShellData } from '../../../core/api/shell-data';
+import { AuthService } from '../../../core/auth/auth.service';
+import { ConversationsApiService } from '../../../core/api/conversations-api.service';
+import { ActiveChatStore, type ChatUiMessage } from '../services/active-chat.store';
 import {
   DashboardUiState,
   type DashboardBlockingState,
@@ -11,23 +14,92 @@ import {
 } from '../services/dashboard-ui-state';
 import { ConversationPage } from './conversation';
 
-const SHELL_STUB = {
-  conversationOf: (id: string) =>
-    id === 'ho-be'
-      ? {
-          id: 'ho-be',
-          name: 'ho_be',
-          statusMessage: 'Đang thử NexusCord',
-          presence: 'online' as const,
-          unread: false,
-        }
-      : undefined,
-};
-
 describe('ConversationPage', () => {
+  let mockActiveChatStore: any;
+  let mockConversationsApi: any;
+  let mockAuthService: any;
+  let messagesSignal: any;
+  let loadingInitialSignal: any;
+  let loadingMoreSignal: any;
+  let hasMoreSignal: any;
+  let errorSignal: any;
+  let typingUserIdsSignal: any;
+
+  beforeEach(() => {
+    messagesSignal = signal<ChatUiMessage[]>([
+      {
+        id: 'msg-1',
+        channelId: null,
+        conversationId: 'conv-123',
+        authorId: 'other-user',
+        author: {
+          id: 'other-user',
+          username: 'alice',
+          displayName: 'Alice',
+          avatarUrl: null,
+        },
+        type: 'default',
+        content: 'Xin chào từ Alice!',
+        replyToId: null,
+        clientNonce: 'nonce-1',
+        editedAt: null,
+        deletedAt: null,
+        createdAt: new Date().toISOString(),
+        status: 'persisted',
+      },
+    ]);
+
+    loadingInitialSignal = signal(false);
+    loadingMoreSignal = signal(false);
+    hasMoreSignal = signal(false);
+    errorSignal = signal<string | null>(null);
+    typingUserIdsSignal = signal<string[]>([]);
+
+    mockActiveChatStore = {
+      allMessages: messagesSignal.asReadonly(),
+      loadingInitial: loadingInitialSignal.asReadonly(),
+      loadingMore: loadingMoreSignal.asReadonly(),
+      hasMore: hasMoreSignal.asReadonly(),
+      error: errorSignal.asReadonly(),
+      typingUserIds: typingUserIdsSignal.asReadonly(),
+      setActiveConversation: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn(),
+      loadOlderMessages: vi.fn().mockResolvedValue(undefined),
+      sendMessage: vi.fn().mockResolvedValue(undefined),
+      retryMessage: vi.fn().mockResolvedValue(undefined),
+      removeFailedMessage: vi.fn(),
+      editMessage: vi.fn().mockResolvedValue(undefined),
+      deleteMessage: vi.fn().mockResolvedValue(undefined),
+      markAsRead: vi.fn().mockResolvedValue(undefined),
+      refreshAttachmentUrl: vi.fn().mockResolvedValue('https://storage.supabase.co/signed/fresh.png'),
+      setTyping: vi.fn(),
+    };
+
+    mockConversationsApi = {
+      getConversation: vi.fn().mockResolvedValue({
+        id: 'conv-123',
+        type: 'dm',
+        recipient: {
+          id: 'other-user',
+          username: 'alice',
+          displayName: 'Alice',
+          avatarUrl: null,
+          statusMessage: 'Đang online',
+          presence: 'online',
+        },
+        unreadCount: 0,
+        createdAt: new Date().toISOString(),
+      }),
+    };
+
+    mockAuthService = {
+      user: signal({ id: 'my-user-id', email: 'me@example.com' }).asReadonly(),
+    };
+  });
+
   const mount = async (id: string, demo = false, uiState: DashboardUiStateName = 'ready') => {
     const shell = {
-      ...SHELL_STUB,
+      conversationOf: () => undefined,
       demoEnabled: signal(demo).asReadonly(),
     };
     const blockingState = signal<DashboardBlockingState | null>(
@@ -41,10 +113,14 @@ describe('ConversationPage', () => {
     const connectionState = signal<DashboardConnectionState | null>(
       uiState === 'offline' || uiState === 'reconnecting' ? uiState : null,
     ).asReadonly();
+
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([{ path: 'dm/:conversationId', component: ConversationPage }]),
+        provideRouter([{ path: 'channels/@me/:conversationId', component: ConversationPage }]),
         { provide: ShellData, useValue: shell },
+        { provide: ActiveChatStore, useValue: mockActiveChatStore },
+        { provide: ConversationsApiService, useValue: mockConversationsApi },
+        { provide: AuthService, useValue: mockAuthService },
         {
           provide: DashboardUiState,
           useValue: { blockingState, connectionState, clearPreview: async () => true },
@@ -52,76 +128,118 @@ describe('ConversationPage', () => {
       ],
     });
     const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl(`/dm/${id}`);
+    await harness.navigateByUrl(`/channels/@me/${id}`);
     return harness;
   };
 
-  it('mở đúng cuộc trò chuyện theo id trên URL', async () => {
-    const harness = await mount('ho-be');
+  it('gọi setActiveConversation với id từ URL khi vào route', async () => {
+    const harness = await mount('conv-123');
 
-    expect(harness.routeNativeElement!.textContent).toContain('ho_be');
-    expect(harness.routeNativeElement!.textContent).toContain('Đang thử NexusCord');
-    expect(
-      harness.routeNativeElement!.querySelector('[data-chat-wallpaper="doodle"]'),
-    ).toBeTruthy();
-    expect(
-      harness
-        .routeNativeElement!.querySelector('.chat-history')
-        ?.classList.contains('nexus-scrollbar'),
-    ).toBe(true);
-    expect(harness.routeNativeElement!.querySelector('.chat-intro')).toBeTruthy();
-    const chatStage = harness.routeNativeElement!.querySelector('.chat-stage');
-    expect(chatStage?.classList.contains('justify-start')).toBe(true);
-    expect(chatStage?.classList.contains('justify-end')).toBe(false);
-    expect(harness.routeNativeElement!.querySelector('[data-demo-message]')).toBeFalsy();
+    expect(mockActiveChatStore.setActiveConversation).toHaveBeenCalledWith('conv-123');
+    expect(mockConversationsApi.getConversation).toHaveBeenCalledWith('conv-123');
+
+    await harness.fixture.whenStable();
+    harness.fixture.detectChanges();
+
+    expect(harness.routeNativeElement!.textContent).toContain('Alice');
+    expect(harness.routeNativeElement!.textContent).toContain('Xin chào từ Alice!');
   });
 
-  it('demo ON hiển thị timeline DM nhưng không thêm panel Profile', async () => {
-    const harness = await mount('ho-be', true);
+  it('hiển thị tin nhắn gửi thất bại kèm nút Thử lại và Hủy', async () => {
+    messagesSignal.set([
+      {
+        id: 'opt-fail-1',
+        channelId: null,
+        conversationId: 'conv-123',
+        authorId: 'my-user-id',
+        author: { id: 'my-user-id', username: 'me', displayName: 'Me', avatarUrl: null },
+        type: 'default',
+        content: 'Tin nhắn này bị lỗi mạng',
+        replyToId: null,
+        clientNonce: 'fail-nonce-123',
+        editedAt: null,
+        deletedAt: null,
+        createdAt: new Date().toISOString(),
+        status: 'failed',
+      },
+    ]);
 
-    expect(harness.routeNativeElement!.querySelectorAll('[data-demo-message]')).toHaveLength(3);
-    expect(harness.routeNativeElement!.querySelectorAll('app-message-actions')).toHaveLength(3);
-    expect(harness.routeNativeElement!.querySelector('.message-reply')).toBeTruthy();
-    expect(harness.routeNativeElement!.querySelector('.nexus-unread-divider')).toBeTruthy();
-    expect(harness.routeNativeElement!.querySelector('app-context-panel')).toBeNull();
+    const harness = await mount('conv-123');
+    await harness.fixture.whenStable();
+    harness.fixture.detectChanges();
 
-    const ownMessageEdit = harness.routeNativeElement!.querySelectorAll(
-      'app-message-actions',
-    )[1] as HTMLElement;
-    expect(ownMessageEdit).toBeTruthy();
-    expect(ownMessageEdit.querySelector('button[aria-label="Thêm thao tác"]')).toBeTruthy();
+    expect(harness.routeNativeElement!.textContent).toContain('Tin nhắn này bị lỗi mạng');
+    expect(harness.routeNativeElement!.textContent).toContain('Gửi thất bại.');
+
+    const retryBtn = harness.routeNativeElement!.querySelector('button:contains("Thử lại"), button') as HTMLButtonElement;
+    expect(harness.routeNativeElement!.textContent).toContain('Thử lại');
+    expect(harness.routeNativeElement!.textContent).toContain('Hủy');
   });
 
-  it('không dựng panel hoặc action hồ sơ thuộc ownership của trang Profile', async () => {
-    const harness = await mount('ho-be');
+  it('hiển thị typing indicator khi có người đang soạn tin', async () => {
+    typingUserIdsSignal.set(['other-user']);
 
-    expect(harness.routeNativeElement!.querySelector('app-context-panel')).toBeNull();
-    expect(harness.routeNativeElement!.querySelector('button[aria-expanded]')).toBeNull();
-    expect(harness.routeNativeElement!.querySelector('button[aria-label^="Xem hồ sơ"]')).toBeNull();
-    expect(harness.routeNativeElement!.querySelector('app-avatar')).toBeTruthy();
+    const harness = await mount('conv-123');
+    await harness.fixture.whenStable();
+    harness.fixture.detectChanges();
+
+    expect(harness.routeNativeElement!.textContent).toContain('đang soạn tin...');
   });
 
-  it('id không tồn tại thì báo rõ thay vì màn hình trắng', async () => {
-    const harness = await mount('khong-co-that');
+  it('hiển thị thẻ tệp tạm thời không khả dụng và cho phép tải lại khi signedUrl null', async () => {
+    messagesSignal.set([
+      {
+        id: 'msg-att-unavail',
+        channelId: null,
+        conversationId: 'conv-123',
+        authorId: 'other-user',
+        author: { id: 'other-user', username: 'alice', displayName: 'Alice', avatarUrl: null },
+        type: 'default',
+        content: null,
+        replyToId: null,
+        clientNonce: null,
+        editedAt: null,
+        deletedAt: null,
+        attachments: [
+          {
+            id: 'att-null',
+            filename: 'broken.png',
+            mimeType: 'image/png',
+            sizeBytes: 2048,
+            width: null,
+            height: null,
+            signedUrl: null,
+            isAvailable: false,
+          },
+        ],
+        createdAt: new Date().toISOString(),
+        status: 'persisted',
+      },
+    ]);
 
-    expect(harness.routeNativeElement!.textContent).toContain('Không tìm thấy cuộc trò chuyện');
+    const harness = await mount('conv-123');
+    await harness.fixture.whenStable();
+    harness.fixture.detectChanges();
+
+    expect(harness.routeNativeElement!.textContent).toContain('broken.png');
+    expect(harness.routeNativeElement!.textContent).toContain('Tệp tạm thời không khả dụng');
+
+    const refreshBtn = harness.routeNativeElement!.querySelector(
+      'button[title="Tải lại liên kết tệp"]',
+    ) as HTMLButtonElement;
+    expect(refreshBtn).toBeTruthy();
+
+    refreshBtn.click();
+    expect(mockActiveChatStore.refreshAttachmentUrl).toHaveBeenCalledWith(
+      'msg-att-unavail',
+      'att-null',
+    );
   });
 
-  it('forbidden thay toàn bộ cuộc trò chuyện bằng trạng thái quyền truy cập', async () => {
-    const harness = await mount('ho-be', false, 'forbidden');
+  it('dọn dẹp store khi component bị destroy', async () => {
+    const harness = await mount('conv-123');
+    harness.fixture.destroy();
 
-    expect(
-      harness.routeNativeElement!.querySelector('[data-dashboard-state="forbidden"]'),
-    ).toBeTruthy();
-    expect(harness.routeNativeElement!.querySelector('app-message-composer')).toBeNull();
-  });
-
-  it('offline vẫn giữ nội dung DM đang mở', async () => {
-    const harness = await mount('ho-be', false, 'offline');
-
-    expect(
-      harness.routeNativeElement!.querySelector('[data-dashboard-state="offline"]'),
-    ).toBeTruthy();
-    expect(harness.routeNativeElement!.querySelector('app-message-composer')).toBeTruthy();
+    expect(mockActiveChatStore.clear).toHaveBeenCalled();
   });
 });

@@ -1,49 +1,86 @@
 <article
-  class="friend-row nexus-interactive-row group flex min-h-16 items-center gap-3 rounded-xl px-3.5 py-2.5"
+  class="friend-row nexus-interactive-row group flex flex-col gap-1.5 rounded-xl px-3.5 py-2.5"
 >
-  <a
-    [routerLink]="['/channels/@me', person().id]"
-    class="flex min-w-0 flex-1 items-center gap-3 rounded-md"
-  >
-    <span class="flex size-10 shrink-0 items-center justify-center">
-      <app-avatar
-        [name]="person().name"
-        [src]="person().avatarUrl ?? null"
-        [presence]="person().presence"
-        size="lg"
-        ring="canvas"
-      />
-    </span>
-
-    <span class="min-w-0 flex-1">
-      <span class="friend-row__name block truncate text-body-sm-medium text-ink">
-        {{ person().name }}
-      </span>
-      <span class="block truncate text-caption text-slate">{{ subtitle() }}</span>
-    </span>
-  </a>
-
-  <span class="friend-row__actions flex shrink-0 items-center gap-1">
-    <a
-      mat-icon-button
-      class="nexus-icon-control"
-      [routerLink]="['/channels/@me', person().id]"
-      [attr.aria-label]="'Nhắn tin cho ' + person().name"
-      [matTooltip]="'Nhắn tin cho ' + person().name"
-    >
-      <mat-icon aria-hidden="true">chat_bubble</mat-icon>
-    </a>
+  <div class="flex min-h-11 w-full items-center gap-3">
     <button
-      mat-icon-button
       type="button"
-      class="nexus-icon-control"
-      [matMenuTriggerFor]="friendOptionsMenu"
-      [attr.aria-label]="'Tùy chọn cho ' + person().name"
-      matTooltip="Tùy chọn bạn bè"
+      (click)="onOpenDm()"
+      [disabled]="openingDm() || busy()"
+      class="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed"
+      [attr.aria-label]="'Nhắn tin cho ' + person().name"
     >
-      <mat-icon aria-hidden="true">more_vert</mat-icon>
+      <span class="flex size-10 shrink-0 items-center justify-center">
+        <app-avatar
+          [name]="person().name"
+          [src]="person().avatarUrl ?? null"
+          [presence]="person().presence"
+          size="lg"
+          ring="canvas"
+        />
+      </span>
+
+      <span class="min-w-0 flex-1">
+        <span class="friend-row__name block truncate text-body-sm-medium text-ink">
+          {{ person().name }}
+        </span>
+        <span class="block truncate text-caption text-slate">{{ subtitle() }}</span>
+      </span>
     </button>
-  </span>
+
+    <span class="friend-row__actions flex shrink-0 items-center gap-1">
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control"
+        (click)="onOpenDm()"
+        [disabled]="openingDm() || busy()"
+        [attr.aria-label]="'Nhắn tin cho ' + person().name"
+        [matTooltip]="'Nhắn tin cho ' + person().name"
+      >
+        @if (openingDm()) {
+          <mat-spinner diameter="18" strokeWidth="2" aria-hidden="true" />
+        } @else {
+          <mat-icon aria-hidden="true">chat_bubble</mat-icon>
+        }
+      </button>
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control"
+        [matMenuTriggerFor]="friendOptionsMenu"
+        [attr.aria-label]="'Tùy chọn cho ' + person().name"
+        matTooltip="Tùy chọn bạn bè"
+      >
+        <mat-icon aria-hidden="true">more_vert</mat-icon>
+      </button>
+    </span>
+  </div>
+
+  @if (errorMessage(); as err) {
+    <div
+      class="flex items-center justify-between rounded-lg bg-red-500/10 px-3 py-1.5 text-caption text-red-500"
+      role="alert"
+    >
+      <span class="truncate">{{ err }}</span>
+      <div class="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          (click)="onOpenDm()"
+          class="font-semibold underline hover:no-underline"
+        >
+          Thử lại
+        </button>
+        <button
+          type="button"
+          (click)="clearError()"
+          class="text-xs opacity-75 hover:opacity-100"
+          aria-label="Đóng thông báo lỗi"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  }
 </article>
 
 <mat-menu
@@ -89,7 +126,7 @@
   </button>
   <button mat-menu-item type="button" disabled>
     <mat-icon aria-hidden="true">edit_note</mat-icon>
-    <span>Thêm biệt danh</span>
+    <span>Ghi chú</span>
   </button>
 
   <div class="friend-options__divider" role="separator"></div>

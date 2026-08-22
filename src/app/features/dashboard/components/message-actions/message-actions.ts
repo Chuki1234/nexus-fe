@@ -42,6 +42,7 @@ export class MessageActions {
       icon: 'reply',
       label: `Trả lời ${this.author()}`,
       description: this.excerpt(),
+      replyToId: this.messageId(),
     });
   }
 
@@ -53,7 +54,8 @@ export class MessageActions {
       kind: 'edit',
       icon: 'edit_note',
       label: 'Chỉnh sửa tin nhắn',
-      description: 'Bản xem trước UI · Lưu thay đổi sẽ được nối khi có message API.',
+      description: this.excerpt(),
+      messageId: this.messageId(),
     });
   }
 
@@ -63,6 +65,7 @@ export class MessageActions {
       icon: 'forward_to_inbox',
       label: 'Chuyển tiếp tin nhắn',
       description: 'Danh sách nơi nhận sẽ xuất hiện sau khi dữ liệu hội thoại được kết nối.',
+      messageId: this.messageId(),
     });
   }
 
@@ -75,6 +78,7 @@ export class MessageActions {
       description: ownMessage
         ? 'Cần backend xác nhận quyền và đồng bộ thao tác thu hồi tới mọi người.'
         : 'Cần backend lưu trạng thái ẩn riêng cho tài khoản của bạn.',
+      messageId: this.messageId(),
     });
   }
 }

@@ -2288,24 +2288,21 @@ Status: APPROVED
 
 ### Phase DM-2 — Direct Messages: Realtime WebSocket Gateway (Socket.IO)
 
-Status: PENDING
+Status: COMPLETED
 
 > Tích hợp Socket.IO Gateway hai chiều cho tin nhắn và trạng thái realtime:
 >
-> 1. **Handshake & Auth:** Xác thực socket connection bằng Supabase JWT access token từ query/auth headers.
+> 1. **Handshake & Auth:** Xác thực socket connection bằng Supabase JWT access token từ handshake auth / headers.
 > 2. **Room Management:** `conversation:join`, `conversation:leave` (room `conversation:{id}`). Xác thực thành viên trước khi cho phép join.
-> 3. **Tin nhắn Realtime:**
->    - Nhận `message:send` với `clientMessageId`, gọi qua `MessagesService` lưu DB.
->    - Trả ACK cho người gửi gồm `{ id, clientMessageId, conversationId, createdAt, status }`.
->    - Broadcast `message:created` tới room `conversation:{id}`.
->    - Broadcast `message:edited`, `message:deleted`, `message:read`.
-> 4. **Typing Indicator:** `typing:start`, `typing:stop` broadcast tới room (in-memory, không lưu DB).
+> 3. **Tin nhắn Realtime:** Broadcast `message:created`, `message:updated`, `message:deleted`, `message:read` qua domain events.
+> 4. **Typing Indicator:** `typing:start`, `typing:stop`, broadcast `typing:updated` có throttle và isolation.
+> 5. **Atomic Read-State:** Migration RPC `mark_conversation_read` dùng partial index và `FOUND` state.
 
 ---
 
 ### Phase DM-3 — Direct Messages: Frontend API Service & Realtime Store
 
-Status: PENDING
+Status: IN_PROGRESS
 
 > Dựng tầng Client giao tiếp REST & WebSocket trên Angular 21:
 >

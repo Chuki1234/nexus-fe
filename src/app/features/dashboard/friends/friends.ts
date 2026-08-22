@@ -65,7 +65,7 @@ export class FriendsPage implements OnInit {
   protected readonly query = signal('');
   protected readonly theme = this.themeService.mode;
   protected readonly demoEnabled = this.shell.demoEnabled;
-  protected readonly contextView = signal<FriendsContextView | null>(null);
+  protected readonly contextView = signal<FriendsContextView | null>('activity');
   protected readonly blockingState = this.uiState.blockingState;
   protected readonly connectionState = this.uiState.connectionState;
   protected readonly friendsLoading = this.friendsStore.loading;

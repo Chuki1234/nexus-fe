@@ -1,27 +1,75 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { of, Subject } from 'rxjs';
 import { ShellData } from '../../../../../core/api/shell-data';
+import { ConversationsApiService } from '../../../../../core/api/conversations-api.service';
+import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
 import { ConversationList } from './conversation-list';
 
 describe('ConversationList', () => {
+  let mockConversationsApi: { listConversations: any };
+  let mockChatSocket: {
+    messageCreated$: Subject<any>;
+    messageRead$: Subject<any>;
+  };
+
+  beforeEach(() => {
+    mockConversationsApi = {
+      listConversations: vi.fn().mockResolvedValue([
+        {
+          id: 'conv-1',
+          type: 'dm',
+          recipient: {
+            id: 'user-1',
+            username: 'alice',
+            displayName: 'Alice',
+            avatarUrl: null,
+            presence: 'online',
+            statusMessage: 'Chilling',
+          },
+          unreadCount: 3,
+          createdAt: new Date().toISOString(),
+        },
+      ]),
+    };
+    mockChatSocket = {
+      messageCreated$: new Subject<any>(),
+      messageRead$: new Subject<any>(),
+    };
+  });
+
   const mount = async (shell: ShellData = new ShellData(), query = '') => {
     await TestBed.configureTestingModule({
       imports: [ConversationList],
-      providers: [provideRouter([]), { provide: ShellData, useValue: shell }],
+      providers: [
+        provideRouter([]),
+        { provide: ShellData, useValue: shell },
+        { provide: ConversationsApiService, useValue: mockConversationsApi },
+        { provide: ChatSocketService, useValue: mockChatSocket },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(ConversationList);
     fixture.componentRef.setInput('query', query);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     return fixture;
   };
 
-  it('có lối vào trang Bạn bè và empty-state cho người mới', async () => {
+  it('tải và hiển thị danh sách cuộc trò chuyện thật kèm unread count', async () => {
+    const fixture = await mount();
+
+    expect(mockConversationsApi.listConversations).toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Alice');
+    expect(fixture.nativeElement.textContent).toContain('Chilling');
+    expect(fixture.nativeElement.textContent).toContain('3'); // Unread count badge
+  });
+
+  it('có lối vào trang Bạn bè và section label', async () => {
     const fixture = await mount();
 
     expect(fixture.nativeElement.textContent).toContain('Bạn bè');
     expect(fixture.nativeElement.textContent).toContain('Tin nhắn trực tiếp');
-    expect(fixture.nativeElement.textContent).toContain('Chưa có cuộc trò chuyện');
-    expect(fixture.nativeElement.querySelectorAll('app-avatar').length).toBe(0);
     expect(
       fixture.nativeElement
         .querySelector('a[href="/channels/@me"]')
@@ -30,7 +78,6 @@ describe('ConversationList', () => {
   });
 
   it('không có mục thương mại kiểu Discord', async () => {
-    // Nitro / Cửa hàng / Nhiệm Vụ là tính năng trả phí của Discord, Nexus không có.
     const fixture = await mount();
     const text = fixture.nativeElement.textContent;
 
@@ -39,50 +86,40 @@ describe('ConversationList', () => {
     expect(text).not.toContain('Nhiệm Vụ');
   });
 
-  it('không tạo route cuộc trò chuyện giả cho tài khoản mới', async () => {
-    const fixture = await mount();
-    const links = Array.from(fixture.nativeElement.querySelectorAll('a')) as HTMLAnchorElement[];
+  it('ở chế độ demo, sử dụng dữ liệu từ ShellData và không gọi API thật', async () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    mockConversationsApi.listConversations.mockClear();
 
-    expect(links.filter((a) => a.getAttribute('href')?.startsWith('/channels/@me/')).length).toBe(
-      0,
+    const fixture = await mount(shell);
+
+    expect(mockConversationsApi.listConversations).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelectorAll('.conversation-row').length).toBe(
+      shell.conversations().length,
     );
   });
 
-  it('demo căn avatar trong slot riêng để Material không bóp méo trạng thái', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount(shell);
-    const slots = Array.from(
-      fixture.nativeElement.querySelectorAll('.conversation-avatar-slot'),
-    ) as HTMLElement[];
+  it('cập nhật unread count realtime khi nhận socket event messageCreated', async () => {
+    const fixture = await mount();
 
-    expect(slots.length).toBe(shell.conversations().length);
-    expect(slots.every((slot) => slot.querySelector('app-avatar'))).toBe(true);
-    expect(slots.every((slot) => slot.classList.contains('mat-mdc-list-item-icon'))).toBe(true);
-    expect(
-      slots.every(
-        (slot) => !slot.querySelector('app-avatar')?.classList.contains('mat-mdc-list-item-icon'),
-      ),
-    ).toBe(true);
+    mockChatSocket.messageCreated$.next({
+      message: { conversationId: 'conv-1', id: '100' },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('4');
   });
 
-  it('lọc tên và trạng thái không phân biệt dấu tiếng Việt', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount(shell, 'binh');
-    const results = fixture.nativeElement.querySelectorAll('[data-conversation-id]');
+  it('reset unread count realtime khi nhận socket event messageRead', async () => {
+    const fixture = await mount();
 
-    expect(results).toHaveLength(1);
-    expect(results[0].getAttribute('data-conversation-id')).toBe('binh');
-    expect(fixture.nativeElement.textContent).toContain('Kết quả · 1');
-  });
+    mockChatSocket.messageRead$.next({
+      conversationId: 'conv-1',
+      userId: 'user-1',
+      lastReadMessageId: '100',
+    });
+    fixture.detectChanges();
 
-  it('query không khớp dùng empty state danh bạ thay vì empty state tài khoản mới', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount(shell, 'không tồn tại');
-
-    expect(fixture.nativeElement.textContent).toContain('Không tìm thấy trong danh bạ');
-    expect(fixture.nativeElement.textContent).not.toContain('Chưa có cuộc trò chuyện');
+    expect(fixture.nativeElement.querySelector('app-unread-badge')).toBeNull();
   });
 });

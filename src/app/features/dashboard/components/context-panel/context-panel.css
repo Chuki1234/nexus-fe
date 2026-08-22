@@ -70,8 +70,7 @@
       visibility 0s var(--motion-base);
   }
 
-  .context-panel--open,
-  .context-panel--pinned {
+  .context-panel--open {
     width: 21rem;
     min-width: 21rem;
     max-width: 21rem;
@@ -79,10 +78,6 @@
     visibility: visible;
     transform: translateX(0);
     transition-delay: 0s;
-  }
-
-  .context-panel--pinned:not(.context-panel--open) .context-panel__close {
-    display: none;
   }
 }
 
