@@ -52,6 +52,18 @@ const ALLOWLIST: { file: string; why: string }[] = [
     why: 'Lớp bọc thêm phần tra ảnh — bên trong buộc phải gọi Avatar gốc.',
   },
   {
+    file: '/src/app/features/settings/tabs/appearance-tab/appearance-tab.html',
+    why: 'Có một avatar "Nexus Assistant" là nhân vật minh hoạ, không phải người thật.',
+  },
+  {
+    file: '/src/app/features/settings/tabs/server-members-tab/server-members-tab.html',
+    why: 'Danh sách thành viên máy chủ còn là dữ liệu bịa, chưa có username thật.',
+  },
+  {
+    file: '/src/app/features/settings/tabs/server-safety-tab/server-safety-tab.html',
+    why: 'Hàng chờ duyệt còn là dữ liệu bịa, chưa có username thật.',
+  },
+  {
     file: '/src/app/features/dashboard/channel/channel.html',
     why: 'Tin nhắn và danh sách thành viên trong khối @if (demoEnabled()) là dữ liệu bịa viết thẳng vào template — không có username thật để tra ảnh.',
   },

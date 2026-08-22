@@ -1,0 +1,321 @@
+@if (settingsService.isOpen()) {
+  <!-- Backdrop Blur Layer -->
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-2 sm:p-4 md:p-6 animate-fade-in"
+    (click)="onBackdropClick($event)"
+  >
+    <!-- Floating Pop-up Box Container (Glassmorphic + Specular Border) -->
+    <div
+      class="relative w-full max-w-6xl h-[94vh] max-h-[880px] bg-surface rounded-3xl border border-hairline shadow-modal flex overflow-hidden animate-settings-fade-in ring-1 ring-white/10"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- LEFT SIDEBAR (Navigation & Profile Header) -->
+      <aside
+        class="w-64 md:w-72 bg-surface-soft border-r border-hairline flex flex-col shrink-0 overflow-y-auto custom-scrollbar select-none hidden md:flex"
+        [class.!flex]="mobileSidebarOpen()"
+      >
+        <!-- User Profile Card in Sidebar Header -->
+        <div class="p-4 border-b border-hairline/80 bg-surface/40">
+          <div class="flex items-center gap-3">
+            <app-avatar
+              [name]="displayName()"
+              [src]="myAvatarUrl()"
+              size="md"
+              presence="online"
+              ring="surface"
+            />
+            <div class="min-w-0 flex-1">
+              <span class="block text-body-sm font-bold text-ink truncate leading-tight">{{ displayName() }}</span>
+              <button
+                type="button"
+                (click)="selectTab('profile')"
+                class="inline-flex items-center text-micro text-primary hover:underline font-semibold transition-colors mt-0.5 cursor-pointer"
+              >
+                <span>Sửa Hồ Sơ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="px-3 pt-3 pb-2">
+          <div class="relative">
+            <input
+              type="text"
+              [ngModel]="settingsService.searchQuery()"
+              (ngModelChange)="settingsService.searchQuery.set($event)"
+              placeholder="Tìm kiếm cài đặt..."
+              class="w-full bg-canvas border border-hairline-strong rounded-full pl-3.5 pr-8 py-1.5 text-caption text-ink placeholder:text-muted focus:outline-none focus:border-primary transition-colors shadow-2xs"
+            />
+            @if (settingsService.searchQuery()) {
+              <button
+                type="button"
+                (click)="settingsService.searchQuery.set('')"
+                class="absolute right-2.5 top-1.5 text-steel hover:text-ink cursor-pointer"
+              >
+                <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+              </button>
+            } @else {
+              <mat-icon class="absolute right-2.5 top-2 text-steel !w-4 !h-4 !text-[16px] pointer-events-none">
+                search
+              </mat-icon>
+            }
+          </div>
+        </div>
+
+        <!-- Navigation Menu Categories -->
+        <nav class="flex-1 px-2.5 py-2 space-y-4">
+          @for (cat of filteredCategories(); track cat.title) {
+            <div>
+              @if (cat.title) {
+                <span class="block px-3 py-1.5 text-[10px] font-extrabold font-mono text-stone tracking-[0.08em] uppercase">
+                  {{ cat.title }}
+                </span>
+              }
+
+              <div class="space-y-0.5">
+                @for (item of cat.items; track item.id) {
+                  <div>
+                    <button
+                      type="button"
+                      (click)="selectTab(item.id)"
+                      class="w-full flex items-center justify-between px-3.5 py-2 rounded-full text-body-sm font-medium transition-all group cursor-pointer"
+                      [class.bg-surface-feature]="settingsService.currentTab() === item.id"
+                      [class.text-primary]="settingsService.currentTab() === item.id"
+                      [class.font-bold]="settingsService.currentTab() === item.id"
+                      [class.shadow-xs]="settingsService.currentTab() === item.id"
+                      [class.text-steel]="settingsService.currentTab() !== item.id"
+                      [class.hover:bg-surface-feature/60]="settingsService.currentTab() !== item.id"
+                      [class.hover:text-ink]="settingsService.currentTab() !== item.id"
+                    >
+                      <span class="truncate">{{ item.label }}</span>
+
+                      @if (item.badge) {
+                        <span class="rounded-full bg-primary text-on-primary text-[10px] font-bold px-2 py-0.5 tracking-wide uppercase shadow-xs">
+                          {{ item.badge }}
+                        </span>
+                      }
+                    </button>
+
+                    <!-- Sub-items tree view -->
+                    @if (item.subItems && settingsService.currentTab() === item.id) {
+                      <div class="ml-4 pl-3 border-l border-hairline my-1 space-y-0.5">
+                        @for (sub of item.subItems; track sub.label) {
+                          <div
+                            (click)="selectTab(item.id, sub.actionId)"
+                            class="text-caption font-medium py-1.5 px-2.5 rounded-full transition-colors cursor-pointer select-none"
+                            [class.bg-surface-feature]="activeSubAction() === sub.actionId"
+                            [class.text-primary]="activeSubAction() === sub.actionId"
+                            [class.font-bold]="activeSubAction() === sub.actionId"
+                            [class.text-steel]="activeSubAction() !== sub.actionId"
+                            [class.hover:bg-surface-feature/50]="activeSubAction() !== sub.actionId"
+                            [class.hover:text-ink]="activeSubAction() !== sub.actionId"
+                          >
+                            {{ sub.label }}
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Logout Button -->
+          <div class="pt-2 border-t border-hairline/80">
+            <button
+              type="button"
+              (click)="handleLogout()"
+              class="w-full flex items-center justify-between px-3.5 py-2 rounded-full text-body-sm font-medium text-danger hover:bg-danger-surface transition-colors cursor-pointer"
+            >
+              <span>Đăng Xuất</span>
+            </button>
+          </div>
+        </nav>
+
+        <!-- Sidebar Footer App Version -->
+        <div class="p-3.5 border-t border-hairline text-[11px] text-stone space-y-1 bg-surface/30">
+          <div class="font-mono">NexusCord Hybrid • v1.0.0</div>
+          <div class="hover:text-steel cursor-pointer transition-colors text-micro">
+            Chính Sách Bảo Mật • Điều Khoản Dịch Vụ
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT CONTENT PANE -->
+      <main class="flex-1 flex flex-col min-w-0 bg-canvas relative overflow-hidden">
+        <!-- Top Toolbar Header -->
+        <header class="h-14 px-6 md:px-8 border-b border-hairline flex items-center justify-between shrink-0 bg-surface/60 backdrop-blur-sm">
+          <!-- Mobile Sidebar Toggle -->
+          <button
+            type="button"
+            (click)="mobileSidebarOpen.set(!mobileSidebarOpen())"
+            class="md:hidden text-steel hover:text-ink p-1.5 rounded-lg border border-hairline cursor-pointer mr-2"
+          >
+            <mat-icon class="!w-5 !h-5">menu</mat-icon>
+          </button>
+
+          <!-- Current Tab Title in Breadcrumb -->
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-caption font-semibold text-steel truncate">
+              {{ settingsService.settingsMode() === 'server' ? 'Cài đặt Máy chủ' : 'Cài đặt người dùng' }}
+            </span>
+            <span class="text-caption text-stone">/</span>
+            <span class="text-body-sm font-bold text-ink truncate capitalize">
+              {{ currentTabLabel() }}
+            </span>
+          </div>
+
+          <!-- Close Modal Button (Keycap ESC Indicator) -->
+          <button
+            type="button"
+            (click)="close()"
+            class="flex items-center gap-1.5 px-3 py-1 rounded-full border border-hairline-strong hover:border-primary text-steel hover:text-primary hover:bg-surface-feature transition-all group cursor-pointer shadow-2xs shrink-0"
+            title="Đóng (Esc)"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+            <span class="text-[10px] font-bold font-mono tracking-wider">ESC</span>
+          </button>
+        </header>
+
+        <!-- Scrollable Tab Content Container -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10">
+          <div class="max-w-3xl mx-auto pb-20 animate-fade-in">
+            @if (!settingsService.hasPermissionForTab(settingsService.currentTab())) {
+              <div class="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[360px] space-y-4">
+                <div class="w-16 h-16 rounded-full bg-danger/15 text-danger flex items-center justify-center border border-danger/30 shadow-xs">
+                  <mat-icon class="!w-8 !h-8 !text-[32px]">lock</mat-icon>
+                </div>
+                <h2 class="text-heading-3 font-extrabold text-ink tracking-tight">Truy Cập Bị Giới Hạn</h2>
+                <p class="text-body-sm text-slate max-w-md leading-relaxed">
+                  Bạn không có quyền truy cập vào mục này. Chỉ quản trị viên hoặc thành viên được cấp quyền tương ứng mới có thể xem và chỉnh sửa thiết lập này của máy chủ.
+                </p>
+                <button
+                  type="button"
+                  (click)="switchMode('user')"
+                  class="btn-primary !px-5 !py-2 !text-caption mt-2 shadow-glow"
+                >
+                  Quay lại Cài đặt Cá nhân
+                </button>
+              </div>
+            } @else {
+              @switch (settingsService.currentTab()) {
+                <!-- User Settings Tabs -->
+                @case ('account') {
+                  <app-account-tab />
+                }
+                @case ('profile') {
+                  <app-profile-tab />
+                }
+                @case ('appearance') {
+                  <app-appearance-tab />
+                }
+                @case ('voice-video') {
+                  <app-voice-video-tab />
+                }
+                @case ('notifications') {
+                  <app-notifications-tab />
+                }
+                @case ('keybinds') {
+                  <app-keybinds-tab />
+                }
+                @case ('language') {
+                  <app-language-tab />
+                }
+                @case ('privacy') {
+                  <app-privacy-tab />
+                }
+                @case ('messages') {
+                  <app-privacy-tab />
+                }
+                @case ('connections') {
+                  <app-connections-tab />
+                }
+                @case ('games') {
+                  <app-games-tab />
+                }
+                @case ('activity') {
+                  <app-activity-tab />
+                }
+                @case ('accessibility') {
+                  <app-accessibility-tab />
+                }
+                @case ('text-images') {
+                  <app-text-images-tab />
+                }
+                @case ('developer') {
+                  <app-developer-tab />
+                }
+
+                <!-- Server Admin Tabs -->
+                @case ('server-overview') {
+                  <app-server-overview-tab />
+                }
+                @case ('server-roles') {
+                  <app-server-roles-tab />
+                }
+                @case ('server-members') {
+                  <app-server-members-tab />
+                }
+                @case ('server-safety') {
+                  <app-server-safety-tab />
+                }
+                @case ('server-audit-log') {
+                  <app-server-audit-log-tab />
+                }
+
+                <!-- Fallback -->
+                @default {
+                  <app-account-tab />
+                }
+              }
+            }
+          </div>
+        </div>
+
+        <!-- Sticky Floating Save Changes Notification Bar -->
+        @if (settingsService.hasUnsavedChanges()) {
+          <div class="absolute bottom-4 left-6 right-6 md:left-12 md:right-12 z-30 p-3.5 bg-surface-soft/95 backdrop-blur-md rounded-2xl border border-primary/40 shadow-modal flex items-center justify-between gap-4 animate-slide-up ring-1 ring-primary/20">
+            <div class="flex items-center gap-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shrink-0"></span>
+              <span class="text-body-sm-medium font-bold text-ink">
+                Cẩn thận — bạn có thay đổi chưa được lưu!
+              </span>
+            </div>
+
+            <div class="flex items-center gap-2.5">
+              <button
+                type="button"
+                (click)="settingsService.resetChanges()"
+                class="btn-secondary !py-1.5 !px-4 !text-caption cursor-pointer"
+              >
+                Đặt lại
+              </button>
+              <button
+                type="button"
+                (click)="settingsService.saveChanges()"
+                [disabled]="settingsService.isSaving()"
+                class="btn-primary !py-1.5 !px-5 !text-caption cursor-pointer shadow-glow"
+              >
+                @if (settingsService.isSaving()) {
+                  <span>Đang lưu...</span>
+                } @else {
+                  <span>Lưu thay đổi</span>
+                }
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Save Success Toast Notification -->
+        @if (settingsService.saveSuccessNotice()) {
+          <div class="absolute bottom-4 right-6 z-40 px-4 py-2.5 rounded-full bg-primary text-on-primary shadow-modal font-bold text-caption flex items-center gap-2 animate-slide-up">
+            <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+            <span>Đã lưu cài đặt thành công!</span>
+          </div>
+        }
+      </main>
+    </div>
+  </div>
+}

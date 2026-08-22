@@ -20,6 +20,7 @@ import { ShellData } from '../../core/api/shell-data';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
+import { SettingsModal } from '../../features/settings/settings-modal';
 
 /**
  * Khung Dashboard — nơi ba trang còn lại (Profile, Setting, và các trang chat)
@@ -39,6 +40,7 @@ import { ServerRail } from './components/server-rail/server-rail';
     MatTooltipModule,
     RouterOutlet,
     ServerRail,
+    SettingsModal,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './app-layout.css',

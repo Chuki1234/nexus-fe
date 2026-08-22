@@ -35,3 +35,9 @@
     </main>
   </mat-sidenav-content>
 </mat-sidenav-container>
+
+<!-- Đặt ngoài mat-sidenav-container: modal dùng position:fixed để phủ toàn màn
+     hình, đặt bên trong dễ dính vào ngữ cảnh xếp lớp/scroll của sidenav.
+     Component tự ẩn/hiện theo settingsService.isOpen() nên mount thẳng, không
+     cần bọc @if. Thiếu dòng này thì nút Cài đặt bấm vào không ra gì. -->
+<app-settings-modal />

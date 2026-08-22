@@ -1,0 +1,28 @@
+/* server-roles-tab.css */
+:host {
+  display: block;
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-modal);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  opacity: 0.95;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  color: var(--color-ink);
+  font-size: var(--text-body-sm);
+  font-family: var(--font-sans);
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}

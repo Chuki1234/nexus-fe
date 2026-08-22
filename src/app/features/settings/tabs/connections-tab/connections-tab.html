@@ -1,0 +1,143 @@
+<div class="space-y-8">
+  <!-- Header -->
+  <div>
+    <h2 class="text-heading-4 font-bold text-ink tracking-tight">Ứng Dụng Đã Kết Nối</h2>
+    <p class="text-caption text-steel mt-1">
+      Kết nối các tài khoản chơi game và mạng xã hội của bạn để hiển thị trạng thái và mở khóa các tích hợp đặc biệt trên Nexus.
+    </p>
+  </div>
+
+  <!-- Connect Account Buttons Grid -->
+  <div class="space-y-3">
+    <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
+      KẾT NỐI TÀI KHOẢN CỦA BẠN
+    </span>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      @for (p of availablePlatforms; track p.id) {
+        <button
+          type="button"
+          (click)="handleConnectClick(p)"
+          [disabled]="isConnected(p.id)"
+          class="flex items-center gap-2.5 p-3 rounded-xl border border-hairline bg-surface hover:bg-surface-feature hover:border-primary/50 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+        >
+          <div
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs"
+            [style.backgroundColor]="p.color"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[18px]">{{ p.icon }}</mat-icon>
+          </div>
+          <div class="min-w-0 flex-1">
+            <span class="block text-body-sm font-semibold text-ink group-hover:text-primary transition-colors truncate">
+              {{ p.name }}
+            </span>
+            @if (isConnected(p.id)) {
+              <span class="block text-micro text-success font-bold">Đã kết nối</span>
+            }
+          </div>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Connected Accounts Active List -->
+  <div class="space-y-3">
+    <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
+      TÀI KHOẢN ĐANG KẾT NỐI ({{ settingsService.connectedAccounts().length }})
+    </span>
+
+    @if (settingsService.connectedAccounts().length === 0) {
+      <div class="card-base text-center space-y-2">
+        <mat-icon class="text-stone !w-8 !h-8 !text-[32px]">link_off</mat-icon>
+        <p class="text-caption text-steel">Bạn chưa kết nối tài khoản nào. Nhấn vào một ứng dụng ở trên để kết nối ngay.</p>
+      </div>
+    } @else {
+      <div class="space-y-3">
+        @for (acc of settingsService.connectedAccounts(); track acc.id) {
+          <div class="card-base p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3 min-w-0">
+              <div
+                class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0"
+                [style.backgroundColor]="acc.color"
+              >
+                <mat-icon class="!w-5 !h-5 !text-[20px]">{{ acc.icon }}</mat-icon>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-body-sm-medium font-bold text-ink truncate">{{ acc.name }}</span>
+                  <span class="rounded-full bg-success/15 text-success border border-success/30 text-[10px] px-2 py-0.2 font-semibold">Đã xác minh</span>
+                </div>
+                <span class="block text-caption text-steel truncate">&#64;{{ acc.username }}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between sm:justify-end gap-6 pt-3 sm:pt-0 border-t sm:border-t-0 border-hairline">
+              <div class="flex items-center gap-2">
+                <span class="text-caption text-steel">Hiển thị trên hồ sơ</span>
+                <mat-slide-toggle
+                  [checked]="acc.showOnProfile"
+                  (change)="settingsService.toggleConnectedAccount(acc.id)"
+                  aria-label="Hiển thị trên hồ sơ"
+                />
+              </div>
+
+              <button
+                type="button"
+                (click)="disconnect(acc.id)"
+                class="text-steel hover:text-danger p-1 transition-colors rounded-full hover:bg-danger-surface cursor-pointer"
+                title="Hủy kết nối tài khoản"
+              >
+                <mat-icon class="!w-5 !h-5 !text-[20px]">link_off</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Interactive OAuth Simulation Dialog Modal -->
+  @if (connectingModalPlatform()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
+      <div class="card-base max-w-md w-full space-y-5 animate-slide-up shadow-modal">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-9 h-9 rounded-lg flex items-center justify-center text-white"
+              [style.backgroundColor]="connectingModalPlatform()?.color"
+            >
+              <mat-icon class="!w-5 !h-5 !text-[20px]">{{ connectingModalPlatform()?.icon }}</mat-icon>
+            </div>
+            <span class="text-heading-5 font-bold text-ink">
+              Kết nối với {{ connectingModalPlatform()?.name }}
+            </span>
+          </div>
+          <button type="button" (click)="cancelConnect()" class="text-steel hover:text-ink cursor-pointer">
+            <mat-icon class="!w-5 !h-5 !text-[20px]">close</mat-icon>
+          </button>
+        </div>
+
+        <p class="text-caption text-steel leading-relaxed">
+          Cho phép Nexus liên kết với tài khoản <strong class="text-ink font-semibold">{{ connectingModalPlatform()?.name }}</strong> của bạn để tự động cập nhật trạng thái hoạt động và hiển thị trên hồ sơ Nexus.
+        </p>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            (click)="cancelConnect()"
+            class="px-4 py-2 text-caption font-semibold text-steel hover:text-ink hover:underline cursor-pointer"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            (click)="confirmConnect()"
+            class="btn-primary"
+          >
+            Ủy quyền kết nối
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
