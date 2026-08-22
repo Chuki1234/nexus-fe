@@ -1,296 +1,339 @@
 <!-- Tin nhắn trực tiếp: luôn trên cùng, tách khỏi danh sách server -->
-<a
-  routerLink="/channels/@me"
-  routerLinkActive
-  #dmLink="routerLinkActive"
-  matTooltip="Tin nhắn trực tiếp"
-  matTooltipPosition="right"
-  [attr.aria-current]="dmLink.isActive ? 'page' : null"
-  class="server-tile nexus-icon-control relative flex size-12 items-center justify-center rounded-xl"
->
-  <mat-icon aria-hidden="true">forum</mat-icon>
-  <span class="sr-only">Tin nhắn trực tiếp</span>
-  @if (dmLink.isActive) {
-    <span
-      aria-hidden="true"
-      class="nexus-thread-marker absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
-      data-nexus-thread="server-active"
-    ></span>
-  }
-</a>
+<div class="server-tile-wrapper relative">
+  <a
+    routerLink="/channels/@me"
+    routerLinkActive
+    #dmLink="routerLinkActive"
+    matTooltip="Tin nhắn trực tiếp"
+    matTooltipPosition="right"
+    [attr.aria-current]="dmLink.isActive ? 'page' : null"
+    class="server-tile nexus-icon-control"
+    [class.server-tile--active]="dmLink.isActive"
+  >
+    <mat-icon aria-hidden="true">forum</mat-icon>
+    <span class="sr-only">Tin nhắn trực tiếp</span>
+  </a>
+
+  <span
+    class="server-pill-indicator"
+    [class.server-pill-indicator--active]="dmLink.isActive"
+    aria-hidden="true"
+  ></span>
+</div>
 
 <hr class="my-1 w-8 border-t border-hairline" aria-hidden="true" />
 
 <span id="server-drag-help" class="sr-only">
-  Giữ và kéo một máy chủ lên máy chủ hoặc folder đang phình để gom nhóm, thả vào đường ngang để sắp
-  xếp, hoặc thả vào vùng Ra ngoài để đưa máy chủ ra khỏi nhóm.
+  Giữ và kéo một máy chủ lên máy chủ khác để tạo nhóm, thả vào vạch ngang để sắp xếp vị trí, hoặc
+  kéo ra ngoài nhóm để giải phóng.
 </span>
 
 <ul
   cdkDropListGroup
-  class="nexus-scrollbar flex min-h-0 w-full flex-1 flex-col items-center overflow-x-hidden overflow-y-auto px-1 pb-2"
+  class="server-rail-list nexus-scrollbar"
   aria-label="Máy chủ của bạn"
   aria-describedby="server-drag-help"
 >
-  @for (group of serverGroups(); track group.id) {
-    @let groupServers = serversInGroup(group);
-    @if (groupServers.length > 0) {
-      <li
-        class="server-group-shell mb-2 flex flex-col items-center rounded-xl"
-        [class.server-group-shell--expanded]="groupIsExpanded(group.id)"
-        [attr.data-server-group-id]="group.id"
-        [attr.data-group-state]="groupIsExpanded(group.id) ? 'expanded' : 'collapsed'"
-      >
+  @for (item of railItems(); track item.id; let railIndex = $index) {
+    <li
+      cdkDropList
+      [cdkDropListData]="railSlotId(railIndex)"
+      [cdkDropListSortingDisabled]="true"
+      class="server-drop-slot"
+      [class.server-drop-slot--active]="activeDropSlot() === railSlotId(railIndex)"
+      (cdkDropListEntered)="activateDropSlot(railSlotId(railIndex))"
+      (cdkDropListExited)="deactivateDropSlot(railSlotId(railIndex))"
+      (cdkDropListDropped)="dropOutsideGroupsAt($event, railIndex)"
+      aria-hidden="true"
+    >
+      <span class="server-drop-indicator"></span>
+    </li>
+
+    <!-- 1. Standalone Server Item -->
+    @if (item.kind === 'server') {
+      <li class="server-rail-item">
         <div
           cdkDropList
-          [cdkDropListData]="group.id"
+          [cdkDropListData]="item.id"
           [cdkDropListSortingDisabled]="true"
-          (cdkDropListEntered)="activateGroupingTarget('group', group.id)"
-          (cdkDropListExited)="deactivateGroupingTarget('group', group.id)"
-          (cdkDropListDropped)="dropOnGroup($event, group.id)"
-          class="server-group-dropzone relative rounded-lg"
-          [class.server-group-dropzone--group-active]="groupingTargetIsActive('group', group.id)"
-          [attr.data-group-drop-target]="group.id"
+          (cdkDropListEntered)="activateGroupingTarget('server', item.id)"
+          (cdkDropListExited)="deactivateGroupingTarget('server', item.id)"
+          (cdkDropListDropped)="dropOnServer($event, item.id)"
+          class="server-drop-target server-tile-wrapper"
+          [class.server-drop-target--group-active]="groupingTargetIsActive('server', item.id)"
+          [attr.data-server-drop-target]="item.id"
         >
-          <button
-            type="button"
-            class="server-group-tile nexus-icon-control flex size-12 items-center justify-center rounded-xl"
-            [class.server-group-tile--expanded]="groupIsExpanded(group.id)"
-            [attr.aria-expanded]="groupIsExpanded(group.id)"
-            [attr.aria-label]="
-              'Nhóm máy chủ ' + group.name + ', ' + groupServers.length + ' máy chủ'
-            "
-            [matTooltip]="group.name + ' · ' + groupServers.length + ' máy chủ'"
+          <a
+            cdkDrag
+            [cdkDragData]="item.id"
+            (cdkDragStarted)="startServerDrag(item.id)"
+            (cdkDragEnded)="finishServerDrag()"
+            [routerLink]="linkFor(item.id)"
+            routerLinkActive
+            #serverLink="routerLinkActive"
+            [matTooltip]="item.server.name"
             matTooltipPosition="right"
-            (click)="toggleGroup(group.id)"
+            [attr.aria-current]="serverLink.isActive ? 'page' : null"
+            [attr.data-server-id]="item.id"
+            class="server-tile nexus-icon-control"
+            [class.server-tile--active]="serverLink.isActive"
+            [class.server-drag-source]="draggingServerId() === item.id"
           >
-            <span aria-hidden="true" class="grid size-9 grid-cols-2 gap-0.5 rounded-md p-0.5">
-              @for (server of groupServers.slice(0, 4); track server.id) {
-                <span
-                  data-server-miniature
-                  class="flex size-4 items-center justify-center overflow-hidden rounded-xs bg-surface-feature text-micro-uppercase font-semibold text-ink"
-                >
-                  @if (server.iconUrl) {
-                    <img [src]="server.iconUrl" alt="" class="size-full object-cover" />
-                  } @else {
-                    {{ initialsOf(server.name) }}
-                  }
-                </span>
-              }
+            @if (item.server.iconUrl) {
+              <img
+                [src]="item.server.iconUrl"
+                alt=""
+                class="size-full rounded-[inherit] object-cover"
+              />
+            } @else {
+              {{ initialsOf(item.server.name) }}
+            }
+          </a>
+
+          <span
+            class="server-pill-indicator"
+            [class.server-pill-indicator--active]="serverLink.isActive"
+            [class.server-pill-indicator--unread]="!serverLink.isActive && item.server.unread"
+            aria-hidden="true"
+          ></span>
+
+          @if (groupingTargetIsActive('server', item.id)) {
+            <span class="server-merge-preview" aria-hidden="true">
+              {{ initialsOf(draggingServer()?.name ?? '') }}
             </span>
-          </button>
-
-          @if (!groupIsExpanded(group.id) && groupHasUnread(groupServers)) {
-            <span
-              aria-hidden="true"
-              class="absolute top-5 -left-3 size-2 rounded-full bg-ink"
-            ></span>
           }
-          <app-unread-badge
-            class="pointer-events-none absolute -right-1 -bottom-1"
-            [count]="groupMentions(groupServers)"
-            label="lượt nhắc tên trong nhóm chưa đọc"
-          />
+
+          @if (item.server.mentionCount > 0) {
+            <app-unread-badge
+              class="pointer-events-none absolute -right-1 -bottom-1"
+              [count]="item.server.mentionCount"
+              label="lượt nhắc tên chưa đọc"
+            />
+          }
         </div>
+      </li>
+    }
 
-        @if (groupIsExpanded(group.id)) {
-          <ul
-            class="server-group-members flex flex-col items-center"
-            [attr.aria-label]="group.name"
-            data-expanded-group-members
+    <!-- 2. Folder Item -->
+    @else if (item.kind === 'folder') {
+      <li
+        class="server-group-shell"
+        [class.server-group-shell--expanded]="item.isOpen"
+        [class.server-group-shell--receiving]="groupIsReceiving(item.id)"
+        [attr.data-server-group-id]="item.id"
+        [attr.data-group-state]="item.isOpen ? 'expanded' : 'collapsed'"
+      >
+        <!-- A. Closed Folder View -->
+        @if (!item.isOpen) {
+          <div
+            cdkDropList
+            [cdkDropListData]="item.id"
+            [cdkDropListSortingDisabled]="true"
+            (cdkDropListEntered)="activateGroupingTarget('folder', item.id)"
+            (cdkDropListExited)="deactivateGroupingTarget('folder', item.id)"
+            (cdkDropListDropped)="dropOnGroup($event, item.id)"
+            class="server-group-dropzone server-tile-wrapper"
+            [class.server-group-dropzone--group-active]="groupingTargetIsActive('folder', item.id)"
+            [attr.data-group-drop-target]="item.id"
           >
-            <li class="server-group-caption" aria-hidden="true">
-              <mat-icon>folder_open</mat-icon>
-              <span>{{ groupServers.length }}</span>
-            </li>
-
-            @for (server of groupServers; track server.id; let index = $index) {
-              @let slotId = groupSlotId(group.id, index);
-              <li
-                cdkDropList
-                [cdkDropListData]="slotId"
-                [cdkDropListSortingDisabled]="true"
-                (cdkDropListEntered)="activateDropSlot(slotId)"
-                (cdkDropListExited)="deactivateDropSlot(slotId)"
-                (cdkDropListDropped)="dropIntoGroupAt($event, group.id, index)"
-                class="server-drop-slot"
-                [class.server-drop-slot--active]="activeDropSlot() === slotId"
-                [attr.data-server-drop-slot]="slotId"
-                [attr.aria-label]="'Vị trí ' + (index + 1) + ' trong nhóm ' + group.name"
-              >
-                <span class="server-drop-indicator" aria-hidden="true"></span>
-              </li>
-
-              <li
-                cdkDropList
-                [cdkDropListData]="server.id"
-                [cdkDropListSortingDisabled]="true"
-                (cdkDropListEntered)="activateGroupingTarget('server', server.id)"
-                (cdkDropListExited)="deactivateGroupingTarget('server', server.id)"
-                (cdkDropListDropped)="dropOnServer($event, server.id)"
-                class="server-drop-target relative rounded-md"
-                [class.server-drop-target--group-active]="
-                  groupingTargetIsActive('server', server.id)
-                "
-                [attr.data-server-drop-target]="server.id"
-              >
-                <a
-                  cdkDrag
-                  [cdkDragData]="server.id"
-                  (cdkDragStarted)="startServerDrag(server.id)"
-                  (cdkDragEnded)="finishServerDrag()"
-                  [routerLink]="linkFor(server.id)"
-                  routerLinkActive
-                  #groupServerLink="routerLinkActive"
-                  [matTooltip]="server.name"
-                  matTooltipPosition="right"
-                  [attr.aria-current]="groupServerLink.isActive ? 'page' : null"
-                  [attr.data-server-id]="server.id"
-                  class="server-tile server-drag-source nexus-icon-control flex size-12 items-center justify-center rounded-xl text-body-md-medium"
-                >
-                  {{ initialsOf(server.name) }}
-                </a>
-
-                @if (groupServerLink.isActive) {
-                  <span
-                    aria-hidden="true"
-                    class="nexus-thread-marker absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
-                    data-nexus-thread="server-active"
-                  ></span>
-                } @else if (server.unread) {
-                  <span
-                    aria-hidden="true"
-                    class="absolute top-5 -left-3 size-2 rounded-full bg-ink"
-                  ></span>
+            <button
+              type="button"
+              class="server-group-tile nexus-icon-control"
+              [attr.aria-expanded]="false"
+              [attr.aria-label]="
+                'Nhóm máy chủ ' + item.folder.name + ', ' + item.servers.length + ' máy chủ'
+              "
+              [matTooltip]="item.folder.name + ' · ' + item.servers.length + ' máy chủ'"
+              matTooltipPosition="right"
+              (click)="toggleGroup(item.id)"
+            >
+              <span aria-hidden="true" class="server-folder-grid">
+                @for (server of item.servers.slice(0, 4); track server.id) {
+                  <span data-server-miniature class="server-folder-miniature">
+                    @if (server.iconUrl) {
+                      <img [src]="server.iconUrl" alt="" class="size-full object-cover" />
+                    } @else {
+                      {{ initialsOf(server.name) }}
+                    }
+                  </span>
                 }
+              </span>
+            </button>
 
-                <app-unread-badge
-                  class="pointer-events-none absolute -right-1 -bottom-1"
-                  [count]="server.mentionCount"
-                  label="lượt nhắc tên chưa đọc"
-                />
-              </li>
+            <!-- Pill indicator for folder with unreads -->
+            @if (groupHasUnread(item.servers)) {
+              <span
+                class="server-pill-indicator server-pill-indicator--unread"
+                aria-hidden="true"
+              ></span>
             }
 
-            @let finalGroupSlotId = groupSlotId(group.id, groupServers.length);
-            <li
-              cdkDropList
-              [cdkDropListData]="finalGroupSlotId"
-              [cdkDropListSortingDisabled]="true"
-              (cdkDropListEntered)="activateDropSlot(finalGroupSlotId)"
-              (cdkDropListExited)="deactivateDropSlot(finalGroupSlotId)"
-              (cdkDropListDropped)="dropIntoGroupAt($event, group.id, groupServers.length)"
-              class="server-drop-slot"
-              [class.server-drop-slot--active]="activeDropSlot() === finalGroupSlotId"
-              [attr.data-server-drop-slot]="finalGroupSlotId"
-              [attr.aria-label]="'Vị trí cuối nhóm ' + group.name"
-            >
-              <span class="server-drop-indicator" aria-hidden="true"></span>
-            </li>
-          </ul>
-        }
-      </li>
+            @if (groupingTargetIsActive('folder', item.id)) {
+              <span class="server-merge-preview" aria-hidden="true">
+                {{ initialsOf(draggingServer()?.name ?? '') }}
+              </span>
+            }
 
-      <li
-        cdkDropList
-        [cdkDropListData]="'ungroup-' + group.id"
-        [cdkDropListSortingDisabled]="true"
-        [cdkDropListDisabled]="draggingSourceGroupId() !== group.id"
-        (cdkDropListEntered)="activateUngroupTarget(group.id)"
-        (cdkDropListExited)="deactivateUngroupTarget(group.id)"
-        (cdkDropListDropped)="dropOutsideGroupsAt($event, 0)"
-        class="server-ungroup-zone"
-        [class.server-ungroup-zone--visible]="draggingSourceGroupId() === group.id"
-        [class.server-ungroup-zone--active]="activeUngroupTarget() === group.id"
-        [attr.data-server-ungroup-zone]="group.id"
-        [attr.aria-hidden]="draggingSourceGroupId() === group.id ? null : 'true'"
-        aria-label="Thả để đưa máy chủ ra ngoài nhóm"
-        matTooltip="Thả để đưa máy chủ ra ngoài nhóm"
-        matTooltipPosition="right"
-      >
-        <mat-icon aria-hidden="true">folder_off</mat-icon>
-        <span aria-hidden="true">Ra ngoài</span>
+            @if (groupMentions(item.servers) > 0) {
+              <app-unread-badge
+                class="pointer-events-none absolute -right-1 -bottom-1"
+                [count]="groupMentions(item.servers)"
+                label="lượt nhắc tên trong nhóm chưa đọc"
+              />
+            }
+          </div>
+        }
+
+        <!-- B. Open Folder View (Pill shape background) -->
+        @else {
+          <div class="server-folder-expanded">
+            <div
+              cdkDropList
+              [cdkDropListData]="item.id"
+              [cdkDropListSortingDisabled]="true"
+              class="server-group-dropzone"
+              [class.server-group-dropzone--group-active]="
+                groupingTargetIsActive('folder', item.id)
+              "
+              (cdkDropListEntered)="activateGroupingTarget('folder', item.id)"
+              (cdkDropListExited)="deactivateGroupingTarget('folder', item.id)"
+              (cdkDropListDropped)="dropOnGroup($event, item.id)"
+            >
+              <button
+                type="button"
+                (click)="toggleGroup(item.id)"
+                class="server-folder-toggle nexus-icon-control"
+                [matTooltip]="'Thu gọn nhóm ' + item.folder.name"
+                matTooltipPosition="right"
+                [attr.aria-expanded]="true"
+              >
+                <mat-icon aria-hidden="true">folder_open</mat-icon>
+                <span class="sr-only">Thu gọn nhóm {{ item.folder.name }}</span>
+              </button>
+            </div>
+
+            <!-- Member servers inside expanded folder -->
+            <ul
+              class="server-group-members"
+              [attr.aria-label]="item.folder.name"
+              data-expanded-group-members
+            >
+              @for (server of item.servers; track server.id; let memberIndex = $index) {
+                <li
+                  cdkDropList
+                  [cdkDropListData]="groupSlotId(item.id, memberIndex)"
+                  [cdkDropListSortingDisabled]="true"
+                  class="server-drop-slot"
+                  [class.server-drop-slot--active]="
+                    activeDropSlot() === groupSlotId(item.id, memberIndex)
+                  "
+                  (cdkDropListEntered)="activateDropSlot(groupSlotId(item.id, memberIndex))"
+                  (cdkDropListExited)="deactivateDropSlot(groupSlotId(item.id, memberIndex))"
+                  (cdkDropListDropped)="dropIntoGroupAt($event, item.id, memberIndex)"
+                  aria-hidden="true"
+                >
+                  <span class="server-drop-indicator"></span>
+                </li>
+
+                <li
+                  cdkDropList
+                  [cdkDropListData]="server.id"
+                  [cdkDropListSortingDisabled]="true"
+                  (cdkDropListEntered)="activateGroupingTarget('server', server.id)"
+                  (cdkDropListExited)="deactivateGroupingTarget('server', server.id)"
+                  (cdkDropListDropped)="dropOnServer($event, server.id)"
+                  class="server-drop-target server-tile-wrapper"
+                  [class.server-drop-target--group-active]="
+                    groupingTargetIsActive('server', server.id)
+                  "
+                  [attr.data-server-drop-target]="server.id"
+                >
+                  <a
+                    cdkDrag
+                    [cdkDragData]="server.id"
+                    (cdkDragStarted)="startServerDrag(server.id)"
+                    (cdkDragEnded)="finishServerDrag()"
+                    [routerLink]="linkFor(server.id)"
+                    routerLinkActive
+                    #folderServerLink="routerLinkActive"
+                    [matTooltip]="server.name"
+                    matTooltipPosition="right"
+                    [attr.aria-current]="folderServerLink.isActive ? 'page' : null"
+                    [attr.data-server-id]="server.id"
+                    class="server-tile nexus-icon-control"
+                    [class.server-tile--active]="folderServerLink.isActive"
+                    [class.server-drag-source]="draggingServerId() === server.id"
+                  >
+                    @if (server.iconUrl) {
+                      <img
+                        [src]="server.iconUrl"
+                        alt=""
+                        class="size-full rounded-[inherit] object-cover"
+                      />
+                    } @else {
+                      {{ initialsOf(server.name) }}
+                    }
+                  </a>
+
+                  <span
+                    class="server-pill-indicator"
+                    [class.server-pill-indicator--active]="folderServerLink.isActive"
+                    [class.server-pill-indicator--unread]="
+                      !folderServerLink.isActive && server.unread
+                    "
+                    aria-hidden="true"
+                  ></span>
+
+                  @if (groupingTargetIsActive('server', server.id)) {
+                    <span class="server-merge-preview" aria-hidden="true">
+                      {{ initialsOf(draggingServer()?.name ?? '') }}
+                    </span>
+                  }
+
+                  @if (server.mentionCount > 0) {
+                    <app-unread-badge
+                      class="pointer-events-none absolute -right-1 -bottom-1"
+                      [count]="server.mentionCount"
+                      label="lượt nhắc tên chưa đọc"
+                    />
+                  }
+                </li>
+              }
+
+              <li
+                cdkDropList
+                [cdkDropListData]="groupSlotId(item.id, item.servers.length)"
+                [cdkDropListSortingDisabled]="true"
+                class="server-drop-slot"
+                [class.server-drop-slot--active]="
+                  activeDropSlot() === groupSlotId(item.id, item.servers.length)
+                "
+                (cdkDropListEntered)="activateDropSlot(groupSlotId(item.id, item.servers.length))"
+                (cdkDropListExited)="deactivateDropSlot(groupSlotId(item.id, item.servers.length))"
+                (cdkDropListDropped)="dropIntoGroupAt($event, item.id, item.servers.length)"
+                aria-hidden="true"
+              >
+                <span class="server-drop-indicator"></span>
+              </li>
+            </ul>
+          </div>
+        }
       </li>
     }
   }
 
-  @for (server of ungroupedServers(); track server.id; let index = $index) {
-    @let slotId = railSlotId(index);
-    <li
-      cdkDropList
-      [cdkDropListData]="slotId"
-      [cdkDropListSortingDisabled]="true"
-      (cdkDropListEntered)="activateDropSlot(slotId)"
-      (cdkDropListExited)="deactivateDropSlot(slotId)"
-      (cdkDropListDropped)="dropOutsideGroupsAt($event, index)"
-      class="server-drop-slot"
-      [class.server-drop-slot--active]="activeDropSlot() === slotId"
-      [attr.data-server-drop-slot]="slotId"
-      [attr.aria-label]="'Vị trí ' + (index + 1) + ' ngoài nhóm máy chủ'"
-    >
-      <span class="server-drop-indicator" aria-hidden="true"></span>
-    </li>
-
-    <li
-      cdkDropList
-      [cdkDropListData]="server.id"
-      [cdkDropListSortingDisabled]="true"
-      (cdkDropListEntered)="activateGroupingTarget('server', server.id)"
-      (cdkDropListExited)="deactivateGroupingTarget('server', server.id)"
-      (cdkDropListDropped)="dropOnServer($event, server.id)"
-      class="server-drop-target relative rounded-md"
-      [class.server-drop-target--group-active]="groupingTargetIsActive('server', server.id)"
-      [attr.data-server-drop-target]="server.id"
-    >
-      <a
-        cdkDrag
-        [cdkDragData]="server.id"
-        (cdkDragStarted)="startServerDrag(server.id)"
-        (cdkDragEnded)="finishServerDrag()"
-        [routerLink]="linkFor(server.id)"
-        routerLinkActive
-        #serverLink="routerLinkActive"
-        [matTooltip]="server.name"
-        matTooltipPosition="right"
-        [attr.aria-current]="serverLink.isActive ? 'page' : null"
-        [attr.data-server-id]="server.id"
-        class="server-tile server-drag-source nexus-icon-control flex size-12 items-center justify-center rounded-xl text-body-md-medium"
-      >
-        {{ initialsOf(server.name) }}
-      </a>
-
-      @if (serverLink.isActive) {
-        <span
-          aria-hidden="true"
-          class="nexus-thread-marker absolute top-3 -left-3 h-6 w-1 rounded-full bg-primary"
-          data-nexus-thread="server-active"
-        ></span>
-      } @else if (server.unread) {
-        <span aria-hidden="true" class="absolute top-5 -left-3 size-2 rounded-full bg-ink"></span>
-      }
-
-      <app-unread-badge
-        class="pointer-events-none absolute -right-1 -bottom-1"
-        [count]="server.mentionCount"
-        label="lượt nhắc tên chưa đọc"
-      />
-    </li>
-  }
-
-  @let finalRailSlotId = railSlotId(ungroupedServers().length);
   <li
     cdkDropList
-    [cdkDropListData]="finalRailSlotId"
+    [cdkDropListData]="railSlotId(railItems().length)"
     [cdkDropListSortingDisabled]="true"
-    (cdkDropListEntered)="activateDropSlot(finalRailSlotId)"
-    (cdkDropListExited)="deactivateDropSlot(finalRailSlotId)"
-    (cdkDropListDropped)="dropOutsideGroupsAt($event, ungroupedServers().length)"
     class="server-drop-slot"
-    [class.server-drop-slot--active]="activeDropSlot() === finalRailSlotId"
-    [attr.data-server-drop-slot]="finalRailSlotId"
-    aria-label="Vị trí cuối ngoài nhóm máy chủ"
+    [class.server-drop-slot--active]="activeDropSlot() === railSlotId(railItems().length)"
+    (cdkDropListEntered)="activateDropSlot(railSlotId(railItems().length))"
+    (cdkDropListExited)="deactivateDropSlot(railSlotId(railItems().length))"
+    (cdkDropListDropped)="dropOutsideGroupsAt($event, railItems().length)"
+    aria-hidden="true"
   >
-    <span class="server-drop-indicator" aria-hidden="true"></span>
+    <span class="server-drop-indicator"></span>
   </li>
 </ul>
 
@@ -367,10 +410,15 @@
       </div>
 
       <p id="command-prefix-guide" class="sr-only">
-        Gõ dấu sao * để lọc máy chủ, a còng @ cho tin nhắn riêng, thăng # cho kênh chữ, chấm than ! cho kênh thoại.
+        Gõ dấu sao * để lọc máy chủ, a còng @ cho tin nhắn riêng, thăng # cho kênh chữ, chấm than !
+        cho kênh thoại.
       </p>
 
-      <div class="command-center__scope mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Phạm vi điều hướng">
+      <div
+        class="command-center__scope mt-2.5 flex flex-wrap gap-1.5"
+        role="group"
+        aria-label="Phạm vi điều hướng"
+      >
         <button
           type="button"
           class="command-chip"
@@ -511,12 +559,12 @@
     >
       <mat-icon aria-hidden="true" class="!text-lg">search_activity</mat-icon>
       <span
-        >Điều hướng nhanh theo tiền tố: * Máy chủ, @ Tin nhắn, # Kênh chữ, ! Kênh thoại. Tìm nội dung tin nhắn thuộc thanh công cụ chat.</span
+        >Điều hướng nhanh theo tiền tố: * Máy chủ, @ Tin nhắn, # Kênh chữ, ! Kênh thoại. Tìm nội
+        dung tin nhắn thuộc thanh công cụ chat.</span
       >
     </footer>
   </section>
 </ng-template>
-
 
 <button
   type="button"
@@ -708,7 +756,9 @@
           <span
             class="flex size-8 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
           >
-            <mat-icon class="!size-4 !text-base" aria-hidden="true">{{ selectedTemplate().icon }}</mat-icon>
+            <mat-icon class="!size-4 !text-base" aria-hidden="true">{{
+              selectedTemplate().icon
+            }}</mat-icon>
           </span>
           <div>
             <span class="text-caption font-semibold uppercase tracking-wider text-steel">
@@ -779,7 +829,9 @@
               <div class="mt-1 flex flex-wrap gap-1.5">
                 @for (c of voiceChannelsOfSelected(); track c.name) {
                   <span class="template-channel-chip">
-                    <mat-icon class="!size-3.5 !text-sm text-steel" aria-hidden="true">volume_up</mat-icon>
+                    <mat-icon class="!size-3.5 !text-sm text-steel" aria-hidden="true"
+                      >volume_up</mat-icon
+                    >
                     {{ c.name }}
                   </span>
                 }
@@ -809,13 +861,7 @@
   @if (addServerStep() !== 'choose') {
     <mat-dialog-actions align="end" class="!border-t !border-hairline !px-5 !py-4">
       @if (addServerStep() === 'template-list') {
-        <button
-          mat-button
-          type="button"
-          (click)="setAddServerStep('choose')"
-        >
-          Quay lại
-        </button>
+        <button mat-button type="button" (click)="setAddServerStep('choose')">Quay lại</button>
       } @else if (addServerStep() === 'create') {
         <button
           mat-button
@@ -841,13 +887,7 @@
           }
         </button>
       } @else {
-        <button
-          mat-button
-          type="button"
-          (click)="setAddServerStep('choose')"
-        >
-          Quay lại
-        </button>
+        <button mat-button type="button" (click)="setAddServerStep('choose')">Quay lại</button>
         <button
           mat-flat-button
           type="button"

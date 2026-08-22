@@ -111,10 +111,11 @@ describe('ChannelPage', () => {
     );
   });
 
-  it('kênh thoại KHÔNG có ô soạn tin', async () => {
+  it('kênh thoại KHÔNG có ô soạn tin và dựng VoiceRoom', async () => {
     const harness = await mount('itss/standup');
 
-    expect(harness.routeNativeElement!.textContent).toContain('Chưa có ai trong kênh thoại này');
+    expect(harness.routeNativeElement!.querySelector('app-voice-room')).toBeTruthy();
+    expect(harness.routeNativeElement!.textContent).toContain('Tham Gia Thoại');
     expect(harness.routeNativeElement!.querySelector('app-message-composer')).toBeFalsy();
     expect(harness.routeNativeElement!.querySelector('[data-chat-wallpaper]')).toBeFalsy();
   });

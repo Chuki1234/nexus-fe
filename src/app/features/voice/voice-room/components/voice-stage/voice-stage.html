@@ -1,0 +1,104 @@
+@if (isWatchingStream() && focusedParticipant(); as focusedSharer) {
+  <!-- Screen Share Focus Layout (Đang xem stream) -->
+  <div class="flex size-full min-h-0 flex-col gap-3">
+    <!-- Main Big Screen Share Stage Container -->
+    <div
+      id="nexus-voice-stream-container"
+      class="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-hairline/70 bg-black shadow-modal"
+    >
+      <!-- Top Stream Overlay Bar -->
+      <div class="absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 backdrop-blur-xs">
+        <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5 rounded-md bg-danger px-2 py-0.5 text-micro font-bold text-white shadow-glow">
+            <span class="size-1.5 rounded-full bg-white animate-pulse"></span>
+            <span>TRỰC TIẾP</span>
+          </div>
+          <span class="text-body-sm font-bold text-white drop-shadow">
+            {{ focusedSharer.name }} đang chia sẻ màn hình
+          </span>
+        </div>
+
+        <!-- Stage Action Controls -->
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            (click)="stopWatchingStream()"
+            matTooltip="Thu nhỏ stream (Về chế độ lưới)"
+            class="flex items-center gap-1.5 rounded-lg bg-surface/80 hover:bg-surface-feature text-ink px-3 py-1.5 text-caption font-medium backdrop-blur-md transition-colors cursor-pointer border border-hairline/60 shadow-card"
+          >
+            <mat-icon class="!size-4 !text-base">grid_view</mat-icon>
+            <span>Thu nhỏ</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="toggleFullscreen()"
+            matTooltip="Toàn màn hình"
+            class="flex size-8 items-center justify-center rounded-lg bg-surface/80 hover:bg-surface-feature text-ink backdrop-blur-md transition-colors cursor-pointer border border-hairline/60 shadow-card"
+          >
+            <mat-icon class="!size-4 !text-base">fullscreen</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Focused Video Tile -->
+      <div class="flex size-full min-h-0 flex-1 items-center justify-center">
+        <app-participant-tile [participant]="focusedSharer" [isScreenShare]="true" class="size-full" />
+      </div>
+    </div>
+
+    <!-- Horizontal Filmstrip of participants -->
+    <div class="nexus-scrollbar flex h-24 shrink-0 items-center gap-3 overflow-x-auto pb-1">
+      @for (p of participants(); track p.identity) {
+        <div
+          class="h-20 w-36 shrink-0 transition-transform hover:scale-[1.02]"
+          [class.ring-2]="p.identity === focusedSharer.identity"
+          [class.ring-primary]="p.identity === focusedSharer.identity"
+          [class.rounded-2xl]="true"
+        >
+          <app-participant-tile [participant]="p" (watchStream)="watchStream($event)" />
+        </div>
+      }
+    </div>
+  </div>
+} @else {
+  <!-- Normal Participant Grid -->
+  <div
+    class="stage-grid grid size-full min-h-0 flex-1 auto-rows-fr gap-4"
+    [class]="gridClass()"
+  >
+    @for (p of participants(); track p.identity) {
+      <app-participant-tile [participant]="p" (watchStream)="watchStream($event)" />
+    }
+
+    <!-- Companion card if only 1 participant in the room (Discord style invite/activities tile) -->
+    @if (participants().length === 1) {
+      <div
+        class="companion-tile flex size-full min-h-[160px] flex-col items-center justify-center gap-4 rounded-2xl border border-hairline/60 bg-gradient-to-br from-surface-feature/40 to-surface-soft/20 p-6 text-center shadow-surface"
+      >
+        <div class="flex size-14 items-center justify-center rounded-2xl bg-surface-feature text-primary shadow-glow">
+          <mat-icon class="!size-8 !text-3xl">spatial_audio</mat-icon>
+        </div>
+
+        <div>
+          <h3 class="text-heading-5 text-ink">Bạn đang ở trong phòng một mình</h3>
+          <p class="mt-1 text-body-sm text-steel">
+            Mời bạn bè cùng trò chuyện hoặc chia sẻ màn hình của bạn.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <button
+            mat-flat-button
+            type="button"
+            class="!rounded-full !bg-primary !text-on-primary font-semibold"
+            (click)="inviteClicked.emit()"
+          >
+            <mat-icon aria-hidden="true">person_add</mat-icon>
+            Mời vào phòng thoại
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+}

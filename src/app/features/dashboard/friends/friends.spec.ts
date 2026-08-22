@@ -10,6 +10,7 @@ import {
   type DashboardUiStateName,
 } from '../services/dashboard-ui-state';
 import { FriendsPage } from './friends';
+import { FriendsStore } from './services/friends-store';
 
 describe('FriendsPage', () => {
   const PEOPLE: ConversationSummary[] = [
@@ -54,11 +55,28 @@ describe('FriendsPage', () => {
     const connectionState = signal<DashboardConnectionState | null>(
       uiState === 'offline' || uiState === 'reconnecting' ? uiState : null,
     ).asReadonly();
+    const friendStore = {
+      friends: signal(people).asReadonly(),
+      incomingRequests: signal([]).asReadonly(),
+      outgoingRequests: signal([]).asReadonly(),
+      loading: signal(false).asReadonly(),
+      sending: signal(false).asReadonly(),
+      busyIds: signal<ReadonlySet<string>>(new Set()).asReadonly(),
+      error: signal<string | null>(null).asReadonly(),
+      feedback: signal<string | null>(null).asReadonly(),
+      load: vi.fn().mockResolvedValue(undefined),
+      sendRequest: vi.fn().mockResolvedValue(true),
+      acceptRequest: vi.fn().mockResolvedValue(undefined),
+      deleteRequest: vi.fn().mockResolvedValue(undefined),
+      removeFriend: vi.fn().mockResolvedValue(undefined),
+      clearFeedback: vi.fn(),
+    };
     await TestBed.configureTestingModule({
       imports: [FriendsPage],
       providers: [
         provideRouter([]),
         { provide: ShellData, useValue: shell },
+        { provide: FriendsStore, useValue: friendStore },
         {
           provide: DashboardUiState,
           useValue: { blockingState, connectionState, clearPreview: async () => true },
@@ -203,46 +221,6 @@ describe('FriendsPage', () => {
         .querySelector('app-context-panel aside')
         ?.classList.contains('context-panel--open'),
     ).toBe(true);
-  });
-
-  it('mở Theme Studio trong panel hiện có và lưu palette được chọn', async () => {
-    const fixture = await mount();
-    const atmosphereButton = fixture.nativeElement.querySelector(
-      'button[aria-label="Mở Không khí Nexus"]',
-    ) as HTMLButtonElement;
-
-    atmosphereButton.click();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('app-theme-studio')).toBeTruthy();
-    expect(fixture.nativeElement.textContent).toContain('Không khí Nexus');
-
-    const midnight = fixture.nativeElement.querySelector(
-      '[data-atmosphere-option="midnight"]',
-    ) as HTMLButtonElement;
-    midnight.click();
-    fixture.detectChanges();
-
-    expect(midnight.getAttribute('aria-checked')).toBe('true');
-    expect(localStorage.getItem('nexuscord-dashboard-atmosphere')).toBe('midnight');
-  });
-
-  it('đóng Theme Studio trả panel ghim về nội dung hoạt động', async () => {
-    const fixture = await mount(PEOPLE);
-    const atmosphereButton = fixture.nativeElement.querySelector(
-      'button[aria-label="Mở Không khí Nexus"]',
-    ) as HTMLButtonElement;
-
-    atmosphereButton.click();
-    fixture.detectChanges();
-    const close = fixture.nativeElement.querySelector(
-      'app-context-panel button[aria-label="Đóng Không khí Nexus"]',
-    ) as HTMLButtonElement;
-    close.click();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('app-theme-studio')).toBeNull();
-    expect(fixture.nativeElement.querySelector('app-activity-panel')).toBeTruthy();
   });
 
   it('không dựng hồ sơ nhanh thuộc ownership của trang Profile', async () => {

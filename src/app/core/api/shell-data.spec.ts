@@ -52,9 +52,11 @@ describe('ShellData demo mode', () => {
     const shell = new ShellData();
     shell.setDemoEnabled(true);
 
-    shell.groupServers('xp', 'peak');
+    const groupId = shell.groupServers('xp', 'peak');
 
+    expect(groupId).toBe('group-peak-xp');
     expect(shell.serverGroups()).toHaveLength(2);
+    expect(shell.servers().map((server) => server.id)).toEqual(['lofi', 'itss', 'peak', 'xp']);
     expect(shell.serverGroups().find((group) => group.serverIds.includes('xp'))?.serverIds).toEqual(
       ['peak', 'xp'],
     );
@@ -83,7 +85,7 @@ describe('ShellData demo mode', () => {
     shell.moveServerOutsideGroups('lofi', 1);
 
     expect(shell.serverGroups()).toEqual([]);
-    expect(shell.servers().map((server) => server.id)).toEqual(['xp', 'lofi', 'itss', 'peak']);
+    expect(shell.servers().map((server) => server.id)).toEqual(['itss', 'lofi', 'xp', 'peak']);
   });
 
   it('reorder server ngoài group theo đúng insertion index mà không duplicate', () => {
@@ -92,7 +94,7 @@ describe('ShellData demo mode', () => {
 
     shell.moveServerOutsideGroups('peak', 0);
 
-    expect(shell.servers().map((server) => server.id)).toEqual(['peak', 'xp', 'lofi', 'itss']);
+    expect(shell.servers().map((server) => server.id)).toEqual(['peak', 'lofi', 'itss', 'xp']);
     expect(new Set(shell.servers().map((server) => server.id)).size).toBe(4);
     expect(shell.serverGroups()[0].serverIds).toEqual(['lofi', 'itss']);
   });
@@ -205,5 +207,46 @@ describe('ShellData demo mode', () => {
       },
     ]);
   });
-});
 
+  it('addChannel thêm kênh mới vào server và cập nhật kênh trùng id', () => {
+    const shell = new ShellData();
+
+    shell.addChannel('s-1', {
+      id: 'c-1',
+      name: 'kênh-1',
+      type: 'text',
+      topic: null,
+      unread: false,
+      mentionCount: 0,
+    });
+
+    expect(shell.channelsOf('s-1')).toHaveLength(1);
+    expect(shell.channelsOf('s-1')[0].name).toBe('kênh-1');
+
+    // Thêm kênh thứ hai
+    shell.addChannel('s-1', {
+      id: 'c-2',
+      name: 'Phòng họp',
+      type: 'voice',
+      topic: null,
+      unread: false,
+      mentionCount: 0,
+    });
+
+    expect(shell.channelsOf('s-1')).toHaveLength(2);
+
+    // Cập nhật kênh đã có
+    shell.addChannel('s-1', {
+      id: 'c-1',
+      name: 'kênh-1-đổi-tên',
+      type: 'text',
+      topic: 'Chủ đề mới',
+      unread: true,
+      mentionCount: 2,
+    });
+
+    expect(shell.channelsOf('s-1')).toHaveLength(2);
+    expect(shell.channelsOf('s-1')[0].name).toBe('kênh-1-đổi-tên');
+    expect(shell.channelsOf('s-1')[0].unread).toBe(true);
+  });
+});

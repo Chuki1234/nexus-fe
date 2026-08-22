@@ -1,0 +1,166 @@
+<div class="nexus-create-channel-dialog flex flex-col overflow-hidden bg-surface text-ink">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-hairline px-6 py-4">
+    <div>
+      <h2 class="text-heading-4 font-bold text-ink m-0">Tạo kênh</h2>
+      @if (data.serverName) {
+        <p class="text-caption text-steel mt-0.5 m-0">trong {{ data.serverName }}</p>
+      }
+    </div>
+    <button
+      type="button"
+      mat-icon-button
+      mat-dialog-close
+      aria-label="Đóng hộp thoại tạo kênh"
+      class="text-steel hover:text-ink transition-colors"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <form (ngSubmit)="onSubmit()" class="flex flex-col gap-5 px-6 py-5">
+    <!-- Channel Type Radio Cards -->
+    <div class="flex flex-col gap-2">
+      <label class="text-micro-uppercase font-bold tracking-wider text-steel" id="channel-type-label">
+        LOẠI KÊNH
+      </label>
+      <div role="radiogroup" aria-labelledby="channel-type-label" class="flex flex-col gap-2">
+        <!-- Text Channel Radio -->
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="channelType() === 'text'"
+          (click)="selectType('text')"
+          class="channel-type-card flex items-center justify-between p-3.5 rounded-xl border transition-all text-left cursor-pointer"
+          [class.channel-type-card--selected]="channelType() === 'text'"
+        >
+          <div class="flex items-center gap-3.5">
+            <div class="channel-type-icon size-9 rounded-lg flex items-center justify-center shrink-0">
+              <mat-icon class="!size-5 !text-xl">tag</mat-icon>
+            </div>
+            <div>
+              <span class="block text-body-sm font-bold text-ink leading-tight">Kênh chữ</span>
+              <span class="block text-caption text-steel mt-0.5 leading-snug">
+                Đăng tin nhắn, hình ảnh, meme và thảo luận
+              </span>
+            </div>
+          </div>
+          <div class="radio-indicator size-5 rounded-full border-2 flex items-center justify-center shrink-0 ml-2"
+               [class.radio-indicator--selected]="channelType() === 'text'">
+            @if (channelType() === 'text') {
+              <div class="size-2.5 rounded-full bg-primary"></div>
+            }
+          </div>
+        </button>
+
+        <!-- Voice Channel Radio -->
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="channelType() === 'voice'"
+          (click)="selectType('voice')"
+          class="channel-type-card flex items-center justify-between p-3.5 rounded-xl border transition-all text-left cursor-pointer"
+          [class.channel-type-card--selected]="channelType() === 'voice'"
+        >
+          <div class="flex items-center gap-3.5">
+            <div class="channel-type-icon size-9 rounded-lg flex items-center justify-center shrink-0">
+              <mat-icon class="!size-5 !text-xl">volume_up</mat-icon>
+            </div>
+            <div>
+              <span class="block text-body-sm font-bold text-ink leading-tight">Kênh thoại</span>
+              <span class="block text-caption text-steel mt-0.5 leading-snug">
+                Nói chuyện cùng nhau bằng thoại và chia sẻ
+              </span>
+            </div>
+          </div>
+          <div class="radio-indicator size-5 rounded-full border-2 flex items-center justify-center shrink-0 ml-2"
+               [class.radio-indicator--selected]="channelType() === 'voice'">
+            @if (channelType() === 'voice') {
+              <div class="size-2.5 rounded-full bg-primary"></div>
+            }
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Channel Name Input -->
+    <div class="flex flex-col gap-2">
+      <label for="create-channel-name-input" class="text-micro-uppercase font-bold tracking-wider text-steel">
+        TÊN KÊNH
+      </label>
+      <div class="channel-name-input-wrapper flex items-center gap-2 rounded-xl border border-hairline bg-canvas px-3.5 py-2.5 focus-within:border-primary transition-colors">
+        <mat-icon class="!size-5 !text-xl text-steel shrink-0">
+          {{ channelType() === 'text' ? 'tag' : 'volume_up' }}
+        </mat-icon>
+        <input
+          id="create-channel-name-input"
+          type="text"
+          [ngModel]="rawChannelName()"
+          (ngModelChange)="updateName($event)"
+          name="channelName"
+          [placeholder]="channelType() === 'text' ? 'kênh-mới' : 'Phòng họp mới'"
+          maxlength="100"
+          autocomplete="off"
+          class="w-full bg-transparent text-body-sm text-ink outline-none placeholder:text-muted"
+        />
+      </div>
+    </div>
+
+    <!-- Channel Topic (Optional) -->
+    <div class="flex flex-col gap-2">
+      <label for="create-channel-topic-input" class="text-micro-uppercase font-bold tracking-wider text-steel">
+        CHỦ ĐỀ KÊNH <span class="text-stone font-normal text-[10px] lowercase">(tùy chọn)</span>
+      </label>
+      <div class="rounded-xl border border-hairline bg-canvas px-3.5 py-2.5 focus-within:border-primary transition-colors">
+        <input
+          id="create-channel-topic-input"
+          type="text"
+          [ngModel]="channelTopic()"
+          (ngModelChange)="channelTopic.set($event)"
+          name="channelTopic"
+          placeholder="Mô tả ngắn gọn về mục đích của kênh"
+          maxlength="1024"
+          autocomplete="off"
+          class="w-full bg-transparent text-body-sm text-ink outline-none placeholder:text-muted"
+        />
+      </div>
+    </div>
+
+    <!-- Error Banner -->
+    @if (errorMessage(); as error) {
+      <div class="flex items-start gap-2 rounded-xl bg-danger-surface border border-danger-border p-3 text-caption text-danger" role="alert">
+        <mat-icon class="!size-4 !text-base shrink-0 mt-0.5">error_outline</mat-icon>
+        <span>{{ error }}</span>
+      </div>
+    }
+
+    <!-- Footer Actions -->
+    <div class="flex items-center justify-end gap-3 pt-2">
+      <button
+        type="button"
+        mat-button
+        mat-dialog-close
+        [disabled]="isSubmitting()"
+        class="!text-steel hover:!text-ink !font-medium"
+      >
+        Hủy
+      </button>
+      <button
+        type="submit"
+        [disabled]="!isNameValid() || isSubmitting()"
+        class="nexus-create-channel-btn flex items-center justify-center gap-2 px-5 py-2 rounded-full font-bold text-body-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        [class.bg-primary]="isNameValid() && !isSubmitting()"
+        [class.text-on-primary]="isNameValid() && !isSubmitting()"
+        [class.hover:bg-primary-soft]="isNameValid() && !isSubmitting()"
+      >
+        @if (isSubmitting()) {
+          <mat-spinner diameter="18" class="!inline-block" />
+          <span>Đang tạo…</span>
+        } @else {
+          <span>Tạo kênh</span>
+        }
+      </button>
+    </div>
+  </form>
+</div>

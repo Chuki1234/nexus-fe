@@ -7,6 +7,8 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
+import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
+import { VoiceRoomService } from '../../../../features/voice/services/voice-room.service';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import { DeleteAccountDialog } from './delete-account-dialog';
 
@@ -18,7 +20,7 @@ import { DeleteAccountDialog } from './delete-account-dialog';
   imports: [Avatar, MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule, MatDialogModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'm-2 mt-1 min-w-0 self-stretch overflow-hidden rounded-xl bg-canvas p-1.5 shadow-glow',
+    class: 'm-2 mt-1 min-w-0 self-stretch overflow-hidden rounded-xl bg-canvas p-2 shadow-glow flex flex-col',
   },
 
   templateUrl: './user-panel.html',
@@ -28,6 +30,13 @@ export class UserPanel {
   private readonly auth = inject(AuthService);
   private readonly profile = inject(ProfileService);
   private readonly router = inject(Router);
+  private readonly settingsService = inject(UserSettingsService);
+  readonly voiceRoom = inject(VoiceRoomService);
+
+  protected readonly isVoiceConnected = this.voiceRoom.isConnected;
+  protected readonly voiceChannelName = this.voiceRoom.currentChannelName;
+  protected readonly isCameraOn = this.voiceRoom.isCameraOn;
+  protected readonly isScreenSharing = this.voiceRoom.isScreenSharing;
   private readonly dialog = inject(MatDialog);
 
   protected readonly micMuted = signal(false);
@@ -37,6 +46,24 @@ export class UserPanel {
   protected readonly displayName = computed(
     () => this.profile.current()?.displayName ?? this.profile.current()?.username ?? 'Bạn',
   );
+
+  protected disconnectVoice(): void {
+    void this.voiceRoom.leaveRoom();
+  }
+
+  protected toggleCamera(): void {
+    void this.voiceRoom.toggleCamera();
+  }
+
+  protected toggleScreenShare(): void {
+    void this.voiceRoom.toggleScreenShare();
+  }
+
+  protected openSettings(): void {
+    // openUserSettings ép settingsMode = 'user', tránh dính lại chế độ 'server' nếu
+    // trước đó modal từng mở qua gear của channel-sidebar (openServerSettings).
+    this.settingsService.openUserSettings('account');
+  }
 
   protected async onSignOut(): Promise<void> {
     this.signingOut.set(true);

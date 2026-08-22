@@ -10,26 +10,21 @@
     (action)="clearUiState()"
   />
 } @else if (channel(); as current) {
-  <app-chat-toolbar
-    [title]="current.name"
-    [subtitle]="current.topic"
-    [leadingIcon]="current.type === 'voice' ? 'volume_up' : 'tag'"
-    [detailsOpen]="detailsOpen()"
-    detailsLabel="thành viên"
-    (toggleDetails)="detailsOpen.set(!detailsOpen())"
-  />
+  @if (current.type === 'voice') {
+    <!-- Kênh thoại: phòng giao tiếp WebRTC LiveKit chiếm trọn màn hình với Header chuẩn duy nhất -->
+    <app-voice-room class="size-full flex min-h-0 flex-1 flex-col" [channel]="current" [serverId]="serverId()" />
+  } @else {
+    <app-chat-toolbar
+      [title]="current.name"
+      [subtitle]="current.topic"
+      leadingIcon="tag"
+      [detailsOpen]="detailsOpen()"
+      detailsLabel="thành viên"
+      (toggleDetails)="detailsOpen.set(!detailsOpen())"
+    />
 
-  <div class="flex min-h-0 flex-1">
-    <div class="flex min-w-0 flex-1 flex-col">
-      @if (current.type === 'voice') {
-        <!-- Kênh thoại: phần nghe/nói thật thuộc phase C2. -->
-        <app-empty-state
-          class="min-h-0 flex-1"
-          icon="volume_up"
-          [title]="current.name"
-          message="Chưa có ai trong kênh thoại này."
-        />
-      } @else {
+    <div class="flex min-h-0 flex-1">
+      <div class="flex min-w-0 flex-1 flex-col">
         <!-- P3 sẽ thay khối này bằng danh sách tin nhắn thật. -->
         <div
           class="chat-history nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-6"
@@ -127,51 +122,51 @@
           [context]="composerContext()"
           (contextClosed)="composerContext.set(null)"
         />
-      }
-    </div>
+      </div>
 
-    <app-context-panel title="Thành viên" [open]="detailsOpen()" (closed)="detailsOpen.set(false)">
-      @if (demoEnabled()) {
-        <section class="context-members p-3" aria-label="Thành viên demo">
-          <p class="px-2 pb-2 text-micro-uppercase text-stone">Đang ở đây · 3</p>
-          <div class="grid gap-1">
-            <div class="context-member flex items-center gap-3 rounded-lg px-2 py-2">
-              <app-avatar name="Phan Thế Mon" presence="online" size="sm" ring="surface" />
-              <span class="min-w-0 flex-1">
-                <strong class="block truncate text-body-sm-medium text-ink">Phan Thế Mon</strong>
-                <span class="block truncate text-caption text-steel"
-                  >Đang xem #{{ current.name }}</span
-                >
-              </span>
-              <span class="live-presence" role="img" aria-label="Trực tuyến"></span>
+      <app-context-panel title="Thành viên" [open]="detailsOpen()" (closed)="detailsOpen.set(false)">
+        @if (demoEnabled()) {
+          <section class="context-members p-3" aria-label="Thành viên demo">
+            <p class="px-2 pb-2 text-micro-uppercase text-stone">Đang ở đây · 3</p>
+            <div class="grid gap-1">
+              <div class="context-member flex items-center gap-3 rounded-lg px-2 py-2">
+                <app-avatar name="Phan Thế Mon" presence="online" size="sm" ring="surface" />
+                <span class="min-w-0 flex-1">
+                  <strong class="block truncate text-body-sm-medium text-ink">Phan Thế Mon</strong>
+                  <span class="block truncate text-caption text-steel"
+                    >Đang xem #{{ current.name }}</span
+                  >
+                </span>
+                <span class="live-presence" role="img" aria-label="Trực tuyến"></span>
+              </div>
+              <div class="context-member flex items-center gap-3 rounded-lg px-2 py-2">
+                <app-avatar name="NguyenMinhTai" presence="online" size="sm" ring="surface" />
+                <span class="min-w-0 flex-1">
+                  <strong class="block truncate text-body-sm-medium text-ink">NguyenMinhTai</strong>
+                  <span class="block truncate text-caption text-steel">Đang viết giao diện</span>
+                </span>
+                <span class="live-presence" role="img" aria-label="Trực tuyến"></span>
+              </div>
+              <div class="context-member flex items-center gap-3 rounded-lg px-2 py-2">
+                <app-avatar name="ho_be" presence="dnd" size="sm" ring="surface" />
+                <span class="min-w-0 flex-1">
+                  <strong class="block truncate text-body-sm-medium text-ink">ho_be</strong>
+                  <span class="block truncate text-caption text-steel">Không làm phiền</span>
+                </span>
+              </div>
             </div>
-            <div class="context-member flex items-center gap-3 rounded-lg px-2 py-2">
-              <app-avatar name="NguyenMinhTai" presence="online" size="sm" ring="surface" />
-              <span class="min-w-0 flex-1">
-                <strong class="block truncate text-body-sm-medium text-ink">NguyenMinhTai</strong>
-                <span class="block truncate text-caption text-steel">Đang viết giao diện</span>
-              </span>
-              <span class="live-presence" role="img" aria-label="Trực tuyến"></span>
-            </div>
-            <div class="context-member flex items-center gap-3 rounded-lg px-2 py-2">
-              <app-avatar name="ho_be" presence="dnd" size="sm" ring="surface" />
-              <span class="min-w-0 flex-1">
-                <strong class="block truncate text-body-sm-medium text-ink">ho_be</strong>
-                <span class="block truncate text-caption text-steel">Không làm phiền</span>
-              </span>
-            </div>
-          </div>
-        </section>
-      } @else {
-        <app-empty-state
-          class="flex min-h-full"
-          icon="group"
-          title="Chưa có dữ liệu thành viên"
-          message="Danh sách sẽ xuất hiện tại đây khi máy chủ được kết nối với backend."
-        />
-      }
-    </app-context-panel>
-  </div>
+          </section>
+        } @else {
+          <app-empty-state
+            class="flex min-h-full"
+            icon="group"
+            title="Chưa có dữ liệu thành viên"
+            message="Danh sách sẽ xuất hiện tại đây khi máy chủ được kết nối với backend."
+          />
+        }
+      </app-context-panel>
+    </div>
+  }
 } @else {
   <app-empty-state icon="search_off" message="Không tìm thấy kênh này." />
 }

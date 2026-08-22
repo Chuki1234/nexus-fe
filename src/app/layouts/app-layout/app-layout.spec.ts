@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -5,6 +6,7 @@ import { ServersApiService } from '../../core/api/servers-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
 import { dashboardRoutes } from '../../features/dashboard/dashboard.routes';
+import { FriendsStore } from '../../features/dashboard/friends/services/friends-store';
 
 class AuthServiceStub {
   whenReady = () => Promise.resolve();
@@ -42,6 +44,23 @@ class ServersApiServiceStub {
   listServers = () => Promise.resolve([]);
 }
 
+class FriendsStoreStub {
+  friends = signal([]).asReadonly();
+  incomingRequests = signal([]).asReadonly();
+  outgoingRequests = signal([]).asReadonly();
+  loading = signal(false).asReadonly();
+  sending = signal(false).asReadonly();
+  busyIds = signal<ReadonlySet<string>>(new Set()).asReadonly();
+  error = signal<string | null>(null).asReadonly();
+  feedback = signal<string | null>(null).asReadonly();
+  load = () => Promise.resolve();
+  sendRequest = () => Promise.resolve(true);
+  acceptRequest = () => Promise.resolve();
+  deleteRequest = () => Promise.resolve();
+  removeFriend = () => Promise.resolve();
+  clearFeedback = () => undefined;
+}
+
 describe('AppLayout', () => {
   let harness: RouterTestingHarness;
 
@@ -60,6 +79,7 @@ describe('AppLayout', () => {
         { provide: AuthService, useValue: new AuthServiceStub() },
         { provide: ProfileService, useValue: new ProfileServiceStub() },
         { provide: ServersApiService, useValue: new ServersApiServiceStub() },
+        { provide: FriendsStore, useValue: new FriendsStoreStub() },
       ],
     });
     harness = await RouterTestingHarness.create();
@@ -80,15 +100,6 @@ describe('AppLayout', () => {
     expect(query('.dashboard-nav-shell')?.classList.contains('overflow-hidden')).toBe(true);
     expect(query('.dashboard-workspace')?.classList.contains('h-full')).toBe(true);
     expect(query('.dashboard-content')).toBeTruthy();
-    expect(query('.dashboard-shell')?.getAttribute('data-atmosphere')).toBe('hybrid');
-  });
-
-  it('gắn Atmosphere đã lưu lên toàn bộ Dashboard shell', async () => {
-    localStorage.setItem('nexuscord-dashboard-atmosphere', 'sage');
-
-    await harness.navigateByUrl('/channels/@me');
-
-    expect(query('.dashboard-shell')?.getAttribute('data-atmosphere')).toBe('sage');
   });
 
   it('tài khoản mới có danh sách bạn bè, DM và hoạt động đều rỗng', async () => {
@@ -129,11 +140,12 @@ describe('AppLayout', () => {
     expect(query('app-user-panel')?.textContent).toContain('Minh Tài');
     expect(queryAll('app-user-panel button[aria-pressed]').length).toBe(2);
     const settings = query(
-      'app-user-panel button[aria-label="Cài đặt — do team Settings phụ trách"]',
+      'app-user-panel button.user-panel__control--settings',
     ) as HTMLButtonElement;
     expect(settings).toBeTruthy();
-    expect(settings.disabled).toBe(true);
+    expect(settings.disabled).toBe(false);
   });
+
 
   it('giữ light mode khi chuyển qua kênh và quay lại trang bạn bè', async () => {
     await harness.navigateByUrl('/channels/@me');

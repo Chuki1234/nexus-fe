@@ -1,0 +1,185 @@
+<!-- Voice Channel Header -->
+<header
+  class="voice-header flex h-14 shrink-0 items-center justify-between border-b border-hairline/60 bg-surface/80 px-4 backdrop-blur-md"
+>
+  <div class="flex items-center gap-3 min-w-0">
+    <div
+      class="flex size-9 items-center justify-center rounded-xl bg-surface-feature text-steel"
+      [class.!text-primary]="isCurrentChannelActive()"
+      [class.!bg-primary/20]="isCurrentChannelActive()"
+    >
+      <mat-icon class="!size-5 !text-xl">volume_up</mat-icon>
+    </div>
+
+    <div class="min-w-0">
+      <h1 class="truncate text-heading-5 text-ink">{{ channel().name }}</h1>
+      @if (isCurrentChannelActive()) {
+        <div class="flex items-center gap-2 text-caption text-primary">
+          <span class="size-2 animate-pulse rounded-full bg-primary"></span>
+          <span>Đã kết nối · {{ formattedDuration() }}</span>
+        </div>
+      } @else {
+        <p class="text-caption text-steel">Kênh đàm thoại</p>
+      }
+    </div>
+  </div>
+
+  <div class="flex items-center gap-1.5">
+    @if (isCurrentChannelActive()) {
+      <span class="mr-1 hidden sm:inline-block rounded-full bg-surface-feature px-3 py-1 text-micro-uppercase font-bold text-primary">
+        Live WebRTC
+      </span>
+    }
+
+    <!-- Nút Mở Trò Chuyện (Chat in Voice) -->
+    <button
+      type="button"
+      (click)="toggleChat()"
+      matTooltip="Mở Trò Chuyện"
+      class="flex size-9 items-center justify-center rounded-xl text-steel hover:bg-surface-feature hover:text-ink transition-colors cursor-pointer"
+      [class.!bg-surface-feature]="isChatOpen()"
+      [class.!text-primary]="isChatOpen()"
+    >
+      <mat-icon class="!size-5 !text-xl">
+        {{ isChatOpen() ? 'chat' : 'chat_bubble_outline' }}
+      </mat-icon>
+    </button>
+
+    <!-- Nút Mời Vào Kênh -->
+    <button
+      type="button"
+      (click)="openInviteDialog()"
+      matTooltip="Mời vào kênh"
+      class="flex size-9 items-center justify-center rounded-xl text-steel hover:bg-surface-feature hover:text-ink transition-colors cursor-pointer"
+    >
+      <mat-icon class="!size-5 !text-xl">person_add</mat-icon>
+    </button>
+
+    <!-- Nút Cài Đặt Kênh -->
+    <button
+      type="button"
+      (click)="openSettingsModal()"
+      matTooltip="Chỉnh sửa kênh"
+      class="flex size-9 items-center justify-center rounded-xl text-steel hover:bg-surface-feature hover:text-ink transition-colors cursor-pointer"
+    >
+      <mat-icon class="!size-5 !text-xl">settings</mat-icon>
+    </button>
+  </div>
+</header>
+
+<!-- Main Area Split (Left Stage + Right Chat Drawer when open) -->
+<div class="flex size-full min-h-0 flex-1 overflow-hidden">
+  <!-- Left Side: Main Voice Stage Router by Connection State -->
+  <div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+    @if (isCurrentChannelActive()) {
+      <!-- 1. Connected Active Voice Stage -->
+      <app-voice-stage class="min-h-0 flex-1" (inviteClicked)="openInviteDialog()" />
+      <app-voice-controls />
+    } @else if (connectionStatus() === 'previewing') {
+    <!-- 2. Prejoin Device Preview Screen -->
+    <app-voice-prejoin
+      [channelName]="channel().name"
+      (join)="onJoinFromPrejoin($event)"
+      (cancel)="voiceRoom.closePrejoin()"
+    />
+  } @else if (connectionStatus() === 'connecting') {
+    <!-- 3. Connecting Loader -->
+    <div class="flex size-full flex-col items-center justify-center gap-4">
+      <div class="relative flex size-16 items-center justify-center rounded-full bg-surface-feature text-primary shadow-glow animate-pulse">
+        <mat-icon class="!size-8 !text-3xl">spatial_audio</mat-icon>
+      </div>
+      <p class="text-body-md-medium text-ink">Đang kết nối vào #{{ channel().name }}…</p>
+      <span class="text-caption text-steel">Khởi tạo đường truyền WebRTC bảo mật</span>
+    </div>
+  } @else if (connectionStatus() === 'error') {
+    <!-- 4. Error / Configuration Notice State -->
+    <div class="flex size-full max-w-xl mx-auto flex-col items-center justify-center gap-4 p-6 text-center">
+      <div class="flex size-16 items-center justify-center rounded-full bg-danger/20 text-danger shadow-glow">
+        <mat-icon class="!size-8 !text-3xl">cloud_off</mat-icon>
+      </div>
+      <h2 class="text-heading-4 text-ink">Chưa kết nối máy chủ thoại LiveKit</h2>
+      <p class="text-body-sm text-steel max-w-prose">
+        {{ errorMessage() || 'Chưa cấu hình LiveKit Cloud trên máy chủ backend.' }}
+      </p>
+
+      <div class="rounded-2xl border border-hairline/80 bg-surface-feature/50 p-4 text-left text-caption text-steel max-w-md w-full">
+        <p class="font-semibold text-ink mb-1">💡 Để kết nối WebRTC thật:</p>
+        <p>Bổ sung <code class="text-primary">LIVEKIT_URL</code>, <code class="text-primary">LIVEKIT_API_KEY</code>, <code class="text-primary">LIVEKIT_API_SECRET</code> vào file <code class="text-primary">nexus-be/.env</code> (lấy miễn phí từ cloud.livekit.io).</p>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+        <button
+          mat-flat-button
+          type="button"
+          class="!rounded-full !bg-primary !px-5 !text-on-primary font-semibold shadow-glow"
+          (click)="joinDemoVoice()"
+        >
+          <mat-icon aria-hidden="true">play_arrow</mat-icon>
+          Vào phòng thử nghiệm (Demo)
+        </button>
+
+        <button
+          mat-stroked-button
+          type="button"
+          class="!rounded-full !border-hairline text-ink"
+          (click)="openPrejoin()"
+        >
+          <mat-icon aria-hidden="true">settings</mat-icon>
+          Xem thiết bị
+        </button>
+
+        <button
+          mat-button
+          type="button"
+          class="!rounded-full text-steel"
+          (click)="joinVoice()"
+        >
+          <mat-icon aria-hidden="true">refresh</mat-icon>
+          Thử lại LiveKit
+        </button>
+      </div>
+    </div>
+  } @else {
+    <!-- 5. Unjoined Voice Empty State (Khớp chuẩn Discord mẫu) -->
+    <div class="flex size-full flex-col items-center justify-center p-6 text-center">
+      <div class="voice-empty-content flex max-w-md flex-col items-center justify-center gap-4">
+        <!-- Big Channel Name Title -->
+        <h2 class="text-heading-3 font-bold text-ink tracking-tight">{{ channel().name }}</h2>
+        <p class="text-body-sm text-steel">Hiện tại không có ai trong kênh thoại</p>
+
+        <!-- CTA Button "Tham Gia Thoại" -->
+        <div class="mt-2 flex flex-col sm:flex-row items-center gap-3">
+          <button
+            mat-flat-button
+            type="button"
+            class="!h-11 !rounded-full !bg-white !px-8 !text-slate-900 hover:!bg-white/90 font-bold shadow-modal transition-transform active:scale-95"
+            (click)="joinVoice()"
+          >
+            Tham Gia Thoại
+          </button>
+
+          <button
+            mat-stroked-button
+            type="button"
+            class="!h-11 !rounded-full !border-hairline !text-ink hover:!bg-surface-feature/60 font-semibold"
+            (click)="openPrejoin()"
+          >
+            <mat-icon aria-hidden="true">settings</mat-icon>
+            Xem thiết bị
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+  </div>
+
+  <!-- Right Side: Voice Text Chat Drawer -->
+  @if (isChatOpen()) {
+    <app-voice-chat-drawer
+      class="w-80 lg:w-96 shrink-0"
+      [channel]="channel()"
+      (closed)="voiceRoom.closeChatDrawer()"
+    />
+  }
+</div>
+

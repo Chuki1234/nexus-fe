@@ -139,7 +139,6 @@ describe('ServerRail', () => {
       ],
     };
 
-
     return {
       servers: signal(servers),
       serverGroups: signal(groups),
@@ -224,22 +223,26 @@ describe('ServerRail', () => {
 
   it('nhóm server thật có thể thu gọn mà server ngoài nhóm vẫn giữ nguyên', async () => {
     const fixture = await mount(groupedShell());
-    const group = fixture.nativeElement.querySelector(
+    let group = fixture.nativeElement.querySelector(
       '[data-server-group-id="study"]',
     ) as HTMLElement;
-    const toggle = group.querySelector('button[aria-expanded]') as HTMLButtonElement;
+    let toggle = group.querySelector('button[aria-expanded]') as HTMLButtonElement;
 
+    // Trạng thái mở rộng ban đầu: danh sách con hiện 2 server
     expect(group.querySelectorAll('[data-server-id]').length).toBe(2);
-    expect(group.querySelectorAll('[data-server-miniature]').length).toBe(2);
     expect(group.getAttribute('data-group-state')).toBe('expanded');
     expect(group.classList.contains('server-group-shell--expanded')).toBe(true);
     expect(group.querySelector('[data-expanded-group-members]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[data-server-id="solo"]')).toBeTruthy();
-    expect(toggle.classList.contains('nexus-icon-control')).toBe(true);
 
+    // Click để thu gọn folder
     toggle.click();
     fixture.detectChanges();
 
+    group = fixture.nativeElement.querySelector('[data-server-group-id="study"]') as HTMLElement;
+    toggle = group.querySelector('button[aria-expanded]') as HTMLButtonElement;
+
+    // Trạng thái thu gọn: không hiện server-id chi tiết mà hiện 2 miniatures 2x2 grid
     expect(group.querySelectorAll('[data-server-id]').length).toBe(0);
     expect(group.querySelectorAll('[data-server-miniature]').length).toBe(2);
     expect(group.getAttribute('data-group-state')).toBe('collapsed');
@@ -315,11 +318,31 @@ describe('ServerRail', () => {
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
     mockServersApi.createServer.mockResolvedValue({
-      server: { id: 's-gaming', name: 'Đội Game Nexus', iconUrl: null, unread: false, mentionCount: 0 },
+      server: {
+        id: 's-gaming',
+        name: 'Đội Game Nexus',
+        iconUrl: null,
+        unread: false,
+        mentionCount: 0,
+      },
       channels: [
         { id: 'c-1', name: 'chào-mừng', type: 'text', topic: null, unread: false, mentionCount: 0 },
-        { id: 'c-2', name: 'tìm-đồng-đội', type: 'text', topic: null, unread: false, mentionCount: 0 },
-        { id: 'c-3', name: 'Phòng chờ', type: 'voice', topic: null, unread: false, mentionCount: 0 },
+        {
+          id: 'c-2',
+          name: 'tìm-đồng-đội',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+        },
+        {
+          id: 'c-3',
+          name: 'Phòng chờ',
+          type: 'voice',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+        },
       ],
     });
 
@@ -509,9 +532,9 @@ describe('ServerRail', () => {
 
       const results = Array.from(dialog.querySelectorAll('[data-command-result]'));
       expect(results.length).toBeGreaterThan(0);
-      expect(results.every((el) => el.getAttribute('data-command-result') === 'voice-channel')).toBe(
-        true,
-      );
+      expect(
+        results.every((el) => el.getAttribute('data-command-result') === 'voice-channel'),
+      ).toBe(true);
       expect(results[0].textContent).toContain('Phòng học nhóm');
 
       (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
@@ -696,5 +719,119 @@ describe('ServerRail', () => {
       (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement).click();
     });
   });
-});
 
+  describe('Discord Drag & Drop and Folder System', () => {
+    const dropEvent = (serverId: string) =>
+      ({
+        isPointerOverContainer: true,
+        item: { data: serverId },
+      }) as never;
+
+    it('render railItems dưới dạng mảng 1D thống nhất', async () => {
+      const fixture = await mount(groupedShell());
+      const items = fixture.componentInstance['railItems']();
+
+      expect(items.length).toBe(2);
+      expect(items[0].kind).toBe('folder');
+      expect(items[1].kind).toBe('server');
+    });
+
+    it('giữ tile server ở kích thước 48px và căn icon chính giữa', async () => {
+      const fixture = await mount(groupedShell());
+      const tile = fixture.nativeElement.querySelector('.server-tile') as HTMLElement;
+
+      const styles = getComputedStyle(tile);
+
+      expect(styles.display).toBe('flex');
+      expect(styles.width).toBe('3rem');
+      expect(styles.height).toBe('3rem');
+      expect(styles.flexBasis).toBe('3rem');
+      expect(styles.alignItems).toBe('center');
+      expect(styles.justifyContent).toBe('center');
+    });
+
+    it('render khe thả cố định ở main rail và trong folder đang mở', async () => {
+      const fixture = await mount(groupedShell());
+      const slots = fixture.nativeElement.querySelectorAll('.server-drop-slot');
+
+      expect(slots.length).toBeGreaterThanOrEqual(6);
+      expect(fixture.nativeElement.querySelectorAll('.server-drop-line').length).toBe(0);
+    });
+
+    it('tách rõ trạng thái đổi vị trí và trạng thái gom nhóm', async () => {
+      const fixture = await mount(groupedShell());
+      const component = fixture.componentInstance;
+
+      component['startServerDrag']('solo');
+      component['activateDropSlot']('rail-slot-0');
+      expect(component['activeDropSlot']()).toBe('rail-slot-0');
+      expect(component['activeGroupingTarget']()).toBeNull();
+
+      component['activateGroupingTarget']('folder', 'study');
+      expect(component['activeDropSlot']()).toBeNull();
+      expect(component['groupingTargetIsActive']('folder', 'study')).toBe(true);
+    });
+
+    it('không cho gom một server vào chính nó hoặc vào server cùng folder', async () => {
+      const fixture = await mount(groupedShell());
+      const component = fixture.componentInstance;
+
+      component['startServerDrag']('alpha');
+      component['activateGroupingTarget']('server', 'alpha');
+      expect(component['activeGroupingTarget']()).toBeNull();
+
+      component['activateGroupingTarget']('server', 'beta');
+      expect(component['activeGroupingTarget']()).toBeNull();
+    });
+
+    it('thả lên server độc lập tạo folder mới và thu gọn folder vừa tạo', async () => {
+      const shell = groupedShell();
+      shell.groupServers = vi.fn().mockReturnValue('generated-folder');
+      const fixture = await mount(shell);
+      const component = fixture.componentInstance;
+
+      component['startServerDrag']('alpha');
+      component['dropOnServer'](dropEvent('alpha'), 'solo');
+
+      expect(shell.groupServers).toHaveBeenCalledWith('alpha', 'solo');
+      expect(component['collapsedGroups']().has('generated-folder')).toBe(true);
+    });
+
+    it('thả lên server đã nằm trong folder không tự thu gọn folder đang mở', async () => {
+      const shell = groupedShell();
+      shell.groupServers = vi.fn().mockReturnValue('study');
+      const fixture = await mount(shell);
+      const component = fixture.componentInstance;
+
+      component['startServerDrag']('solo');
+      component['dropOnServer'](dropEvent('solo'), 'alpha');
+
+      expect(shell.groupServers).toHaveBeenCalledWith('solo', 'alpha');
+      expect(component['collapsedGroups']().has('study')).toBe(false);
+    });
+
+    it('thả vào khe main rail gọi moveServerOutsideGroups với mixed insertion index', async () => {
+      const shell = groupedShell();
+      shell.moveServerOutsideGroups = vi.fn();
+      const fixture = await mount(shell);
+      const component = fixture.componentInstance;
+
+      component['startServerDrag']('alpha');
+      component['dropOutsideGroupsAt'](dropEvent('alpha'), 1);
+
+      expect(shell.moveServerOutsideGroups).toHaveBeenCalledWith('alpha', 1);
+    });
+
+    it('thả vào khe folder gọi moveServerToGroup đúng vị trí', async () => {
+      const shell = groupedShell();
+      shell.moveServerToGroup = vi.fn();
+      const fixture = await mount(shell);
+      const component = fixture.componentInstance;
+
+      component['startServerDrag']('solo');
+      component['dropIntoGroupAt'](dropEvent('solo'), 'study', 1);
+
+      expect(shell.moveServerToGroup).toHaveBeenCalledWith('solo', 'study', 1);
+    });
+  });
+});

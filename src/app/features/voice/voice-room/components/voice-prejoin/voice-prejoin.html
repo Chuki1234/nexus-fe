@@ -1,0 +1,128 @@
+<section
+  class="voice-prejoin-card flex w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-hairline/80 bg-surface p-6 shadow-modal"
+  aria-labelledby="prejoin-title"
+>
+  <header class="mb-4 text-center">
+    <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-micro-uppercase font-bold text-primary">
+      <mat-icon class="!size-4 !text-base">settings_voice</mat-icon>
+      Kiểm tra thiết bị
+    </span>
+    <h2 id="prejoin-title" class="mt-2 text-heading-4 text-ink">Sẵn sàng tham gia #{{ channelName() }}</h2>
+    <p class="text-body-sm text-steel">Xem trước hình ảnh và kiểm tra âm thanh trước khi bước vào phòng.</p>
+  </header>
+
+  <!-- Camera Preview Stage -->
+  <div class="relative mx-auto flex h-60 w-full max-w-md items-center justify-center overflow-hidden rounded-2xl bg-canvas-dark border border-hairline shadow-surface">
+    @if (cameraEnabled()) {
+      <video
+        #previewVideo
+        autoplay
+        playsinline
+        muted
+        class="size-full object-cover"
+      ></video>
+    } @else {
+      <div class="flex flex-col items-center justify-center gap-3">
+        <app-avatar [name]="displayName" size="xl" ring="surface" />
+        <span class="text-body-sm text-stone">Camera đang tắt</span>
+      </div>
+    }
+
+    <!-- Quick mic & cam floating toggles over preview -->
+    <div class="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-canvas/80 px-3 py-1.5 backdrop-blur-md">
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control !size-10"
+        [class.!text-danger]="!micEnabled()"
+        [class.!bg-danger/20]="!micEnabled()"
+        [matTooltip]="micEnabled() ? 'Tắt Micro' : 'Bật Micro'"
+        (click)="toggleMic()"
+      >
+        <mat-icon>{{ micEnabled() ? 'mic' : 'mic_off' }}</mat-icon>
+      </button>
+
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control !size-10"
+        [class.!text-primary]="cameraEnabled()"
+        [class.!bg-primary/20]="cameraEnabled()"
+        [matTooltip]="cameraEnabled() ? 'Tắt Camera' : 'Bật Camera'"
+        (click)="toggleCamera()"
+      >
+        <mat-icon>{{ cameraEnabled() ? 'videocam' : 'videocam_off' }}</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Audio Level Meter -->
+  <div class="mt-4 rounded-xl bg-surface-feature/60 p-3">
+    <div class="flex items-center justify-between text-caption text-steel">
+      <span class="flex items-center gap-1.5">
+        <mat-icon class="!size-4 !text-base text-primary">graphic_eq</mat-icon>
+        Kiểm tra độ nhạy âm thanh:
+      </span>
+      <span class="font-mono text-micro text-ink">{{ audioLevel() }}%</span>
+    </div>
+
+    <!-- Animated bar -->
+    <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-canvas">
+      <div
+        class="h-full rounded-full bg-primary transition-all duration-75"
+        [style.width.%]="audioLevel()"
+      ></div>
+    </div>
+  </div>
+
+  <!-- Device Selection Controls -->
+  <div class="mt-4 grid gap-3 sm:grid-cols-2">
+    <div>
+      <label class="block text-caption font-medium text-steel">Microphone</label>
+      <select
+        [value]="mediaDevices.selectedAudioInputId()"
+        (change)="onAudioInputChange($any($event.target).value)"
+        class="mt-1 w-full rounded-xl border border-hairline bg-surface-feature px-3 py-2 text-body-sm text-ink outline-none focus:border-primary"
+      >
+        @for (d of mediaDevices.audioInputs(); track d.deviceId) {
+          <option [value]="d.deviceId">{{ d.label || 'Microphone ' + ($index + 1) }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-caption font-medium text-steel">Camera</label>
+      <select
+        [value]="mediaDevices.selectedVideoInputId()"
+        (change)="onVideoInputChange($any($event.target).value)"
+        class="mt-1 w-full rounded-xl border border-hairline bg-surface-feature px-3 py-2 text-body-sm text-ink outline-none focus:border-primary"
+      >
+        @for (d of mediaDevices.videoInputs(); track d.deviceId) {
+          <option [value]="d.deviceId">{{ d.label || 'Camera ' + ($index + 1) }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <footer class="mt-6 flex items-center justify-end gap-3 border-t border-hairline/60 pt-4">
+    <button
+      mat-button
+      type="button"
+      class="!rounded-full text-steel hover:text-ink"
+      (click)="onCancel()"
+    >
+      Quay lại
+    </button>
+
+    <button
+      mat-flat-button
+      type="button"
+      class="!rounded-full !bg-primary !px-6 !text-on-primary font-semibold shadow-glow"
+      (click)="onJoin()"
+    >
+      <mat-icon aria-hidden="true">login</mat-icon>
+      Tham gia phòng
+    </button>
+  </footer>
+</section>

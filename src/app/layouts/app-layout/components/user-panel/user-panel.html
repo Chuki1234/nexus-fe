@@ -1,3 +1,51 @@
+@if (isVoiceConnected()) {
+  <!-- Voice Connected Banner (Discord Style) -->
+  <div class="user-panel__voice-status flex items-center justify-between border-b border-hairline/60 pb-2 mb-2">
+    <div class="flex items-center gap-2 min-w-0">
+      <mat-icon class="!size-5 !text-xl text-primary animate-pulse">signal_cellular_alt</mat-icon>
+      <div class="min-w-0">
+        <span class="block truncate text-body-sm-medium text-primary font-bold">Đã Kết Nối Giọng Nói</span>
+        <span class="block truncate text-micro text-steel">#{{ voiceChannelName() }}</span>
+      </div>
+    </div>
+    <button
+      mat-icon-button
+      type="button"
+      class="!size-8 !text-danger hover:!bg-danger/20"
+      matTooltip="Ngắt kết nối"
+      (click)="disconnectVoice()"
+    >
+      <mat-icon class="!size-4 !text-base">call_end</mat-icon>
+    </button>
+  </div>
+
+  <!-- Voice Quick Action Toolbar -->
+  <div class="user-panel__voice-actions flex items-center justify-around border-b border-hairline/60 pb-2 mb-2">
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control !size-8"
+      [class.!text-primary]="isScreenSharing()"
+      [matTooltip]="isScreenSharing() ? 'Dừng chia sẻ' : 'Chia sẻ màn hình'"
+      (click)="toggleScreenShare()"
+    >
+      <mat-icon class="!size-4 !text-base">{{ isScreenSharing() ? 'stop_screen_share' : 'screen_share' }}</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control !size-8"
+      [class.!text-primary]="isCameraOn()"
+      [matTooltip]="isCameraOn() ? 'Tắt camera' : 'Bật camera'"
+      (click)="toggleCamera()"
+    >
+      <mat-icon class="!size-4 !text-base">{{ isCameraOn() ? 'videocam' : 'videocam_off' }}</mat-icon>
+    </button>
+  </div>
+}
+
+<div class="flex items-center justify-between w-full min-w-0">
 <button
   type="button"
   [matMenuTriggerFor]="userMenu"
@@ -46,5 +94,16 @@
     <span class="sr-only">{{ deafened() ? 'Bật loa' : 'Tắt loa' }}</span>
   </button>
 
+  <button
+    mat-icon-button
+    type="button"
+    class="user-panel__control user-panel__control--settings nexus-icon-control"
+    aria-label="Cài đặt"
+    matTooltip="Cài đặt"
+    (click)="openSettings()"
+  >
+    <mat-icon aria-hidden="true">settings</mat-icon>
+  </button>
+</div>
 </div>
 
