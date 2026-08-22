@@ -1,0 +1,13 @@
+.intro-card {
+  background: color-mix(in srgb, var(--color-surface-feature) 60%, var(--color-surface));
+}
+
+button mat-icon,
+.intro-card mat-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  margin: auto !important;
+}
+

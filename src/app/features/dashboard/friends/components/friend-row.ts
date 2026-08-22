@@ -1,12 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { PRESENCE_LABEL } from '../../../../../shared/dto/common';
-import type { ConversationSummary } from '../../../../core/api/shell-data';
-import { ProfileAvatar } from '../../../profile/components/profile-avatar/profile-avatar';
+import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import type { FriendListPerson } from '../services/friends-store';
 
 /**
  * Một hàng trong danh sách bạn bè.
@@ -16,14 +16,17 @@ import { ProfileAvatar } from '../../../profile/components/profile-avatar/profil
  */
 @Component({
   selector: 'app-friend-row',
-  imports: [ProfileAvatar, MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule, RouterLink],
+  imports: [Avatar, MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   templateUrl: './friend-row.html',
   styleUrl: './friend-row.css',
 })
 export class FriendRow {
-  readonly person = input.required<ConversationSummary>();
+  readonly person = input.required<FriendListPerson>();
+  readonly canManage = input(true);
+  readonly busy = input(false);
+  readonly removed = output<string>();
 
   /** Ưu tiên câu trạng thái người dùng tự đặt; không có thì hiện trạng thái hệ thống. */
   protected readonly subtitle = computed(() => {

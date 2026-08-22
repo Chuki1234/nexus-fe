@@ -28,6 +28,8 @@ export interface ServerGroupSummary {
   serverIds: string[];
 }
 
+type ServerRailRef = { kind: 'server'; id: string } | { kind: 'folder'; id: string };
+
 export interface ChannelSummary {
   id: string;
   name: string;
@@ -119,41 +121,35 @@ const DEMO_CHANNELS_BY_SERVER: Record<string, ChannelSummary[]> = {
   ],
 };
 
-/**
- * `id` cố ý ĐÚNG BẰNG username có thật trong bảng `profiles` (tạo bằng
- * `npm run seed` bên nexus-be).
- *
- * Nhờ vậy bấm avatar trong danh sách là mở được hồ sơ thật qua
- * `/api/profiles/:username`, thay vì tên bịa rồi bấm vào nhận 404. Đổi tên ở
- * đây thì phải đổi cả trong `scripts/seed-profiles.ts`.
- */
 const DEMO_CONVERSATIONS: ConversationSummary[] = [
   {
-    id: 'maitran',
-    name: 'Mai Trần',
-    statusMessage: 'Đang xây một thứ gì đó bằng Angular và quá nhiều cà phê ☕',
+    id: 'mon',
+    name: 'Phan Thế Mon',
+    statusMessage: null,
     presence: 'online',
     unread: false,
   },
   {
-    id: 'ducpham',
-    name: 'Đức Phạm',
-    statusMessage: 'Học Rust ngày thứ 4. Vẫn đang cãi nhau với borrow checker.',
+    id: 'ho-be',
+    name: 'ho_be',
+    statusMessage: 'shut the fckup',
     presence: 'dnd',
     unread: true,
   },
   {
-    id: 'hoangle',
-    name: 'Hoàng Lê Nguyễn Minh Anh Tuấn',
+    id: 'minh-tai',
+    name: 'NguyenMinhTai',
     statusMessage: null,
-    presence: 'idle',
+    presence: 'online',
     unread: false,
   },
+  { id: 'binh', name: "bình'", statusMessage: null, presence: 'idle', unread: false },
+  { id: 'cyrus', name: 'Cyrus', statusMessage: null, presence: 'offline', unread: false },
   {
-    id: 'linhvo',
-    name: 'linhvo',
-    statusMessage: null,
-    presence: 'offline',
+    id: 'lofi-bot',
+    name: 'Lofi',
+    statusMessage: 'Đang phát nhạc',
+    presence: 'online',
     unread: false,
   },
 ];
@@ -251,14 +247,60 @@ export class ShellData {
     });
   }
 
-  /** Kéo một server lên server khác: tạo group mới hoặc nhập vào group của server đích. */
-  groupServers(sourceServerId: string, targetServerId: string): void {
+  /**
+   * Thêm hoặc cập nhật một kênh mới vào live state của server.
+   */
+  addChannel(serverId: string, channel: ChannelSummary): void {
+    this.channelsByServer.update((current) => {
+      const existing = current[serverId] ?? [];
+      const alreadyExists = existing.some((c) => c.id === channel.id);
+      if (alreadyExists) {
+        return {
+          ...current,
+          [serverId]: existing.map((c) => (c.id === channel.id ? channel : c)),
+        };
+      }
+      return {
+        ...current,
+        [serverId]: [...existing, channel],
+      };
+    });
+  }
+
+  /**
+   * Cập nhật thông tin kênh (tên, topic, v.v.) trong live state.
+   */
+  updateChannel(serverId: string, channelId: string, patch: Partial<ChannelSummary>): void {
+    this.channelsByServer.update((current) => {
+      const existing = current[serverId] ?? [];
+      return {
+        ...current,
+        [serverId]: existing.map((c) => (c.id === channelId ? { ...c, ...patch } : c)),
+      };
+    });
+  }
+
+  /**
+   * Xóa một kênh khỏi danh sách kênh của server.
+   */
+  removeChannel(serverId: string, channelId: string): void {
+    this.channelsByServer.update((current) => {
+      const existing = current[serverId] ?? [];
+      return {
+        ...current,
+        [serverId]: existing.filter((c) => c.id !== channelId),
+      };
+    });
+  }
+
+  /** Kéo một server lên server khác: tạo group mới tại đúng vị trí của server đích. */
+  groupServers(sourceServerId: string, targetServerId: string): string | null {
     if (
       sourceServerId === targetServerId ||
       !this.hasServer(sourceServerId) ||
       !this.hasServer(targetServerId)
     ) {
-      return;
+      return null;
     }
 
     const targetGroup = this.serverGroups().find((group) =>
@@ -266,25 +308,42 @@ export class ShellData {
     );
     if (targetGroup) {
       this.addServerToGroup(sourceServerId, targetGroup.id);
-      return;
+      return targetGroup.id;
     }
 
+    const orderBefore = this.currentServerOrder();
+    const sourceIndex = orderBefore.indexOf(sourceServerId);
+    const targetIndex = orderBefore.indexOf(targetServerId);
+    const nextOrder = orderBefore.filter((id) => id !== sourceServerId && id !== targetServerId);
+    const targetInsertionIndex = Math.max(
+      0,
+      Math.min(
+        targetIndex - (sourceIndex >= 0 && sourceIndex < targetIndex ? 1 : 0),
+        nextOrder.length,
+      ),
+    );
+    nextOrder.splice(targetInsertionIndex, 0, targetServerId, sourceServerId);
+
+    const stableIds = [sourceServerId, targetServerId].sort();
+    const groupId = `group-${stableIds.join('-')}`;
     this.updateServerGroups((groups) => {
       const withoutDraggedServers = this.removeServersFromGroups(groups, [
         sourceServerId,
         targetServerId,
       ]);
-      const stableIds = [sourceServerId, targetServerId].sort();
 
       return [
         ...withoutDraggedServers,
         {
-          id: `group-${stableIds.join('-')}`,
+          id: groupId,
           name: `Nhóm máy chủ ${withoutDraggedServers.length + 1}`,
           serverIds: [targetServerId, sourceServerId],
         },
       ];
     });
+
+    this.updateServerOrder(() => this.normalizeServerOrder(nextOrder, this.serverGroups()));
+    return groupId;
   }
 
   /** Kéo server lên preview group: move giữa các group và không để trùng id. */
@@ -309,6 +368,13 @@ export class ShellData {
           group.id === groupId ? { ...group, serverIds: [...group.serverIds, serverId] } : group,
         );
     });
+
+    this.updateServerOrder((order) =>
+      this.normalizeServerOrder(
+        order.filter((id) => id !== serverId),
+        this.serverGroups(),
+      ),
+    );
   }
 
   /**
@@ -349,6 +415,13 @@ export class ShellData {
         .map((group) => (group.id === groupId ? { ...group, serverIds: targetIds } : group))
         .filter((group) => group.id === groupId || group.serverIds.length >= 2);
     });
+
+    this.updateServerOrder((order) =>
+      this.normalizeServerOrder(
+        order.filter((id) => id !== serverId),
+        this.serverGroups(),
+      ),
+    );
   }
 
   /**
@@ -361,39 +434,48 @@ export class ShellData {
     }
 
     const groupsBefore = this.serverGroups();
-    const groupedBefore = new Set(groupsBefore.flatMap((group) => group.serverIds));
-    const topLevelBefore = this.servers()
-      .map((server) => server.id)
-      .filter((id) => !groupedBefore.has(id));
-    const sourceTopIndex = topLevelBefore.indexOf(serverId);
+    const refsBefore = this.buildServerRailRefs(this.currentServerOrder(), groupsBefore);
+    const sourceTopIndex = refsBefore.findIndex(
+      (ref) => ref.kind === 'server' && ref.id === serverId,
+    );
     const sourceGroup = groupsBefore.find((group) => group.serverIds.includes(serverId));
-    const releasedSiblings =
-      sourceGroup?.serverIds.length === 2
-        ? sourceGroup.serverIds.filter((id) => id !== serverId)
-        : [];
 
     this.updateServerGroups((groups) => this.removeServersFromGroups(groups, [serverId]));
 
     const groupsAfter = this.serverGroups();
-    const groupedAfter = new Set(groupsAfter.flatMap((group) => group.serverIds));
-    const allIds = this.servers().map((server) => server.id);
-    const desiredTopLevel = topLevelBefore.filter((id) => id !== serverId);
-    let nextIndex = Math.max(0, Math.min(insertionIndex, topLevelBefore.length));
+    const groupIdsAfter = new Set(groupsAfter.map((group) => group.id));
+    const refsAfter = refsBefore.flatMap<ServerRailRef>((ref) => {
+      if (ref.kind === 'server') {
+        return ref.id === serverId ? [] : [ref];
+      }
+
+      if (groupIdsAfter.has(ref.id)) {
+        return [ref];
+      }
+
+      if (sourceGroup?.id === ref.id) {
+        return sourceGroup.serverIds
+          .filter((id) => id !== serverId)
+          .map((id) => ({ kind: 'server' as const, id }));
+      }
+
+      return [];
+    });
+
+    let nextIndex = Math.max(0, Math.min(insertionIndex, refsBefore.length));
     if (sourceTopIndex >= 0 && sourceTopIndex < nextIndex) {
       nextIndex -= 1;
     }
+    nextIndex = Math.min(nextIndex, refsAfter.length);
+    refsAfter.splice(nextIndex, 0, { kind: 'server', id: serverId });
 
-    const released = releasedSiblings.filter((id) => !desiredTopLevel.includes(id));
-    desiredTopLevel.splice(nextIndex, 0, serverId, ...released);
-
-    for (const id of allIds) {
-      if (!groupedAfter.has(id) && !desiredTopLevel.includes(id)) {
-        desiredTopLevel.push(id);
+    const nextOrder = refsAfter.flatMap((ref) => {
+      if (ref.kind === 'server') {
+        return [ref.id];
       }
-    }
-
-    const groupedIds = allIds.filter((id) => groupedAfter.has(id));
-    this.updateServerOrder(() => [...desiredTopLevel, ...groupedIds]);
+      return groupsAfter.find((group) => group.id === ref.id)?.serverIds ?? [];
+    });
+    this.updateServerOrder(() => this.normalizeServerOrder(nextOrder, groupsAfter));
   }
 
   channelsOf(serverId: string): ChannelSummary[] {
@@ -433,6 +515,91 @@ export class ShellData {
     }
 
     this.serverOrderList.update(update);
+  }
+
+  private currentServerOrder(): string[] {
+    return this.demoMode() ? this.demoServerOrderList() : this.serverOrderList();
+  }
+
+  private buildServerRailRefs(order: string[], groups: ServerGroupSummary[]): ServerRailRef[] {
+    const groupByServer = new Map<string, ServerGroupSummary>();
+    for (const group of groups) {
+      for (const serverId of group.serverIds) {
+        groupByServer.set(serverId, group);
+      }
+    }
+
+    const refs: ServerRailRef[] = [];
+    const emittedGroups = new Set<string>();
+    const emittedServers = new Set<string>();
+    const visit = (serverId: string): void => {
+      if (!this.hasServer(serverId)) {
+        return;
+      }
+
+      const group = groupByServer.get(serverId);
+      if (group) {
+        if (!emittedGroups.has(group.id)) {
+          emittedGroups.add(group.id);
+          refs.push({ kind: 'folder', id: group.id });
+        }
+        return;
+      }
+
+      if (!emittedServers.has(serverId)) {
+        emittedServers.add(serverId);
+        refs.push({ kind: 'server', id: serverId });
+      }
+    };
+
+    order.forEach(visit);
+    this.servers().forEach((server) => visit(server.id));
+    return refs;
+  }
+
+  private normalizeServerOrder(order: string[], groups: ServerGroupSummary[]): string[] {
+    const validServerIds = new Set(this.servers().map((server) => server.id));
+    const groupByServer = new Map<string, ServerGroupSummary>();
+    for (const group of groups) {
+      for (const serverId of group.serverIds) {
+        if (validServerIds.has(serverId)) {
+          groupByServer.set(serverId, group);
+        }
+      }
+    }
+
+    const result: string[] = [];
+    const emittedServers = new Set<string>();
+    const emittedGroups = new Set<string>();
+    const visit = (serverId: string): void => {
+      if (!validServerIds.has(serverId)) {
+        return;
+      }
+
+      const group = groupByServer.get(serverId);
+      if (group) {
+        if (emittedGroups.has(group.id)) {
+          return;
+        }
+        emittedGroups.add(group.id);
+        for (const memberId of group.serverIds) {
+          if (validServerIds.has(memberId) && !emittedServers.has(memberId)) {
+            emittedServers.add(memberId);
+            result.push(memberId);
+          }
+        }
+        return;
+      }
+
+      if (!emittedServers.has(serverId)) {
+        emittedServers.add(serverId);
+        result.push(serverId);
+      }
+    };
+
+    order.forEach(visit);
+    this.servers().forEach((server) => visit(server.id));
+    return result;
   }
 
   private removeServersFromGroups(

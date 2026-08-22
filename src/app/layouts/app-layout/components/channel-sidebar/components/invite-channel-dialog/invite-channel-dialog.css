@@ -1,0 +1,30 @@
+.invite-dialog {
+  box-shadow: var(--shadow-modal);
+}
+
+.invite-btn {
+  background-color: var(--color-surface-feature);
+  color: var(--color-ink);
+  border: 1px solid var(--color-hairline);
+}
+
+.invite-btn:hover:not(:disabled) {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+}
+
+.invite-btn--invited {
+  background-color: rgba(0, 237, 100, 0.15);
+  color: var(--color-primary, #00ed64);
+  border-color: rgba(0, 237, 100, 0.3);
+  cursor: default;
+}
+
+.invite-dialog button,
+.invite-dialog mat-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}

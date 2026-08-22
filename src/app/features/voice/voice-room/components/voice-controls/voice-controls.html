@@ -1,0 +1,122 @@
+<div
+  class="voice-controls-bar flex items-center gap-2 rounded-full border border-hairline/80 bg-surface/90 p-2 backdrop-blur-md shadow-modal"
+  role="toolbar"
+  aria-label="Thanh điều khiển phòng thoại"
+>
+  <!-- 1. Microphone Control Group -->
+  <div class="flex items-center rounded-full bg-surface-feature/70 p-0.5">
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control !size-11"
+      [class.!text-danger]="isMicMuted()"
+      [class.!bg-danger/20]="isMicMuted()"
+      [matTooltip]="isMicMuted() ? 'Bật Micro' : 'Tắt Micro'"
+      (click)="toggleMic()"
+      [attr.aria-pressed]="!isMicMuted()"
+    >
+      <mat-icon>{{ isMicMuted() ? 'mic_off' : 'mic' }}</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="audioMenuRef.menu()"
+      class="nexus-icon-control !size-7 !min-w-0"
+      matTooltip="Cài đặt Micro"
+      aria-label="Chọn thiết bị micro"
+    >
+      <mat-icon class="!size-4 !text-base">expand_more</mat-icon>
+    </button>
+    <app-device-menu #audioMenuRef kind="audio" />
+  </div>
+
+  <!-- 2. Camera Control Group -->
+  <div class="flex items-center rounded-full bg-surface-feature/70 p-0.5">
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control !size-11"
+      [class.!text-primary]="isCameraOn()"
+      [class.!bg-primary/20]="isCameraOn()"
+      [matTooltip]="isCameraOn() ? 'Tắt Camera' : 'Bật Camera'"
+      (click)="toggleCamera()"
+      [attr.aria-pressed]="isCameraOn()"
+    >
+      <mat-icon>{{ isCameraOn() ? 'videocam' : 'videocam_off' }}</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="videoMenuRef.menu()"
+      class="nexus-icon-control !size-7 !min-w-0"
+      matTooltip="Cài đặt Camera"
+      aria-label="Chọn thiết bị camera"
+    >
+      <mat-icon class="!size-4 !text-base">expand_more</mat-icon>
+    </button>
+    <app-device-menu #videoMenuRef kind="video" />
+  </div>
+
+  <!-- 3. Screen Share Toggle Button -->
+  <button
+    mat-icon-button
+    type="button"
+    class="nexus-icon-control !size-11 !rounded-full"
+    [class.!bg-primary]="isScreenSharing()"
+    [class.!text-on-primary]="isScreenSharing()"
+    [matTooltip]="isScreenSharing() ? 'Dừng chia sẻ màn hình' : 'Chia sẻ màn hình'"
+    (click)="toggleScreenShare()"
+    [attr.aria-pressed]="isScreenSharing()"
+  >
+    <mat-icon>{{ isScreenSharing() ? 'stop_screen_share' : 'screen_share' }}</mat-icon>
+  </button>
+
+  <hr class="h-6 w-px border-0 bg-hairline" aria-hidden="true" />
+
+  <!-- 4. Invite Button -->
+  <button
+    mat-icon-button
+    type="button"
+    class="nexus-icon-control !size-11 !rounded-full"
+    matTooltip="Mời thành viên"
+    (click)="inviteClicked.emit()"
+  >
+    <mat-icon>person_add</mat-icon>
+  </button>
+
+  <!-- 5. Activities Button (Disabled with tooltip) -->
+  <button
+    mat-icon-button
+    type="button"
+    disabled
+    class="nexus-icon-control !size-11 !rounded-full !opacity-40"
+    matTooltip="Hoạt động sẽ sớm ra mắt"
+  >
+    <mat-icon>extension</mat-icon>
+  </button>
+
+  <!-- 6. Fullscreen Button -->
+  <button
+    mat-icon-button
+    type="button"
+    class="nexus-icon-control !size-11 !rounded-full"
+    [matTooltip]="isFullscreen() ? 'Thoát toàn màn hình' : 'Toàn màn hình'"
+    (click)="toggleFullscreen()"
+  >
+    <mat-icon>{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
+  </button>
+
+  <!-- 7. Disconnect / Leave Room Button -->
+  <button
+    mat-flat-button
+    type="button"
+    class="!h-11 !rounded-full !bg-danger !px-5 !text-white hover:!bg-danger/80 transition-all font-semibold"
+    matTooltip="Ngắt kết nối"
+    (click)="leaveRoom()"
+  >
+    <mat-icon class="!mr-1">call_end</mat-icon>
+    <span>Rời phòng</span>
+  </button>
+</div>

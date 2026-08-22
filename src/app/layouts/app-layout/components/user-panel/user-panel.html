@@ -1,84 +1,73 @@
+@if (isVoiceConnected()) {
+  <!-- Voice Connected Banner (Discord Style) -->
+  <div class="user-panel__voice-status flex items-center justify-between border-b border-hairline/60 pb-2 mb-2">
+    <div class="flex items-center gap-2 min-w-0">
+      <mat-icon class="!size-5 !text-xl text-primary animate-pulse">signal_cellular_alt</mat-icon>
+      <div class="min-w-0">
+        <span class="block truncate text-body-sm-medium text-primary font-bold">Đã Kết Nối Giọng Nói</span>
+        <span class="block truncate text-micro text-steel">#{{ voiceChannelName() }}</span>
+      </div>
+    </div>
+    <button
+      mat-icon-button
+      type="button"
+      class="!size-8 !text-danger hover:!bg-danger/20"
+      matTooltip="Ngắt kết nối"
+      (click)="disconnectVoice()"
+    >
+      <mat-icon class="!size-4 !text-base">call_end</mat-icon>
+    </button>
+  </div>
+
+  <!-- Voice Quick Action Toolbar -->
+  <div class="user-panel__voice-actions flex items-center justify-around border-b border-hairline/60 pb-2 mb-2">
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control !size-8"
+      [class.!text-primary]="isScreenSharing()"
+      [matTooltip]="isScreenSharing() ? 'Dừng chia sẻ' : 'Chia sẻ màn hình'"
+      (click)="toggleScreenShare()"
+    >
+      <mat-icon class="!size-4 !text-base">{{ isScreenSharing() ? 'stop_screen_share' : 'screen_share' }}</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control !size-8"
+      [class.!text-primary]="isCameraOn()"
+      [matTooltip]="isCameraOn() ? 'Tắt camera' : 'Bật camera'"
+      (click)="toggleCamera()"
+    >
+      <mat-icon class="!size-4 !text-base">{{ isCameraOn() ? 'videocam' : 'videocam_off' }}</mat-icon>
+    </button>
+  </div>
+}
+
+<div class="flex items-center justify-between w-full min-w-0">
 <button
   type="button"
-  cdkOverlayOrigin
-  #origin="cdkOverlayOrigin"
-  (click)="toggleProfileCard()"
-  [attr.aria-expanded]="popoverOpen()"
-  aria-haspopup="dialog"
+  [matMenuTriggerFor]="userMenu"
   class="user-panel__identity nexus-interactive-row"
 >
-  <app-avatar [name]="displayName()" [src]="avatarUrl()" size="sm" presence="online" ring="canvas" />
+  <app-avatar [name]="displayName()" size="sm" presence="online" ring="canvas" />
   <span class="user-panel__identity-copy">
     <span class="user-panel__name">{{ displayName() }}</span>
     <span class="user-panel__status">Trực tuyến</span>
   </span>
 </button>
 
-<!-- Thẻ hồ sơ nhỏ nổi ĐÈ LÊN giao diện, neo vào chính nút danh tính và mọc
-     LÊN TRÊN (thanh này nằm sát đáy màn hình, mọc xuống là bị cắt mất).
-     `push` để thẻ tự đẩy vào trong khi cửa sổ hẹp. -->
-<ng-template
-  cdkConnectedOverlay
-  [cdkConnectedOverlayOrigin]="origin"
-  [cdkConnectedOverlayOpen]="popoverOpen()"
-  [cdkConnectedOverlayHasBackdrop]="true"
-  cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
-  [cdkConnectedOverlayPush]="true"
-  [cdkConnectedOverlayPositions]="[
-    { originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom', offsetY: -8 },
-    { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top', offsetY: 8 }
-  ]"
-  (backdropClick)="popoverOpen.set(false)"
-  (detach)="popoverOpen.set(false)"
-  (overlayKeydown)="onOverlayKeydown($event)"
->
-  @if (store.profile(); as person) {
-    <!-- Một bảng duy nhất: hồ sơ ở trên, hành động ở dưới — thay vì bấm menu
-         rồi mới ra được thẻ hồ sơ như trước. -->
-    <app-profile-popover [profile]="person">
-      <div class="flex flex-col gap-0.5">
-        <a
-          [routerLink]="['/u', person.username]"
-          (click)="popoverOpen.set(false)"
-          class="flex items-center gap-3 rounded-md px-2.5 py-2 text-body-sm text-ink transition-colors hover:bg-surface-feature"
-        >
-          <mat-icon aria-hidden="true" class="size-5! text-[20px]! text-steel">account_circle</mat-icon>
-          Xem hồ sơ đầy đủ
-        </a>
-
-        <button
-          type="button"
-          (click)="openSettings()"
-          class="flex items-center gap-3 rounded-md px-2.5 py-2 text-left text-body-sm text-ink transition-colors hover:bg-surface-feature"
-        >
-          <mat-icon aria-hidden="true" class="size-5! text-[20px]! text-steel">settings</mat-icon>
-          Cài đặt người dùng
-        </button>
-
-        <button
-          type="button"
-          (click)="onSignOut()"
-          [disabled]="signingOut()"
-          class="flex items-center gap-3 rounded-md px-2.5 py-2 text-left text-body-sm text-danger transition-colors hover:bg-danger-surface disabled:text-muted"
-        >
-          <mat-icon aria-hidden="true" class="size-5! text-[20px]!">logout</mat-icon>
-          {{ signingOut() ? 'Đang đăng xuất…' : 'Đăng xuất' }}
-        </button>
-      </div>
-    </app-profile-popover>
-  } @else {
-    <!-- Khung xám giữ đúng hình dạng thẻ trong lúc hồ sơ đang về, để thẻ không
-         nhảy kích thước khi dữ liệu tới. -->
-    <div class="w-80 overflow-hidden rounded-lg border border-hairline bg-surface shadow-modal">
-      <div class="h-20 w-full animate-pulse bg-surface-soft"></div>
-      <div class="space-y-2 px-4 pb-4 pt-3">
-        <div class="h-5 w-32 animate-pulse rounded-sm bg-surface-soft"></div>
-        <div class="h-3 w-20 animate-pulse rounded-sm bg-surface-soft"></div>
-      </div>
-      <p aria-live="polite" class="sr-only">Đang tải hồ sơ.</p>
-    </div>
-  }
-</ng-template>
+<mat-menu #userMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal">
+  <button mat-menu-item type="button" (click)="openDeleteAccount()">
+    <mat-icon aria-hidden="true" class="!text-danger">person_remove</mat-icon>
+    <span class="text-danger font-semibold">Xóa tài khoản</span>
+  </button>
+  <button mat-menu-item type="button" (click)="onSignOut()" [disabled]="signingOut()">
+    <mat-icon aria-hidden="true" class="!text-danger">logout</mat-icon>
+    <span class="text-danger font-semibold">{{ signingOut() ? 'Đang đăng xuất…' : 'Đăng xuất' }}</span>
+  </button>
+</mat-menu>
 
 <div class="user-panel__controls" role="group" aria-label="Điều khiển âm thanh và ứng dụng">
   <button
@@ -109,12 +98,12 @@
     mat-icon-button
     type="button"
     class="user-panel__control user-panel__control--settings nexus-icon-control"
-    matTooltip="Cài đặt người dùng"
+    aria-label="Cài đặt"
+    matTooltip="Cài đặt"
     (click)="openSettings()"
   >
     <mat-icon aria-hidden="true">settings</mat-icon>
-    <span class="sr-only">Cài đặt người dùng</span>
   </button>
-
+</div>
 </div>
 

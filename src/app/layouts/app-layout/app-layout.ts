@@ -1,5 +1,12 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,8 +18,6 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ServersApiService } from '../../core/api/servers-api.service';
 import { ShellData } from '../../core/api/shell-data';
 import { ThemeService } from '../../core/theme/theme.service';
-import { DashboardAppearance } from '../../features/dashboard/services/dashboard-appearance';
-import { SettingsModal } from '../../features/settings/settings-modal';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
 
@@ -34,7 +39,6 @@ import { ServerRail } from './components/server-rail/server-rail';
     MatTooltipModule,
     RouterOutlet,
     ServerRail,
-    SettingsModal,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './app-layout.css',
@@ -48,7 +52,6 @@ export class AppLayout implements OnInit {
   private readonly serversApi = inject(ServersApiService);
   private readonly shell = inject(ShellData);
   protected readonly theme = inject(ThemeService).mode;
-  protected readonly atmosphere = inject(DashboardAppearance).atmosphere;
   private isHydrating = false;
 
   async ngOnInit(): Promise<void> {

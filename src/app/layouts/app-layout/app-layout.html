@@ -2,7 +2,6 @@
   class="dashboard-shell h-full"
   [hasBackdrop]="isCompact()"
   [attr.data-theme]="theme()"
-  [attr.data-atmosphere]="atmosphere()"
 >
   <mat-sidenav
     #drawer
@@ -36,9 +35,3 @@
     </main>
   </mat-sidenav-content>
 </mat-sidenav-container>
-
-<!-- Đặt ngoài mat-sidenav-container: modal dùng position:fixed để phủ toàn
-     màn hình, đặt bên trong dễ dính vào ngữ cảnh xếp lớp/scroll của sidenav.
-     Component tự ẩn/hiện qua settingsService.isOpen() nên mount thẳng, không
-     cần bọc thêm @if. -->
-<app-settings-modal />

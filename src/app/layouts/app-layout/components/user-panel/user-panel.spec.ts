@@ -5,7 +5,9 @@ import { ProfileService } from '../../../../core/profile/profile.service';
 import { UserPanel } from './user-panel';
 
 class AuthStub {
+  user = () => ({ email: 'mon@nexus.test' });
   signOut = () => Promise.resolve();
+  deleteAccount = () => Promise.resolve();
 }
 
 describe('UserPanel', () => {
@@ -98,6 +100,8 @@ describe('UserPanel', () => {
     ) as HTMLDivElement;
 
     expect(fixture.nativeElement.classList.contains('overflow-hidden')).toBe(true);
+    // mic + deafen + cài đặt. Nút gọi thoại cũng mang class này nhưng chỉ
+    // render khi đang trong cuộc gọi, nên không tính ở đây.
     expect(controls).toHaveLength(3);
     expect(controls.every((control) => control.classList.contains('user-panel__control'))).toBe(
       true,
@@ -107,15 +111,7 @@ describe('UserPanel', () => {
     expect(controlGroup.getAttribute('aria-label')).toBe('Điều khiển âm thanh và ứng dụng');
   });
 
-  /**
-   * Test này trước đây khẳng định nút cài đặt phải bị KHOÁ — nó là "integration
-   * seam" giữ chỗ trong lúc team Settings chưa dựng xong UI. Giờ SettingsModal
-   * đã có và đã được gắn vào app-layout, nên chỗ giữ chỗ đó thành nút thật.
-   *
-   * Vẫn kiểm rằng user-panel KHÔNG tự dựng UI cài đặt (chỉ gọi service) — đó
-   * mới là ý nghĩa còn giá trị của test cũ.
-   */
-  it('nút cài đặt bấm được và không tự dựng UI của team Settings', async () => {
+  it('để nút cài đặt có thể bấm tương tác như các control khác', async () => {
     const fixture = await mount();
     const settings = fixture.nativeElement.querySelector(
       'button.user-panel__control--settings',
@@ -125,6 +121,36 @@ describe('UserPanel', () => {
     expect(settings.disabled).toBe(false);
     expect(settings.textContent).toContain('settings');
     expect(settings.classList.contains('nexus-icon-control')).toBe(true);
-    expect(fixture.nativeElement.querySelector('app-settings-modal')).toBe(null);
+    expect(fixture.nativeElement.ownerDocument.body.querySelector('.nexus-settings-dialog')).toBe(
+      null,
+    );
+  });
+
+  it('mở hộp xác nhận xóa tài khoản từ menu hồ sơ', async () => {
+    const fixture = await mount();
+    (fixture.nativeElement.querySelector('button.user-panel__identity') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const deleteItem = Array.from(document.body.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Xóa tài khoản'),
+    ) as HTMLButtonElement;
+    expect(deleteItem).toBeTruthy();
+
+    deleteItem.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const dialog = document.body.querySelector('app-delete-account-dialog') as HTMLElement;
+    const submit = dialog.querySelector('.delete-account__submit') as HTMLButtonElement;
+    const input = dialog.querySelector('input') as HTMLInputElement;
+    expect(dialog.textContent).toContain('Hành động không thể hoàn tác');
+    expect(submit.disabled).toBe(true);
+
+    expect(dialog.textContent).toContain('mon@nexus.test');
+    input.value = 'mon@nexus.test';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(submit.disabled).toBe(false);
   });
 });

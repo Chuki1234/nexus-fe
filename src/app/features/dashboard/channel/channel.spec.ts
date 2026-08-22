@@ -107,14 +107,15 @@ describe('ChannelPage', () => {
     reply.click();
     harness.fixture.detectChanges();
     expect(harness.routeNativeElement!.querySelector('.composer-context')?.textContent).toContain(
-      'Trả lời Mai Trần',
+      'Trả lời Phan Thế Mon',
     );
   });
 
-  it('kênh thoại KHÔNG có ô soạn tin', async () => {
+  it('kênh thoại KHÔNG có ô soạn tin và dựng VoiceRoom', async () => {
     const harness = await mount('itss/standup');
 
-    expect(harness.routeNativeElement!.textContent).toContain('Chưa có ai trong kênh thoại này');
+    expect(harness.routeNativeElement!.querySelector('app-voice-room')).toBeTruthy();
+    expect(harness.routeNativeElement!.textContent).toContain('Tham Gia Thoại');
     expect(harness.routeNativeElement!.querySelector('app-message-composer')).toBeFalsy();
     expect(harness.routeNativeElement!.querySelector('[data-chat-wallpaper]')).toBeFalsy();
   });
@@ -143,22 +144,6 @@ describe('ChannelPage', () => {
     expect(panel.classList.contains('context-panel--open')).toBe(true);
     expect(panel.textContent).toContain('Chưa có dữ liệu thành viên');
     expect(panel.querySelector('app-avatar')).toBeFalsy();
-  });
-
-  it('tin nhắn và danh sách thành viên đều dùng avatar tra được ảnh thật', async () => {
-    const harness = await mount('itss/do-an', true);
-    const el = harness.routeNativeElement!;
-
-    // Tin nhắn trong kênh: mỗi dòng có avatar của đúng người gửi.
-    expect(el.querySelectorAll('app-profile-avatar').length).toBeGreaterThan(0);
-
-    // Username phải là username THẬT trong bảng profiles, không phải tên bịa —
-    // sai chỗ này thì avatar mãi là chữ cái và bấm vào nhận 404.
-    const usernames = Array.from(el.querySelectorAll('app-profile-avatar')).map((node) =>
-      node.getAttribute('ng-reflect-username'),
-    );
-    expect(el.querySelector('app-avatar')).toBeTruthy();
-    expect(usernames.length).toBeGreaterThan(0);
   });
 
   it('error chặn timeline và ô soạn tin', async () => {

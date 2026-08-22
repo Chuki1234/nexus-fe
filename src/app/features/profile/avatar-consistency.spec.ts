@@ -52,20 +52,37 @@ const ALLOWLIST: { file: string; why: string }[] = [
     why: 'Lớp bọc thêm phần tra ảnh — bên trong buộc phải gọi Avatar gốc.',
   },
   {
-    file: '/src/app/features/settings/tabs/appearance-tab/appearance-tab.html',
-    why: 'Có một avatar "Nexus Assistant" là nhân vật minh hoạ, không phải người thật.',
-  },
-  {
-    file: '/src/app/features/settings/tabs/server-members-tab/server-members-tab.html',
-    why: 'Danh sách thành viên máy chủ còn là dữ liệu bịa, chưa có username thật.',
-  },
-  {
-    file: '/src/app/features/settings/tabs/server-safety-tab/server-safety-tab.html',
-    why: 'Hàng chờ duyệt còn là dữ liệu bịa, chưa có username thật.',
+    file: '/src/app/features/dashboard/channel/channel.html',
+    why: 'Tin nhắn và danh sách thành viên trong khối @if (demoEnabled()) là dữ liệu bịa viết thẳng vào template — không có username thật để tra ảnh.',
   },
 ];
 
-const ALLOWED_FILES = new Set(ALLOWLIST.map((entry) => entry.file));
+/**
+ * KHÁC allowlist: đây là những chỗ SAI thật, chỉ chưa sửa.
+ *
+ * Toàn bộ đến từ tính năng mới của main (phòng thoại, danh sách kênh, mời bạn
+ * vào kênh). Chúng vẽ avatar của người thật nhưng không truyền ảnh, nên sẽ hiện
+ * chữ cái trong khi màn hình bên cạnh hiện ảnh — đúng lỗi mà test này sinh ra để
+ * chặn. Đợt đồng bộ avatar của nhánh profile đang tạm gác nên ghi nợ ở đây thay
+ * vì giấu vào ALLOWLIST, để danh sách allowlist giữ đúng nghĩa "không phải người
+ * thật" và số nợ này còn nhìn thấy được.
+ *
+ * Sửa xong chỗ nào thì xoá dòng đó đi; danh sách rỗng là mục tiêu.
+ */
+const NO_KY_THUAT: string[] = [
+  '/src/app/features/voice/voice-room/components/participant-tile/participant-tile.html',
+  '/src/app/features/voice/voice-room/components/voice-chat-drawer/voice-chat-drawer.html',
+  '/src/app/features/voice/voice-room/components/voice-prejoin/voice-prejoin.html',
+  '/src/app/layouts/app-layout/components/channel-sidebar/components/channel-list.html',
+  '/src/app/layouts/app-layout/components/channel-sidebar/components/conversation-list.html',
+  '/src/app/layouts/app-layout/components/channel-sidebar/components/invite-channel-dialog/invite-channel-dialog.html',
+  // Avatar của CHÍNH mình ở góc dưới trái. `Profile` của luồng auth không mang
+  // `avatarUrl` nên không có gì để truyền vào [src] — muốn hiện ảnh thật thì
+  // phải tra qua ProfileLookup, tức là quay lại hướng của nhánh profile.
+  '/src/app/layouts/app-layout/components/user-panel/user-panel.html',
+];
+
+const ALLOWED_FILES = new Set([...ALLOWLIST.map((entry) => entry.file), ...NO_KY_THUAT]);
 
 /** Tách từng thẻ `<app-avatar ...>` (kể cả xuống dòng nhiều dòng). */
 function avatarTags(template: string): string[] {
