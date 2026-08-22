@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { Session, User } from '@supabase/supabase-js';
 import { firstValueFrom } from 'rxjs';
@@ -150,6 +150,24 @@ export class AuthService {
     if (error) {
       throw error;
     }
+    this.currentSession.set(null);
+  }
+
+  /** Xóa vĩnh viễn tài khoản hiện tại rồi dọn phiên cục bộ. */
+  async deleteAccount(email: string): Promise<void> {
+    const token = this.accessToken();
+    if (!token) {
+      throw new Error('Phiên đăng nhập đã hết hạn.');
+    }
+
+    await firstValueFrom(
+      this.http.delete<void>(`${environment.apiUrl}/auth/account`, {
+        headers: new HttpHeaders({ Authorization: `Bearer ${token}` }),
+        body: { email },
+      }),
+    );
+
+    await this.supabase.client.auth.signOut({ scope: 'local' });
     this.currentSession.set(null);
   }
 }

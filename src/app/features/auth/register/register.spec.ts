@@ -39,6 +39,7 @@ describe('RegisterPage', () => {
     setInput('displayName', overrides['displayName'] ?? 'Bạn Của Tôi');
     setInput('username', overrides['username'] ?? 'ban_cua_toi');
     setInput('password', overrides['password'] ?? 'matkhau12345');
+    setInput('confirmPassword', overrides['confirmPassword'] ?? overrides['password'] ?? 'matkhau12345');
     setSelect('Ngày', overrides['day'] ?? '15');
     setSelect('Tháng', overrides['month'] ?? '6');
     setSelect('Năm', overrides['year'] ?? '2000');
@@ -74,6 +75,7 @@ describe('RegisterPage', () => {
     expect(fixture.nativeElement.querySelector('#email-error')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('#username-error')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('#password-error')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#confirm-password-error')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('#birthdate-error')).toBeTruthy();
   });
 
@@ -91,6 +93,16 @@ describe('RegisterPage', () => {
 
     expect(registration.register).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('#password-error').textContent).toContain('8 ký tự');
+  });
+
+  it('rejects registration when password confirmation does not match', async () => {
+    fillValidForm({ confirmPassword: 'matkhau-khac-123' });
+    await submit();
+
+    expect(registration.register).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('#confirm-password-error').textContent).toContain(
+      'chưa khớp',
+    );
   });
 
   it('rejects a day/month pair that does not exist', async () => {
@@ -161,6 +173,7 @@ describe('RegisterPage', () => {
       'đã có người dùng',
     );
     expect((fixture.nativeElement.querySelector('#password') as HTMLInputElement).value).toBe('');
+    expect((fixture.nativeElement.querySelector('#confirmPassword') as HTMLInputElement).value).toBe('');
     expect(auth.signIn).not.toHaveBeenCalled();
   });
 

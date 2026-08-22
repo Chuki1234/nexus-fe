@@ -1,0 +1,74 @@
+:host {
+  display: block;
+  width: min(28rem, calc(100vw - 2rem));
+}
+
+.delete-account {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 32%, var(--nexus-border-subtle));
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-modal);
+}
+
+.delete-account__mark {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+  color: var(--color-danger);
+}
+
+.delete-account__copy { display: grid; gap: 0.35rem; }
+.delete-account__copy h2 { margin: 0; font-size: 1.4rem; line-height: 1.2; }
+.delete-account__copy p { margin: 0; color: var(--color-steel); line-height: 1.55; }
+.delete-account__eyebrow { color: var(--color-danger) !important; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.delete-account__warning {
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-canvas));
+  color: var(--color-slate);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.delete-account__warning mat-icon { flex: 0 0 auto; color: var(--color-danger); }
+label { color: var(--color-slate); font-size: 0.8rem; }
+label strong { color: var(--color-ink); }
+
+input {
+  width: 100%;
+  height: 2.75rem;
+  box-sizing: border-box;
+  border: 1px solid var(--nexus-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0 0.8rem;
+  outline: none;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font: inherit;
+}
+
+input:focus-visible {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 18%, transparent);
+}
+
+.delete-account__error { margin: -0.35rem 0 0; color: var(--color-danger); font-size: 0.8rem; }
+.delete-account__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }
+.delete-account__submit:not(:disabled) { background: var(--color-danger); color: white; }
+
+@media (max-width: 32rem) {
+  .delete-account { padding: 1.125rem; }
+  .delete-account__actions { flex-direction: column-reverse; }
+  .delete-account__actions button { width: 100%; }
+}

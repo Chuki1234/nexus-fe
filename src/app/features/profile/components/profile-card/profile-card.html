@@ -1,0 +1,136 @@
+@let person = profile();
+
+<!-- Ảnh bìa. Chưa tải ảnh thì dùng dải màu chủ đạo — cùng màu ở mọi chỗ hồ sơ
+     này xuất hiện, để một người luôn mang một màu trong toàn ứng dụng. -->
+<div
+  class="relative w-full overflow-hidden"
+  [class.h-28]="bannerHeight() === 'sm'"
+  [class.h-40]="bannerHeight() === 'lg'"
+  [style.background]="
+    person.bannerUrl ? 'transparent' : 'linear-gradient(135deg, ' + bannerColor() + ' 0%, #001e2b 100%)'
+  "
+>
+  @if (person.bannerUrl; as banner) {
+    <img [src]="banner" alt="" decoding="async" class="size-full object-cover" />
+  }
+
+  <!-- Dải mờ dần ở đáy: ảnh bìa do người dùng tải lên có thể sáng bất kỳ, không
+       có dải này thì viền avatar chìm hẳn vào ảnh. -->
+  <div
+    aria-hidden="true"
+    class="absolute inset-x-0 bottom-0 h-12 bg-linear-to-t to-transparent"
+    [class.from-canvas]="surface() === 'canvas'"
+    [class.from-surface]="surface() === 'surface'"
+  ></div>
+</div>
+
+<div class="relative px-6 pb-6">
+  <!-- Avatar đè lên ảnh bìa, tên nằm dưới. Xếp cùng một dòng thì tên và nút bị
+       nhét vào đúng dải hẹp còn lại, chật và dính vào mép ảnh. -->
+  <div class="-mt-10 mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+    <app-avatar
+      class="rounded-full ring-4"
+      [class.ring-canvas]="surface() === 'canvas'"
+      [class.ring-surface]="surface() === 'surface'"
+      [name]="name()"
+      [src]="person.avatarUrl"
+      size="xl"
+      [ring]="surface()"
+    />
+
+    <div class="flex flex-wrap gap-2">
+      @if (person.isSelf) {
+        <a
+          routerLink="/settings"
+          class="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-button-md text-on-primary transition-colors hover:bg-primary-soft"
+        >
+          <mat-icon aria-hidden="true" class="size-4! text-[16px]!">edit</mat-icon>
+          Chỉnh sửa hồ sơ
+        </a>
+      } @else {
+        <a
+          [routerLink]="['/channels/@me', person.username]"
+          class="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-button-md text-on-primary transition-colors hover:bg-primary-soft"
+        >
+          <mat-icon aria-hidden="true" class="size-4! text-[16px]!">chat</mat-icon>
+          Nhắn tin
+        </a>
+      }
+    </div>
+  </div>
+
+  <h2 class="text-heading-4 text-ink">{{ name() }}</h2>
+  <p class="text-body-sm text-steel">&commat;{{ person.username }}</p>
+
+  @if (person.statusMessage; as status) {
+    <p
+      class="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-hairline bg-surface-soft px-3 py-1"
+    >
+      <span aria-hidden="true" class="size-2 shrink-0 rounded-full bg-primary"></span>
+      <span class="truncate text-caption text-charcoal">{{ status }}</span>
+    </p>
+  }
+
+  <dl class="mt-5 flex flex-wrap gap-x-8 gap-y-3 border-t border-hairline pt-4">
+    @if (person.location; as location) {
+      <div>
+        <dt class="text-micro-uppercase text-stone">Nơi ở</dt>
+        <dd class="mt-1 flex items-center gap-1.5 text-body-sm text-charcoal">
+          <mat-icon aria-hidden="true" class="size-4! text-[16px]! text-steel">location_on</mat-icon>
+          {{ location }}
+        </dd>
+      </div>
+    }
+    <div>
+      <dt class="text-micro-uppercase text-stone">Thành viên từ</dt>
+      <dd class="mt-1 flex items-center gap-1.5 text-body-sm text-charcoal">
+        <mat-icon aria-hidden="true" class="size-4! text-[16px]! text-steel">calendar_today</mat-icon>
+        {{ joined() }}
+      </dd>
+    </div>
+  </dl>
+
+  <section class="mt-5 border-t border-hairline pt-4">
+    <h3 class="text-micro-uppercase text-stone">Giới thiệu</h3>
+    @if (person.bio; as bio) {
+      <!-- whitespace-pre-line: giữ các dòng người dùng tự xuống. -->
+      <p class="mt-2 whitespace-pre-line text-body-sm text-charcoal">{{ bio }}</p>
+    } @else {
+      <p class="mt-2 text-body-sm text-muted">
+        {{ person.isSelf ? 'Bạn chưa viết gì về mình.' : 'Người này chưa viết phần giới thiệu.' }}
+      </p>
+    }
+  </section>
+
+  <section class="mt-5 border-t border-hairline pt-4">
+    <h3 class="text-micro-uppercase text-stone">Liên kết</h3>
+    @if (person.links.length) {
+      <ul class="mt-2 grid gap-2 sm:grid-cols-2">
+        @for (link of person.links; track link.url) {
+          <li>
+            <!-- rel: noopener chặn trang đích chạm vào window.opener; noreferrer
+                 giấu URL nguồn; nofollow vì link do người dùng tự nhập, Nexus
+                 không bảo chứng cho nó. -->
+            <a
+              [href]="link.url"
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              class="nexus-interactive-row flex items-center gap-3 rounded-lg border border-hairline px-3 py-2"
+            >
+              <mat-icon aria-hidden="true" class="shrink-0 text-steel">{{ iconFor(link.url) }}</mat-icon>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-body-sm-medium text-ink">{{ link.label }}</span>
+                <span class="block truncate text-caption text-steel">{{ shortUrl(link.url) }}</span>
+              </span>
+              <mat-icon aria-hidden="true" class="size-4! text-[16px]! shrink-0 text-stone">open_in_new</mat-icon>
+            </a>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="mt-2 text-body-sm text-muted">
+        {{ person.isSelf ? 'Bạn chưa thêm liên kết nào.' : 'Chưa có liên kết nào.' }}
+      </p>
+    }
+  </section>
+</div>

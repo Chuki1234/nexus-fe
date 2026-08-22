@@ -50,3 +50,7 @@ NEXUSCORD_MERGE_AUDIT.md
 # Local agent session context (per-machine, not for git)
 .claude/student-context.json
 
+# Skill của Claude Code cài theo máy, không phải code ứng dụng.
+.agents/
+skills-lock.json
+

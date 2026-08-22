@@ -24,8 +24,8 @@ import { CreateChannelDialog } from './components/create-channel-dialog/create-c
 import { ConversationList } from './components/conversation-list';
 
 /**
- * Cột 2 — cái vỏ: tiêu đề trên (với menu tùy chọn máy chủ), khối người dùng dưới,
- * ở giữa là một trong hai danh sách (kênh hoặc DM).
+ * Cột 2 — cái vỏ: tiêu đề trên, khối người dùng dưới,
+ * ở giữa là một trong hai danh sách.
  */
 @Component({
   selector: 'app-channel-sidebar',
@@ -34,10 +34,6 @@ import { ConversationList } from './components/conversation-list';
     ConversationList,
     SearchField,
     UserPanel,
-    MatIconModule,
-    MatButtonModule,
-    MatMenuModule,
-    MatTooltipModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface' },
