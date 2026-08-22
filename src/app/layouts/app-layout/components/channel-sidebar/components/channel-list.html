@@ -108,6 +108,24 @@
               }
             </div>
           </a>
+
+          <!-- Active Voice Channel Connected Members List (Discord Style) -->
+          @if (channel.type === 'voice' && voiceConnectedChannelId() === channel.id && voiceParticipants().length > 0) {
+            <div class="voice-channel-members pl-6 pr-2 py-1 flex flex-col gap-1">
+              @for (p of voiceParticipants(); track p.identity) {
+                <div class="voice-member-row flex items-center gap-2 rounded-md px-2 py-1 hover:bg-surface-feature/50 text-steel hover:text-ink transition-colors">
+                  <app-avatar [name]="p.name" size="xs" ring="surface" />
+                  <span class="truncate text-micro font-medium flex-1" [class.text-primary]="p.isSpeaking">{{ p.name }}</span>
+                  @if (p.isMuted) {
+                    <mat-icon class="!size-3.5 !text-xs text-danger">mic_off</mat-icon>
+                  }
+                  @if (p.isSpeaking) {
+                    <span class="size-1.5 rounded-full bg-primary animate-pulse"></span>
+                  }
+                </div>
+              }
+            </div>
+          }
         }
       </mat-nav-list>
     }

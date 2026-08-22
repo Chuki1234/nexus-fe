@@ -23,8 +23,12 @@ import {
 } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { ChannelSummary, ShellData } from '../../../../../core/api/shell-data';
+import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
+import { ChannelSettingsModal } from '../../../../../features/settings/modals/channel-settings-modal/channel-settings-modal';
+import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { UnreadBadge } from '../../../../../shared/ui/unread-badge/unread-badge';
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
+import { InviteChannelDialog } from './invite-channel-dialog/invite-channel-dialog';
 
 /** Nhãn nhóm theo loại kênh. Thứ tự trong mảng là thứ tự hiển thị. */
 const GROUPS = [
@@ -37,6 +41,7 @@ const GROUPS = [
 @Component({
   selector: 'app-channel-list',
   imports: [
+    Avatar,
     MatButtonModule,
     MatIconModule,
     MatListModule,
@@ -59,8 +64,12 @@ export class ChannelList {
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  readonly voiceRoom = inject(VoiceRoomService);
 
   readonly serverId = input.required<string>();
+
+  protected readonly voiceConnectedChannelId = this.voiceRoom.currentChannelId;
+  protected readonly voiceParticipants = this.voiceRoom.allParticipants;
 
   /** Quản lý trạng thái thu gọn/mở rộng từng nhóm kênh */
   protected readonly collapsedGroups = signal<Record<string, boolean>>({});
@@ -164,19 +173,45 @@ export class ChannelList {
   protected onInvite(event: Event, channel: ChannelSummary): void {
     event.preventDefault();
     event.stopPropagation();
-    // Integration seam: hành động tạo lời mời vào kênh
+
+    this.dialog.open(InviteChannelDialog, {
+      data: {
+        serverId: this.serverId(),
+        serverName: this.serverName(),
+        channelName: channel.name,
+        channelId: channel.id,
+      },
+      panelClass: 'nexus-dialog-overlay',
+      autoFocus: false,
+    });
   }
 
   protected onChannelSettings(event: Event, channel: ChannelSummary): void {
     event.preventDefault();
     event.stopPropagation();
-    // Integration seam: hành động mở cài đặt kênh
+
+    this.dialog.open(ChannelSettingsModal, {
+      data: {
+        serverId: this.serverId(),
+        channel,
+      },
+      panelClass: 'nexus-fullscreen-dialog-overlay',
+      maxWidth: '100vw',
+      maxHeight: '100vh',
+      width: '100vw',
+      height: '100vh',
+      autoFocus: false,
+    });
   }
 
   protected onOpenVoiceChat(event: Event, channel: ChannelSummary): void {
     event.preventDefault();
     event.stopPropagation();
-    // Integration seam: hành động mở khung chat riêng của kênh thoại
+
+    this.voiceRoom.openChatDrawer();
+    void this.router.navigate(['/channels', this.serverId(), channel.id], {
+      queryParams: { chat: 'open' },
+    });
   }
 
   protected onCategoryContextMenu(

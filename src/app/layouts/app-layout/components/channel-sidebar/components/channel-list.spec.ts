@@ -2,7 +2,9 @@ import { ComponentRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideRouter, Router } from '@angular/router';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChannelSummary, ShellData } from '../../../../../core/api/shell-data';
+import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
 import { ChannelList } from './channel-list';
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
 
@@ -16,7 +18,7 @@ describe('ChannelList', () => {
     await TestBed.configureTestingModule({
       imports: [ChannelList],
       providers: [
-        provideRouter([]),
+        provideRouter([{ path: '**', component: ChannelList }]),
         ShellData,
         { provide: MatDialog, useValue: mockDialog },
       ],
@@ -297,6 +299,73 @@ describe('ChannelList', () => {
         }),
       }),
     );
+  });
+
+  it('onInvite mở InviteChannelDialog', async () => {
+    const fixture = await mount('lofi', true);
+    const channel: ChannelSummary = {
+      id: 'chung',
+      name: 'chung',
+      type: 'text' as const,
+      topic: null,
+      unread: false,
+      mentionCount: 0,
+    };
+    const mockEvent = { preventDefault: vi.fn(), stopPropagation: vi.fn() } as unknown as Event;
+    fixture.componentInstance['onInvite'](mockEvent, channel);
+
+    expect(mockDialog.open).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          serverId: 'lofi',
+          channelName: 'chung',
+        }),
+      }),
+    );
+  });
+
+  it('onChannelSettings mở ChannelSettingsModal', async () => {
+    const fixture = await mount('lofi', true);
+    const channel: ChannelSummary = {
+      id: 'chung',
+      name: 'chung',
+      type: 'text' as const,
+      topic: null,
+      unread: false,
+      mentionCount: 0,
+    };
+    const mockEvent = { preventDefault: vi.fn(), stopPropagation: vi.fn() } as unknown as Event;
+    fixture.componentInstance['onChannelSettings'](mockEvent, channel);
+
+    expect(mockDialog.open).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          serverId: 'lofi',
+          channel,
+        }),
+      }),
+    );
+  });
+
+  it('onOpenVoiceChat kích hoạt openChatDrawer và điều hướng sang kênh', async () => {
+    const fixture = await mount('lofi', true);
+    const channel: ChannelSummary = {
+      id: 'phong-cho',
+      name: 'Phòng chờ',
+      type: 'voice' as const,
+      topic: null,
+      unread: false,
+      mentionCount: 0,
+    };
+    const mockEvent = { preventDefault: vi.fn(), stopPropagation: vi.fn() } as unknown as Event;
+    const voiceRoom = TestBed.inject(VoiceRoomService);
+    const openChatSpy = vi.spyOn(voiceRoom, 'openChatDrawer');
+
+    fixture.componentInstance['onOpenVoiceChat'](mockEvent, channel);
+
+    expect(openChatSpy).toHaveBeenCalled();
   });
 });
 

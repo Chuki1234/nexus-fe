@@ -109,21 +109,23 @@
 }
 
 .user-panel__control .mat-icon {
-  display: grid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 1.25rem;
   height: 1.25rem;
-  place-items: center;
   font-size: 1.25rem;
   line-height: 1;
+  margin: auto;
 }
 
-/* Glyph mic và headset có trọng tâm thị giác lệch nhẹ dù cùng hộp 20px. */
+/* Chuẩn hóa vi chỉnh quang học cho các glyph */
 .user-panel__control--mic .mat-icon {
-  transform: translateY(-0.03125rem);
+  transform: translateY(-0.02rem);
 }
 
 .user-panel__control--deafen .mat-icon {
-  transform: translateY(0.03125rem);
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

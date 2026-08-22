@@ -267,6 +267,32 @@ export class ShellData {
     });
   }
 
+  /**
+   * Cập nhật thông tin kênh (tên, topic, v.v.) trong live state.
+   */
+  updateChannel(serverId: string, channelId: string, patch: Partial<ChannelSummary>): void {
+    this.channelsByServer.update((current) => {
+      const existing = current[serverId] ?? [];
+      return {
+        ...current,
+        [serverId]: existing.map((c) => (c.id === channelId ? { ...c, ...patch } : c)),
+      };
+    });
+  }
+
+  /**
+   * Xóa một kênh khỏi danh sách kênh của server.
+   */
+  removeChannel(serverId: string, channelId: string): void {
+    this.channelsByServer.update((current) => {
+      const existing = current[serverId] ?? [];
+      return {
+        ...current,
+        [serverId]: existing.filter((c) => c.id !== channelId),
+      };
+    });
+  }
+
   /** Kéo một server lên server khác: tạo group mới tại đúng vị trí của server đích. */
   groupServers(sourceServerId: string, targetServerId: string): string | null {
     if (

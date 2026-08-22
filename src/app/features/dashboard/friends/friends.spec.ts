@@ -10,6 +10,7 @@ import {
   type DashboardUiStateName,
 } from '../services/dashboard-ui-state';
 import { FriendsPage } from './friends';
+import { FriendsStore } from './services/friends-store';
 
 describe('FriendsPage', () => {
   const PEOPLE: ConversationSummary[] = [
@@ -54,11 +55,28 @@ describe('FriendsPage', () => {
     const connectionState = signal<DashboardConnectionState | null>(
       uiState === 'offline' || uiState === 'reconnecting' ? uiState : null,
     ).asReadonly();
+    const friendStore = {
+      friends: signal(people).asReadonly(),
+      incomingRequests: signal([]).asReadonly(),
+      outgoingRequests: signal([]).asReadonly(),
+      loading: signal(false).asReadonly(),
+      sending: signal(false).asReadonly(),
+      busyIds: signal<ReadonlySet<string>>(new Set()).asReadonly(),
+      error: signal<string | null>(null).asReadonly(),
+      feedback: signal<string | null>(null).asReadonly(),
+      load: vi.fn().mockResolvedValue(undefined),
+      sendRequest: vi.fn().mockResolvedValue(true),
+      acceptRequest: vi.fn().mockResolvedValue(undefined),
+      deleteRequest: vi.fn().mockResolvedValue(undefined),
+      removeFriend: vi.fn().mockResolvedValue(undefined),
+      clearFeedback: vi.fn(),
+    };
     await TestBed.configureTestingModule({
       imports: [FriendsPage],
       providers: [
         provideRouter([]),
         { provide: ShellData, useValue: shell },
+        { provide: FriendsStore, useValue: friendStore },
         {
           provide: DashboardUiState,
           useValue: { blockingState, connectionState, clearPreview: async () => true },

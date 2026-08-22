@@ -294,6 +294,43 @@ html[data-theme='light'] {
 }
 
 /* ===========================================================================
+   MATERIAL ICONS OPTICAL CENTERING & ALIGNMENT
+   Căn giữa tuyệt đối (horizontal + vertical optical center) cho toàn bộ icon,
+   loại bỏ triệt để hiện tượng lệch baseline / tụt/trụng xuống dưới.
+   ========================================================================== */
+mat-icon,
+.mat-icon,
+.material-icons {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  overflow: hidden !important;
+  user-select: none !important;
+  line-height: 1 !important;
+  letter-spacing: normal !important;
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mat-mdc-icon-button,
+button.mat-mdc-icon-button,
+button[mat-icon-button] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.mat-mdc-icon-button .mat-icon,
+button[mat-icon-button] .mat-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: auto !important;
+  line-height: 1 !important;
+}
+
+/* ===========================================================================
    DASHBOARD SEMANTIC SURFACES — phân cấp bề mặt dùng chung
    Các token này giữ độ tương phản nhất quán cho dark/light mà không tạo thêm
    một hệ chọn palette riêng trong Dashboard.

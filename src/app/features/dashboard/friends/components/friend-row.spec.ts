@@ -71,7 +71,7 @@ describe('FriendRow', () => {
     expect(menu.textContent).toContain('Xóa khỏi danh sách bạn');
   });
 
-  it('mọi lệnh trong menu tùy chọn chỉ là preview và đều bị khóa', async () => {
+  it('chỉ bật hành động xóa bạn thuộc Phase Friends, các action khác vẫn khóa', async () => {
     const fixture = await mount();
     const trigger = fixture.nativeElement.querySelector(
       'button[aria-label="Tùy chọn cho ho_be"]',
@@ -85,7 +85,11 @@ describe('FriendRow', () => {
       document.body.querySelectorAll('.nexus-friend-options-menu button[mat-menu-item]'),
     ) as HTMLButtonElement[];
     expect(actions).toHaveLength(6);
-    expect(actions.every((action) => action.disabled)).toBe(true);
+    expect(actions.filter((action) => action.disabled)).toHaveLength(5);
+    expect(
+      actions.find((action) => action.textContent?.includes('Xóa khỏi danh sách bạn'))
+        ?.disabled,
+    ).toBe(false);
   });
 
   it('avatar nằm trong link DM và không dựng action hồ sơ của team khác', async () => {

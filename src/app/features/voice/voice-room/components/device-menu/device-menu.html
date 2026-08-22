@@ -1,0 +1,61 @@
+<mat-menu #menu="matMenu" class="nexus-device-menu !rounded-2xl !border !border-hairline !bg-surface shadow-modal">
+  @switch (kind()) {
+    @case ('audio') {
+      <div class="px-3 py-2 text-micro-uppercase font-semibold text-steel">Chọn Micro</div>
+      @for (device of audioInputs(); track device.deviceId) {
+        <button
+          mat-menu-item
+          type="button"
+          (click)="selectAudioInput(device.deviceId)"
+          class="flex items-center justify-between gap-2"
+        >
+          <span class="truncate text-body-sm text-ink">{{ device.label || 'Microphone ' + ($index + 1) }}</span>
+          @if (selectedAudioInput() === device.deviceId) {
+            <mat-icon class="!text-primary !size-5 !text-xl">check</mat-icon>
+          }
+        </button>
+      }
+      @if (audioInputs().length === 0) {
+        <div class="px-3 py-2 text-body-sm text-stone italic">Không tìm thấy micro</div>
+      }
+    }
+    @case ('video') {
+      <div class="px-3 py-2 text-micro-uppercase font-semibold text-steel">Chọn Camera</div>
+      @for (device of videoInputs(); track device.deviceId) {
+        <button
+          mat-menu-item
+          type="button"
+          (click)="selectVideoInput(device.deviceId)"
+          class="flex items-center justify-between gap-2"
+        >
+          <span class="truncate text-body-sm text-ink">{{ device.label || 'Camera ' + ($index + 1) }}</span>
+          @if (selectedVideoInput() === device.deviceId) {
+            <mat-icon class="!text-primary !size-5 !text-xl">check</mat-icon>
+          }
+        </button>
+      }
+      @if (videoInputs().length === 0) {
+        <div class="px-3 py-2 text-body-sm text-stone italic">Không tìm thấy camera</div>
+      }
+    }
+    @case ('output') {
+      <div class="px-3 py-2 text-micro-uppercase font-semibold text-steel">Chọn Loa / Tai nghe</div>
+      @for (device of audioOutputs(); track device.deviceId) {
+        <button
+          mat-menu-item
+          type="button"
+          (click)="selectAudioOutput(device.deviceId)"
+          class="flex items-center justify-between gap-2"
+        >
+          <span class="truncate text-body-sm text-ink">{{ device.label || 'Speaker ' + ($index + 1) }}</span>
+          @if (selectedAudioOutput() === device.deviceId) {
+            <mat-icon class="!text-primary !size-5 !text-xl">check</mat-icon>
+          }
+        </button>
+      }
+      @if (audioOutputs().length === 0) {
+        <div class="px-3 py-2 text-body-sm text-stone italic">Mặc định hệ thống</div>
+      }
+    }
+  }
+</mat-menu>

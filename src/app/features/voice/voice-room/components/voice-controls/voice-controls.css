@@ -1,0 +1,20 @@
+.voice-controls-bar {
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
+
+.voice-controls-bar button,
+.voice-controls-bar .nexus-icon-control {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.voice-controls-bar mat-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  margin: auto !important;
+}
+

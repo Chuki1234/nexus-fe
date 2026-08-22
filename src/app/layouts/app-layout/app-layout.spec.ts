@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -5,6 +6,7 @@ import { ServersApiService } from '../../core/api/servers-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
 import { dashboardRoutes } from '../../features/dashboard/dashboard.routes';
+import { FriendsStore } from '../../features/dashboard/friends/services/friends-store';
 
 class AuthServiceStub {
   whenReady = () => Promise.resolve();
@@ -42,6 +44,23 @@ class ServersApiServiceStub {
   listServers = () => Promise.resolve([]);
 }
 
+class FriendsStoreStub {
+  friends = signal([]).asReadonly();
+  incomingRequests = signal([]).asReadonly();
+  outgoingRequests = signal([]).asReadonly();
+  loading = signal(false).asReadonly();
+  sending = signal(false).asReadonly();
+  busyIds = signal<ReadonlySet<string>>(new Set()).asReadonly();
+  error = signal<string | null>(null).asReadonly();
+  feedback = signal<string | null>(null).asReadonly();
+  load = () => Promise.resolve();
+  sendRequest = () => Promise.resolve(true);
+  acceptRequest = () => Promise.resolve();
+  deleteRequest = () => Promise.resolve();
+  removeFriend = () => Promise.resolve();
+  clearFeedback = () => undefined;
+}
+
 describe('AppLayout', () => {
   let harness: RouterTestingHarness;
 
@@ -60,6 +79,7 @@ describe('AppLayout', () => {
         { provide: AuthService, useValue: new AuthServiceStub() },
         { provide: ProfileService, useValue: new ProfileServiceStub() },
         { provide: ServersApiService, useValue: new ServersApiServiceStub() },
+        { provide: FriendsStore, useValue: new FriendsStoreStub() },
       ],
     });
     harness = await RouterTestingHarness.create();
