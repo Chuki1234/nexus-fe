@@ -3,19 +3,21 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
 import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
 import { VoiceRoomService } from '../../../../features/voice/services/voice-room.service';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import { DeleteAccountDialog } from './delete-account-dialog';
 
 /**
  * Khối người dùng ở đáy cột 2: avatar, tên, và các nút mic / tai nghe / cài đặt.
  */
 @Component({
   selector: 'app-user-panel',
-  imports: [Avatar, MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule],
+  imports: [Avatar, MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule, MatDialogModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'm-2 mt-1 min-w-0 self-stretch overflow-hidden rounded-xl bg-canvas p-2 shadow-glow flex flex-col',
@@ -35,6 +37,7 @@ export class UserPanel {
   protected readonly voiceChannelName = this.voiceRoom.currentChannelName;
   protected readonly isCameraOn = this.voiceRoom.isCameraOn;
   protected readonly isScreenSharing = this.voiceRoom.isScreenSharing;
+  private readonly dialog = inject(MatDialog);
 
   protected readonly micMuted = signal(false);
   protected readonly deafened = signal(false);
@@ -71,5 +74,23 @@ export class UserPanel {
     } finally {
       this.signingOut.set(false);
     }
+  }
+
+  protected openDeleteAccount(): void {
+    const ref = this.dialog.open(DeleteAccountDialog, {
+      data: {
+        displayName: this.displayName(),
+        email: this.auth.user()?.email ?? this.profile.current()?.email ?? '',
+      },
+      autoFocus: '#delete-account-confirmation',
+      restoreFocus: true,
+      panelClass: 'nexus-delete-account-dialog',
+    });
+
+    ref.afterClosed().subscribe(async (deleted) => {
+      if (!deleted) return;
+      this.profile.reset();
+      await this.router.navigateByUrl('/login');
+    });
   }
 }

@@ -141,6 +141,42 @@
         }
       </div>
 
+      <div class="mb-5">
+        <label for="confirmPassword" class="mb-2 block text-body-sm-medium text-ink">
+          Xác nhận mật khẩu <span aria-hidden="true" class="text-danger">*</span>
+          <span class="sr-only">(bắt buộc)</span>
+        </label>
+        <div class="relative">
+          <input
+            id="confirmPassword"
+            [type]="confirmPasswordVisible() ? 'text' : 'password'"
+            formControlName="confirmPassword"
+            autocomplete="new-password"
+            [attr.aria-invalid]="showConfirmPasswordError()"
+            [attr.aria-describedby]="showConfirmPasswordError() ? 'confirm-password-error' : null"
+            class="w-full rounded-sm border border-hairline-strong bg-canvas py-3 pr-16 pl-4 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
+          />
+          <button
+            type="button"
+            (click)="toggleConfirmPasswordVisibility()"
+            [attr.aria-pressed]="confirmPasswordVisible()"
+            aria-controls="confirmPassword"
+            class="absolute inset-y-0 right-0 rounded-r-sm px-4 text-body-sm-medium text-slate hover:text-ink"
+          >
+            {{ confirmPasswordVisible() ? 'Ẩn' : 'Hiện' }}
+          </button>
+        </div>
+        @if (showConfirmPasswordError()) {
+          <p id="confirm-password-error" class="mt-2 text-body-sm text-danger">
+            @if (form.controls.confirmPassword.hasError('required')) {
+              Vui lòng nhập lại mật khẩu.
+            } @else {
+              Hai mật khẩu chưa khớp nhau.
+            }
+          </p>
+        }
+      </div>
+
       <fieldset formGroupName="birthdate" class="mb-6">
         <legend class="mb-2 text-body-sm-medium text-ink">
           Ngày sinh <span aria-hidden="true" class="text-danger">*</span>
@@ -200,10 +236,6 @@
           </p>
         }
       </fieldset>
-
-      <p class="mb-5 text-caption text-steel">
-        Khi nhấn “Tạo tài khoản”, bạn đồng ý với Điều khoản dịch vụ và Chính sách bảo mật của Nexus.
-      </p>
 
       <button
         type="submit"
