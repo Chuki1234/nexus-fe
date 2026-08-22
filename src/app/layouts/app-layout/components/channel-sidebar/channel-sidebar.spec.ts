@@ -2,6 +2,7 @@ import { ComponentRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
+import { of, Subject } from 'rxjs';
 import { ShellData } from '../../../../core/api/shell-data';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
@@ -17,8 +18,17 @@ class ProfileStub {
   reset = () => undefined;
 }
 
+interface MockMatDialog {
+  open: ReturnType<typeof vi.fn>;
+  openDialogs: unknown[];
+  afterOpened: Subject<unknown>;
+  afterAllClosed: Subject<unknown>;
+  _getAfterOpened?: () => Subject<unknown>;
+  _getAfterAllClosed?: () => Subject<unknown>;
+}
+
 describe('ChannelSidebar', () => {
-  let mockDialog: { open: ReturnType<typeof vi.fn> };
+  let mockDialog: MockMatDialog;
   let mockSettingsService: {
     canAccessServerSettings: ReturnType<typeof vi.fn>;
     canManageOverview: ReturnType<typeof vi.fn>;
@@ -30,7 +40,18 @@ describe('ChannelSidebar', () => {
   };
 
   const mount = async (serverId: string | null, shell: ShellData = new ShellData()) => {
-    mockDialog = { open: vi.fn() };
+    mockDialog = {
+      open: vi.fn().mockReturnValue({
+        afterClosed: () => of(null),
+        afterOpened: () => of(null),
+        componentInstance: {},
+      }),
+      openDialogs: [] as unknown[],
+      afterOpened: new Subject(),
+      afterAllClosed: new Subject(),
+      _getAfterOpened: () => new Subject(),
+      _getAfterAllClosed: () => new Subject(),
+    };
     mockSettingsService = {
       canAccessServerSettings: vi.fn().mockReturnValue(true),
       canManageOverview: vi.fn().mockReturnValue(true),
@@ -130,10 +151,11 @@ describe('ChannelSidebar', () => {
     const shell = new ShellData();
     shell.setDemoEnabled(true);
     const fixture = await mount('lofi', shell);
+    const dialogSpy = vi.spyOn(fixture.componentInstance['dialog'], 'open');
 
     fixture.componentInstance['openCreateChannelDialog']();
 
-    expect(mockDialog.open).toHaveBeenCalledWith(
+    expect(dialogSpy).toHaveBeenCalledWith(
       CreateChannelDialog,
       expect.objectContaining({
         data: expect.objectContaining({

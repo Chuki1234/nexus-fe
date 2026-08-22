@@ -32,6 +32,10 @@ import { ConversationList } from './components/conversation-list';
   imports: [
     ChannelList,
     ConversationList,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatTooltipModule,
     SearchField,
     UserPanel,
   ],

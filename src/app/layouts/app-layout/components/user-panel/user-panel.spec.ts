@@ -100,7 +100,7 @@ describe('UserPanel', () => {
     ) as HTMLDivElement;
 
     expect(fixture.nativeElement.classList.contains('overflow-hidden')).toBe(true);
-    expect(controls).toHaveLength(2);
+    expect(controls).toHaveLength(3);
     expect(controls.every((control) => control.classList.contains('user-panel__control'))).toBe(
       true,
     );

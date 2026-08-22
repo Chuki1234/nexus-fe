@@ -1,0 +1,143 @@
+<div class="space-y-8">
+  <!-- Header -->
+  <div>
+    <h2 class="text-heading-4 font-bold text-ink">Ngôn Ngữ & Thời Gian</h2>
+    <p class="text-caption text-steel mt-1">
+      Chọn ngôn ngữ bạn muốn sử dụng, định dạng ngày giờ và ngày đầu tuần trong Nexus.
+    </p>
+  </div>
+
+  <!-- Language Selection Grid -->
+  <div class="space-y-3">
+    <span class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider">
+      NGÔN NGỮ HIỂN THỊ
+    </span>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      @for (lang of languages; track lang.code) {
+        <button
+          type="button"
+          (click)="selectLanguage(lang.code)"
+          class="text-left rounded-xl p-4 border transition-all flex items-center justify-between"
+          [class.border-primary]="settingsService.preferences().language === lang.code"
+          [class.bg-surface-feature/30]="settingsService.preferences().language === lang.code"
+          [class.border-hairline]="settingsService.preferences().language !== lang.code"
+          [class.bg-surface]="settingsService.preferences().language !== lang.code"
+          [class.hover:border-hairline-strong]="settingsService.preferences().language !== lang.code"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">{{ lang.flag }}</span>
+            <div>
+              <span class="block text-body-sm-medium font-bold text-ink">{{ lang.nativeName }}</span>
+              <span class="block text-caption text-steel">{{ lang.englishName }}</span>
+            </div>
+          </div>
+
+          @if (settingsService.preferences().language === lang.code) {
+            <mat-icon class="!w-5 !h-5 !text-[20px] text-primary">check_circle</mat-icon>
+          }
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Time Format & Calendar Settings Card -->
+  <div class="rounded-xl border border-hairline bg-surface p-6 space-y-6">
+    <!-- Time Format -->
+    <div class="space-y-3">
+      <h3 class="text-heading-5 font-bold text-ink flex items-center gap-2">
+        <mat-icon class="text-primary">schedule</mat-icon>
+        Định dạng thời gian
+      </h3>
+      <p class="text-caption text-steel">
+        Chọn cách định dạng mốc thời gian xuất hiện bên cạnh tin nhắn của bạn bè.
+      </p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <button
+          type="button"
+          (click)="setTimeFormat('24h')"
+          class="text-left rounded-lg p-3.5 border transition-all"
+          [class.border-primary]="settingsService.preferences().timeFormat === '24h'"
+          [class.bg-surface-feature/30]="settingsService.preferences().timeFormat === '24h'"
+          [class.border-hairline]="settingsService.preferences().timeFormat !== '24h'"
+          [class.bg-canvas]="settingsService.preferences().timeFormat !== '24h'"
+        >
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-body-sm-medium font-bold text-ink">Định dạng 24 giờ</span>
+            <input
+              type="radio"
+              name="time-format"
+              [checked]="settingsService.preferences().timeFormat === '24h'"
+              class="accent-primary w-4 h-4 cursor-pointer"
+            />
+          </div>
+          <span class="font-mono text-caption text-primary font-bold">14:35:00</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="setTimeFormat('12h')"
+          class="text-left rounded-lg p-3.5 border transition-all"
+          [class.border-primary]="settingsService.preferences().timeFormat === '12h'"
+          [class.bg-surface-feature/30]="settingsService.preferences().timeFormat === '12h'"
+          [class.border-hairline]="settingsService.preferences().timeFormat !== '12h'"
+          [class.bg-canvas]="settingsService.preferences().timeFormat !== '12h'"
+        >
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-body-sm-medium font-bold text-ink">Định dạng 12 giờ (AM/PM)</span>
+            <input
+              type="radio"
+              name="time-format"
+              [checked]="settingsService.preferences().timeFormat === '12h'"
+              class="accent-primary w-4 h-4 cursor-pointer"
+            />
+          </div>
+          <span class="font-mono text-caption text-primary font-bold">02:35 PM</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- First Day of Week -->
+    <div class="pt-4 border-t border-hairline/60 space-y-3">
+      <span class="block text-body-sm font-bold text-ink">Ngày bắt đầu tuần</span>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <button
+          type="button"
+          (click)="setFirstDayOfWeek('monday')"
+          class="text-left rounded-lg p-3 border transition-all flex items-center justify-between"
+          [class.border-primary]="settingsService.preferences().firstDayOfWeek === 'monday'"
+          [class.bg-surface-feature/20]="settingsService.preferences().firstDayOfWeek === 'monday'"
+          [class.border-hairline]="settingsService.preferences().firstDayOfWeek !== 'monday'"
+          [class.bg-canvas]="settingsService.preferences().firstDayOfWeek !== 'monday'"
+        >
+          <span class="text-body-sm font-semibold text-ink">Thứ Hai</span>
+          <input
+            type="radio"
+            name="first-day"
+            [checked]="settingsService.preferences().firstDayOfWeek === 'monday'"
+            class="accent-primary w-4 h-4"
+          />
+        </button>
+
+        <button
+          type="button"
+          (click)="setFirstDayOfWeek('sunday')"
+          class="text-left rounded-lg p-3 border transition-all flex items-center justify-between"
+          [class.border-primary]="settingsService.preferences().firstDayOfWeek === 'sunday'"
+          [class.bg-surface-feature/20]="settingsService.preferences().firstDayOfWeek === 'sunday'"
+          [class.border-hairline]="settingsService.preferences().firstDayOfWeek !== 'sunday'"
+          [class.bg-canvas]="settingsService.preferences().firstDayOfWeek !== 'sunday'"
+        >
+          <span class="text-body-sm font-semibold text-ink">Chủ Nhật</span>
+          <input
+            type="radio"
+            name="first-day"
+            [checked]="settingsService.preferences().firstDayOfWeek === 'sunday'"
+            class="accent-primary w-4 h-4"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

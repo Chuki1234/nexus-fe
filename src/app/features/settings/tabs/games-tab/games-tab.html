@@ -1,0 +1,122 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-heading-4 font-bold text-ink">Trò chơi đã đăng ký</h2>
+      <p class="text-caption text-steel mt-1">
+        Tự động phát hiện các trò chơi bạn đang chơi và hiển thị trạng thái tới bạn bè.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      (click)="isAddingGame.set(!isAddingGame())"
+      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary hover:bg-primary-soft text-on-primary text-body-sm font-semibold transition-all shadow-sm active:scale-95"
+    >
+      <mat-icon class="!w-4 !h-4 !text-[16px]">add</mat-icon>
+      Thêm trò chơi
+    </button>
+  </div>
+
+  @if (isAddingGame()) {
+    <div class="rounded-xl border border-primary/40 bg-surface-feature/20 p-4 space-y-3 animate-slide-up">
+      <div class="flex items-center justify-between">
+        <span class="text-body-sm-medium font-bold text-ink">Không thấy game của bạn?</span>
+        <button type="button" (click)="isAddingGame.set(false)" class="text-steel hover:text-ink">
+          <mat-icon class="!w-4 !h-4">close</mat-icon>
+        </button>
+      </div>
+      <p class="text-caption text-steel">
+        Chọn một ứng dụng hoặc tiến trình đang chạy trên máy tính của bạn:
+      </p>
+      <div class="flex items-center gap-3">
+        <select class="flex-1 bg-canvas border border-hairline-strong rounded-lg px-3 py-2 text-body-sm text-ink focus:outline-none">
+          <option>Spotify.exe (Tiến trình âm nhạc)</option>
+          <option>Visual Studio Code (Trình soạn thảo)</option>
+          <option>Google Chrome (Trình duyệt)</option>
+          <option>Steam.exe</option>
+        </select>
+        <button
+          type="button"
+          (click)="isAddingGame.set(false)"
+          class="px-4 py-2 rounded-lg bg-primary text-on-primary text-caption font-bold"
+        >
+          Thêm vào danh sách
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Auto Detect Switch Card -->
+  <div class="rounded-xl border border-hairline bg-surface p-5 flex items-center justify-between gap-4">
+    <div>
+      <span class="block text-body-sm-medium font-bold text-ink">Tự động phát hiện trò chơi đang chạy</span>
+      <span class="text-caption text-steel">Quét các tiến trình game được hỗ trợ khi mở ứng dụng Nexus.</span>
+    </div>
+    <mat-slide-toggle
+      [checked]="settingsService.preferences().autoDetectGames"
+      (change)="toggleAutoDetect($event.checked)"
+    />
+  </div>
+
+  <!-- Registered Games List Table -->
+  <div class="space-y-3">
+    <span class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider">
+      DANH SÁCH GAME CỦA BẠN
+    </span>
+
+    <div class="rounded-xl border border-hairline bg-surface overflow-hidden divide-y divide-hairline">
+      @for (game of settingsService.registeredGames(); track game.id) {
+        <div class="p-4 flex items-center justify-between gap-4 hover:bg-surface-soft/40 transition-colors">
+          <div class="flex items-center gap-3.5 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-surface-feature text-primary flex items-center justify-center shrink-0 border border-hairline">
+              <mat-icon class="!w-5 !h-5 !text-[20px]">{{ game.icon }}</mat-icon>
+            </div>
+            <div class="min-w-0">
+              <span class="block text-body-sm-medium font-bold text-ink truncate">{{ game.name }}</span>
+              <span class="block text-caption text-steel">Chơi lần cuối: {{ game.lastPlayed }}</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-6 shrink-0">
+            <!-- Overlay Toggle -->
+            <div class="flex items-center gap-2">
+              <span class="text-caption text-steel hidden sm:inline">Overlay</span>
+              <button
+                type="button"
+                (click)="settingsService.toggleGameOverlay(game.id)"
+                class="w-8 h-8 rounded-lg border flex items-center justify-center transition-colors"
+                [class.bg-primary/20]="game.overlayEnabled"
+                [class.border-primary]="game.overlayEnabled"
+                [class.text-primary]="game.overlayEnabled"
+                [class.border-hairline]="!game.overlayEnabled"
+                [class.text-stone]="!game.overlayEnabled"
+                title="Bật/tắt Game Overlay"
+              >
+                <mat-icon class="!w-4 !h-4 !text-[16px]">{{ game.overlayEnabled ? 'layers' : 'layers_clear' }}</mat-icon>
+              </button>
+            </div>
+
+            <!-- Status Display Toggle -->
+            <div class="flex items-center gap-2">
+              <span class="text-caption text-steel hidden sm:inline">Trạng thái</span>
+              <button
+                type="button"
+                (click)="settingsService.toggleGameStatus(game.id)"
+                class="w-8 h-8 rounded-lg border flex items-center justify-center transition-colors"
+                [class.bg-primary/20]="game.statusEnabled"
+                [class.border-primary]="game.statusEnabled"
+                [class.text-primary]="game.statusEnabled"
+                [class.border-hairline]="!game.statusEnabled"
+                [class.text-stone]="!game.statusEnabled"
+                title="Bật/tắt hiển thị trạng thái"
+              >
+                <mat-icon class="!w-4 !h-4 !text-[16px]">{{ game.statusEnabled ? 'visibility' : 'visibility_off' }}</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
