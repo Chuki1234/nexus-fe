@@ -4,7 +4,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { ShellData } from '../../../../../core/api/shell-data';
-import { Avatar } from '../../../../../shared/ui/avatar/avatar';
+import { ProfileAvatar } from '../../../../../features/profile/components/profile-avatar/profile-avatar';
 import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
 
 /**
@@ -16,10 +16,10 @@ import { SectionLabel } from '../../../../../shared/ui/section-label/section-lab
 @Component({
   selector: 'app-conversation-list',
   imports: [
-    Avatar,
     MatIconModule,
     MatListModule,
     MatTooltipModule,
+    ProfileAvatar,
     RouterLink,
     RouterLinkActive,
     SectionLabel,

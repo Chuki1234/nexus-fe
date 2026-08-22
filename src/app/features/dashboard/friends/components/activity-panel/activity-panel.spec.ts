@@ -6,6 +6,7 @@ describe('ActivityPanel', () => {
   const ONLINE: ConversationSummary = {
     id: 'will',
     name: 'Will',
+    username: null,
     statusMessage: 'Đang học Angular',
     presence: 'online',
     unread: false,

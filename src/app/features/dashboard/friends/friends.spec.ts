@@ -17,6 +17,7 @@ describe('FriendsPage', () => {
     {
       id: 'mai',
       name: 'Mai',
+      username: null,
       statusMessage: 'Đang học Angular',
       presence: 'online',
       unread: false,
@@ -24,6 +25,7 @@ describe('FriendsPage', () => {
     {
       id: 'nam',
       name: 'Nam',
+      username: null,
       statusMessage: null,
       presence: 'offline',
       unread: false,
@@ -134,7 +136,7 @@ describe('FriendsPage', () => {
 
     expect(demoButton.getAttribute('aria-pressed')).toBe('true');
     expect(fixture.nativeElement.querySelectorAll('app-friend-row').length).toBe(6);
-    expect(fixture.nativeElement.textContent).toContain('Phan Thế Mon');
+    expect(fixture.nativeElement.textContent).toContain('Mai Trần');
 
     demoButton.click();
     fixture.detectChanges();

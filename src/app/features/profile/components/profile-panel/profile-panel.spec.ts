@@ -23,8 +23,9 @@ const MAI: PublicProfile = {
 const DUC: PublicProfile = { ...MAI, id: 'u2', username: 'ducpham', displayName: 'Đức Phạm' };
 
 async function setup(
-  username: string,
+  username: string | null,
   getByUsername: (u: string) => Promise<PublicProfile>,
+  fallback?: { name: string; status?: string | null },
 ): Promise<ComponentFixture<ProfilePanel>> {
   TestBed.configureTestingModule({
     providers: [
@@ -35,6 +36,10 @@ async function setup(
   });
   const fixture = TestBed.createComponent(ProfilePanel);
   fixture.componentRef.setInput('username', username);
+  if (fallback) {
+    fixture.componentRef.setInput('fallbackName', fallback.name);
+    fixture.componentRef.setInput('fallbackStatus', fallback.status ?? null);
+  }
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
@@ -68,10 +73,42 @@ describe('ProfilePanel', () => {
     expect(text).not.toContain('Mai Trần');
   });
 
-  it('chưa có dữ liệu thì hiện khung xám chứ không phải cột trống', async () => {
-    const fixture = await setup('khongco', () => Promise.reject(new Error('404')));
+  it('không có hồ sơ thì vẫn vẽ bằng tên lấy từ cuộc trò chuyện, không kẹt khung xám', async () => {
+    const fixture = await setup('khongco', () => Promise.reject(new Error('404')), {
+      name: 'ho_be',
+      status: 'shut the fckup',
+    });
+    const el = fixture.nativeElement as HTMLElement;
 
-    expect((fixture.nativeElement as HTMLElement).querySelector('.animate-pulse')).not.toBeNull();
+    expect(el.querySelector('.animate-pulse')).toBeNull();
+    expect(el.textContent).toContain('ho_be');
+    expect(el.textContent).toContain('shut the fckup');
+    expect(el.textContent).toContain('Người này chưa có hồ sơ công khai.');
+  });
+
+  it('username rỗng thì không gọi API, vẽ luôn bằng tên dự phòng', async () => {
+    let calls = 0;
+    const fixture = await setup(
+      null,
+      () => {
+        calls += 1;
+        return Promise.reject(new Error('không được phép gọi'));
+      },
+      { name: 'Lofi', status: 'Đang phát nhạc' },
+    );
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(calls).toBe(0);
+    expect(el.querySelector('.animate-pulse')).toBeNull();
+    expect(el.textContent).toContain('Lofi');
+  });
+
+  it('không có hồ sơ thì KHÔNG hiện nút sang trang hồ sơ đầy đủ', async () => {
+    const fixture = await setup('khongco', () => Promise.reject(new Error('404')), {
+      name: 'ho_be',
+    });
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('a[href^="/u/"]')).toBeNull();
   });
 
   it('có đường sang trang hồ sơ đầy đủ', async () => {

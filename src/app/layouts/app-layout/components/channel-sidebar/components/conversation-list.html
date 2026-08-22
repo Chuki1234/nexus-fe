@@ -44,9 +44,13 @@
         matListItemIcon
         class="conversation-avatar-slot !mr-3 !flex !size-8 !min-w-8 !items-center !justify-center !overflow-visible"
       >
-        <app-avatar
+        <!-- `clickable` tắt: cả dòng đã là link mở cuộc trò chuyện, thêm một
+             vùng bấm riêng bên trong sẽ nuốt mất cú bấm vào dòng. -->
+        <app-profile-avatar
+          [username]="conversation.username"
           [name]="conversation.name"
           [presence]="conversation.presence"
+          [clickable]="false"
           size="sm"
           ring="surface"
         />

@@ -30,7 +30,7 @@
         <section class="chat-intro max-w-2xl">
           <span class="chat-intro__avatar flex w-fit" aria-hidden="true">
             <app-profile-avatar
-              [username]="person.id"
+              [username]="person.username"
               [name]="person.name"
               [presence]="person.presence"
               [clickable]="false"
@@ -51,7 +51,7 @@
           <ol class="message-list mt-6 grid gap-2.5" aria-label="Tin nhắn trực tiếp demo">
             <li class="message-row" data-demo-message="dm-1">
               <app-profile-avatar
-                [username]="person.id"
+                [username]="person.username"
                 [name]="person.name"
                 [presence]="person.presence"
                 size="md"
@@ -119,7 +119,7 @@
 
             <li class="message-row" data-demo-message="dm-3">
               <app-profile-avatar
-                [username]="person.id"
+                [username]="person.username"
                 [name]="person.name"
                 [presence]="person.presence"
                 size="md"
@@ -164,7 +164,11 @@
       [open]="profilePanelOpen()"
       (closed)="profilePanelOpen.set(false)"
     >
-      <app-profile-panel [username]="person.id" />
+      <app-profile-panel
+        [username]="person.username"
+        [fallbackName]="person.name"
+        [fallbackStatus]="person.statusMessage"
+      />
     </app-context-panel>
   </div>
 } @else {

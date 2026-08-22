@@ -1,6 +1,6 @@
-@if (clickable()) {
+@if (interactive()) {
   <app-avatar
-    [appProfileTrigger]="username()"
+    [appProfileTrigger]="username() ?? ''"
     [attr.aria-label]="'Xem hồ sơ của ' + name()"
     [name]="name()"
     [src]="avatarUrl()"

@@ -43,6 +43,14 @@ export interface ConversationSummary {
   id: string;
   /** Tên hiển thị của người bên kia (DM 1-1). */
   name: string;
+  /**
+   * Username hồ sơ thật, để tra ảnh đại diện và cột hồ sơ bên phải.
+   *
+   * Tách riêng khỏi `id` vì hai thứ này không trùng nhau: `id` là mã cuộc trò
+   * chuyện nằm trên URL, còn đây là danh tính người dùng. `null` với nhân vật
+   * dựng sẵn hoặc bot — những người không có hồ sơ để tra.
+   */
+  username: string | null;
   statusMessage: string | null;
   presence: PresenceStatus;
   unread: boolean;
@@ -121,10 +129,16 @@ const DEMO_CHANNELS_BY_SERVER: Record<string, ChannelSummary[]> = {
   ],
 };
 
+/**
+ * `username` chỉ điền khi tài khoản đó CÓ THẬT trong database (chạy
+ * `npm run seed` bên nexus-be). Điền bừa một username không tồn tại thì cột hồ
+ * sơ bên phải lại quay về cảnh chờ mãi không ra gì.
+ */
 const DEMO_CONVERSATIONS: ConversationSummary[] = [
   {
     id: 'mon',
-    name: 'Phan Thế Mon',
+    name: 'Mai Trần',
+    username: 'maitran',
     statusMessage: null,
     presence: 'online',
     unread: false,
@@ -132,22 +146,39 @@ const DEMO_CONVERSATIONS: ConversationSummary[] = [
   {
     id: 'ho-be',
     name: 'ho_be',
+    username: null,
     statusMessage: 'shut the fckup',
     presence: 'dnd',
     unread: true,
   },
   {
     id: 'minh-tai',
-    name: 'NguyenMinhTai',
+    name: 'Hoàng Lê',
+    username: 'hoangle',
     statusMessage: null,
     presence: 'online',
     unread: false,
   },
-  { id: 'binh', name: "bình'", statusMessage: null, presence: 'idle', unread: false },
-  { id: 'cyrus', name: 'Cyrus', statusMessage: null, presence: 'offline', unread: false },
+  {
+    id: 'binh',
+    name: "bình'",
+    username: null,
+    statusMessage: null,
+    presence: 'idle',
+    unread: false,
+  },
+  {
+    id: 'cyrus',
+    name: 'Đức Phạm',
+    username: 'ducpham',
+    statusMessage: null,
+    presence: 'offline',
+    unread: false,
+  },
   {
     id: 'lofi-bot',
     name: 'Lofi',
+    username: null,
     statusMessage: 'Đang phát nhạc',
     presence: 'online',
     unread: false,

@@ -9,7 +9,8 @@ import {
 } from './friends-api';
 
 export interface FriendListPerson extends ConversationSummary {
-  username?: string;
+  // `username` kế thừa từ ConversationSummary — trước đây khai lại ở đây thành
+  // `string | undefined`, giờ dùng chung một kiểu `string | null` cho cả hai.
   avatarUrl?: string | null;
 }
 

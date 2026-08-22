@@ -25,7 +25,11 @@ type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   styleUrl: './profile-avatar.css',
 })
 export class ProfileAvatar {
-  readonly username = input.required<string>();
+  /**
+   * `null` khi người này không có hồ sơ để tra (nhân vật dựng sẵn, bot). Lúc đó
+   * component rơi về đúng hành vi của `Avatar` gốc: chữ cái đầu, không bấm được.
+   */
+  readonly username = input.required<string | null>();
   /** Tên hiển thị dùng cho chữ cái dự phòng và nhãn trợ năng. */
   readonly name = input.required<string>();
   readonly size = input<AvatarSize>('md');
@@ -36,7 +40,13 @@ export class ProfileAvatar {
 
   private readonly lookup = inject(ProfileLookup);
 
-  private readonly profile = computed(() => this.lookup.profileFor(this.username())());
+  private readonly profile = computed(() => {
+    const key = this.username();
+    return key ? this.lookup.profileFor(key)() : null;
+  });
 
   protected readonly avatarUrl = computed(() => this.profile()?.avatarUrl ?? null);
+
+  /** Không có username thì không có hồ sơ để mở, dù nơi gọi có bật `clickable`. */
+  protected readonly interactive = computed(() => this.clickable() && !!this.username());
 }

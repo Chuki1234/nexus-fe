@@ -92,6 +92,7 @@ describe('ServerRail', () => {
       {
         id: 'dm-1',
         name: 'Lofi Girl',
+        username: null,
         statusMessage: null,
         presence: 'online',
         unread: false,

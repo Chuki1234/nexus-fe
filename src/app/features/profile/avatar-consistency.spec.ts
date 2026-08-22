@@ -86,7 +86,6 @@ const NO_KY_THUAT: string[] = [
   '/src/app/features/voice/voice-room/components/voice-chat-drawer/voice-chat-drawer.html',
   '/src/app/features/voice/voice-room/components/voice-prejoin/voice-prejoin.html',
   '/src/app/layouts/app-layout/components/channel-sidebar/components/channel-list.html',
-  '/src/app/layouts/app-layout/components/channel-sidebar/components/conversation-list.html',
   '/src/app/layouts/app-layout/components/channel-sidebar/components/invite-channel-dialog/invite-channel-dialog.html',
   // Avatar của CHÍNH mình ở góc dưới trái. `Profile` của luồng auth không mang
   // `avatarUrl` nên không có gì để truyền vào [src] — muốn hiện ảnh thật thì
