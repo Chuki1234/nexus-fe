@@ -168,7 +168,7 @@
                             <div class="attachment-unavailable-card flex items-center gap-2.5 p-2.5 px-3 rounded-xl bg-surface-soft border border-border-subtle max-w-sm">
                               <mat-icon class="!size-4 !text-base text-amber-500">warning_amber</mat-icon>
                               <div class="min-w-0 flex-1 truncate">
-                                <p class="text-xs font-semibold text-ink truncate">{{ att.filename }}</p>
+                                <p class="text-xs font-semibold text-ink truncate" [matTooltip]="att.filename">{{ att.filename }}</p>
                                 <span class="text-micro text-steel">Tệp tạm thời không khả dụng</span>
                               </div>
                               <button
@@ -185,7 +185,7 @@
                               <img
                                 [src]="att.signedUrl"
                                 [alt]="att.filename"
-                                class="attachment-img max-h-72 w-auto object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-200"
+                                class="attachment-img max-h-72 w-auto object-contain cursor-pointer hover:scale-[1.02] transition-transform duration-200"
                                 (click)="openLightbox(att.signedUrl, att.filename)"
                                 (error)="onAttachmentMediaError(att.id)"
                                 loading="lazy"
@@ -203,8 +203,11 @@
                                   {{ att.filename.endsWith('.zip') ? 'folder_zip' : 'description' }}
                                 </mat-icon>
                               </div>
-                              <div class="min-w-0 flex-1">
-                                <p class="text-xs font-semibold text-ink truncate group-hover:text-primary-soft transition-colors">
+                              <div class="min-w-0 flex-1 truncate">
+                                <p
+                                  class="text-xs font-semibold text-ink truncate group-hover:text-primary-soft transition-colors"
+                                  [matTooltip]="att.filename"
+                                >
                                   {{ att.filename }}
                                 </p>
                                 <span class="text-micro text-steel">{{ formatFileSize(att.sizeBytes) }}</span>
@@ -214,6 +217,26 @@
                               </mat-icon>
                             </a>
                           }
+                        }
+                      </div>
+                    }
+
+                    <!-- Render Reactions -->
+                    @if (msg.reactions && msg.reactions.length > 0) {
+                      <div class="message-reactions mt-1.5 flex flex-wrap items-center gap-1.5" role="group" aria-label="Biểu tượng cảm xúc">
+                        @for (r of msg.reactions; track r.emoji) {
+                          <button
+                            type="button"
+                            class="reaction-chip"
+                            [class.reaction-chip--reacted]="r.reactedByMe"
+                            [attr.aria-label]="(r.reactedByMe ? 'Bỏ cảm xúc ' : 'Bày tỏ cảm xúc ') + r.emoji + ', ' + r.count + ' người'"
+                            [attr.aria-pressed]="r.reactedByMe"
+                            [matTooltip]="(r.reactedByMe ? 'Bạn đã thả ' : '') + r.emoji + ' (' + r.count + ')'"
+                            (click)="onToggleReaction(msg.id, r.emoji)"
+                          >
+                            <span class="reaction-emoji" aria-hidden="true">{{ r.emoji }}</span>
+                            <span class="reaction-count">{{ r.count }}</span>
+                          </button>
                         }
                       </div>
                     }
@@ -254,6 +277,7 @@
                       [excerpt]="msg.content || ''"
                       [editable]="isMine(msg)"
                       (action)="onMessageAction($event)"
+                      (reaction)="onToggleReaction(msg.id, $event)"
                     />
                   }
                 </article>

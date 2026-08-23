@@ -28,12 +28,12 @@ export class MessageActions {
   readonly excerpt = input.required<string>();
   readonly editable = input(false);
   readonly action = output<MessageComposerContext>();
+  readonly reaction = output<string>();
 
   protected readonly reactions = QUICK_REACTIONS;
-  protected readonly selectedReaction = signal<string | null>(null);
 
   protected toggleReaction(emoji: string): void {
-    this.selectedReaction.update((current) => (current === emoji ? null : emoji));
+    this.reaction.emit(emoji);
   }
 
   protected requestReply(): void {

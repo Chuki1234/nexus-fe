@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   inject,
   input,
   output,
@@ -44,6 +45,9 @@ export class FriendRow {
   private readonly router = inject(Router);
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly shell = inject(ShellData);
+  private readonly destroyRef = inject(DestroyRef);
+
+  private isDestroyed = false;
 
   readonly person = input.required<FriendListPerson>();
   readonly canManage = input(true);
@@ -53,6 +57,13 @@ export class FriendRow {
   readonly openingDm = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.isDestroyed = true;
+      this.openingDm.set(false);
+    });
+  }
+
   /** Ưu tiên câu trạng thái người dùng tự đặt; không có thì hiện trạng thái hệ thống. */
   protected readonly subtitle = computed(() => {
     const person = this.person();
@@ -60,13 +71,13 @@ export class FriendRow {
   });
 
   async onOpenDm(): Promise<void> {
-    if (this.openingDm() || this.busy()) {
+    if (this.openingDm() || this.busy() || this.isDestroyed) {
       return;
     }
 
     if (this.shell.demoEnabled()) {
       const ok = await this.router.navigate(['/channels/@me', this.person().id]);
-      if (!ok) {
+      if (!ok && !this.isDestroyed) {
         this.errorMessage.set('Không thể chuyển đến cuộc trò chuyện demo.');
       }
       return;
@@ -76,18 +87,23 @@ export class FriendRow {
     this.errorMessage.set(null);
     try {
       const conv = await this.conversationsApi.getOrCreateDm(this.person().id);
+      if (this.isDestroyed) return;
       const navigated = await this.router.navigate(['/channels/@me', conv.id]);
-      if (!navigated) {
+      if (!navigated && !this.isDestroyed) {
         this.errorMessage.set('Không thể chuyển đến cuộc trò chuyện.');
       }
     } catch (err: unknown) {
-      const msg = extractErrorMessage(
-        err,
-        'Không thể mở cuộc trò chuyện. Vui lòng thử lại.',
-      );
-      this.errorMessage.set(msg);
+      if (!this.isDestroyed) {
+        const msg = extractErrorMessage(
+          err,
+          'Không thể mở cuộc trò chuyện. Vui lòng thử lại.',
+        );
+        this.errorMessage.set(msg);
+      }
     } finally {
-      this.openingDm.set(false);
+      if (!this.isDestroyed) {
+        this.openingDm.set(false);
+      }
     }
   }
 

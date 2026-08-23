@@ -13,6 +13,7 @@ import type {
   ClientToServerEvents,
   JoinConversationResponse,
   MessagePayload,
+  ReactionUpdatedPayload,
   ServerToClientEvents,
 } from '../../../shared/socket-events';
 import { AuthService } from '../auth/auth.service';
@@ -67,6 +68,8 @@ export class ChatSocketService {
     error: string;
   }>();
 
+  private readonly reactionUpdatedSubject = new Subject<ReactionUpdatedPayload>();
+
   readonly messageCreated$: Observable<{ message: MessagePayload }> =
     this.messageCreatedSubject.asObservable();
   readonly messageUpdated$: Observable<{ message: MessagePayload }> =
@@ -76,6 +79,8 @@ export class ChatSocketService {
     conversationId: string | null;
     messageId: string;
   }> = this.messageDeletedSubject.asObservable();
+  readonly reactionUpdated$: Observable<ReactionUpdatedPayload> =
+    this.reactionUpdatedSubject.asObservable();
   readonly messageRead$: Observable<{
     conversationId: string;
     userId: string;
@@ -90,6 +95,23 @@ export class ChatSocketService {
     error: string;
   }> = this.joinErrorSubject.asObservable();
 
+  private readonly conversationUpdatedSubject = new Subject<{
+    conversationId: string;
+    senderId: string;
+    lastMessageId: string;
+    lastMessagePreview: string | null;
+    lastMessageAt: string;
+    unreadDelta: number;
+  }>();
+  readonly conversationUpdated$: Observable<{
+    conversationId: string;
+    senderId: string;
+    lastMessageId: string;
+    lastMessagePreview: string | null;
+    lastMessageAt: string;
+    unreadDelta: number;
+  }> = this.conversationUpdatedSubject.asObservable();
+
   constructor() {}
 
   /**
@@ -98,15 +120,24 @@ export class ChatSocketService {
   connect(token?: string): void {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    const rawAuth = this.auth?.accessToken;
     const tokenFromAuth =
-      typeof rawAuth === 'function'
-        ? (rawAuth as () => string | null)()
-        : (rawAuth as string | null);
-    const authToken: string | undefined =
-      token || (typeof tokenFromAuth === 'string' ? tokenFromAuth : undefined);
-    if (!authToken) {
+      this.auth && typeof this.auth.accessToken === 'function'
+        ? this.auth.accessToken()
+        : null;
+
+    const rawToken: string | undefined =
+      token || tokenFromAuth || (this.currentToken ?? undefined);
+
+    if (!rawToken) {
       this._connectionStatus.set('disconnected');
+      return;
+    }
+
+    const authToken = rawToken.startsWith('Bearer ')
+      ? rawToken.slice(7).trim()
+      : rawToken.trim();
+
+    if (this.socket && this.socket.connected && this.currentToken === authToken) {
       return;
     }
 
@@ -138,17 +169,81 @@ export class ChatSocketService {
   }
 
   /**
+   * Đảm bảo socket đã kết nối thành công với Auth Token hợp lệ.
+   * Chờ AuthService.whenReady() trước khi đọc token.
+   */
+  async ensureConnected(customToken?: string, timeoutMs = 8000): Promise<boolean> {
+    if (!isPlatformBrowser(this.platformId)) return false;
+
+    if (!customToken && this.auth && typeof this.auth.whenReady === 'function') {
+      await this.auth.whenReady();
+    }
+
+    this.connect(customToken);
+
+    if (!this.socket) {
+      return false;
+    }
+
+    if (this.socket.connected) {
+      return true;
+    }
+
+    return new Promise<boolean>((resolve) => {
+      let resolved = false;
+      const timer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          resolve(this.socket?.connected ?? false);
+        }
+      }, timeoutMs);
+
+      const onConnect = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      const onError = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          resolve(false);
+        }
+      };
+
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.socket?.off('connect', onConnect);
+        this.socket?.off('connect_error', onError);
+      };
+
+      this.socket?.once('connect', onConnect);
+      this.socket?.once('connect_error', onError);
+    });
+  }
+
+  /**
    * Cập nhật token mới khi refresh session mà không tạo thêm socket
    */
   updateToken(newToken: string): void {
-    this.currentToken = newToken;
+    const cleanToken = newToken.startsWith('Bearer ')
+      ? newToken.slice(7).trim()
+      : newToken.trim();
+    this.currentToken = cleanToken;
     if (this.socket) {
-      this.socket.auth = { token: newToken };
+      this.socket.auth = { token: cleanToken };
       if (!this.socket.connected) {
         this.socket.connect();
       }
     }
   }
+
+  /** Các join promise đang pending để tránh gửi trùng lặp */
+  private readonly pendingJoinPromises = new Map<string, Promise<JoinConversationResponse>>();
 
   /**
    * Ngắt kết nối và dọn dẹp toàn bộ state khi đăng xuất
@@ -156,6 +251,7 @@ export class ChatSocketService {
   disconnect(): void {
     this.activeConversationId = null;
     this.currentToken = null;
+    this.pendingJoinPromises.clear();
 
     if (this.socket) {
       this.socket.removeAllListeners();
@@ -168,66 +264,90 @@ export class ChatSocketService {
   /**
    * Tham gia vào phòng conversation để nhận realtime messages (có Timeout & Acknowledgment)
    */
-  joinConversation(
+  async joinConversation(
     conversationId: string,
     timeoutMs = 5000,
   ): Promise<JoinConversationResponse> {
-    if (!this.socket || !this.socket.connected) {
-      // Đánh dấu activeConversationId để tự join khi socket kết nối thành công
-      this.activeConversationId = conversationId;
-      return Promise.resolve({
-        success: false,
-        error: 'Socket chưa kết nối, đã đưa vào hàng đợi',
-        status: 'disconnected',
-      });
+    if (!isPlatformBrowser(this.platformId)) {
+      return { success: false, status: 'disconnected' };
     }
 
-    return new Promise<JoinConversationResponse>((resolve) => {
-      let resolved = false;
-      const timer = setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          resolve({
+    this.activeConversationId = conversationId;
+
+    const existingPromise = this.pendingJoinPromises.get(conversationId);
+    if (existingPromise) {
+      return existingPromise;
+    }
+
+    const joinPromise = (async (): Promise<JoinConversationResponse> => {
+      try {
+        const isConnected = await this.ensureConnected(undefined, timeoutMs);
+        if (!isConnected || !this.socket || !this.socket.connected) {
+          return {
             success: false,
-            error: 'Hết thời gian chờ phản hồi join conversation',
-            status: 'timeout',
-          });
+            error: 'Socket chưa kết nối, đã đưa vào hàng đợi tự join',
+            status: 'disconnected',
+          };
         }
-      }, timeoutMs);
 
-      this.socket?.emit(
-        'conversation:join',
-        { conversationId },
-        (res: JoinConversationResponse) => {
-          if (resolved) return;
-          resolved = true;
-          clearTimeout(timer);
-
-          if (!res?.success) {
-            // Server từ chối: xóa activeConversationId để reconnect không tự rejoin
-            if (this.activeConversationId === conversationId) {
-              this.activeConversationId = null;
+        return await new Promise<JoinConversationResponse>((resolve) => {
+          let resolved = false;
+          const timer = setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              resolve({
+                success: false,
+                error: 'Hết thời gian chờ phản hồi join conversation',
+                status: 'timeout',
+              });
             }
-            this.joinErrorSubject.next({
-              conversationId,
-              error: res?.error || 'Không thể tham gia cuộc trò chuyện.',
-            });
-            resolve({
-              success: false,
-              error: res?.error || 'Không thể tham gia cuộc trò chuyện.',
-              status: 'rejected',
-            });
-            return;
-          }
+          }, timeoutMs);
 
-          this.activeConversationId = conversationId;
-          resolve({
-            success: true,
-            status: 'joined',
-          });
-        },
-      );
-    });
+          this.socket?.emit(
+            'conversation:join',
+            { conversationId },
+            (res: JoinConversationResponse) => {
+              if (resolved) return;
+              resolved = true;
+              clearTimeout(timer);
+
+              if (!res?.success) {
+                // Chỉ xóa activeConversationId nếu server xác nhận user không có membership (không có quyền/không phải thành viên)
+                const isForbidden =
+                  res?.error?.toLowerCase().includes('quyền') ||
+                  res?.error?.toLowerCase().includes('thành viên') ||
+                  res?.error?.toLowerCase().includes('forbidden');
+
+                if (isForbidden && this.activeConversationId === conversationId) {
+                  this.activeConversationId = null;
+                }
+                this.joinErrorSubject.next({
+                  conversationId,
+                  error: res?.error || 'Không thể tham gia cuộc trò chuyện.',
+                });
+                resolve({
+                  success: false,
+                  error: res?.error || 'Không thể tham gia cuộc trò chuyện.',
+                  status: isForbidden ? 'rejected' : (res?.status ?? 'rejected'),
+                });
+                return;
+              }
+
+              this.activeConversationId = conversationId;
+              resolve({
+                success: true,
+                status: 'joined',
+              });
+            },
+          );
+        });
+      } finally {
+        this.pendingJoinPromises.delete(conversationId);
+      }
+    })();
+
+    this.pendingJoinPromises.set(conversationId, joinPromise);
+    return joinPromise;
   }
 
   /**
@@ -237,6 +357,7 @@ export class ChatSocketService {
     if (this.activeConversationId === conversationId) {
       this.activeConversationId = null;
     }
+    this.pendingJoinPromises.delete(conversationId);
     if (this.socket && this.socket.connected) {
       this.socket.emit('conversation:leave', { conversationId });
     }
@@ -265,7 +386,7 @@ export class ChatSocketService {
 
     this.socket.on('connect', () => {
       this._connectionStatus.set('connected');
-      // Tự động rejoin active conversation nếu có
+      // Tự động rejoin active conversation nếu có sau khi connect / reconnect thành công
       if (this.activeConversationId) {
         void this.joinConversation(this.activeConversationId);
       }
@@ -275,8 +396,31 @@ export class ChatSocketService {
       this._connectionStatus.set('disconnected');
     });
 
-    this.socket.on('connect_error', () => {
+    this.socket.on('connect_error', async (err: Error) => {
       this._connectionStatus.set('error');
+
+      // Khi connect_error do token/session: chờ AuthService refresh và cập nhật socket.auth
+      if (
+        err?.message?.includes('Chưa xác thực') ||
+        err?.message?.toLowerCase().includes('auth') ||
+        err?.message?.toLowerCase().includes('unauthorized')
+      ) {
+        try {
+          if (this.auth && typeof this.auth.whenReady === 'function') {
+            await this.auth.whenReady();
+            const freshToken = this.auth.accessToken();
+            if (freshToken) {
+              this.updateToken(freshToken);
+            }
+          }
+        } catch {
+          // Bỏ qua lỗi refresh token tạm thời
+        }
+      }
+    });
+
+    this.socket.io?.on?.('reconnect_attempt', () => {
+      this._connectionStatus.set('connecting');
     });
 
     this.socket.on('message:created', (payload) => {
@@ -291,12 +435,20 @@ export class ChatSocketService {
       this.messageDeletedSubject.next(payload);
     });
 
+    this.socket.on('message:reaction-updated', (payload) => {
+      this.reactionUpdatedSubject.next(payload);
+    });
+
     this.socket.on('message:read', (payload) => {
       this.messageReadSubject.next(payload);
     });
 
     this.socket.on('typing:updated', (payload) => {
       this.typingUpdatedSubject.next(payload);
+    });
+
+    this.socket.on('conversation:updated', (payload) => {
+      this.conversationUpdatedSubject.next(payload);
     });
   }
 }

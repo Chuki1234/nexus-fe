@@ -242,4 +242,58 @@ describe('ConversationPage', () => {
 
     expect(mockActiveChatStore.clear).toHaveBeenCalled();
   });
+
+  describe('Chống Reactive Loop & Activation Deduplication', () => {
+    it('khi store thay đổi loadingInitial: setActiveConversation và getConversation chỉ được gọi đúng 1 lần', async () => {
+      const harness = await mount('conv-123');
+
+      expect(mockActiveChatStore.setActiveConversation).toHaveBeenCalledTimes(1);
+      expect(mockConversationsApi.getConversation).toHaveBeenCalledTimes(1);
+
+      // Store đổi loadingInitial = true rồi lại false
+      loadingInitialSignal.set(true);
+      harness.fixture.detectChanges();
+      await harness.fixture.whenStable();
+
+      loadingInitialSignal.set(false);
+      harness.fixture.detectChanges();
+      await harness.fixture.whenStable();
+
+      // Không được kích hoạt thêm lần nào
+      expect(mockActiveChatStore.setActiveConversation).toHaveBeenCalledTimes(1);
+      expect(mockConversationsApi.getConversation).toHaveBeenCalledTimes(1);
+    });
+
+    it('khi currentUser phát lại cùng ID: không gọi lại activation', async () => {
+      const harness = await mount('conv-123');
+
+      expect(mockActiveChatStore.setActiveConversation).toHaveBeenCalledTimes(1);
+      expect(mockConversationsApi.getConversation).toHaveBeenCalledTimes(1);
+
+      // Auth signal phát lại object mới cùng ID
+      mockAuthService.user = signal({ id: 'my-user-id', email: 'me@example.com' }).asReadonly();
+      harness.fixture.detectChanges();
+      await harness.fixture.whenStable();
+
+      expect(mockActiveChatStore.setActiveConversation).toHaveBeenCalledTimes(1);
+      expect(mockConversationsApi.getConversation).toHaveBeenCalledTimes(1);
+    });
+
+    it('khi chuyển route từ A sang B: mỗi route chỉ activate đúng 1 lần', async () => {
+      const harness = await mount('conv-A');
+
+      expect(mockActiveChatStore.setActiveConversation).toHaveBeenCalledTimes(1);
+      expect(mockActiveChatStore.setActiveConversation).toHaveBeenCalledWith('conv-A');
+
+      // Chuyển sang route conv-B
+      await harness.navigateByUrl('/channels/@me/conv-B');
+      await harness.fixture.whenStable();
+      harness.fixture.detectChanges();
+
+      expect(mockActiveChatStore.setActiveConversation).toHaveBeenCalledTimes(2);
+      expect(mockActiveChatStore.setActiveConversation).toHaveBeenLastCalledWith('conv-B');
+      expect(mockConversationsApi.getConversation).toHaveBeenCalledTimes(2);
+      expect(mockConversationsApi.getConversation).toHaveBeenLastCalledWith('conv-B');
+    });
+  });
 });

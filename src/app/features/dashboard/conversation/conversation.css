@@ -205,6 +205,59 @@
   text-decoration: none;
 }
 
+/* Reaction Chips */
+.reaction-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-pill, 9999px);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+  background-color: var(--color-surface-soft, rgba(255, 255, 255, 0.04));
+  color: var(--color-steel, #949ba4);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    color var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.reaction-chip:hover {
+  background-color: var(--color-surface-feature, rgba(255, 255, 255, 0.08));
+  border-color: var(--color-border-hairline, rgba(255, 255, 255, 0.16));
+  color: var(--color-ink, #f2f3f5);
+}
+
+.reaction-chip:active {
+  transform: scale(0.96);
+}
+
+.reaction-chip--reacted {
+  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  color: var(--color-primary-soft, #a5b4fc);
+  font-weight: 600;
+}
+
+.reaction-chip--reacted:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 60%, transparent);
+  color: var(--color-primary-soft, #a5b4fc);
+}
+
+.reaction-emoji {
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.reaction-count {
+  font-size: 0.6875rem;
+}
+
 /* Lightbox Modal */
 .lightbox-overlay {
   animation: lightboxFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);

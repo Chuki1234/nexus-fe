@@ -1,17 +1,24 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { ShellData } from '../../../../../core/api/shell-data';
+import { AuthService } from '../../../../../core/auth/auth.service';
 import { ConversationsApiService } from '../../../../../core/api/conversations-api.service';
 import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
+import { ActiveChatStore } from '../../../../../features/dashboard/services/active-chat.store';
 import { ConversationList } from './conversation-list';
 
 describe('ConversationList', () => {
   let mockConversationsApi: { listConversations: any };
   let mockChatSocket: {
-    messageCreated$: Subject<any>;
+    conversationUpdated$: Subject<any>;
     messageRead$: Subject<any>;
+    connect: any;
   };
+  let mockAuthService: any;
+  let mockActiveChatStore: any;
+  let activeConversationIdSignal: ReturnType<typeof signal<string | null>>;
 
   beforeEach(() => {
     mockConversationsApi = {
@@ -33,8 +40,16 @@ describe('ConversationList', () => {
       ]),
     };
     mockChatSocket = {
-      messageCreated$: new Subject<any>(),
+      conversationUpdated$: new Subject<any>(),
       messageRead$: new Subject<any>(),
+      connect: vi.fn(),
+    };
+    mockAuthService = {
+      user: signal({ id: 'my-user-id', email: 'me@example.com' }).asReadonly(),
+    };
+    activeConversationIdSignal = signal<string | null>(null);
+    mockActiveChatStore = {
+      conversationId: activeConversationIdSignal.asReadonly(),
     };
   });
 
@@ -46,6 +61,8 @@ describe('ConversationList', () => {
         { provide: ShellData, useValue: shell },
         { provide: ConversationsApiService, useValue: mockConversationsApi },
         { provide: ChatSocketService, useValue: mockChatSocket },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: ActiveChatStore, useValue: mockActiveChatStore },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(ConversationList);
@@ -99,15 +116,56 @@ describe('ConversationList', () => {
     );
   });
 
-  it('cập nhật unread count realtime khi nhận socket event messageCreated', async () => {
+  it('cập nhật unread count realtime khi nhận conversation:updated (user-room event)', async () => {
     const fixture = await mount();
 
-    mockChatSocket.messageCreated$.next({
-      message: { conversationId: 'conv-1', id: '100' },
+    mockChatSocket.conversationUpdated$.next({
+      conversationId: 'conv-1',
+      senderId: 'user-1',
+      lastMessageId: '100',
+      lastMessagePreview: 'Hello!',
+      lastMessageAt: new Date().toISOString(),
+      unreadDelta: 1,
     });
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('4');
+  });
+
+  it('sender không tự tăng unread khi gửi tin nhắn', async () => {
+    const fixture = await mount();
+
+    // Emit conversation:updated với senderId = chính mình
+    mockChatSocket.conversationUpdated$.next({
+      conversationId: 'conv-1',
+      senderId: 'my-user-id',
+      lastMessageId: '100',
+      lastMessagePreview: 'My own message',
+      lastMessageAt: new Date().toISOString(),
+      unreadDelta: 1,
+    });
+    fixture.detectChanges();
+
+    // Unread vẫn là 3 (không tăng)
+    expect(fixture.nativeElement.textContent).toContain('3');
+  });
+
+  it('conversation đang mở (active) không tăng unread', async () => {
+    activeConversationIdSignal.set('conv-1');
+    const fixture = await mount();
+
+    mockChatSocket.conversationUpdated$.next({
+      conversationId: 'conv-1',
+      senderId: 'user-1',
+      lastMessageId: '100',
+      lastMessagePreview: 'Hello!',
+      lastMessageAt: new Date().toISOString(),
+      unreadDelta: 1,
+    });
+    fixture.detectChanges();
+
+    // Unread vẫn là 3 (không tăng vì conv đang mở)
+    expect(fixture.nativeElement.textContent).toContain('3');
   });
 
   it('reset unread count realtime khi nhận socket event messageRead', async () => {
@@ -121,5 +179,22 @@ describe('ConversationList', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('app-unread-badge')).toBeNull();
+  });
+
+  it('conversation chưa có trong list thì gọi reload khi nhận conversation:updated', async () => {
+    const fixture = await mount();
+    mockConversationsApi.listConversations.mockClear();
+
+    mockChatSocket.conversationUpdated$.next({
+      conversationId: 'conv-unknown',
+      senderId: 'user-1',
+      lastMessageId: '200',
+      lastMessagePreview: 'New DM!',
+      lastMessageAt: new Date().toISOString(),
+      unreadDelta: 1,
+    });
+    fixture.detectChanges();
+
+    expect(mockConversationsApi.listConversations).toHaveBeenCalled();
   });
 });

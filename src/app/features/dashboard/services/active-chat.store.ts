@@ -12,6 +12,7 @@ import {
   MessageAuthorDto,
   MessageResponseDto,
   MessagesApiService,
+  ReactionSummaryDto,
 } from '../../../core/api/messages-api.service';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
 import { extractErrorMessage } from '../../../core/utils/error.util';
@@ -41,6 +42,7 @@ export interface ChatUiMessage {
   editedAt: string | null;
   deletedAt: string | null;
   attachments?: AttachmentResponseDto[];
+  reactions?: ReactionSummaryDto[];
   createdAt: string;
   status: 'persisted' | 'sending' | 'failed';
   errorMessage?: string;
@@ -187,6 +189,7 @@ export class ActiveChatStore implements OnDestroy {
       this.chatSocket.leaveConversation(currentId);
     }
     this.revokeOptimisticBlobUrls(this._optimisticMessages());
+    this.handledMutationIds.clear();
     this.currentGeneration++;
     this._conversationId.set(null);
     this._messages.set([]);
@@ -200,12 +203,41 @@ export class ActiveChatStore implements OnDestroy {
     this._error.set(null);
   }
 
+  // Trạng thái realtime socket riêng biệt (không đè lên REST error)
+  private readonly _realtimeStatus = signal<
+    'joined' | 'disconnected' | 'connecting' | 'timeout' | 'rejected' | null
+  >(null);
+  readonly realtimeStatus = this._realtimeStatus.asReadonly();
+
   /**
    * Thiết lập cuộc trò chuyện đang xem, chuyển room socket và tải lịch sử
    */
-  async setActiveConversation(conversationId: string): Promise<void> {
+  async setActiveConversation(conversationId: string, force = false): Promise<void> {
     const prevId = this._conversationId();
-    if (prevId === conversationId) {
+
+    // Nếu cùng conversation và không ép buộc tải lại toàn bộ
+    if (prevId === conversationId && !force) {
+      // Nếu socket chưa joined, chỉ kích hoạt ensureConnected/join lại mà KHÔNG xóa tin nhắn hay reload REST
+      if (this._realtimeStatus() !== 'joined') {
+        this._realtimeStatus.set('connecting');
+        const generation = this.currentGeneration;
+        this.chatSocket.joinConversation(conversationId).then((joinRes) => {
+          if (
+            this._conversationId() === conversationId &&
+            this.currentGeneration === generation
+          ) {
+            if (joinRes.status === 'joined' || joinRes.success) {
+              this._realtimeStatus.set('joined');
+            } else if (joinRes.status === 'rejected') {
+              this._realtimeStatus.set('rejected');
+            } else if (joinRes.status === 'timeout') {
+              this._realtimeStatus.set('timeout');
+            } else {
+              this._realtimeStatus.set('disconnected');
+            }
+          }
+        });
+      }
       return;
     }
 
@@ -231,9 +263,28 @@ export class ActiveChatStore implements OnDestroy {
     this._nextCursor.set(undefined);
     this._error.set(null);
     this._loadingInitial.set(true);
+    this._realtimeStatus.set('connecting');
 
-    // 4. Tham gia room socket mới
-    void this.chatSocket.joinConversation(conversationId);
+    // 4. Tham gia room socket mới và xử lý kết quả acknowledgment chi tiết
+    this.chatSocket.joinConversation(conversationId).then((joinRes) => {
+      if (
+        this._conversationId() === conversationId &&
+        this.currentGeneration === generation
+      ) {
+        if (joinRes.status === 'joined' || joinRes.success) {
+          this._realtimeStatus.set('joined');
+        } else if (joinRes.status === 'rejected') {
+          this._realtimeStatus.set('rejected');
+          this._error.set(
+            joinRes.error || 'Không có quyền truy cập cuộc trò chuyện.',
+          );
+        } else if (joinRes.status === 'timeout') {
+          this._realtimeStatus.set('timeout');
+        } else {
+          this._realtimeStatus.set('disconnected');
+        }
+      }
+    });
 
     // 5. Tải lịch sử tin nhắn ban đầu qua REST API
     try {
@@ -698,9 +749,117 @@ export class ActiveChatStore implements OnDestroy {
     }
   }
 
+  /**
+   * Thêm hoặc bỏ reaction cho tin nhắn theo desired state (Idempotent + Optimistic).
+   */
+  async setReaction(
+    messageId: string,
+    emoji: string,
+    reacted: boolean,
+  ): Promise<void> {
+    const convId = this._conversationId();
+    if (!convId) return;
+
+    const message = this._messages().find((m) => m.id === messageId);
+    if (!message) return;
+
+    const prevReactions = message.reactions ?? [];
+    const clientMutationId = crypto.randomUUID();
+
+    // 1. Optimistic update
+    const currentReaction = prevReactions.find((r) => r.emoji === emoji);
+    let optimisticReactions: ReactionSummaryDto[];
+
+    if (reacted) {
+      if (currentReaction) {
+        optimisticReactions = prevReactions.map((r) =>
+          r.emoji === emoji
+            ? {
+                ...r,
+                count: r.reactedByMe ? r.count : r.count + 1,
+                reactedByMe: true,
+              }
+            : r,
+        );
+      } else {
+        optimisticReactions = [
+          ...prevReactions,
+          { emoji, count: 1, reactedByMe: true },
+        ];
+      }
+    } else {
+      if (currentReaction) {
+        const newCount = currentReaction.reactedByMe
+          ? currentReaction.count - 1
+          : currentReaction.count;
+        if (newCount <= 0) {
+          optimisticReactions = prevReactions.filter((r) => r.emoji !== emoji);
+        } else {
+          optimisticReactions = prevReactions.map((r) =>
+            r.emoji === emoji
+              ? { ...r, count: newCount, reactedByMe: false }
+              : r,
+          );
+        }
+      } else {
+        optimisticReactions = prevReactions;
+      }
+    }
+
+    this._messages.update((list) =>
+      list.map((m) =>
+        m.id === messageId ? { ...m, reactions: optimisticReactions } : m,
+      ),
+    );
+
+    // 2. Gọi REST API
+    try {
+      const res = await this.messagesApi.setReaction(convId, messageId, {
+        emoji,
+        reacted,
+        clientMutationId,
+      });
+
+      if (this._conversationId() === convId) {
+        this.handledMutationIds.add(clientMutationId);
+        // Reconcile với canonical response từ server
+        this._messages.update((list) =>
+          list.map((m) =>
+            m.id === messageId ? { ...m, reactions: res.reactions } : m,
+          ),
+        );
+      }
+    } catch (err: unknown) {
+      if (this._conversationId() === convId) {
+        // Rollback nếu API lỗi
+        this._messages.update((list) =>
+          list.map((m) =>
+            m.id === messageId ? { ...m, reactions: prevReactions } : m,
+          ),
+        );
+        this._error.set(extractErrorMessage(err, 'Bày tỏ cảm xúc thất bại.'));
+      }
+    }
+  }
+
+  /**
+   * Chuyển đổi (toggle) trạng thái reaction của người dùng hiện tại
+   */
+  async toggleReaction(messageId: string, emoji: string): Promise<void> {
+    const message = this._messages().find((m) => m.id === messageId);
+    if (!message) return;
+    const currentReaction = (message.reactions ?? []).find(
+      (r) => r.emoji === emoji,
+    );
+    const currentlyReacted = Boolean(currentReaction?.reactedByMe);
+    return this.setReaction(messageId, emoji, !currentlyReacted);
+  }
+
   // ---------------------------------------------------------------------------
   // Private Helper & Realtime Handlers
   // ---------------------------------------------------------------------------
+
+  private readonly handledMutationIds = new Set<string>();
 
   private revokeOptimisticBlobUrls(items: OptimisticMessage[]): void {
     for (const opt of items) {
@@ -766,12 +925,19 @@ export class ActiveChatStore implements OnDestroy {
             channelId: message.channelId,
             conversationId: message.conversationId,
             authorId: message.authorId,
+            author: message.author,
             type: message.type,
             content: message.content,
             replyToId: message.replyToId,
             clientNonce: message.clientNonce,
             editedAt: message.editedAt,
             deletedAt: message.deletedAt,
+            attachments: message.attachments,
+            reactions: message.reactions?.map((r) => ({
+              emoji: r.emoji,
+              count: r.count,
+              reactedByMe: Boolean(r.reactedByMe),
+            })) ?? [],
             createdAt: message.createdAt,
           };
 
@@ -817,6 +983,7 @@ export class ActiveChatStore implements OnDestroy {
               ? {
                   ...m,
                   content: null,
+                  reactions: undefined,
                   deletedAt: new Date().toISOString(),
                 }
               : m,
@@ -857,6 +1024,56 @@ export class ActiveChatStore implements OnDestroy {
         if (payload.conversationId === this._conversationId()) {
           this._error.set(payload.error);
         }
+      }),
+    );
+
+    // 7. Cập nhật Reaction realtime từ socket
+    this.subs.add(
+      this.chatSocket.reactionUpdated$.subscribe((payload) => {
+        if (payload.conversationId !== this._conversationId()) return;
+
+        // Nếu là mutation do chính client này vừa thực hiện và đã reconcile qua REST thì bỏ qua
+        if (
+          payload.clientMutationId &&
+          this.handledMutationIds.has(payload.clientMutationId)
+        ) {
+          return;
+        }
+
+        const currentUserId = this.auth.user()?.id;
+
+        this._messages.update((list) =>
+          list.map((m) => {
+            if (m.id !== payload.messageId) return m;
+
+            const prevReactions = m.reactions ?? [];
+            const updatedReactions: ReactionSummaryDto[] = payload.reactions.map(
+              (canonical) => {
+                const prev = prevReactions.find(
+                  (p) => p.emoji === canonical.emoji,
+                );
+                let reactedByMe = prev?.reactedByMe ?? false;
+
+                if (payload.actorUserId === currentUserId) {
+                  if (payload.emoji === canonical.emoji) {
+                    reactedByMe = payload.action === 'added';
+                  }
+                }
+
+                return {
+                  emoji: canonical.emoji,
+                  count: canonical.count,
+                  reactedByMe,
+                };
+              },
+            );
+
+            return {
+              ...m,
+              reactions: updatedReactions,
+            };
+          }),
+        );
       }),
     );
   }

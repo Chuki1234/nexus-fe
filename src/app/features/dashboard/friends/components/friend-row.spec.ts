@@ -221,6 +221,45 @@ describe('FriendRow', () => {
   const phuDe = (fixture: { nativeElement: HTMLElement }) =>
     fixture.nativeElement.querySelector('.text-caption')?.textContent?.trim();
 
+  it('navigation thất bại hiển thị thông báo lỗi và dọn spinner', async () => {
+    const fixture = await mount();
+    vi.spyOn(router, 'navigate').mockResolvedValue(false);
+    const row = fixture.debugElement.children[0].componentInstance as FriendRow;
+
+    await row.onOpenDm();
+    fixture.detectChanges();
+
+    const alert = fixture.nativeElement.querySelector('[role="alert"]');
+    expect(alert).toBeTruthy();
+    expect(alert.textContent).toContain('Không thể chuyển đến cuộc trò chuyện.');
+    expect(row.openingDm()).toBe(false);
+  });
+
+  it('bấm nút x đóng thông báo lỗi', async () => {
+    mockConversationsApi.getOrCreateDm.mockRejectedValueOnce(
+      new Error('Mạng không ổn định'),
+    );
+    const fixture = await mount();
+    const rowBtn = fixture.nativeElement.querySelector(
+      'button[aria-label="Nhắn tin cho ho_be"]',
+    ) as HTMLButtonElement;
+
+    rowBtn.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const closeBtn = fixture.nativeElement.querySelector(
+      'button[aria-label="Đóng thông báo lỗi"]',
+    ) as HTMLButtonElement;
+    expect(closeBtn).toBeTruthy();
+
+    closeBtn.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+  });
+
   it('ưu tiên câu trạng thái người dùng tự đặt', async () => {
     const fixture = await mount();
 

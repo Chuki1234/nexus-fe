@@ -7,6 +7,7 @@ import {
   OnDestroy,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
@@ -182,9 +183,11 @@ export class MessageComposer implements OnDestroy {
     effect(() => {
       const ctx = this.context();
       if (ctx?.kind === 'edit') {
-        this.revokePendingUrls();
-        this.pendingFiles.set([]);
-        this.fileErrorMessage.set(null);
+        untracked(() => {
+          this.revokePendingUrls();
+          this.pendingFiles.set([]);
+          this.fileErrorMessage.set(null);
+        });
       }
     });
   }

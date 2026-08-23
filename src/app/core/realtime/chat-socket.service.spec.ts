@@ -10,7 +10,12 @@ vi.mock('socket.io-client', () => ({
 
 describe('ChatSocketService', () => {
   let service: ChatSocketService;
-  let authMock: { isAuthenticated: any; accessToken: any };
+  let authMock: {
+    isAuthenticated: any;
+    accessToken: any;
+    session?: any;
+    whenReady?: any;
+  };
   let mockSocket: any;
 
   beforeEach(() => {
@@ -20,7 +25,12 @@ describe('ChatSocketService', () => {
     mockSocket = {
       connected: true,
       auth: { token: 'jwt-token-123' },
+      io: { on: vi.fn() },
       on: vi.fn(),
+      once: vi.fn((event: string, cb: () => void) => {
+        if (event === 'connect') cb();
+      }),
+      off: vi.fn(),
       emit: vi.fn(),
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -30,19 +40,20 @@ describe('ChatSocketService', () => {
     vi.mocked(io).mockReturnValue(mockSocket);
 
     authMock = {
-      isAuthenticated: vi.fn().mockReturnValue(true),
-      accessToken: vi.fn().mockReturnValue('jwt-token-123'),
+      isAuthenticated: vi.fn().mockReturnValue(false),
+      accessToken: vi.fn().mockReturnValue(null),
+      session: vi.fn().mockReturnValue(null),
+      whenReady: vi.fn().mockResolvedValue(undefined),
     };
 
     TestBed.configureTestingModule({
       providers: [
-        ChatSocketService,
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: AuthService, useValue: authMock },
       ],
     });
 
-    service = TestBed.inject(ChatSocketService);
+    service = TestBed.runInInjectionContext(() => new ChatSocketService());
   });
 
   afterEach(() => {
@@ -186,11 +197,54 @@ describe('ChatSocketService', () => {
     expect(res.error).toBe('Hết thời gian chờ phản hồi join conversation');
   });
 
-  it('trả về trạng thái disconnected khi socket chưa kết nối', async () => {
-    mockSocket.connected = false;
+  it('không xóa activeConversationId khi lỗi join là lỗi tạm thời (không phải forbidden/membership)', async () => {
+    mockSocket.emit.mockImplementation((event: string, payload: any, cb: any) => {
+      if (event === 'conversation:join') {
+        cb({ success: false, error: 'Database connection error' });
+      }
+    });
 
     service.connect('jwt-token-123');
-    const res = await service.joinConversation('conv-offline');
+    const res = await service.joinConversation('conv-temp-error');
+
+    expect(res.success).toBe(false);
+
+    // Khi reconnect, vì không phải lỗi membership/quyền nên socket vẫn tự động rejoin
+    mockSocket.emit.mockClear();
+    const connectCallback = mockSocket.on.mock.calls.find(
+      (call: any[]) => call[0] === 'connect',
+    )?.[1];
+    connectCallback?.();
+    await new Promise((res) => setTimeout(res, 10));
+
+    expect(mockSocket.emit).toHaveBeenCalledWith(
+      'conversation:join',
+      expect.objectContaining({ conversationId: 'conv-temp-error' }),
+      expect.any(Function),
+    );
+  });
+
+  it('khi connect_error do "Chưa xác thực", tự động chờ auth.whenReady và cập nhật token mới vào socket.auth', async () => {
+    authMock.accessToken.mockReturnValue('jwt-token-fresh-after-refresh');
+
+    service.connect('jwt-token-expired');
+
+    const connectErrorCallback = mockSocket.on.mock.calls.find(
+      (call: any[]) => call[0] === 'connect_error',
+    )?.[1];
+
+    expect(connectErrorCallback).toBeDefined();
+    await connectErrorCallback(new Error('Chưa xác thực'));
+
+    expect(authMock.whenReady).toHaveBeenCalled();
+    expect(mockSocket.auth).toEqual({ token: 'jwt-token-fresh-after-refresh' });
+  });
+
+  it('trả về trạng thái disconnected khi socket chưa kết nối', async () => {
+    mockSocket.connected = false;
+    mockSocket.once.mockImplementation(() => undefined);
+
+    const res = await service.joinConversation('conv-offline', 20);
 
     expect(res.success).toBe(false);
     expect(res.status).toBe('disconnected');
@@ -228,4 +282,127 @@ describe('ChatSocketService', () => {
     const received = await eventPromise;
     expect(received.message).toEqual(sampleMessage);
   });
+
+  it('ensureConnected chờ auth.whenReady() trước khi kết nối socket', async () => {
+    let authReadyResolved = false;
+    authMock.whenReady = vi.fn().mockImplementation(() => {
+      authReadyResolved = true;
+      authMock.accessToken.mockReturnValue('jwt-token-restored');
+      return Promise.resolve();
+    });
+
+    const connected = await service.ensureConnected();
+
+    expect(authMock.whenReady).toHaveBeenCalled();
+    expect(authReadyResolved).toBe(true);
+    expect(connected).toBe(true);
+    expect(io).toHaveBeenCalledWith(
+      'http://localhost:3000/chat',
+      expect.objectContaining({
+        auth: { token: 'jwt-token-restored' },
+      }),
+    );
+  });
+
+  it('reconnect_attempt cập nhật connectionStatus thành connecting', () => {
+    service.connect('jwt-token-123');
+
+    const reconnectCallback = mockSocket.io.on.mock.calls.find(
+      (call: any[]) => call[0] === 'reconnect_attempt',
+    )?.[1];
+
+    expect(reconnectCallback).toBeDefined();
+    reconnectCallback();
+
+    expect(service.connectionStatus()).toBe('connecting');
+  });
+
+  it('phát tán conversationUpdated$ khi socket nhận conversation:updated', async () => {
+    service.connect('jwt-token-123');
+
+    const callback = mockSocket.on.mock.calls.find(
+      (call: any[]) => call[0] === 'conversation:updated',
+    )?.[1];
+
+    expect(callback).toBeDefined();
+
+    const payload = {
+      conversationId: 'conv-200',
+      senderId: 'user-sender',
+      lastMessageId: '500',
+      lastMessagePreview: 'Hello from user-room!',
+      lastMessageAt: '2026-08-23T05:00:00Z',
+      unreadDelta: 1,
+    };
+
+    const eventPromise = new Promise<any>((resolve) => {
+      service.conversationUpdated$.subscribe((data) => resolve(data));
+    });
+
+    callback(payload);
+
+    const received = await eventPromise;
+    expect(received).toEqual(payload);
+  });
+
+  describe('Regression: Bảo toàn context this khi gọi AuthService.accessToken', () => {
+    it('ensureConnected đọc accessToken từ AuthService thật có phụ thuộc this.currentSession mà không ném TypeError', async () => {
+      // Giả lập AuthService như thực tế: method accessToken() phụ thuộc vào `this.currentSession`
+      class RealLikeAuthService {
+        private sessionState: { access_token: string } | null = {
+          access_token: 'Bearer real-jwt-session-token-456',
+        };
+
+        // Hàm currentSession getter cần `this`
+        currentSession() {
+          if (!this) {
+            throw new TypeError("Cannot read properties of undefined (reading 'currentSession')");
+          }
+          return this.sessionState;
+        }
+
+        whenReady(): Promise<void> {
+          return Promise.resolve();
+        }
+
+        accessToken(): string | null {
+          if (!this) {
+            throw new TypeError("Cannot read properties of undefined (reading 'currentSession')");
+          }
+          return this.currentSession()?.access_token ?? null;
+        }
+      }
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          { provide: PLATFORM_ID, useValue: 'browser' },
+          { provide: AuthService, useClass: RealLikeAuthService },
+        ],
+      });
+
+      const testService = TestBed.runInInjectionContext(() => new ChatSocketService());
+
+      // ensureConnected không được ném TypeError
+      const connected = await testService.ensureConnected();
+
+      expect(connected).toBe(true);
+      // Socket phải được khởi tạo với token đã bỏ tiền tố 'Bearer '
+      expect(io).toHaveBeenCalledWith(
+        'http://localhost:3000/chat',
+        expect.objectContaining({
+          auth: { token: 'real-jwt-session-token-456' },
+        }),
+      );
+
+      // Gọi lại lần 2 không tạo thêm socket instance mới
+      vi.mocked(io).mockClear();
+      const secondConnect = await testService.ensureConnected();
+      expect(secondConnect).toBe(true);
+      expect(io).not.toHaveBeenCalled();
+
+      testService.disconnect();
+    });
+  });
 });
+

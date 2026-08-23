@@ -10,6 +10,7 @@ import {
   OnDestroy,
   OnInit,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
@@ -177,19 +178,39 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     return `${ids.length} người đang soạn tin...`;
   });
 
+  private lastActiveKey: string | null = null;
+  private detailsGeneration = 0;
+
   constructor() {
-    // Tự động kích hoạt phòng chat khi URL param thay đổi
+    // Tự động kích hoạt phòng chat khi URL param thay đổi hoặc session hoàn tất
+    // Sử dụng untracked() và dedupe theo userId:conversationId để ngăn chặn reactive loop
     effect(() => {
       const id = this.conversationId();
-      if (id) {
-        if (!this.demoEnabled()) {
-          void this.activeChatStore.setActiveConversation(id);
-          void this.loadConversationDetails(id);
+      const userId = this.currentUser()?.id ?? null;
+      const isDemo = this.demoEnabled();
+
+      untracked(() => {
+        if (!id) {
+          this.lastActiveKey = null;
+          this.activeChatStore.clear();
+          this.conversationDetails.set(null);
+          return;
         }
-      } else {
-        this.activeChatStore.clear();
-        this.conversationDetails.set(null);
-      }
+
+        if (isDemo) {
+          this.lastActiveKey = null;
+          return;
+        }
+
+        if (userId) {
+          const activationKey = `${userId}:${id}`;
+          if (this.lastActiveKey !== activationKey) {
+            this.lastActiveKey = activationKey;
+            void this.activeChatStore.setActiveConversation(id);
+            void this.loadConversationDetails(id);
+          }
+        }
+      });
     });
 
     // Smart auto-scroll khi có tin nhắn mới
@@ -207,6 +228,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => {
+      this.lastActiveKey = null;
       this.activeChatStore.clear();
       if (this.intersectionObserver) {
         this.intersectionObserver.disconnect();
@@ -222,17 +244,26 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.lastActiveKey = null;
     this.activeChatStore.clear();
   }
 
   async loadConversationDetails(id: string): Promise<void> {
+    const generation = ++this.detailsGeneration;
     this.notFound.set(false);
     try {
       const details = await this.conversationsApi.getConversation(id);
-      this.conversationDetails.set(details);
-    } catch {
-      this.conversationDetails.set(null);
-      this.notFound.set(true);
+      if (this.detailsGeneration === generation && this.conversationId() === id) {
+        this.conversationDetails.set(details);
+      }
+    } catch (err: unknown) {
+      if (this.detailsGeneration === generation && this.conversationId() === id) {
+        const status = (err as { status?: number })?.status;
+        if (status === 404) {
+          this.notFound.set(true);
+        }
+        this.conversationDetails.set(null);
+      }
     }
   }
 
@@ -384,6 +415,10 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.composerContext.set(action);
     }
+  }
+
+  onToggleReaction(messageId: string, emoji: string): void {
+    void this.activeChatStore.toggleReaction(messageId, emoji);
   }
 
   retryMessage(clientNonce: string): void {

@@ -17,6 +17,7 @@ describe('ActiveChatStore', () => {
     deleteMessage: any;
     markAsRead: any;
     getAttachmentSignedUrl: any;
+    setReaction: any;
   };
   let chatSocketMock: {
     joinConversation: any;
@@ -26,6 +27,7 @@ describe('ActiveChatStore', () => {
     messageCreated$: Subject<any>;
     messageUpdated$: Subject<any>;
     messageDeleted$: Subject<any>;
+    reactionUpdated$: Subject<any>;
     messageRead$: Subject<any>;
     typingUpdated$: Subject<any>;
     joinError$: Subject<any>;
@@ -77,6 +79,11 @@ describe('ActiveChatStore', () => {
       getAttachmentSignedUrl: vi.fn().mockResolvedValue({
         signedUrl: 'https://storage.supabase.co/signed/fresh-url.png',
       }),
+      setReaction: vi.fn().mockResolvedValue({
+        messageId: '100',
+        conversationId: 'conv-1',
+        reactions: [{ emoji: '❤️', count: 1, reactedByMe: true }],
+      }),
     };
 
     chatSocketMock = {
@@ -87,6 +94,7 @@ describe('ActiveChatStore', () => {
       messageCreated$: new Subject(),
       messageUpdated$: new Subject(),
       messageDeleted$: new Subject(),
+      reactionUpdated$: new Subject(),
       messageRead$: new Subject(),
       typingUpdated$: new Subject(),
       joinError$: new Subject(),
@@ -805,6 +813,290 @@ describe('ActiveChatStore', () => {
       expect(store.error()).toBe(
         'Bạn không có quyền tham gia cuộc trò chuyện này',
       );
+    });
+
+    it('joinConversation bị rejected phản ánh lỗi ngay vào store', async () => {
+      chatSocketMock.joinConversation.mockResolvedValueOnce({
+        success: false,
+        error: 'Không có quyền truy cập',
+        status: 'rejected',
+      });
+
+      await store.setActiveConversation('conv-blocked');
+
+      // Chờ microtask xử lý promise join
+      await Promise.resolve();
+
+      expect(store.error()).toBe('Không có quyền truy cập');
+    });
+
+    it('bỏ qua message:created của conversation khác', async () => {
+      await store.setActiveConversation('conv-1');
+
+      chatSocketMock.messageCreated$.next({
+        message: {
+          id: '999',
+          channelId: null,
+          conversationId: 'conv-other',
+          authorId: 'user-other',
+          type: 'default',
+          content: 'Secret from other room',
+          replyToId: null,
+          clientNonce: null,
+          editedAt: null,
+          deletedAt: null,
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      expect(store.messages().some((m) => m.id === '999')).toBe(false);
+    });
+
+    it('reconcile tin nhắn qua clientNonce và không nhân đôi tin nhắn khi REST + socket cùng trả về', async () => {
+      await store.setActiveConversation('conv-1');
+
+      // Thêm 1 optimistic message
+      store['_optimisticMessages'].set([
+        {
+          clientNonce: 'nonce-123',
+          conversationId: 'conv-1',
+          content: 'Optimistic text',
+          status: 'sending',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      expect(store.allMessages()).toHaveLength(3); // 2 sample + 1 optimistic
+
+      // Socket nhận message:created khớp clientNonce
+      chatSocketMock.messageCreated$.next({
+        message: {
+          id: '200',
+          channelId: null,
+          conversationId: 'conv-1',
+          authorId: 'user-me',
+          author: {
+            id: 'user-me',
+            username: 'me',
+            displayName: 'Me',
+            avatarUrl: null,
+          },
+          type: 'default',
+          content: 'Optimistic text',
+          replyToId: null,
+          clientNonce: 'nonce-123',
+          editedAt: null,
+          deletedAt: null,
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      // Optimistic message đã được dọn và thay bằng persisted message
+      expect(store.optimisticMessages()).toHaveLength(0);
+      expect(store.allMessages().some((m) => m.id === '200')).toBe(true);
+
+      // Nếu socket phát lại message:created trùng id, không bị nhân đôi
+      chatSocketMock.messageCreated$.next({
+        message: {
+          id: '200',
+          channelId: null,
+          conversationId: 'conv-1',
+          authorId: 'user-me',
+          type: 'default',
+          content: 'Optimistic text',
+          replyToId: null,
+          clientNonce: 'nonce-123',
+          editedAt: null,
+          deletedAt: null,
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      const count200 = store.messages().filter((m) => m.id === '200').length;
+      expect(count200).toBe(1);
+    });
+
+    it('chuyển conversation gọi leaveConversation với phòng cũ và ngOnDestroy dọn dẹp', async () => {
+      await store.setActiveConversation('conv-1');
+      expect(chatSocketMock.joinConversation).toHaveBeenCalledWith('conv-1');
+
+      await store.setActiveConversation('conv-2');
+      expect(chatSocketMock.leaveConversation).toHaveBeenCalledWith('conv-1');
+      expect(chatSocketMock.joinConversation).toHaveBeenCalledWith('conv-2');
+
+      store.ngOnDestroy();
+      expect(chatSocketMock.leaveConversation).toHaveBeenCalledWith('conv-2');
+    });
+
+    it('khi gọi lại cùng conversationId mà socket disconnected: giữ nguyên messages và chỉ retry joinConversation', async () => {
+      messagesApiMock.getMessages.mockResolvedValueOnce({
+        messages: [
+          {
+            id: '101',
+            channelId: null,
+            conversationId: 'conv-1',
+            authorId: 'user-1',
+            type: 'default',
+            content: 'Loaded message',
+            replyToId: null,
+            clientNonce: null,
+            editedAt: null,
+            deletedAt: null,
+            createdAt: '2026-08-22T10:00:00Z',
+          },
+        ],
+        hasMore: false,
+        nextCursor: undefined,
+      });
+
+      chatSocketMock.joinConversation.mockResolvedValueOnce({
+        success: false,
+        status: 'disconnected',
+      });
+
+      await store.setActiveConversation('conv-1');
+      expect(store.messages().length).toBe(1);
+      expect(store.realtimeStatus()).toBe('disconnected');
+      expect(messagesApiMock.getMessages).toHaveBeenCalledTimes(1);
+
+      // Gọi lại cùng conv-1
+      chatSocketMock.joinConversation.mockResolvedValueOnce({
+        success: true,
+        status: 'joined',
+      });
+      await store.setActiveConversation('conv-1');
+
+      // Tin nhắn vẫn còn nguyên vẹn, không gọi lại REST getMessages
+      expect(store.messages().length).toBe(1);
+      expect(store.messages()[0].content).toBe('Loaded message');
+      expect(messagesApiMock.getMessages).toHaveBeenCalledTimes(1);
+      expect(chatSocketMock.joinConversation).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('Reactions (Desired-State & Realtime)', () => {
+    beforeEach(async () => {
+      await store.setActiveConversation('conv-1');
+    });
+
+    it('optimistic update khi thêm reaction và reconcile với REST response', async () => {
+      messagesApiMock.setReaction.mockResolvedValueOnce({
+        messageId: '100',
+        conversationId: 'conv-1',
+        reactions: [{ emoji: '❤️', count: 1, reactedByMe: true }],
+      });
+
+      const promise = store.setReaction('100', '❤️', true);
+
+      // Ngay lập tức kiểm tra optimistic update
+      const optMsg = store.messages().find((m) => m.id === '100');
+      expect(optMsg?.reactions).toEqual([{ emoji: '❤️', count: 1, reactedByMe: true }]);
+
+      await promise;
+
+      // Sau khi REST API hoàn tất
+      const reconciledMsg = store.messages().find((m) => m.id === '100');
+      expect(reconciledMsg?.reactions).toEqual([{ emoji: '❤️', count: 1, reactedByMe: true }]);
+      expect(messagesApiMock.setReaction).toHaveBeenCalledWith(
+        'conv-1',
+        '100',
+        expect.objectContaining({
+          emoji: '❤️',
+          reacted: true,
+          clientMutationId: expect.any(String),
+        }),
+      );
+    });
+
+    it('rollback optimistic update và gán error khi REST API trả về lỗi', async () => {
+      messagesApiMock.setReaction.mockRejectedValueOnce(new Error('Network error'));
+
+      await store.setReaction('100', '❤️', true);
+
+      const msg = store.messages().find((m) => m.id === '100');
+      expect(msg?.reactions).toEqual([]);
+      expect(store.error()).toContain('Network error');
+    });
+
+    it('toggleReaction chuyển đổi đúng giữa thêm và bỏ cảm xúc', async () => {
+      // Ban đầu chưa có reaction -> toggle sẽ thành reacted: true
+      await store.toggleReaction('100', '👍');
+      expect(messagesApiMock.setReaction).toHaveBeenCalledWith(
+        'conv-1',
+        '100',
+        expect.objectContaining({ emoji: '👍', reacted: true }),
+      );
+
+      // Cập nhật state đã reactedByMe: true
+      messagesApiMock.setReaction.mockResolvedValueOnce({
+        messageId: '100',
+        conversationId: 'conv-1',
+        reactions: [],
+      });
+
+      // Toggle lần 2 khi đã reacted -> toggle sẽ thành reacted: false
+      await store.toggleReaction('100', '❤️');
+      expect(messagesApiMock.setReaction).toHaveBeenCalledWith(
+        'conv-1',
+        '100',
+        expect.objectContaining({ emoji: '❤️', reacted: false }),
+      );
+    });
+
+    it('nhận reactionUpdated$ từ người khác: cập nhật count và bảo toàn reactedByMe của chính mình', async () => {
+      // Giả sử tin nhắn 100 đang có reaction ❤️ do chính mình thả
+      messagesApiMock.setReaction.mockResolvedValueOnce({
+        messageId: '100',
+        conversationId: 'conv-1',
+        reactions: [{ emoji: '❤️', count: 1, reactedByMe: true }],
+      });
+      await store.setReaction('100', '❤️', true);
+
+      // Socket broadcast từ user khác thêm reaction ❤️ (count tăng lên 2)
+      chatSocketMock.reactionUpdated$.next({
+        conversationId: 'conv-1',
+        messageId: '100',
+        actorUserId: 'user-other',
+        emoji: '❤️',
+        action: 'added',
+        clientMutationId: 'other-mutation-uuid',
+        reactions: [{ emoji: '❤️', count: 2 }],
+      });
+
+      const updated = store.messages().find((m) => m.id === '100');
+      expect(updated?.reactions).toEqual([{ emoji: '❤️', count: 2, reactedByMe: true }]);
+    });
+
+    it('deduplicate socket event của chính mutation vừa thực hiện', async () => {
+      let capturedMutationId = '';
+      messagesApiMock.setReaction.mockImplementationOnce(
+        async (_convId: string, _msgId: string, dto: any) => {
+          capturedMutationId = dto.clientMutationId;
+          return {
+            messageId: '100',
+            conversationId: 'conv-1',
+            clientMutationId: dto.clientMutationId,
+            reactions: [{ emoji: '🔥', count: 1, reactedByMe: true }],
+          };
+        },
+      );
+
+      await store.setReaction('100', '🔥', true);
+
+      // Socket phát lại event với chính clientMutationId này
+      chatSocketMock.reactionUpdated$.next({
+        conversationId: 'conv-1',
+        messageId: '100',
+        actorUserId: 'user-me',
+        emoji: '🔥',
+        action: 'added',
+        clientMutationId: capturedMutationId,
+        reactions: [{ emoji: '🔥', count: 999 }], // Dữ liệu giả lập
+      });
+
+      // State không bị đè bởi duplicate socket event
+      const msg = store.messages().find((m) => m.id === '100');
+      expect(msg?.reactions).toEqual([{ emoji: '🔥', count: 1, reactedByMe: true }]);
     });
   });
 });

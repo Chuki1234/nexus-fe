@@ -85,10 +85,10 @@ describe('ConversationsApiService', () => {
     expect(res).toEqual(mockDetail);
   });
 
-  it('ném lỗi nếu chưa đăng nhập (không có access token)', () => {
+  it('ném lỗi nếu chưa đăng nhập (không có access token)', async () => {
     authMock.accessToken.mockReturnValue(null);
 
-    expect(() => service.listConversations()).toThrow(
+    await expect(service.listConversations()).rejects.toThrow(
       'Bạn cần đăng nhập',
     );
   });

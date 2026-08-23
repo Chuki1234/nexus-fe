@@ -29,8 +29,11 @@ describe('MessageActions', () => {
     expect(toolbar.querySelector('button[aria-label="Thêm thao tác"]')).toBeTruthy();
   });
 
-  it('chọn reaction tạo chip local và bấm lại thì bỏ', async () => {
+  it('chọn reaction phát ra sự kiện output reaction', async () => {
     const fixture = await mount();
+    const emittedReactions: string[] = [];
+    fixture.componentInstance.reaction.subscribe((emoji) => emittedReactions.push(emoji));
+
     const trigger = fixture.nativeElement.querySelector(
       'button[aria-label="Thêm cảm xúc"]',
     ) as HTMLButtonElement;
@@ -44,15 +47,7 @@ describe('MessageActions', () => {
     option.click();
     fixture.detectChanges();
 
-    const chip = fixture.nativeElement.querySelector(
-      '.message-reaction-preview',
-    ) as HTMLButtonElement;
-    expect(chip).toBeTruthy();
-    expect(chip.getAttribute('aria-pressed')).toBe('true');
-
-    chip.click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.message-reaction-preview')).toBeNull();
+    expect(emittedReactions).toContain('👍');
   });
 
   it('reply phát composer context còn edit chỉ mở với tin của mình', async () => {
