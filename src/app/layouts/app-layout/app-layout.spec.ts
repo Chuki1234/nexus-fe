@@ -188,4 +188,29 @@ describe('AppLayout', () => {
     expect(query('button[aria-label="Chuyển sang giao diện tối"]')).toBeTruthy();
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
+
+  it('hiển thị thanh kéo chia pane với thuộc tính ARIA và hỗ trợ phím mũi tên', async () => {
+    await harness.navigateByUrl('/channels/@me');
+
+    const handle = query('.pane-resize-handle--nav') as HTMLElement;
+    expect(handle).toBeTruthy();
+    expect(handle.getAttribute('role')).toBe('separator');
+    expect(handle.getAttribute('aria-orientation')).toBe('vertical');
+    expect(handle.getAttribute('aria-valuenow')).toBe('280');
+
+    // Phím ArrowRight tăng độ rộng 8px
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    TestBed.tick();
+    expect(handle.getAttribute('aria-valuenow')).toBe('288');
+
+    // Shift + ArrowLeft giảm độ rộng 32px
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', shiftKey: true }));
+    TestBed.tick();
+    expect(handle.getAttribute('aria-valuenow')).toBe('256');
+
+    // Double click reset về 280px
+    handle.dispatchEvent(new MouseEvent('dblclick'));
+    TestBed.tick();
+    expect(handle.getAttribute('aria-valuenow')).toBe('280');
+  });
 });

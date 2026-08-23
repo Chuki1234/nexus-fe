@@ -15,6 +15,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
+import { ATTACHMENT_LIMITS } from '../../../../core/constants/attachments.constant';
+
 export type MessageComposerContextKind =
   | 'reply'
   | 'edit'
@@ -176,17 +178,32 @@ export class MessageComposer implements OnDestroy {
   readonly showEmojiPicker = signal<boolean>(false);
   readonly activeEmojiCategoryIndex = signal<number>(0);
   readonly fileErrorMessage = signal<string | null>(null);
+  dragEnterCounter = 0;
 
   protected readonly emojiCategories = EMOJI_CATEGORIES;
 
   constructor() {
     effect(() => {
       const ctx = this.context();
-      if (ctx?.kind === 'edit') {
+      if (ctx) {
         untracked(() => {
-          this.revokePendingUrls();
-          this.pendingFiles.set([]);
-          this.fileErrorMessage.set(null);
+          if (ctx.kind === 'edit') {
+            this.revokePendingUrls();
+            this.pendingFiles.set([]);
+            this.fileErrorMessage.set(null);
+            this.text.set(ctx.description || '');
+          }
+          // Tự động focus ngay vào ô nhập liệu khi chọn Trả lời / Chỉnh sửa / Chuyển tiếp
+          setTimeout(() => {
+            const textarea = this.textareaEl()?.nativeElement;
+            if (textarea) {
+              textarea.focus();
+              if (ctx.kind === 'edit') {
+                const len = textarea.value.length;
+                textarea.setSelectionRange(len, len);
+              }
+            }
+          }, 0);
         });
       }
     });
@@ -215,7 +232,6 @@ export class MessageComposer implements OnDestroy {
 
   onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
-      // Bỏ qua nếu đang gõ tiếng Việt bằng IME
       if (event.isComposing) return;
       event.preventDefault();
       this.submit();
@@ -253,6 +269,15 @@ export class MessageComposer implements OnDestroy {
     }
   }
 
+  onDragEnter(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.disabled() && this.context()?.kind !== 'edit') {
+      this.dragEnterCounter++;
+      this.isDraggingOver.set(true);
+    }
+  }
+
   onDragOver(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
@@ -264,12 +289,17 @@ export class MessageComposer implements OnDestroy {
   onDragLeave(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    this.isDraggingOver.set(false);
+    this.dragEnterCounter--;
+    if (this.dragEnterCounter <= 0) {
+      this.dragEnterCounter = 0;
+      this.isDraggingOver.set(false);
+    }
   }
 
   onDrop(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
+    this.dragEnterCounter = 0;
     this.isDraggingOver.set(false);
 
     if (this.disabled() || this.context()?.kind === 'edit') return;
@@ -306,44 +336,49 @@ export class MessageComposer implements OnDestroy {
     if (this.context()?.kind === 'edit') return;
     this.fileErrorMessage.set(null);
     const current = this.pendingFiles();
-    const MAX_FILES = 5;
-    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-    const allowedMimePrefixes = [
-      'image/',
-      'application/pdf',
-      'text/plain',
-      'application/zip',
-      'application/x-zip-compressed',
-    ];
-
-    if (current.length + files.length > MAX_FILES) {
-      this.fileErrorMessage.set(`Chỉ được gửi tối đa ${MAX_FILES} file cùng lúc.`);
+    if (current.length + files.length > ATTACHMENT_LIMITS.MAX_FILES_PER_MESSAGE) {
+      this.fileErrorMessage.set(
+        `Chỉ được gửi tối đa ${ATTACHMENT_LIMITS.MAX_FILES_PER_MESSAGE} file cùng lúc.`,
+      );
       return;
     }
 
+    const currentTotalBytes = current.reduce((sum, item) => sum + item.file.size, 0);
+    let runningBatchBytes = 0;
     const validNewItems: PendingFileItem[] = [];
+    const allowedMimes = ATTACHMENT_LIMITS.ALLOWED_MIME_TYPES as readonly string[];
+
     for (const f of files) {
-      if (f.size > MAX_SIZE) {
+      if (f.size > ATTACHMENT_LIMITS.MAX_FILE_SIZE_BYTES) {
         this.fileErrorMessage.set(
           `File "${f.name}" (${formatFileSize(f.size)}) vượt quá giới hạn 10MB.`,
         );
         continue;
       }
 
-      const isAllowed = allowedMimePrefixes.some(
-        (prefix) =>
-          f.type.startsWith(prefix) ||
-          (prefix === 'application/zip' && f.name.endsWith('.zip')),
-      );
+      const isAllowedMime =
+        allowedMimes.includes(f.type) ||
+        (f.type === '' && (f.name.endsWith('.zip') || f.name.endsWith('.txt')));
 
-      if (!isAllowed) {
+      if (!isAllowedMime) {
         this.fileErrorMessage.set(
           `Định dạng file "${f.name}" không được hỗ trợ.`,
         );
         continue;
       }
 
+      if (
+        currentTotalBytes + runningBatchBytes + f.size >
+        ATTACHMENT_LIMITS.MAX_TOTAL_SIZE_BYTES
+      ) {
+        this.fileErrorMessage.set(
+          `Tổng dung lượng tệp đính kèm vượt quá giới hạn 30MB.`,
+        );
+        continue;
+      }
+
+      runningBatchBytes += f.size;
       const isImage = f.type.startsWith('image/');
       const previewUrl = isImage ? URL.createObjectURL(f) : null;
 
@@ -357,7 +392,9 @@ export class MessageComposer implements OnDestroy {
       });
     }
 
-    this.pendingFiles.set([...current, ...validNewItems]);
+    if (validNewItems.length > 0) {
+      this.pendingFiles.set([...current, ...validNewItems]);
+    }
   }
 
   removeFile(id: string): void {
@@ -385,10 +422,9 @@ export class MessageComposer implements OnDestroy {
       return;
     }
 
-    const start = textarea.selectionStart || 0;
-    const end = textarea.selectionEnd || 0;
+    const start = textarea.selectionStart ?? 0;
+    const end = textarea.selectionEnd ?? 0;
     const current = this.text();
-
     const updated = current.slice(0, start) + emoji + current.slice(end);
     this.text.set(updated);
 
@@ -408,7 +444,12 @@ export class MessageComposer implements OnDestroy {
     if (!textarea) return;
 
     textarea.style.height = 'auto';
-    const newHeight = Math.min(Math.max(textarea.scrollHeight, 24), 160);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    const maxAllowedHeight = isMobile
+      ? Math.min(160, Math.floor(window.innerHeight * 0.32))
+      : 200;
+
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, 24), maxAllowedHeight);
     textarea.style.height = `${newHeight}px`;
   }
 

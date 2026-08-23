@@ -48,6 +48,7 @@ describe('ActiveChatStore', () => {
       clientNonce: null,
       editedAt: null,
       deletedAt: null,
+      isForwarded: false,
       createdAt: '2026-08-22T10:00:00Z',
     },
     {
@@ -61,6 +62,7 @@ describe('ActiveChatStore', () => {
       clientNonce: null,
       editedAt: null,
       deletedAt: null,
+      isForwarded: false,
       createdAt: '2026-08-22T10:05:00Z',
     },
   ];
@@ -157,6 +159,7 @@ describe('ActiveChatStore', () => {
         clientNonce: null,
         editedAt: null,
         deletedAt: null,
+        isForwarded: false,
         createdAt: '2026-08-22T09:00:00Z',
       };
 
@@ -193,6 +196,7 @@ describe('ActiveChatStore', () => {
         clientNonce: 'nonce-123',
         editedAt: null,
         deletedAt: null,
+        isForwarded: false,
         createdAt: '2026-08-22T10:10:00Z',
       };
 
@@ -761,6 +765,7 @@ describe('ActiveChatStore', () => {
           clientNonce: null,
           editedAt: null,
           deletedAt: null,
+          isForwarded: false,
           attachments: [
             {
               id: 'att-expired',

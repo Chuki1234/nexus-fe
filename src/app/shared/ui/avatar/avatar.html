@@ -21,7 +21,7 @@
   <span class="sr-only">{{ name() }}</span>
 }
 
-@if (presence(); as status) {
+@if (effectivePresence(); as status) {
   <app-status-dot
     class="absolute right-0 bottom-0 z-10"
     [presence]="status"

@@ -41,6 +41,7 @@ export interface ChatUiMessage {
   clientNonce: string | null;
   editedAt: string | null;
   deletedAt: string | null;
+  isForwarded: boolean;
   attachments?: AttachmentResponseDto[];
   reactions?: ReactionSummaryDto[];
   createdAt: string;
@@ -82,6 +83,12 @@ export class ActiveChatStore implements OnDestroy {
   private readonly _loadingInitial = signal<boolean>(false);
   private readonly _loadingMore = signal<boolean>(false);
   private readonly _error = signal<string | null>(null);
+  private readonly _chatError = signal<{
+    status?: number;
+    message: string;
+    type: '401' | '403' | '404' | '5xx' | 'network' | 'unknown';
+  } | null>(null);
+  private readonly _paginationError = signal<string | null>(null);
 
   // Readonly Selectors
   readonly conversationId = this._conversationId.asReadonly();
@@ -94,6 +101,8 @@ export class ActiveChatStore implements OnDestroy {
   readonly loadingInitial = this._loadingInitial.asReadonly();
   readonly loadingMore = this._loadingMore.asReadonly();
   readonly error = this._error.asReadonly();
+  readonly chatError = this._chatError.asReadonly();
+  readonly paginationError = this._paginationError.asReadonly();
 
   /**
    * Danh sách toàn bộ tin nhắn UI kết hợp giữa tin nhắn đã lưu (persisted)
@@ -129,6 +138,7 @@ export class ActiveChatStore implements OnDestroy {
 
     const uiPersisted: ChatUiMessage[] = persisted.map((m) => ({
       ...m,
+      isForwarded: Boolean(m.isForwarded),
       status: 'persisted',
     }));
 
@@ -140,6 +150,7 @@ export class ActiveChatStore implements OnDestroy {
       author: currentAuthor,
       type: 'default',
       content: opt.content,
+      isForwarded: false,
       replyToId: opt.replyToId ?? null,
       clientNonce: opt.clientNonce,
       editedAt: null,
@@ -201,6 +212,8 @@ export class ActiveChatStore implements OnDestroy {
     this._loadingInitial.set(false);
     this._loadingMore.set(false);
     this._error.set(null);
+    this._chatError.set(null);
+    this._paginationError.set(null);
   }
 
   // Trạng thái realtime socket riêng biệt (không đè lên REST error)
@@ -262,6 +275,8 @@ export class ActiveChatStore implements OnDestroy {
     this._hasMore.set(false);
     this._nextCursor.set(undefined);
     this._error.set(null);
+    this._chatError.set(null);
+    this._paginationError.set(null);
     this._loadingInitial.set(true);
     this._realtimeStatus.set('connecting');
 
@@ -321,18 +336,82 @@ export class ActiveChatStore implements OnDestroy {
         this._conversationId() === conversationId &&
         this.currentGeneration === generation
       ) {
-        this._error.set(
-          extractErrorMessage(
-            err,
-            'Không thể tải lịch sử tin nhắn cuộc trò chuyện.',
-          ),
+        const httpStatus = (err as { status?: number })?.status;
+        let errType: '401' | '403' | '404' | '5xx' | 'network' | 'unknown' = 'unknown';
+        if (httpStatus === 401) errType = '401';
+        else if (httpStatus === 403) errType = '403';
+        else if (httpStatus === 404) errType = '404';
+        else if (httpStatus && httpStatus >= 500) errType = '5xx';
+        else errType = 'network';
+
+        const message = extractErrorMessage(
+          err,
+          'Không thể tải lịch sử tin nhắn cuộc trò chuyện.',
         );
+        this._chatError.set({ status: httpStatus, message, type: errType });
+        this._error.set(message);
       }
     } finally {
       if (
         this._conversationId() === conversationId &&
         this.currentGeneration === generation
       ) {
+        this._loadingInitial.set(false);
+      }
+    }
+  }
+
+  /**
+   * Thử lại việc tải lịch sử tin nhắn cho cuộc trò chuyện hiện tại (chỉ tải lại REST, không join lại socket nếu đã kết nối)
+   */
+  async retryInitialLoad(): Promise<void> {
+    const convId = this._conversationId();
+    if (!convId) return;
+    const generation = this.currentGeneration;
+    this._loadingInitial.set(true);
+    this._error.set(null);
+    this._chatError.set(null);
+
+    try {
+      const res = await this.messagesApi.getMessages(convId, { limit: 50 });
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
+        const existingRealtime = this._messages();
+        const mergedMap = new Map<string, MessageResponseDto>();
+
+        for (const m of res.messages) {
+          mergedMap.set(m.id, m);
+        }
+        for (const m of existingRealtime) {
+          mergedMap.set(m.id, m);
+        }
+
+        const sorted = Array.from(mergedMap.values()).sort((a, b) =>
+          compareMessageIds(a.id, b.id),
+        );
+
+        this._messages.set(sorted);
+        this._hasMore.set(res.hasMore);
+        this._nextCursor.set(res.nextCursor);
+      }
+    } catch (err: unknown) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
+        const httpStatus = (err as { status?: number })?.status;
+        let errType: '401' | '403' | '404' | '5xx' | 'network' | 'unknown' = 'unknown';
+        if (httpStatus === 401) errType = '401';
+        else if (httpStatus === 403) errType = '403';
+        else if (httpStatus === 404) errType = '404';
+        else if (httpStatus && httpStatus >= 500) errType = '5xx';
+        else errType = 'network';
+
+        const message = extractErrorMessage(
+          err,
+          'Không thể tải lịch sử tin nhắn cuộc trò chuyện.',
+        );
+        this._chatError.set({ status: httpStatus, message, type: errType });
+        this._error.set(message);
+      }
+    } finally {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         this._loadingInitial.set(false);
       }
     }
@@ -351,6 +430,7 @@ export class ActiveChatStore implements OnDestroy {
     }
 
     this._loadingMore.set(true);
+    this._paginationError.set(null);
     try {
       const res = await this.messagesApi.getMessages(convId, {
         before: cursor,
@@ -382,7 +462,10 @@ export class ActiveChatStore implements OnDestroy {
         this._conversationId() === convId &&
         this.currentGeneration === generation
       ) {
-        this._error.set(err?.message || 'Không thể tải thêm tin nhắn cũ.');
+        // Chỉ lưu lỗi phân trang, không ghi đè _error của toàn bộ cuộc trò chuyện
+        this._paginationError.set(
+          extractErrorMessage(err, 'Không thể tải thêm tin nhắn cũ.'),
+        );
       }
     } finally {
       if (
@@ -855,6 +938,24 @@ export class ActiveChatStore implements OnDestroy {
     return this.setReaction(messageId, emoji, !currentlyReacted);
   }
 
+  /**
+   * Chuyển tiếp tin nhắn sang cuộc trò chuyện đích (idempotent qua clientNonce)
+   */
+  async forwardMessage(
+    messageId: string,
+    targetConversationId: string,
+  ): Promise<MessageResponseDto> {
+    const convId = this._conversationId();
+    if (!convId) {
+      throw new Error('Chưa chọn cuộc trò chuyện hiện tại.');
+    }
+    const clientNonce = crypto.randomUUID();
+    return this.messagesApi.forwardMessage(convId, messageId, {
+      targetConversationId,
+      clientNonce,
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // Private Helper & Realtime Handlers
   // ---------------------------------------------------------------------------
@@ -928,6 +1029,7 @@ export class ActiveChatStore implements OnDestroy {
             author: message.author,
             type: message.type,
             content: message.content,
+            isForwarded: message.isForwarded,
             replyToId: message.replyToId,
             clientNonce: message.clientNonce,
             editedAt: message.editedAt,

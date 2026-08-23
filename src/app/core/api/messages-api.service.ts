@@ -40,6 +40,7 @@ export interface MessageResponseDto {
   clientNonce: string | null;
   editedAt: string | null;
   deletedAt: string | null;
+  isForwarded: boolean;
   attachments?: AttachmentResponseDto[];
   reactions?: ReactionSummaryDto[];
   createdAt: string;
@@ -60,6 +61,11 @@ export interface SendMessageDto {
 
 export interface EditMessageDto {
   content: string;
+}
+
+export interface ForwardMessageDto {
+  targetConversationId: string;
+  clientNonce: string;
 }
 
 export interface SetReactionDto {
@@ -236,6 +242,26 @@ export class MessagesApiService {
           { headers },
         )
         .pipe(timeout(15000)),
+    );
+  }
+
+  /**
+   * Chuyển tiếp tin nhắn sang cuộc trò chuyện đích.
+   */
+  async forwardMessage(
+    conversationId: string,
+    messageId: string,
+    dto: ForwardMessageDto,
+  ): Promise<MessageResponseDto> {
+    const headers = await this.getAuthHeaders();
+    return firstValueFrom(
+      this.http
+        .post<MessageResponseDto>(
+          `${this.baseUrl}/conversations/${conversationId}/messages/${messageId}/forward`,
+          dto,
+          { headers },
+        )
+        .pipe(timeout(20000)),
     );
   }
 

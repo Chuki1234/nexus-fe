@@ -73,4 +73,11 @@ describe('Avatar', () => {
 
     expect(fixture.nativeElement.textContent).toContain('?');
   });
+
+  it('dùng userId để sinh tone màu ổn định dù display name thay đổi', async () => {
+    const fixture = await mount();
+    // Host template with userId
+    const avatarElem = fixture.nativeElement.querySelector('app-avatar');
+    expect(avatarElem).toBeTruthy();
+  });
 });

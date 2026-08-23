@@ -271,4 +271,109 @@ describe('MessageComposer', () => {
 
     revokeSpy.mockRestore();
   });
+
+  describe('Checkpoint 8: Attachment Contract & Anti-flicker', () => {
+    it('C1: Từ chối file > 10MB và giữ lại các file hợp lệ trong cùng lượt chọn', async () => {
+      const fixture = await mount();
+      const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+
+      const validFile = new File(['valid-data'], 'valid.jpg', { type: 'image/jpeg' });
+      const bigFile = new File([''], 'oversized.pdf', { type: 'application/pdf' });
+      Object.defineProperty(bigFile, 'size', { value: 11 * 1024 * 1024 }); // 11MB
+
+      composer.addFiles([validFile, bigFile]);
+      fixture.detectChanges();
+
+      expect(composer.fileErrorMessage()).toContain('vượt quá giới hạn 10MB');
+      expect(composer.pendingFiles().length).toBe(1);
+      expect(composer.pendingFiles()[0].name).toBe('valid.jpg');
+    });
+
+    it('C2: Từ chối thêm file thứ 6 (hạn mức tối đa 5 file)', async () => {
+      const fixture = await mount();
+      const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+
+      const files = Array.from({ length: 6 }, (_, i) =>
+        new File([`data-${i}`], `file-${i}.png`, { type: 'image/png' })
+      );
+
+      composer.addFiles(files);
+      fixture.detectChanges();
+
+      expect(composer.fileErrorMessage()).toContain('Chỉ được gửi tối đa 5 file');
+      expect(composer.pendingFiles().length).toBe(0);
+    });
+
+    it('C3: Từ chối batch tệp có tổng dung lượng vượt quá 30MB', async () => {
+      const fixture = await mount();
+      const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+
+      const f1 = new File([''], 'f1.zip', { type: 'application/zip' });
+      Object.defineProperty(f1, 'size', { value: 9 * 1024 * 1024 });
+      const f2 = new File([''], 'f2.zip', { type: 'application/zip' });
+      Object.defineProperty(f2, 'size', { value: 9 * 1024 * 1024 });
+      const f3 = new File([''], 'f3.zip', { type: 'application/zip' });
+      Object.defineProperty(f3, 'size', { value: 9 * 1024 * 1024 });
+      const f4 = new File([''], 'f4.zip', { type: 'application/zip' });
+      Object.defineProperty(f4, 'size', { value: 9 * 1024 * 1024 }); // 9*4 = 36MB > 30MB
+
+      composer.addFiles([f1, f2, f3, f4]);
+      fixture.detectChanges();
+
+      expect(composer.fileErrorMessage()).toContain('vượt quá giới hạn 30MB');
+      // Chỉ nhận 3 file đầu (27MB <= 30MB), file thứ 4 vượt 30MB bị từ chối
+      expect(composer.pendingFiles().length).toBe(3);
+    });
+
+    it('C4: Canonical MIME Whitelist - Chỉ nhận các MIME được backend định nghĩa', async () => {
+      const fixture = await mount();
+      const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+
+      const validMimes = [
+        new File([''], 'img.jpg', { type: 'image/jpeg' }),
+        new File([''], 'img.png', { type: 'image/png' }),
+        new File([''], 'img.webp', { type: 'image/webp' }),
+        new File([''], 'img.gif', { type: 'image/gif' }),
+        new File([''], 'doc.pdf', { type: 'application/pdf' }),
+      ];
+
+      composer.addFiles(validMimes);
+      fixture.detectChanges();
+      expect(composer.pendingFiles().length).toBe(5);
+
+      // Thử file MIME không được hỗ trợ
+      composer.removeFile(composer.pendingFiles()[0].id);
+      const invalidMimeFile = new File(['video'], 'video.mp4', { type: 'video/mp4' });
+      composer.addFiles([invalidMimeFile]);
+      fixture.detectChanges();
+
+      expect(composer.fileErrorMessage()).toContain('không được hỗ trợ');
+    });
+
+    it('C5: Anti-flicker Drag Overlay - dragEnterCounter hoạt động chính xác khi di chuyển qua các phần tử con', async () => {
+      const fixture = await mount();
+      const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+
+      const fakeDragEvent = {
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      } as unknown as DragEvent;
+
+      // 1. Kéo vào composer (outer shell)
+      composer.onDragEnter(fakeDragEvent);
+      expect(composer.isDraggingOver()).toBe(true);
+
+      // 2. Kéo vào phần tử con (child element)
+      composer.onDragEnter(fakeDragEvent);
+      expect(composer.isDraggingOver()).toBe(true);
+
+      // 3. Rời khỏi phần tử con (nhưng vẫn trong shell)
+      composer.onDragLeave(fakeDragEvent);
+      expect(composer.isDraggingOver()).toBe(true);
+
+      // 4. Rời hẳn khỏi composer shell
+      composer.onDragLeave(fakeDragEvent);
+      expect(composer.isDraggingOver()).toBe(false);
+    });
+  });
 });

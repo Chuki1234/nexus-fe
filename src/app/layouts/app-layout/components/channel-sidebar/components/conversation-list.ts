@@ -22,6 +22,7 @@ import {
 import type { PresenceStatus } from '../../../../../../shared/dto/common';
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
+import { PresenceService } from '../../../../../core/presence/presence.service';
 import { ActiveChatStore } from '../../../../../features/dashboard/services/active-chat.store';
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
@@ -65,6 +66,7 @@ export class ConversationList implements OnInit, OnDestroy {
   private readonly shell = inject(ShellData);
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly chatSocket = inject(ChatSocketService);
+  private readonly presenceService = inject(PresenceService);
   private readonly auth = inject(AuthService);
   private readonly activeChatStore = inject(ActiveChatStore);
   private readonly subs = new Subscription();
@@ -98,11 +100,14 @@ export class ConversationList implements OnInit, OnDestroy {
           c.recipient?.username ||
           c.name ||
           'Người dùng';
+        const presence = c.recipient?.id
+          ? this.presenceService.getPresence(c.recipient.id)()
+          : ((c.recipient?.presence as PresenceStatus) || 'offline');
         return {
           id: c.id,
           name,
           avatarUrl: c.recipient?.avatarUrl || c.iconUrl || null,
-          presence: (c.recipient?.presence as PresenceStatus) || 'offline',
+          presence,
           statusMessage: c.recipient?.statusMessage || null,
           unread: c.unreadCount > 0,
           unreadCount: c.unreadCount,

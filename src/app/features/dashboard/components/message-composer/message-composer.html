@@ -70,6 +70,7 @@
   class="composer-shell relative rounded-xl bg-surface-soft p-1 shadow-card"
   [attr.data-composer-state]="disabled() ? 'disabled' : 'ready'"
   [class.drag-over]="isDraggingOver()"
+  (dragenter)="onDragEnter($event)"
   (dragover)="onDragOver($event)"
   (dragleave)="onDragLeave($event)"
   (drop)="onDrop($event)"
@@ -90,7 +91,7 @@
       #fileInput
       type="file"
       multiple
-      accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,application/zip"
+      accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,application/zip,application/x-zip-compressed"
       class="hidden"
       (change)="onFileSelected($event)"
     />

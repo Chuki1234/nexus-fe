@@ -13,6 +13,8 @@ import type {
   ClientToServerEvents,
   JoinConversationResponse,
   MessagePayload,
+  PresenceSyncPayload,
+  PresenceUpdatedPayload,
   ReactionUpdatedPayload,
   ServerToClientEvents,
 } from '../../../shared/socket-events';
@@ -67,8 +69,9 @@ export class ChatSocketService {
     conversationId: string;
     error: string;
   }>();
-
   private readonly reactionUpdatedSubject = new Subject<ReactionUpdatedPayload>();
+  private readonly presenceUpdatedSubject = new Subject<PresenceUpdatedPayload>();
+  private readonly presenceSyncSubject = new Subject<PresenceSyncPayload>();
 
   readonly messageCreated$: Observable<{ message: MessagePayload }> =
     this.messageCreatedSubject.asObservable();
@@ -94,6 +97,10 @@ export class ChatSocketService {
     conversationId: string;
     error: string;
   }> = this.joinErrorSubject.asObservable();
+  readonly presenceUpdated$: Observable<PresenceUpdatedPayload> =
+    this.presenceUpdatedSubject.asObservable();
+  readonly presenceSync$: Observable<PresenceSyncPayload> =
+    this.presenceSyncSubject.asObservable();
 
   private readonly conversationUpdatedSubject = new Subject<{
     conversationId: string;
@@ -449,6 +456,33 @@ export class ChatSocketService {
 
     this.socket.on('conversation:updated', (payload) => {
       this.conversationUpdatedSubject.next(payload);
+    });
+
+    this.socket.on('presence:updated', (payload) => {
+      this.presenceUpdatedSubject.next(payload);
+    });
+
+    this.socket.on('presence:sync', (payload) => {
+      this.presenceSyncSubject.next(payload);
+    });
+  }
+
+  /**
+   * Lấy snapshot trạng thái presence hiện tại của toàn bộ bạn bè và DM peers
+   */
+  getPresenceSnapshot(): Promise<PresenceSyncPayload> {
+    return new Promise((resolve) => {
+      if (!this.socket || !this.socket.connected) {
+        return resolve({ presences: {} });
+      }
+      this.socket.emit('presence:get-snapshot', (response: PresenceSyncPayload) => {
+        if (response && response.presences) {
+          this.presenceSyncSubject.next(response);
+          resolve(response);
+        } else {
+          resolve({ presences: {} });
+        }
+      });
     });
   }
 }

@@ -1,6 +1,7 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { io } from 'socket.io-client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../auth/auth.service';
 import { ChatSocketService } from './chat-socket.service';
 
@@ -37,27 +38,31 @@ describe('ChatSocketService', () => {
       removeAllListeners: vi.fn(),
     };
 
-    vi.mocked(io).mockReturnValue(mockSocket);
+    vi.mocked(io).mockImplementation(() => mockSocket);
 
     authMock = {
-      isAuthenticated: vi.fn().mockReturnValue(false),
-      accessToken: vi.fn().mockReturnValue(null),
+      isAuthenticated: vi.fn().mockReturnValue(true),
+      accessToken: vi.fn().mockReturnValue('jwt-token-123'),
       session: vi.fn().mockReturnValue(null),
       whenReady: vi.fn().mockResolvedValue(undefined),
     };
 
     TestBed.configureTestingModule({
       providers: [
+        ChatSocketService,
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: AuthService, useValue: authMock },
       ],
     });
 
-    service = TestBed.runInInjectionContext(() => new ChatSocketService());
+    service = TestBed.inject(ChatSocketService);
+    service.disconnect();
+    vi.mocked(io).mockClear();
   });
 
   afterEach(() => {
     service?.disconnect();
+    TestBed.resetTestingModule();
   });
 
   it('khởi tạo kết nối Socket.IO với namespace /chat và auth credential', () => {
@@ -345,6 +350,41 @@ describe('ChatSocketService', () => {
     expect(received).toEqual(payload);
   });
 
+  it('presence:updated và presence:sync phát tán qua observable và getPresenceSnapshot emit request', async () => {
+    service.connect('jwt-token-123');
+
+    let updatedPayload: any = null;
+    let syncPayload: any = null;
+
+    service.presenceUpdated$.subscribe((p) => (updatedPayload = p));
+    service.presenceSync$.subscribe((s) => (syncPayload = s));
+
+    // Lấy callbacks đã đăng ký với socket.on
+    const onCalls = mockSocket.on.mock.calls;
+    const updatedCb = onCalls.find(([evt]: any) => evt === 'presence:updated')?.[1];
+    const syncCb = onCalls.find(([evt]: any) => evt === 'presence:sync')?.[1];
+
+    expect(updatedCb).toBeDefined();
+    expect(syncCb).toBeDefined();
+
+    updatedCb({ userId: 'user-bob', status: 'online', lastSeenAt: null });
+    expect(updatedPayload).toEqual({ userId: 'user-bob', status: 'online', lastSeenAt: null });
+
+    syncCb({ presences: { 'user-alice': { status: 'dnd', lastSeenAt: null } } });
+    expect(syncPayload).toEqual({ presences: { 'user-alice': { status: 'dnd', lastSeenAt: null } } });
+
+    // getPresenceSnapshot
+    mockSocket.emit.mockImplementation((event: string, cb: any) => {
+      if (event === 'presence:get-snapshot') {
+        cb({ presences: { 'user-charlie': { status: 'idle', lastSeenAt: null } } });
+      }
+    });
+
+    const snapshot = await service.getPresenceSnapshot();
+    expect(mockSocket.emit).toHaveBeenCalledWith('presence:get-snapshot', expect.any(Function));
+    expect(snapshot.presences['user-charlie']).toEqual({ status: 'idle', lastSeenAt: null });
+  });
+
   describe('Regression: Bảo toàn context this khi gọi AuthService.accessToken', () => {
     it('ensureConnected đọc accessToken từ AuthService thật có phụ thuộc this.currentSession mà không ném TypeError', async () => {
       // Giả lập AuthService như thực tế: method accessToken() phụ thuộc vào `this.currentSession`
@@ -376,12 +416,13 @@ describe('ChatSocketService', () => {
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [
+          ChatSocketService,
           { provide: PLATFORM_ID, useValue: 'browser' },
-          { provide: AuthService, useClass: RealLikeAuthService },
+          { provide: AuthService, useValue: new RealLikeAuthService() as unknown as AuthService },
         ],
       });
 
-      const testService = TestBed.runInInjectionContext(() => new ChatSocketService());
+      const testService = TestBed.inject(ChatSocketService);
 
       // ensureConnected không được ném TypeError
       const connected = await testService.ensureConnected();

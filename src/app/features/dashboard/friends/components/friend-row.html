@@ -13,7 +13,7 @@
         <app-avatar
           [name]="person().name"
           [src]="person().avatarUrl ?? null"
-          [presence]="person().presence"
+          [presence]="effectivePresence()"
           size="lg"
           ring="canvas"
         />

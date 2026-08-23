@@ -1,0 +1,187 @@
+<div class="modal-backdrop" (click)="!isSubmitting() && close.emit()">
+  <div
+    class="modal-card"
+    (click)="$event.stopPropagation()"
+    tabindex="-1"
+  >
+    <!-- Modal Header -->
+    <header class="modal-header">
+      <div class="header-title-group">
+        <mat-icon class="header-icon">forward_to_inbox</mat-icon>
+        <h2 id="forward-dialog-title" class="header-title">Chuyển tiếp tin nhắn</h2>
+      </div>
+      <button
+        type="button"
+        mat-icon-button
+        class="close-btn"
+        [disabled]="isSubmitting()"
+        (click)="close.emit()"
+        matTooltip="Đóng (Esc)"
+        aria-label="Đóng hộp thoại"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <!-- Message Preview Section -->
+    <section class="preview-section" aria-label="Xem trước tin nhắn">
+      <div class="preview-card">
+        <div class="preview-author-row">
+          <app-avatar
+            [name]="message().author?.displayName || message().author?.username || 'Người gửi'"
+            [src]="message().author?.avatarUrl ?? null"
+            size="xs"
+          />
+          <span class="preview-author-name">
+            {{ message().author?.displayName || message().author?.username || 'Người dùng' }}
+          </span>
+        </div>
+
+        @if (message().content) {
+          <p class="preview-content">{{ message().content }}</p>
+        }
+
+        @if (getAttachmentSummary(); as attSummary) {
+          <div class="preview-attachment-badge">
+            <mat-icon class="attachment-icon">attach_file</mat-icon>
+            <span>{{ attSummary }}</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Search Input Bar -->
+    <section class="search-section">
+      <div class="search-input-wrapper">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          #searchInput
+          type="text"
+          class="search-input"
+          placeholder="Tìm kiếm cuộc trò chuyện hoặc bạn bè..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          [disabled]="isSubmitting()"
+          aria-label="Tìm kiếm cuộc trò chuyện"
+        />
+        @if (searchQuery()) {
+          <button
+            type="button"
+            class="clear-search-btn"
+            (click)="searchQuery.set('')"
+            aria-label="Xóa tìm kiếm"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+    </section>
+
+    <!-- Error Alert Banner -->
+    @if (errorMessage(); as err) {
+      <div class="error-banner" role="alert">
+        <mat-icon class="error-icon">error_outline</mat-icon>
+        <span class="error-text">{{ err }}</span>
+        @if (isLoading()) {
+          <button type="button" class="retry-link" (click)="loadConversations()">
+            Thử lại
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Conversation Target List (Single Select) -->
+    <section class="conversation-list-section" aria-label="Danh sách cuộc trò chuyện">
+      <div class="section-label">Gửi tới:</div>
+
+      @if (isLoading()) {
+        <div class="loading-state">
+          <mat-spinner diameter="28" strokeWidth="3" />
+          <span>Đang tải danh sách cuộc trò chuyện...</span>
+        </div>
+      } @else if (filteredConversations.length === 0) {
+        <div class="empty-state">
+          <mat-icon class="empty-icon">chat_bubble_outline</mat-icon>
+          <p class="empty-title">Không tìm thấy cuộc trò chuyện</p>
+          <p class="empty-desc">
+            @if (searchQuery()) {
+              Không có kết quả khớp với "{{ searchQuery() }}".
+            } @else {
+              Bạn chưa có cuộc trò chuyện khác để chuyển tiếp.
+            }
+          </p>
+        </div>
+      } @else {
+        <ul class="conversation-list" role="listbox" aria-label="Chọn cuộc trò chuyện đích">
+          @for (conv of filteredConversations; track conv.id) {
+            <li
+              class="conversation-item"
+              [class.selected]="selectedConversationId() === conv.id"
+              (click)="selectConversation(conv.id)"
+              (keydown.enter)="selectConversation(conv.id)"
+              (keydown.space)="selectConversation(conv.id)"
+              tabindex="0"
+              role="option"
+              [attr.aria-selected]="selectedConversationId() === conv.id"
+            >
+              <div class="item-avatar-wrapper">
+                <app-avatar
+                  [name]="conv.recipient?.displayName || conv.recipient?.username || conv.name || 'Hội thoại'"
+                  [src]="conv.recipient?.avatarUrl || conv.iconUrl || null"
+                  [presence]="conv.recipient?.presence || null"
+                  size="md"
+                />
+              </div>
+
+              <div class="item-info">
+                <div class="item-title">
+                  {{ conv.recipient?.displayName || conv.recipient?.username || conv.name || 'Trò chuyện' }}
+                </div>
+                @if (conv.recipient?.username && conv.recipient?.displayName) {
+                  <div class="item-subtitle">&#64;{{ conv.recipient?.username }}</div>
+                }
+              </div>
+
+              <div class="item-radio-indicator">
+                <div class="radio-circle">
+                  @if (selectedConversationId() === conv.id) {
+                    <div class="radio-inner"></div>
+                  }
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- Modal Footer Actions -->
+    <footer class="modal-footer">
+      <button
+        type="button"
+        mat-button
+        class="cancel-btn"
+        [disabled]="isSubmitting()"
+        (click)="close.emit()"
+      >
+        Hủy
+      </button>
+
+      <button
+        type="button"
+        mat-flat-button
+        color="primary"
+        class="submit-btn"
+        [disabled]="!selectedConversationId() || isSubmitting() || isLoading()"
+        (click)="submitForward()"
+      >
+        @if (isSubmitting()) {
+          <mat-spinner diameter="18" strokeWidth="2" class="submit-spinner" />
+          <span>Đang chuyển tiếp...</span>
+        } @else {
+          <span>Chuyển tiếp</span>
+        }
+      </button>
+    </footer>
+  </div>
+</div>

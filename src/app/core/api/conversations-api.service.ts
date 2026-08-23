@@ -20,6 +20,7 @@ export interface ConversationResponseDto {
   name: string | null;
   iconUrl: string | null;
   recipient?: ConversationParticipantProfile;
+  lastReadMessageId?: string | null;
   unreadCount: number;
   createdAt: string;
 }
