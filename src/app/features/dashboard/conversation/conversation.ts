@@ -42,7 +42,9 @@ import {
   type ChatUiMessage,
 } from '../services/active-chat.store';
 import type { MessageResponseDto } from '../../../core/api/messages-api.service';
+import { ContextPanel } from '../components/context-panel/context-panel';
 import { ProfileAvatar } from '../../profile/components/profile-avatar/profile-avatar';
+import { ProfilePanel } from '../../profile/components/profile-panel/profile-panel';
 import { Avatar } from '../../../shared/ui/avatar/avatar';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { ForwardMessageModal } from '../components/forward-message-modal/forward-message-modal';
@@ -268,6 +270,7 @@ export interface StreamMessageViewModel {
   imports: [
     Avatar,
     ChatToolbar,
+    ContextPanel,
     DashboardState,
     EmptyState,
     ForwardMessageModal,
@@ -278,6 +281,7 @@ export interface StreamMessageViewModel {
     MessageActions,
     MessageComposer,
     ProfileAvatar,
+    ProfilePanel,
     RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -343,6 +347,9 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   protected readonly recipientUsername = computed(
     () => this.conversationDetails()?.recipient?.username ?? null,
   );
+
+  /** Cột hồ sơ bên phải đang mở hay không (nút "hồ sơ" trên thanh tiêu đề). */
+  protected readonly profilePanelOpen = signal(false);
 
   protected readonly recipientStatus = computed(() => {
     return this.conversationDetails()?.recipient?.statusMessage || null;

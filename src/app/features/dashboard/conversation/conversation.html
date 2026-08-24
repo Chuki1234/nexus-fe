@@ -63,7 +63,10 @@
     [subtitle]="recipientStatus()"
     leadingIcon="alternate_email"
     [showCallActions]="true"
-    [showDetailsAction]="false"
+    [showDetailsAction]="recipientUsername() !== null"
+    [detailsOpen]="profilePanelOpen()"
+    detailsLabel="hồ sơ"
+    (toggleDetails)="profilePanelOpen.set(!profilePanelOpen())"
   />
 
   @if (detailsError(); as detErr) {
@@ -98,6 +101,8 @@
     </div>
   }
 
+  <!-- Hàng ngang: [khung chat] + [cột hồ sơ bên phải], giống layout kênh. -->
+  <div class="flex min-h-0 flex-1">
   <div
     class="chat-viewport flex min-h-0 min-w-0 flex-1 flex-col relative"
     data-chat-wallpaper="doodle"
@@ -753,6 +758,19 @@
       />
     }
   </div>
+
+    <!-- Cột hồ sơ bên phải: bật/tắt bằng nút "hồ sơ" trên thanh tiêu đề. -->
+    @if (recipientUsername(); as uname) {
+      <app-context-panel
+        title="Hồ sơ"
+        [open]="profilePanelOpen()"
+        (closed)="profilePanelOpen.set(false)"
+      >
+        <app-profile-panel [username]="uname" />
+      </app-context-panel>
+    }
+  </div>
 } @else {
   <app-empty-state icon="search_off" message="Không tìm thấy cuộc trò chuyện này." />
 }
+
