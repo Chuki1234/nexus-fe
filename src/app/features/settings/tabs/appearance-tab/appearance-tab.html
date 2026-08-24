@@ -1,221 +1,149 @@
-<div class="space-y-8 animate-fade-in">
+<div class="space-y-7 animate-fade-in">
   <!-- Header -->
-  <div class="border-b border-hairline pb-4">
-    <span class="block text-[11px] font-mono font-extrabold text-primary uppercase tracking-[0.1em] mb-1">
-      Tùy biến hiển thị
-    </span>
-    <h2 class="text-heading-3 font-extrabold text-ink tracking-tight">Giao Diện &amp; Chủ Đề</h2>
-    <p class="text-caption text-steel mt-1 max-w-xl">
-      Tùy biến chủ đề (Theme), màu nhấn, mật độ hiển thị tin nhắn và kích thước phông chữ theo sở thích của bạn.
-    </p>
+  <div class="border-b border-hairline pb-4 flex items-center justify-between">
+    <div>
+      <span class="block text-[11px] font-mono font-extrabold text-primary uppercase tracking-[0.1em] mb-1">
+        Tùy biến hiển thị
+      </span>
+      <h2 class="text-heading-3 font-extrabold text-ink tracking-tight">Giao Diện &amp; Chủ Đề</h2>
+      <p class="text-caption text-steel mt-1 max-w-xl">
+        Tùy biến chủ đề nền, màu nhấn, cỡ chữ và mật độ hiển thị tin nhắn theo phong cách của bạn.
+      </p>
+    </div>
+
+    <!-- Active Accent Indicator Badge -->
+    <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-hairline bg-surface-feature shadow-xs">
+      <div
+        class="w-4 h-4 rounded-full border border-white/30 shadow-inner"
+        [style.backgroundColor]="settingsService.preferences().themeAccent"
+      ></div>
+      <span class="font-mono text-caption font-bold text-ink uppercase">
+        {{ settingsService.preferences().themeAccent }}
+      </span>
+    </div>
   </div>
 
-  <!-- Theme Selection Cards (Dual-Mode Hybrid) -->
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SECTION 1: 3 CHỦ ĐỀ NỀN CHÍNH
+       ══════════════════════════════════════════════════════════════════════ -->
   <div class="space-y-3">
     <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
-      CHỦ ĐỀ GIAO DIỆN (THEME)
+      CHỦ ĐỀ GIAO DIỆN (BASE THEME)
     </span>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <!-- Theme 1: Nexus Dark Teal (MongoDB) -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      <!-- Theme 1: Nexus Dark Teal -->
       <button
         type="button"
         (click)="setTheme('nexus-dark')"
-        class="text-left rounded-3xl p-5 border transition-all relative overflow-hidden group cursor-pointer shadow-card hover:scale-[1.01]"
+        class="text-left rounded-2xl p-4 border transition-all relative overflow-hidden group cursor-pointer shadow-card hover:scale-[1.01]"
         [class.border-primary]="settingsService.preferences().theme === 'nexus-dark'"
         [class.ring-2]="settingsService.preferences().theme === 'nexus-dark'"
         [class.ring-primary/50]="settingsService.preferences().theme === 'nexus-dark'"
         [class.border-hairline]="settingsService.preferences().theme !== 'nexus-dark'"
         style="background: #002634;"
       >
-        <!-- Mini UI Mockup Preview -->
-        <div class="w-full h-20 rounded-2xl p-2 mb-4 border border-[#1c4553] flex gap-1.5 overflow-hidden shadow-inner" style="background: #001e2b;">
-          <div class="w-4 h-full rounded-lg bg-[#003d4f] flex flex-col gap-1 items-center pt-1">
-            <div class="w-2 h-2 rounded-full bg-[#00ed64]"></div>
-            <div class="w-2 h-2 rounded-full bg-[#1c4553]"></div>
-          </div>
-          <div class="flex-1 h-full bg-[#002634] rounded-lg p-1.5 flex flex-col justify-between">
-            <div class="w-12 h-1.5 bg-[#00ed64]/60 rounded-full"></div>
-            <div class="space-y-1">
-              <div class="w-full h-1.5 bg-[#1c4553] rounded-full"></div>
-              <div class="w-3/4 h-1.5 bg-[#1c4553] rounded-full"></div>
-            </div>
-            <div class="w-8 h-2 bg-[#00ed64] rounded-full"></div>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="block text-body-sm font-bold text-white">Nexus Dark Teal</span>
-            <span class="block text-caption text-[#8ca0ac] mt-0.5">MongoDB Deep-Teal (Mặc định)</span>
-          </div>
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-body-sm font-bold text-white">Nexus Dark</span>
           @if (settingsService.preferences().theme === 'nexus-dark') {
-            <mat-icon class="!w-5 !h-5 !text-[20px] text-primary">check_circle</mat-icon>
+            <mat-icon class="!w-4 !h-4 !text-[18px] text-primary">check_circle</mat-icon>
           }
         </div>
+        <span class="block text-caption text-[#8ca0ac]">Deep Teal công nghệ sang trọng</span>
       </button>
 
-      <!-- Theme 2: Midnight Dark (AMOLED) -->
+      <!-- Theme 2: Midnight Dark -->
       <button
         type="button"
         (click)="setTheme('midnight-dark')"
-        class="text-left rounded-3xl p-5 border transition-all relative overflow-hidden group cursor-pointer shadow-card hover:scale-[1.01]"
+        class="text-left rounded-2xl p-4 border transition-all relative overflow-hidden group cursor-pointer shadow-card hover:scale-[1.01]"
         [class.border-primary]="settingsService.preferences().theme === 'midnight-dark'"
         [class.ring-2]="settingsService.preferences().theme === 'midnight-dark'"
         [class.ring-primary/50]="settingsService.preferences().theme === 'midnight-dark'"
         [class.border-hairline]="settingsService.preferences().theme !== 'midnight-dark'"
         style="background: #0e1017;"
       >
-        <!-- Mini UI Mockup Preview -->
-        <div class="w-full h-20 rounded-2xl p-2 mb-4 border border-[#222638] flex gap-1.5 overflow-hidden shadow-inner" style="background: #050608;">
-          <div class="w-4 h-full rounded-lg bg-[#1d2233] flex flex-col gap-1 items-center pt-1">
-            <div class="w-2 h-2 rounded-full bg-[#00ed64]"></div>
-            <div class="w-2 h-2 rounded-full bg-[#222638]"></div>
-          </div>
-          <div class="flex-1 h-full bg-[#0e1017] rounded-lg p-1.5 flex flex-col justify-between">
-            <div class="w-12 h-1.5 bg-[#00ed64]/60 rounded-full"></div>
-            <div class="space-y-1">
-              <div class="w-full h-1.5 bg-[#222638] rounded-full"></div>
-              <div class="w-3/4 h-1.5 bg-[#222638] rounded-full"></div>
-            </div>
-            <div class="w-8 h-2 bg-[#00ed64] rounded-full"></div>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="block text-body-sm font-bold text-white">AMOLED Midnight</span>
-            <span class="block text-caption text-[#8e99b2] mt-0.5">Đen tuyền tuyệt đối cho màn OLED</span>
-          </div>
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-body-sm font-bold text-white">AMOLED Black</span>
           @if (settingsService.preferences().theme === 'midnight-dark') {
-            <mat-icon class="!w-5 !h-5 !text-[20px] text-primary">check_circle</mat-icon>
+            <mat-icon class="!w-4 !h-4 !text-[18px] text-primary">check_circle</mat-icon>
           }
         </div>
+        <span class="block text-caption text-[#8e99b2]">Đen tuyền tuyệt đối tiết kiệm pin</span>
       </button>
 
-      <!-- Theme 3: Warm Ceramic Light (Starbucks) -->
+      <!-- Theme 3: Warm Light -->
       <button
         type="button"
         (click)="setTheme('warm-light')"
-        class="text-left rounded-3xl p-5 border transition-all relative overflow-hidden group cursor-pointer shadow-card hover:scale-[1.01]"
+        class="text-left rounded-2xl p-4 border transition-all relative overflow-hidden group cursor-pointer shadow-card hover:scale-[1.01]"
         [class.border-primary]="settingsService.preferences().theme === 'warm-light'"
         [class.ring-2]="settingsService.preferences().theme === 'warm-light'"
         [class.ring-primary/50]="settingsService.preferences().theme === 'warm-light'"
         [class.border-hairline]="settingsService.preferences().theme !== 'warm-light'"
         style="background: #f7f5f0; border-color: #ddd8ce;"
       >
-        <!-- Mini UI Mockup Preview -->
-        <div class="w-full h-20 rounded-2xl p-2 mb-4 border border-[#ddd8ce] flex gap-1.5 overflow-hidden shadow-inner" style="background: #f2f0eb;">
-          <div class="w-4 h-full rounded-lg bg-[#eaf5f0] flex flex-col gap-1 items-center pt-1">
-            <div class="w-2 h-2 rounded-full bg-[#00754a]"></div>
-            <div class="w-2 h-2 rounded-full bg-[#cba258]"></div>
-          </div>
-          <div class="flex-1 h-full bg-[#f7f5f0] rounded-lg p-1.5 flex flex-col justify-between">
-            <div class="w-12 h-1.5 bg-[#00754a]/60 rounded-full"></div>
-            <div class="space-y-1">
-              <div class="w-full h-1.5 bg-[#ddd8ce] rounded-full"></div>
-              <div class="w-3/4 h-1.5 bg-[#ddd8ce] rounded-full"></div>
-            </div>
-            <div class="w-8 h-2 bg-[#00754a] rounded-full"></div>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="block text-body-sm font-bold text-[#1e3932]">Warm Ceramic</span>
-            <span class="block text-caption text-[#5c6c7a] mt-0.5">Tông kem gốm Starbucks cao cấp</span>
-          </div>
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-body-sm font-bold text-[#1e3932]">Warm Ceramic</span>
           @if (settingsService.preferences().theme === 'warm-light') {
-            <mat-icon class="!w-5 !h-5 !text-[20px] text-primary">check_circle</mat-icon>
+            <mat-icon class="!w-4 !h-4 !text-[18px] text-primary">check_circle</mat-icon>
           }
         </div>
+        <span class="block text-caption text-[#5c6c7a]">Gốm sứ kem sáng thanh lịch</span>
       </button>
     </div>
   </div>
 
-  <!-- Color Accents Palette -->
-  <div class="card-base space-y-3">
-    <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
-      MÀU NHẤN NỔI BẬT (COLOR ACCENT)
-    </span>
-
-    <div class="flex flex-wrap gap-3 items-center">
-      @for (acc of accentPresets; track acc.hex) {
-        <button
-          type="button"
-          (click)="setAccent(acc.hex)"
-          [matTooltip]="acc.label"
-          class="w-9 h-9 rounded-full border-2 transition-all transform hover:scale-110 flex items-center justify-center shadow-xs cursor-pointer"
-          [style.backgroundColor]="acc.hex"
-          [class.border-white]="settingsService.preferences().themeAccent === acc.hex"
-          [class.ring-2]="settingsService.preferences().themeAccent === acc.hex"
-          [class.ring-primary/50]="settingsService.preferences().themeAccent === acc.hex"
-          [class.border-transparent]="settingsService.preferences().themeAccent !== acc.hex"
-        >
-          @if (settingsService.preferences().themeAccent === acc.hex) {
-            <mat-icon class="!w-4 !h-4 !text-[16px] text-white drop-shadow">check</mat-icon>
-          }
-        </button>
-      }
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SECTION 2: MÀU NHẤN & NÚT MỞ BẢNG MÀU NÂNG CAO (GỌN GÀNG 100%)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="card-base space-y-4">
+    <div class="flex items-center justify-between">
+      <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
+        MÀU NHẤN GIAO DIỆN (ACCENT COLOR)
+      </span>
+      <span class="text-caption text-steel font-mono">Đồng bộ cả Dashboard &amp; Login</span>
     </div>
-  </div>
 
-  <!-- Message Display Density -->
-  <div class="space-y-3">
-    <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
-      MẬT ĐỘ HIỂN THỊ TIN NHẮN
-    </span>
+    <!-- Quick Swatches Row + Trigger Button in one neat flex container -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <!-- Quick Tone Swatches -->
+      <div class="flex flex-wrap gap-2.5 items-center">
+        @for (acc of quickAccents; track acc.hex) {
+          <button
+            type="button"
+            (click)="setAccent(acc.hex)"
+            [matTooltip]="acc.label"
+            class="w-8 h-8 rounded-full border-2 transition-all transform hover:scale-115 flex items-center justify-center shadow-xs cursor-pointer"
+            [style.backgroundColor]="acc.hex"
+            [class.border-white]="settingsService.preferences().themeAccent.toLowerCase() === acc.hex.toLowerCase()"
+            [class.ring-2]="settingsService.preferences().themeAccent.toLowerCase() === acc.hex.toLowerCase()"
+            [class.ring-primary/50]="settingsService.preferences().themeAccent.toLowerCase() === acc.hex.toLowerCase()"
+            [class.border-transparent]="settingsService.preferences().themeAccent.toLowerCase() !== acc.hex.toLowerCase()"
+          >
+            @if (settingsService.preferences().themeAccent.toLowerCase() === acc.hex.toLowerCase()) {
+              <mat-icon class="!w-3.5 !h-3.5 !text-[14px] text-white drop-shadow">check</mat-icon>
+            }
+          </button>
+        }
+      </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- Compact Button to open Studio / Artisan Collection Modal -->
       <button
         type="button"
-        (click)="setMessageDensity('cozy')"
-        class="text-left rounded-2xl p-5 border transition-all cursor-pointer shadow-card"
-        [class.border-primary]="settingsService.preferences().messageDensity === 'cozy'"
-        [class.bg-surface-feature]="settingsService.preferences().messageDensity === 'cozy'"
-        [class.border-hairline]="settingsService.preferences().messageDensity !== 'cozy'"
-        [class.bg-surface]="settingsService.preferences().messageDensity !== 'cozy'"
+        (click)="openStudio()"
+        class="flex items-center gap-2 px-4 py-2 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary transition-all shadow-xs cursor-pointer group shrink-0"
       >
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-body-sm font-bold text-ink">Rộng rãi (Cozy)</span>
-          <input
-            type="radio"
-            name="message-density"
-            [checked]="settingsService.preferences().messageDensity === 'cozy'"
-            class="accent-primary w-4 h-4 cursor-pointer"
-          />
-        </div>
-        <p class="text-caption text-steel">
-          Hiển thị avatar lớn, khoảng cách các tin nhắn thông thoáng và thư giãn.
-        </p>
-      </button>
-
-      <button
-        type="button"
-        (click)="setMessageDensity('compact')"
-        class="text-left rounded-2xl p-5 border transition-all cursor-pointer shadow-card"
-        [class.border-primary]="settingsService.preferences().messageDensity === 'compact'"
-        [class.bg-surface-feature]="settingsService.preferences().messageDensity === 'compact'"
-        [class.border-hairline]="settingsService.preferences().messageDensity !== 'compact'"
-        [class.bg-surface]="settingsService.preferences().messageDensity !== 'compact'"
-      >
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-body-sm font-bold text-ink">Gọn gàng (Compact)</span>
-          <input
-            type="radio"
-            name="message-density"
-            [checked]="settingsService.preferences().messageDensity === 'compact'"
-            class="accent-primary w-4 h-4 cursor-pointer"
-          />
-        </div>
-        <p class="text-caption text-steel">
-          Căn lề sát, chứa tối đa số dòng tin nhắn trên cùng một khung hình.
-        </p>
+        <mat-icon class="!w-4 !h-4 !text-[18px] group-hover:rotate-12 transition-transform">palette</mat-icon>
+        <span class="text-caption font-bold">Bảng Màu Nâng Cao</span>
+        <mat-icon class="!w-3.5 !h-3.5 !text-[16px] group-hover:translate-x-0.5 transition-transform">chevron_right</mat-icon>
       </button>
     </div>
   </div>
 
-  <!-- Font Scale Slider & Live Sample Message Preview -->
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SECTION 3: XEM TRƯỚC TRỰC TIẾP TIN NHẮN (LIVE PREVIEW)
+       ══════════════════════════════════════════════════════════════════════ -->
   <div class="card-base space-y-4">
     <div class="flex items-center justify-between">
       <div>
@@ -225,7 +153,7 @@
       <span class="text-heading-5 font-mono font-bold text-primary">{{ settingsService.preferences().fontSize }}px</span>
     </div>
 
-    <!-- Slider Control -->
+    <!-- Font Size Slider -->
     <div class="flex items-center gap-4">
       <span class="text-micro font-mono text-stone">12px</span>
       <input
@@ -241,11 +169,7 @@
     </div>
 
     <!-- Live Preview Box -->
-    <div class="mt-4 rounded-2xl bg-canvas border border-hairline p-5 space-y-3">
-      <span class="block text-[10px] font-mono font-extrabold text-stone uppercase tracking-wider">
-        Xem trước trực tiếp tin nhắn
-      </span>
-
+    <div class="mt-2 rounded-2xl bg-canvas border border-hairline p-4 space-y-3">
       @if (settingsService.preferences().messageDensity === 'cozy') {
         <div class="flex items-start gap-3">
           <app-avatar name="Nexus Assistant" size="md" presence="online" ring="canvas" />
@@ -259,7 +183,7 @@
               class="text-charcoal mt-1 leading-relaxed"
               [style.fontSize.px]="settingsService.preferences().fontSize"
             >
-              Chào mừng bạn đến với Nexus! Đây là ví dụ hiển thị tin nhắn với cỡ chữ bạn vừa chọn.
+              Chào mừng bạn đến với Nexus! Giao diện đã tự động áp dụng chuẩn màu bạn vừa chọn.
             </p>
           </div>
         </div>
@@ -281,7 +205,7 @@
               class="text-charcoal mt-1 leading-relaxed"
               [style.fontSize.px]="settingsService.preferences().fontSize"
             >
-              Trông rất sắc nét và dễ chịu trên nền màu Hybrid này!
+              Màu sắc hiển thị rất sắc nét và đồng bộ sang cả trang đăng nhập ngoài!
             </p>
           </div>
         </div>
@@ -313,14 +237,68 @@
     </div>
   </div>
 
-  <!-- Zoom Level Controls Card -->
-  <div class="card-base space-y-4">
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SECTION 4: MẬT ĐỘ HIỂN THỊ TIN NHẮN
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="space-y-3">
+    <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
+      MẬT ĐỘ HIỂN THỊ TIN NHẮN
+    </span>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <button
+        type="button"
+        (click)="setMessageDensity('cozy')"
+        class="text-left rounded-2xl p-4 border transition-all cursor-pointer shadow-card"
+        [class.border-primary]="settingsService.preferences().messageDensity === 'cozy'"
+        [class.bg-surface-feature]="settingsService.preferences().messageDensity === 'cozy'"
+        [class.border-hairline]="settingsService.preferences().messageDensity !== 'cozy'"
+        [class.bg-surface]="settingsService.preferences().messageDensity !== 'cozy'"
+      >
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-body-sm font-bold text-ink">Rộng rãi (Cozy)</span>
+          <input
+            type="radio"
+            name="message-density"
+            [checked]="settingsService.preferences().messageDensity === 'cozy'"
+            class="accent-primary w-4 h-4 cursor-pointer"
+          />
+        </div>
+        <p class="text-caption text-steel">
+          Hiển thị avatar lớn, khoảng cách các tin nhắn thông thoáng và thư giãn.
+        </p>
+      </button>
+
+      <button
+        type="button"
+        (click)="setMessageDensity('compact')"
+        class="text-left rounded-2xl p-4 border transition-all cursor-pointer shadow-card"
+        [class.border-primary]="settingsService.preferences().messageDensity === 'compact'"
+        [class.bg-surface-feature]="settingsService.preferences().messageDensity === 'compact'"
+        [class.border-hairline]="settingsService.preferences().messageDensity !== 'compact'"
+        [class.bg-surface]="settingsService.preferences().messageDensity !== 'compact'"
+      >
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-body-sm font-bold text-ink">Gọn gàng (Compact)</span>
+          <input
+            type="radio"
+            name="message-density"
+            [checked]="settingsService.preferences().messageDensity === 'compact'"
+            class="accent-primary w-4 h-4 cursor-pointer"
+          />
+        </div>
+        <p class="text-caption text-steel">
+          Căn lề sát, chứa tối đa số dòng tin nhắn trên cùng một khung hình.
+        </p>
+      </button>
+    </div>
+  </div>
+
+  <!-- Zoom Controls -->
+  <div class="card-base space-y-3">
     <div class="flex items-center justify-between">
-      <div>
-        <span class="block text-body-sm font-bold text-ink">Tỉ lệ thu phóng giao diện toàn ứng dụng</span>
-        <span class="text-caption text-steel">Phóng to hoặc thu nhỏ tỷ lệ các nút bấm, icon và sidebar.</span>
-      </div>
-      <span class="text-heading-5 font-mono font-bold text-primary">{{ settingsService.preferences().zoomLevel }}%</span>
+      <span class="text-body-sm font-bold text-ink">Thu phóng giao diện</span>
+      <span class="font-mono font-bold text-primary">{{ settingsService.preferences().zoomLevel }}%</span>
     </div>
 
     <div class="flex items-center gap-2">
@@ -328,7 +306,7 @@
         <button
           type="button"
           (click)="setZoomLevel(zoom)"
-          class="px-4 py-2 rounded-full border text-caption font-mono font-bold transition-all cursor-pointer"
+          class="px-3.5 py-1.5 rounded-full border text-caption font-mono font-bold transition-all cursor-pointer"
           [class.border-primary]="settingsService.preferences().zoomLevel === zoom"
           [class.bg-surface-feature]="settingsService.preferences().zoomLevel === zoom"
           [class.text-primary]="settingsService.preferences().zoomLevel === zoom"

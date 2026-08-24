@@ -1,204 +1,428 @@
-<div class="space-y-6">
+<div class="space-y-5 animate-fade-in relative pb-16 w-full">
   <!-- Header -->
-  <div class="flex items-center justify-between border-b border-hairline pb-4">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-4">
     <div>
-      <h2 class="text-heading-4 font-bold text-ink tracking-tight">Quản Lý Thành Viên &amp; Phân Quyền</h2>
-      <p class="text-caption text-steel mt-1">
-        Xem danh sách thành viên máy chủ, gán vai trò (Roles), trục xuất (Kick) hoặc cấm vĩnh viễn (Ban) các tài khoản vi phạm.
+      <h2 class="text-heading-4 font-bold text-ink tracking-tight">Thành Viên (Server Members)</h2>
+      <p class="text-caption text-steel mt-0.5">
+        Quản lý danh sách thành viên trong máy chủ, ngày gia nhập, gán vai trò tự do và kiểm soát quyền hạn.
       </p>
     </div>
-    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 text-primary border border-primary/30 text-[11px] font-bold uppercase tracking-wider shrink-0">
-      <mat-icon class="!w-3.5 !h-3.5 !text-[15px]">verified</mat-icon>
-      <span>Quyền Admin Tối Cao</span>
-    </span>
-  </div>
 
-  <!-- Search Filter Bar -->
-  <div class="flex items-center gap-3">
-    <div class="relative flex-1">
-      <input
-        type="text"
-        [value]="memberSearchQuery()"
-        (input)="memberSearchQuery.set($any($event.target).value)"
-        placeholder="Tìm kiếm thành viên theo tên hoặc @username..."
-        class="input-base !rounded-full pl-4 pr-10"
-      />
-      <mat-icon class="absolute right-3.5 top-3 text-steel !w-4 !h-4 !text-[18px] pointer-events-none">
-        search
-      </mat-icon>
+    <!-- Active vs Banned Sub-tabs -->
+    <div class="flex items-center gap-1 p-1 bg-surface border border-hairline rounded-xl shrink-0">
+      <button
+        type="button"
+        (click)="activeTab.set('active')"
+        class="px-3 py-1.5 rounded-lg text-caption font-bold transition-all cursor-pointer flex items-center gap-1.5"
+        [class.bg-surface-feature]="activeTab() === 'active'"
+        [class.text-primary]="activeTab() === 'active'"
+        [class.shadow-2xs]="activeTab() === 'active'"
+        [class.text-steel]="activeTab() !== 'active'"
+      >
+        <mat-icon class="!w-4 !h-4 !text-[16px]">people</mat-icon>
+        <span>Thành Viên ({{ settingsService.serverMembers().length }})</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="activeTab.set('banned')"
+        class="px-3 py-1.5 rounded-lg text-caption font-bold transition-all cursor-pointer flex items-center gap-1.5"
+        [class.bg-danger-surface]="activeTab() === 'banned'"
+        [class.text-danger]="activeTab() === 'banned'"
+        [class.shadow-2xs]="activeTab() === 'banned'"
+        [class.text-steel]="activeTab() !== 'banned'"
+      >
+        <mat-icon class="!w-4 !h-4 !text-[16px]">block</mat-icon>
+        <span>Đã Cấm / Ban ({{ settingsService.bannedServerMembers().length }})</span>
+      </button>
     </div>
   </div>
 
-  <!-- Members List Table -->
-  <div class="space-y-3">
-    <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase px-1">
-      THÀNH VIÊN TRONG MÁY CHỦ ({{ filteredMembers.length }})
-    </span>
+  @if (activeTab() === 'active') {
+    <!-- Search & Filter Controls -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+      <!-- Search Input -->
+      <div class="relative flex-1 w-full">
+        <mat-icon class="absolute left-3.5 top-2.5 text-steel !w-4 !h-4 !text-[18px] pointer-events-none">
+          search
+        </mat-icon>
+        <input
+          type="text"
+          [value]="memberSearchQuery()"
+          (input)="memberSearchQuery.set($any($event.target).value)"
+          placeholder="Tìm kiếm thành viên theo tên hoặc @username..."
+          class="input-base !rounded-xl !pl-10 !py-2 !bg-surface text-caption text-ink"
+        />
+        @if (memberSearchQuery()) {
+          <button
+            type="button"
+            (click)="memberSearchQuery.set('')"
+            class="absolute right-3 top-2.5 text-steel hover:text-ink cursor-pointer"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+          </button>
+        }
+      </div>
 
-    <div class="divide-y divide-hairline rounded-xl border border-hairline bg-surface">
-      @for (m of filteredMembers; track m.id) {
-        <div
-          class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-surface-feature/40 transition-colors relative"
-          [class.z-30]="activeRoleMenuMemberId() === m.id"
+      <!-- Role Filter Dropdown -->
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <label for="filter-role-select" class="text-caption text-steel font-medium whitespace-nowrap">
+          Lọc vai trò:
+        </label>
+        <select
+          id="filter-role-select"
+          [value]="selectedRoleFilter()"
+          (change)="selectedRoleFilter.set($any($event.target).value)"
+          class="input-base !rounded-xl !py-2 !px-3 !bg-surface cursor-pointer text-caption font-bold text-ink"
         >
-          <div class="flex items-center gap-3 min-w-0">
-            <app-avatar [name]="m.displayName" size="md" presence="online" ring="canvas" />
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="text-body-sm-medium font-bold text-ink truncate">{{ m.displayName }}</span>
-                @if (m.isOwner) {
-                  <span class="rounded-full bg-warning-bg border border-warning-text/30 text-warning-text text-[10px] px-2 py-0.5 font-bold uppercase">Chủ Server</span>
-                }
+          <option value="all">Tất cả vai trò</option>
+          @for (r of settingsService.serverRoles(); track r.id) {
+            <option [value]="r.id">{{ r.name }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <!-- ══ PERFECT FIT DISCORD-STYLE MEMBERS TABLE (NO OVERFLOW) ══ -->
+    <div class="rounded-2xl border border-hairline bg-surface overflow-hidden shadow-card w-full">
+      <table class="w-full table-fixed text-left border-collapse">
+        <colgroup>
+          <col style="width:36px" />
+          <col style="width:24%" />
+          <col style="width:13%" />
+          <col style="width:14%" />
+          <col style="width:14%" />
+          <col style="width:31%" />
+          <col style="width:40px" />
+        </colgroup>
+
+        <!-- Table Header -->
+        <thead>
+          <tr class="border-b border-hairline bg-surface-feature/60 text-[10px] sm:text-[11px] font-mono font-extrabold text-stone uppercase tracking-wider select-none">
+            <!-- Select Checkbox -->
+            <th class="py-3 px-2 text-center">
+              <input
+                type="checkbox"
+                [checked]="isAllSelected()"
+                (change)="toggleSelectAll()"
+                class="w-4 h-4 rounded accent-primary cursor-pointer align-middle"
+                title="Chọn tất cả"
+              />
+            </th>
+
+            <!-- Name -->
+            <th class="py-3 px-2.5">
+              <span>TÊN</span>
+            </th>
+
+            <!-- Joined Server -->
+            <th class="py-3 px-2 whitespace-nowrap">
+              <div class="flex items-center gap-1">
+                <span>GIA NHẬP TỪ</span>
+                <mat-icon class="!w-3 !h-3 !text-[12px] text-stone">tune</mat-icon>
               </div>
-              <span class="block text-caption text-steel">&#64;{{ m.username }} · Tham gia: {{ m.joinedAt }}</span>
-            </div>
-          </div>
+            </th>
 
-          <!-- Roles Badges & Management Buttons -->
-          <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0">
-            <div class="flex flex-wrap items-center gap-1.5">
-              @for (roleId of m.roles; track roleId) {
-                <span
-                  class="inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-caption font-bold text-white shadow-xs"
-                  [style.backgroundColor]="getRoleColor(roleId)"
-                >
-                  <span>{{ getRoleName(roleId) }}</span>
-                  @if (!m.isOwner) {
-                    <button
-                      type="button"
-                      (click)="toggleRole(m.id, roleId, $event)"
-                      class="hover:bg-black/30 rounded-full w-4 h-4 inline-flex items-center justify-center cursor-pointer transition-colors text-[13px] leading-none"
-                      title="Gỡ vai trò này"
+            <!-- Joined Nexus -->
+            <th class="py-3 px-2 whitespace-nowrap">
+              <div class="flex items-center gap-1">
+                <span>ĐÃ T.GIA NEXUS</span>
+                <mat-icon class="!w-3 !h-3 !text-[12px] text-stone">tune</mat-icon>
+              </div>
+            </th>
+
+            <!-- Join Method -->
+            <th class="py-3 px-2 whitespace-nowrap">
+              <div class="flex items-center gap-1">
+                <span>P.THỨC T.GIA</span>
+                <mat-icon class="!w-3 !h-3 !text-[12px] text-stone">tune</mat-icon>
+              </div>
+            </th>
+
+            <!-- Roles -->
+            <th class="py-3 px-2.5 whitespace-nowrap">
+              <div class="flex items-center gap-1">
+                <span>VAI TRÒ</span>
+                <mat-icon class="!w-3 !h-3 !text-[12px] text-stone">tune</mat-icon>
+              </div>
+            </th>
+
+            <!-- Actions -->
+            <th class="py-3 px-2 text-center"></th>
+          </tr>
+        </thead>
+
+        <!-- Table Body -->
+        <tbody class="divide-y divide-hairline">
+          @for (m of filteredMembers(); track m.id) {
+            <tr
+              class="hover:bg-surface-feature/40 transition-colors group"
+              [class.bg-surface-feature/25]="isMemberSelected(m.id)"
+            >
+              <!-- Row Checkbox -->
+              <td class="py-3 px-2 text-center align-middle">
+                <input
+                  type="checkbox"
+                  [checked]="isMemberSelected(m.id)"
+                  (change)="toggleSelectMember(m.id)"
+                  class="w-4 h-4 rounded accent-primary cursor-pointer align-middle"
+                />
+              </td>
+
+              <!-- Member Avatar & Name -->
+              <td class="py-3 px-2.5 align-middle overflow-hidden">
+                <div class="flex items-center gap-2 min-w-0">
+                  <div class="relative w-8 h-8 rounded-full overflow-hidden shrink-0 shadow-xs border border-hairline bg-surface-feature">
+                    @if (m.avatarUrl) {
+                      <img [src]="m.avatarUrl" [alt]="m.displayName" class="w-full h-full object-cover" />
+                    } @else {
+                      <div class="w-full h-full flex items-center justify-center font-bold text-caption text-primary">
+                        {{ m.displayName.slice(0, 2).toUpperCase() }}
+                      </div>
+                    }
+                    <span class="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-success border border-surface"></span>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1 min-w-0">
+                      <span class="text-body-sm font-bold text-ink group-hover:text-primary transition-colors truncate">
+                        {{ m.displayName }}
+                      </span>
+                      @if (m.isOwner) {
+                        <span class="rounded-full bg-warning-bg border border-warning-text/30 text-warning-text text-[8px] px-1.5 py-0.2 font-extrabold uppercase shrink-0">
+                          Chủ Server
+                        </span>
+                      }
+                    </div>
+                    <span class="block text-caption text-steel font-mono text-[11px] truncate">
+                      {{ m.username.includes('#') ? m.username : ('@' + m.username) }}
+                    </span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Joined Server Date -->
+              <td class="py-3 px-2 text-caption font-semibold text-ink whitespace-nowrap align-middle overflow-hidden truncate">
+                {{ m.joinedAt }}
+              </td>
+
+              <!-- Joined Nexus / Account Age -->
+              <td class="py-3 px-2 text-caption font-medium text-steel whitespace-nowrap align-middle overflow-hidden truncate">
+                {{ m.nexusJoinedAt || 'Không rõ' }}
+              </td>
+
+              <!-- Join Method -->
+              <td class="py-3 px-2 whitespace-nowrap align-middle overflow-hidden">
+                @if (m.joinMethod && m.joinMethod.length >= 6 && !m.joinMethod.includes(' ')) {
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-canvas border border-hairline text-[11px] font-mono font-medium text-ink shadow-2xs max-w-full truncate">
+                    <mat-icon class="!w-3 !h-3 !text-[12px] text-steel shrink-0">link</mat-icon>
+                    <span class="truncate">{{ m.joinMethod }}</span>
+                  </span>
+                } @else {
+                  <span class="text-caption text-steel font-medium truncate block">
+                    {{ m.joinMethod || 'Không xác định' }}
+                  </span>
+                }
+              </td>
+
+              <!-- ══ VAI TRÒ (COMPACT + POPUP + NO WRAP) ══ -->
+              <td class="py-3 px-2.5 align-middle overflow-hidden">
+                <div class="flex items-center gap-1.5 flex-nowrap min-w-0">
+                  @for (roleId of m.roles; track roleId) {
+                    <!-- Compact Pill with Colored Circle Dot -->
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-canvas border border-hairline hover:border-hairline-strong text-[10.5px] font-semibold text-ink shadow-2xs group/role transition-all shrink-0 max-w-[170px]"
                     >
-                      ×
-                    </button>
-                  }
-                </span>
-              }
+                      <!-- Colored Circle Dot -->
+                      <span
+                        class="w-2 h-2 rounded-full shrink-0 shadow-xs"
+                        [style.backgroundColor]="getRoleColor(roleId)"
+                      ></span>
+                      <span class="truncate">{{ getRoleName(roleId) }}</span>
 
-              <!-- Add Role Dropdown Button & Popover -->
-              @if (!m.isOwner) {
-                <div class="relative role-menu-container">
+                      <!-- Remove Role Button -->
+                      <button
+                        type="button"
+                        (click)="toggleRole(m.id, roleId, $event)"
+                        class="text-steel hover:text-danger opacity-60 group-hover/role:opacity-100 transition-opacity cursor-pointer flex items-center justify-center p-0.5 rounded hover:bg-danger-surface shrink-0"
+                        title="Gỡ vai trò này"
+                      >
+                        <mat-icon class="!w-2.5 !h-2.5 !text-[10px]">close</mat-icon>
+                      </button>
+                    </span>
+                  }
+
+                  <!-- Add Role Floating Popup Button -->
                   <button
                     type="button"
-                    (click)="toggleRoleMenu(m.id, $event)"
-                    class="px-3 py-1 rounded-full border border-hairline-strong text-steel hover:text-ink hover:border-primary hover:bg-surface-feature text-caption font-semibold cursor-pointer transition-all flex items-center gap-1"
-                    [class.border-primary]="activeRoleMenuMemberId() === m.id"
-                    [class.text-primary]="activeRoleMenuMemberId() === m.id"
-                    [class.bg-surface-feature]="activeRoleMenuMemberId() === m.id"
+                    [matMenuTriggerFor]="roleAssignMenu"
+                    matTooltip="Gán / đổi vai trò"
+                    class="w-5 h-5 rounded-full border border-hairline bg-canvas text-steel hover:text-primary hover:border-primary flex items-center justify-center cursor-pointer transition-all shadow-2xs shrink-0"
                   >
-                    <mat-icon class="!w-3.5 !h-3.5 !text-[15px] leading-none">add</mat-icon>
-                    <span>Gán Vai Trò</span>
+                    <mat-icon class="!w-3 !h-3 !text-[13px]">add</mat-icon>
                   </button>
 
-                  @if (activeRoleMenuMemberId() === m.id) {
-                    <div
-                      class="absolute right-0 top-full mt-2 z-50 w-60 bg-surface border border-hairline rounded-xl p-2 shadow-modal space-y-1"
-                      (click)="$event.stopPropagation()"
-                    >
-                      <div class="px-2.5 py-1 text-micro-uppercase font-bold uppercase text-stone border-b border-hairline mb-1 flex items-center justify-between">
-                        <span>Chọn vai trò</span>
-                        <span class="text-[9px] text-primary font-semibold">Click để gán</span>
-                      </div>
-
-                      <div class="max-h-60 overflow-y-auto space-y-0.5 custom-scrollbar">
-                        @for (r of settingsService.serverRoles(); track r.id) {
-                          @if (!r.isDefault) {
-                            <button
-                              type="button"
-                              (click)="toggleRole(m.id, r.id, $event)"
-                              class="w-full text-left px-2.5 py-2 rounded-lg text-caption text-ink hover:bg-surface-feature flex items-center justify-between cursor-pointer transition-colors"
-                              [class.bg-surface-feature/70]="hasRole(m, r.id)"
-                            >
-                              <div class="flex items-center gap-2 min-w-0">
-                                <span class="w-3 h-3 rounded-full shrink-0 shadow-xs" [style.backgroundColor]="r.color"></span>
-                                <span [style.color]="r.color" class="font-bold truncate">{{ r.name }}</span>
-                              </div>
-                              @if (hasRole(m, r.id)) {
-                                <span class="w-4 h-4 rounded-full bg-success text-white flex items-center justify-center font-bold shrink-0">
-                                  <mat-icon class="!w-3 !h-3 !text-[12px] text-white">check</mat-icon>
-                                </span>
-                              } @else {
-                                <span class="w-4 h-4 rounded-full border border-hairline-strong shrink-0"></span>
-                              }
-                            </button>
-                          }
-                        }
-                      </div>
+                  <!-- Floating Pop-up Menu for Role Assignment -->
+                  <mat-menu #roleAssignMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal !p-2 !min-w-[220px]">
+                    <div class="px-2.5 py-1.5 text-micro-uppercase font-extrabold uppercase text-stone border-b border-hairline mb-1 flex items-center justify-between" (click)="$event.stopPropagation()">
+                      <span>Gán vai trò</span>
+                      <span class="text-[9px] text-primary font-bold">Admin tự do</span>
                     </div>
-                  }
-                </div>
-              }
-            </div>
 
-            <!-- Action Buttons: Kick & Ban -->
-            @if (!m.isOwner) {
-              <div class="flex items-center gap-2 border-l border-hairline pl-3">
+                    <div class="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar" (click)="$event.stopPropagation()">
+                      @for (r of settingsService.serverRoles(); track r.id) {
+                        <button
+                          type="button"
+                          mat-menu-item
+                          (click)="toggleRole(m.id, r.id, $event)"
+                          class="!h-9 !px-2.5 !rounded-xl !flex !items-center !justify-between !w-full"
+                          [class.bg-surface-feature]="hasRole(m, r.id)"
+                        >
+                          <div class="flex items-center gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" [style.backgroundColor]="r.color"></span>
+                            <span class="font-bold truncate text-caption text-ink">{{ r.name }}</span>
+                          </div>
+                          @if (hasRole(m, r.id)) {
+                            <mat-icon class="!w-4 !h-4 !text-[16px] text-success !mr-0">check</mat-icon>
+                          }
+                        </button>
+                      }
+                    </div>
+                  </mat-menu>
+                </div>
+              </td>
+
+              <!-- Row Actions Menu -->
+              <td class="py-3 px-2 text-center align-middle">
                 <button
                   type="button"
-                  (click)="kick(m.id)"
-                  class="px-3.5 py-1 rounded-full border border-warning-text/40 text-warning-text hover:bg-warning-bg text-caption font-semibold transition-colors cursor-pointer"
+                  [matMenuTriggerFor]="memberMenu"
+                  class="w-7 h-7 rounded-lg text-steel hover:text-ink hover:bg-surface-feature inline-flex items-center justify-center cursor-pointer transition-colors"
                 >
-                  Kick
+                  <mat-icon class="!w-4 !h-4 !text-[18px]">more_vert</mat-icon>
                 </button>
-                <button
-                  type="button"
-                  (click)="openBanModal(m)"
-                  class="px-3.5 py-1 rounded-full bg-danger hover:opacity-90 text-white text-caption font-semibold transition-colors cursor-pointer shadow-xs"
-                >
-                  Cấm (Ban)
-                </button>
+
+                <mat-menu #memberMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal">
+                  <button mat-menu-item type="button" (click)="toggleRoleMenu(m.id, $event)">
+                    <mat-icon>admin_panel_settings</mat-icon>
+                    <span>Gán / Đổi vai trò</span>
+                  </button>
+                  <button mat-menu-item type="button" (click)="copyUserId(m.id)">
+                    <mat-icon>content_copy</mat-icon>
+                    <span>Sao chép ID thành viên</span>
+                  </button>
+                  @if (!m.isOwner) {
+                    <div class="my-1 border-t border-hairline"></div>
+                    <button mat-menu-item type="button" (click)="kick(m.id)" class="text-warning-text">
+                      <mat-icon class="!text-warning-text">person_remove</mat-icon>
+                      <span class="text-warning-text font-bold">Kick khỏi server</span>
+                    </button>
+                    <button mat-menu-item type="button" (click)="openBanModal(m)" class="text-danger">
+                      <mat-icon class="!text-danger">gavel</mat-icon>
+                      <span class="text-danger font-bold">Cấm (Ban) thành viên</span>
+                    </button>
+                  }
+                </mat-menu>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Table Footer Summary -->
+      <div class="px-4 py-2.5 border-t border-hairline bg-surface-feature/30 text-caption font-bold text-steel flex items-center justify-between">
+        <span>Đang hiển thị {{ filteredMembers().length }} thành viên</span>
+        <span class="text-micro font-mono">Tổng cộng: {{ settingsService.serverMembers().length }} người</span>
+      </div>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       TAB 2: DANH SÁCH THÀNH VIÊN ĐÃ BỊ CẤM BAN
+       ══════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'banned') {
+    <div class="rounded-2xl border border-danger/30 bg-surface overflow-hidden shadow-card">
+      <div class="px-6 py-4 border-b border-danger/20 bg-danger-surface/50 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <mat-icon class="text-danger">gavel</mat-icon>
+          <span class="text-body-sm font-bold text-danger">DANH SÁCH ĐÃ BỊ CẤM KHỎI MÁY CHỦ</span>
+        </div>
+        <span class="text-caption font-mono font-bold text-danger">{{ settingsService.bannedServerMembers().length }} tài khoản</span>
+      </div>
+
+      @if (settingsService.bannedServerMembers().length === 0) {
+        <div class="p-8 text-center text-steel text-caption">
+          <mat-icon class="!w-10 !h-10 !text-[40px] text-stone mb-2">shield</mat-icon>
+          <p>Không có tài khoản nào trong danh sách cấm.</p>
+        </div>
+      } @else {
+        <div class="divide-y divide-hairline">
+          @for (b of settingsService.bannedServerMembers(); track b.id) {
+            <div class="p-4 flex items-center justify-between gap-4 hover:bg-surface-feature/30 transition-colors">
+              <div>
+                <span class="block text-body-sm font-bold text-ink">{{ b.displayName }} (&#64;{{ b.username }})</span>
+                <span class="block text-caption text-steel mt-0.5">Lý do: {{ b.reason }} · Ngày cấm: {{ b.bannedAt }}</span>
               </div>
-            }
-          </div>
+
+              <button
+                type="button"
+                (click)="unban(b.id)"
+                class="px-4 py-1.5 rounded-full border border-success/40 text-success hover:bg-surface-feature text-caption font-bold transition-colors cursor-pointer"
+              >
+                Bỏ cấm (Unban)
+              </button>
+            </div>
+          }
         </div>
       }
     </div>
-  </div>
+  }
 
-  <!-- Banned Members Section -->
-  <div class="space-y-3 pt-6 border-t border-hairline">
-    <span class="block text-micro-uppercase font-extrabold text-danger tracking-wider uppercase px-1">
-      DANH SÁCH THÀNH VIÊN ĐÃ BỊ CẤM BAN ({{ settingsService.bannedServerMembers().length }})
-    </span>
-
-    @if (settingsService.bannedServerMembers().length === 0) {
-      <p class="text-caption text-steel px-1">Không có tài khoản nào trong danh sách bị cấm.</p>
-    } @else {
-      <div class="divide-y divide-hairline rounded-xl border border-danger/30 bg-surface">
-        @for (b of settingsService.bannedServerMembers(); track b.id) {
-          <div class="p-4 flex items-center justify-between gap-4">
-            <div>
-              <span class="block text-body-sm-medium font-bold text-ink">{{ b.displayName }} (&#64;{{ b.username }})</span>
-              <span class="block text-caption text-steel">Lý do ban: {{ b.reason }} · Ngày ban: {{ b.bannedAt }}</span>
-            </div>
-
-            <button
-              type="button"
-              (click)="unban(b.id)"
-              class="px-4 py-1.5 rounded-full border border-success/40 text-success hover:bg-surface-feature text-caption font-semibold transition-colors shrink-0 cursor-pointer"
-            >
-              Bỏ cấm (Unban)
-            </button>
-          </div>
-        }
+  <!-- ══ FLOATING BULK ACTIONS BAR (When members are checked) ══ -->
+  @if (selectedMemberIds().length > 0) {
+    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 bg-surface-soft/95 backdrop-blur-md rounded-2xl border border-primary/50 shadow-modal flex items-center gap-4 animate-slide-up ring-2 ring-primary/20">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
+        <span class="text-caption font-bold text-ink">
+          Đã chọn {{ selectedMemberIds().length }} thành viên
+        </span>
       </div>
-    }
-  </div>
 
-  <!-- Ban Modal Dialog -->
+      <div class="h-4 w-px bg-hairline"></div>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          (click)="bulkKick()"
+          class="px-3 py-1 rounded-xl text-micro font-bold border border-warning-text/40 text-warning-text hover:bg-warning-bg transition-colors cursor-pointer"
+        >
+          Kick hàng loạt
+        </button>
+
+        <button
+          type="button"
+          (click)="clearSelection()"
+          class="px-3 py-1 rounded-xl text-micro font-bold text-steel hover:text-ink cursor-pointer"
+        >
+          Bỏ chọn
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Ban Member Modal Dialog -->
   @if (selectedMemberForBan()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
-      <div class="card-base max-w-md w-full space-y-4 animate-slide-up shadow-modal">
+      <div class="card-base max-w-md w-full space-y-4 animate-slide-up shadow-modal" (click)="$event.stopPropagation()">
         <div class="flex items-center justify-between">
-          <span class="text-heading-5 font-bold text-danger">Cấm {{ selectedMemberForBan()?.displayName }} khỏi Server</span>
+          <span class="text-heading-5 font-bold text-danger">Cấm {{ selectedMemberForBan()?.displayName }}</span>
           <button type="button" (click)="cancelBan()" class="text-steel hover:text-ink cursor-pointer">
             <mat-icon class="!w-4 !h-4">close</mat-icon>
           </button>
         </div>
 
         <p class="text-caption text-steel">
-          Thành viên này sẽ bị xóa khỏi máy chủ và không thể tham gia lại bằng mã mời trừ khi bạn bỏ cấm.
+          Thành viên này sẽ bị xóa khỏi máy chủ và không thể tham gia lại bằng bất kỳ liên kết mời nào trừ khi bạn gỡ lệnh cấm.
         </p>
 
         <div>
@@ -210,7 +434,7 @@
             type="text"
             [value]="banReason()"
             (input)="banReason.set($any($event.target).value)"
-            placeholder="VD: Spam tin nhắn rác, xúc phạm người khác..."
+            placeholder="VD: Spam link lừa đảo, vi phạm quy chuẩn cộng đồng..."
             class="input-base"
           />
         </div>
@@ -226,12 +450,20 @@
           <button
             type="button"
             (click)="confirmBan()"
-            class="btn-danger"
+            class="btn-danger cursor-pointer"
           >
             Xác Nhận Cấm
           </button>
         </div>
       </div>
+    </div>
+  }
+
+  <!-- Floating Toast Notification -->
+  @if (toastMessage()) {
+    <div class="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-full bg-primary text-on-primary shadow-modal font-bold text-caption flex items-center gap-2 animate-slide-down">
+      <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+      <span>{{ toastMessage() }}</span>
     </div>
   }
 </div>

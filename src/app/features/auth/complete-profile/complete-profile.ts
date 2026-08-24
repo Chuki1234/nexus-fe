@@ -14,9 +14,11 @@ import { DISPLAY_NAME_MAX_LENGTH, USERNAME_PATTERN } from '../models/register';
  * mà OAuth không cung cấp. `completeProfileGuard` đảm bảo chỉ người đã đăng nhập
  * và chưa có hồ sơ mới vào được đây.
  */
+import { MatIconModule } from '@angular/material/icon';
+
 @Component({
   selector: 'app-complete-profile-page',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, MatIconModule],
   templateUrl: './complete-profile.html',
   styleUrl: './complete-profile.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,185 +1,435 @@
-<div class="space-y-6">
-  <!-- Header -->
-  <div class="flex items-center justify-between border-b border-hairline pb-4">
-    <div>
-      <h2 class="text-heading-4 font-bold text-ink tracking-tight">Vai Trò &amp; Phân Quyền (Server Roles)</h2>
-      <p class="text-caption text-steel mt-1">
-        Tạo vai trò, tùy chỉnh màu sắc và cấp quyền quản trị như Administrator, Quản lý Server, Kick/Ban thành viên...
+<div class="space-y-6 animate-fade-in relative pb-12 max-w-4xl">
+  <!-- ══════════════════════════════════════════════════════════════════════
+       VIEW MODE 1: DANH SÁCH VAI TRÒ (Y HỆT ẢNH DISCORD 3)
+       ══════════════════════════════════════════════════════════════════════ -->
+  @if (viewMode() === 'list') {
+    <!-- Header -->
+    <div class="border-b border-hairline pb-4">
+      <h2 class="text-heading-3 font-bold text-ink tracking-tight">Vai trò</h2>
+      <p class="text-caption text-steel mt-1 leading-relaxed">
+        Sử dụng vai trò để phân nhóm các thành viên máy chủ và chỉ định quyền của họ.
       </p>
     </div>
-    <button
-      type="button"
-      (click)="showCreateRoleModal.set(true)"
-      class="btn-primary flex items-center gap-1.5"
-    >
-      <mat-icon class="!w-4 !h-4 !text-[16px]">add</mat-icon>
-      <span>Tạo Vai Trò Mới</span>
-    </button>
-  </div>
 
-  <!-- Main Roles Editor Split Layout -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-    <!-- Left Column: Roles List -->
-    <div class="space-y-2">
-      <div class="flex items-center justify-between px-1">
-        <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
-          DANH SÁCH VAI TRÒ ({{ settingsService.serverRoles().length }})
-        </span>
-        <span class="text-micro text-steel font-medium">Kéo để đổi vị trí</span>
-      </div>
-
+    <!-- Default Role Card (@everyone - Y hệt ảnh 3) -->
+    @if (defaultRole()) {
       <div
-        cdkDropList
-        (cdkDropListDropped)="onDrop($event)"
-        class="space-y-1 bg-surface border border-hairline rounded-xl p-2 select-none"
+        (click)="openRoleEditor(defaultRole()!.id)"
+        class="w-full p-4 rounded-2xl bg-surface border border-hairline hover:border-primary/50 hover:bg-surface-feature/40 transition-all cursor-pointer flex items-center justify-between gap-4 shadow-card group"
       >
-        @for (role of settingsService.serverRoles(); track role.id) {
-          <div
-            cdkDrag
-            [cdkDragDisabled]="role.isDefault"
-            class="w-full flex items-center justify-between px-2.5 py-2 rounded-full text-body-sm font-medium transition-colors text-left group cursor-pointer"
-            [class.bg-surface-feature]="selectedRoleId() === role.id"
-            [class.text-primary]="selectedRoleId() === role.id"
-            [class.font-bold]="selectedRoleId() === role.id"
-            [class.text-steel]="selectedRoleId() !== role.id"
-            [class.hover:bg-surface-feature/50]="selectedRoleId() !== role.id"
-            [class.hover:text-ink]="selectedRoleId() !== role.id"
-            (click)="selectRole(role.id)"
-          >
-            <div class="flex items-center gap-2 min-w-0 flex-1">
-              @if (!role.isDefault) {
-                <mat-icon
-                  cdkDragHandle
-                  class="!w-4 !h-4 !text-[16px] text-stone group-hover:text-steel cursor-grab active:cursor-grabbing shrink-0 transition-colors"
-                  matTooltip="Kéo để thay đổi thứ tự phân cấp vai trò"
-                >
-                  drag_indicator
-                </mat-icon>
-              } @else {
-                <span class="w-4 shrink-0"></span>
-              }
-
-              <div
-                class="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs"
-                [style.backgroundColor]="role.color"
-              ></div>
-              <span class="truncate">{{ role.name }}</span>
-            </div>
-
-            <span class="text-caption text-stone font-mono shrink-0 ml-1">
-              {{ role.membersCount }}
+        <div class="flex items-center gap-3.5">
+          <div class="w-10 h-10 rounded-full bg-surface-feature text-steel group-hover:text-primary group-hover:bg-primary/10 flex items-center justify-center transition-colors">
+            <mat-icon class="!w-5 !h-5 !text-[20px]">people</mat-icon>
+          </div>
+          <div>
+            <span class="block text-body-sm font-bold text-ink group-hover:text-primary transition-colors">
+              Quyền mặc định
             </span>
-
-            <!-- Placeholder preview when dragging -->
-            <div *cdkDragPlaceholder class="opacity-25 bg-primary/20 border border-dashed border-primary rounded-full h-9 w-full my-0.5"></div>
+            <span class="block text-caption text-steel mt-0.5">
+              @everyone • áp dụng cho tất cả thành viên máy chủ
+            </span>
           </div>
-        }
+        </div>
+
+        <mat-icon class="text-steel group-hover:text-ink transition-transform group-hover:translate-x-0.5">
+          chevron_right
+        </mat-icon>
       </div>
-    </div>
+    }
 
-    <!-- Right Column: Permission Details of Selected Role -->
-    <div class="md:col-span-2 card-base space-y-5">
-      @if (selectedRole) {
-        <div class="flex items-center justify-between pb-4 border-b border-hairline">
-          <div class="flex items-center gap-3">
-            <div class="w-6 h-6 rounded-full shadow-sm" [style.backgroundColor]="selectedRole.color"></div>
-            <div>
-              <h3 class="text-heading-5 font-bold text-ink">{{ selectedRole.name }}</h3>
-              <span class="text-caption text-steel">Đang áp dụng cho {{ selectedRole.membersCount }} thành viên</span>
-            </div>
-          </div>
-
-          @if (!selectedRole.isDefault) {
+    <!-- Search & Create Role Controls (Y hệt ảnh 3) -->
+    <div class="space-y-2 pt-2">
+      <div class="flex items-center gap-3">
+        <!-- Search input -->
+        <div class="relative flex-1">
+          <mat-icon class="absolute left-3.5 top-2.5 text-steel !w-4 !h-4 !text-[18px] pointer-events-none">
+            search
+          </mat-icon>
+          <input
+            type="text"
+            [value]="roleSearchQuery()"
+            (input)="roleSearchQuery.set($any($event.target).value)"
+            placeholder="Tìm kiếm vai trò"
+            class="input-base !rounded-xl !pl-10 !py-2.5 !bg-surface text-caption text-ink font-semibold"
+          />
+          @if (roleSearchQuery()) {
             <button
               type="button"
-              (click)="deleteRole(selectedRole.id)"
-              class="px-3.5 py-1.5 rounded-full border border-danger/50 text-danger hover:bg-danger-surface text-caption font-semibold transition-colors cursor-pointer"
+              (click)="roleSearchQuery.set('')"
+              class="absolute right-3 top-2.5 text-steel hover:text-ink cursor-pointer"
             >
-              Xóa vai trò này
+              <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
             </button>
           }
         </div>
 
-        <div class="space-y-4">
-          <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
-            CẤP QUYỀN HẠN BẢO MẬT &amp; QUẢN TRỊ SERVER
-          </span>
+        <!-- Create Role Button -->
+        <button
+          type="button"
+          (click)="showCreateRoleModal.set(true)"
+          class="btn-primary !py-2.5 !px-5 !rounded-xl font-bold shadow-glow flex items-center gap-1.5 cursor-pointer shrink-0"
+        >
+          <span>Tạo Vai Trò</span>
+        </button>
+      </div>
 
-          <div class="space-y-3 divide-y divide-hairline">
-            <!-- Admin perm -->
-            <div class="flex items-center justify-between gap-4 pt-2">
-              <div>
-                <span class="block text-body-sm-medium font-bold text-ink">Quản Trị Viên (Administrator)</span>
-                <span class="text-caption text-steel">Cấp toàn bộ quyền hạn tối cao. Bỏ qua mọi hạn chế quyền khác.</span>
-              </div>
-              <mat-slide-toggle
-                [checked]="selectedRole.permissions.administrator"
-                (change)="togglePermission('administrator')"
-                aria-label="Administrator"
-              />
-            </div>
+      <p class="text-caption text-steel leading-relaxed">
+        Các thành viên sử dụng màu của vai trò cao nhất trong danh sách. Kéo và thả vai trò để sắp xếp lại.
+        <a href="javascript:void(0)" class="text-primary hover:underline font-semibold ml-0.5">Cần hỗ trợ về quyền?</a>
+      </p>
+    </div>
 
-            <!-- Manage server -->
-            <div class="flex items-center justify-between gap-4 pt-3">
-              <div>
-                <span class="block text-body-sm-medium font-bold text-ink">Quản lý Máy chủ</span>
-                <span class="text-caption text-steel">Cho phép đổi tên, biểu tượng và các thiết lập toàn máy chủ.</span>
-              </div>
-              <mat-slide-toggle
-                [checked]="selectedRole.permissions.manageServer"
-                (change)="togglePermission('manageServer')"
-                aria-label="Quản lý Máy chủ"
-              />
-            </div>
+    <!-- Roles List Section (Y hệt ảnh 3) -->
+    <div class="space-y-2 pt-3">
+      <div class="flex items-center justify-between px-2 text-micro-uppercase font-extrabold text-stone uppercase tracking-wider select-none">
+        <span>VAI TRÒ — {{ filteredRoles().length }}</span>
+        <span>THÀNH VIÊN</span>
+      </div>
 
-            <!-- Manage Roles -->
-            <div class="flex items-center justify-between gap-4 pt-3">
-              <div>
-                <span class="block text-body-sm-medium font-bold text-ink">Quản lý Vai Trò (Roles)</span>
-                <span class="text-caption text-steel">Tạo, chỉnh sửa và gán vai trò bên dưới vai trò của họ.</span>
-              </div>
-              <mat-slide-toggle
-                [checked]="selectedRole.permissions.manageRoles"
-                (change)="togglePermission('manageRoles')"
-                aria-label="Quản lý Vai Trò"
-              />
-            </div>
-
-            <!-- Kick Members -->
-            <div class="flex items-center justify-between gap-4 pt-3">
-              <div>
-                <span class="block text-body-sm-medium font-bold text-ink">Kick Thành Viên</span>
-                <span class="text-caption text-steel">Cho phép trục xuất thành viên vi phạm khỏi máy chủ.</span>
-              </div>
-              <mat-slide-toggle
-                [checked]="selectedRole.permissions.kickMembers"
-                (change)="togglePermission('kickMembers')"
-                aria-label="Kick Thành Viên"
-              />
-            </div>
-
-            <!-- Ban Members -->
-            <div class="flex items-center justify-between gap-4 pt-3">
-              <div>
-                <span class="block text-body-sm-medium font-bold text-ink">Cấm (Ban) Thành Viên</span>
-                <span class="text-caption text-steel">Cho phép cấm vĩnh viễn tài khoản khỏi máy chủ.</span>
-              </div>
-              <mat-slide-toggle
-                [checked]="selectedRole.permissions.banMembers"
-                (change)="togglePermission('banMembers')"
-                aria-label="Cấm Thành Viên"
-              />
-            </div>
+      <!-- Drag & Drop Roles List -->
+      <div
+        cdkDropList
+        (cdkDropListDropped)="onDrop($event)"
+        class="space-y-1 bg-surface border border-hairline rounded-2xl p-2 select-none shadow-card divide-y divide-hairline/60"
+      >
+        @if (filteredRoles().length === 0) {
+          <div class="p-8 text-center text-caption text-steel">
+            Không tìm thấy vai trò nào.
           </div>
+        } @else {
+          @for (role of filteredRoles(); track role.id) {
+            <div
+              cdkDrag
+              class="flex items-center justify-between px-3.5 py-3 rounded-xl hover:bg-surface-feature/50 transition-colors group cursor-pointer"
+              (click)="openRoleEditor(role.id)"
+            >
+              <!-- Role Name with Drag Handle & Shield Icon (Ảnh 3) -->
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <mat-icon
+                  cdkDragHandle
+                  class="!w-4 !h-4 !text-[18px] text-stone group-hover:text-steel cursor-grab active:cursor-grabbing shrink-0 transition-colors"
+                  matTooltip="Kéo để thay đổi thứ tự ưu tiên vai trò"
+                  (click)="$event.stopPropagation()"
+                >
+                  drag_indicator
+                </mat-icon>
+
+                <!-- Shield Icon with Role Color (Y hệt Discord ảnh 3) -->
+                <mat-icon
+                  class="!w-5 !h-5 !text-[20px] shrink-0"
+                  [style.color]="role.color"
+                >
+                  shield
+                </mat-icon>
+
+                <span class="text-body-sm font-bold text-ink truncate group-hover:text-primary transition-colors">
+                  {{ role.name }}
+                </span>
+              </div>
+
+              <!-- Members Count & Action Buttons (Y hệt Discord ảnh 3) -->
+              <div class="flex items-center gap-3 shrink-0" (click)="$event.stopPropagation()">
+                <!-- Member Count -->
+                <div class="flex items-center gap-1 text-caption text-steel font-mono">
+                  <span>{{ role.membersCount }}</span>
+                  <mat-icon class="!w-4 !h-4 !text-[16px] text-stone">person</mat-icon>
+                </div>
+
+                <!-- Edit Button (✏️) -->
+                <button
+                  type="button"
+                  (click)="openRoleEditor(role.id)"
+                  matTooltip="Chỉnh sửa vai trò"
+                  class="w-8 h-8 rounded-xl bg-surface-feature border border-hairline hover:border-primary text-steel hover:text-primary flex items-center justify-center cursor-pointer transition-all shadow-xs"
+                >
+                  <mat-icon class="!w-4 !h-4 !text-[16px]">edit</mat-icon>
+                </button>
+
+                <!-- More Options Menu (...) -->
+                <button
+                  type="button"
+                  [matMenuTriggerFor]="roleItemMenu"
+                  matTooltip="Tùy chọn khác"
+                  class="w-8 h-8 rounded-xl bg-surface-feature border border-hairline hover:text-ink text-steel flex items-center justify-center cursor-pointer transition-all shadow-xs"
+                >
+                  <mat-icon class="!w-4 !h-4 !text-[16px]">more_horiz</mat-icon>
+                </button>
+
+                <mat-menu #roleItemMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal">
+                  <button mat-menu-item type="button" (click)="openRoleEditor(role.id)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Chỉnh sửa quyền</span>
+                  </button>
+                  <button mat-menu-item type="button" (click)="copyRoleId(role.id, $event)">
+                    <mat-icon>content_copy</mat-icon>
+                    <span>Sao chép ID vai trò</span>
+                  </button>
+                  <div class="my-1 border-t border-hairline"></div>
+                  <button mat-menu-item type="button" (click)="deleteRole(role.id, $event)" class="text-danger">
+                    <mat-icon class="!text-danger">delete</mat-icon>
+                    <span class="text-danger font-bold">Xóa vai trò</span>
+                  </button>
+                </mat-menu>
+              </div>
+
+              <!-- Placeholder when dragging -->
+              <div *cdkDragPlaceholder class="opacity-30 bg-primary/20 border border-dashed border-primary rounded-xl h-12 w-full my-0.5"></div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       VIEW MODE 2: TRANG CHỈNH SỬA CHI TIẾT VAI TRÒ (ROLE DETAIL EDITOR)
+       ══════════════════════════════════════════════════════════════════════ -->
+  @if (viewMode() === 'edit' && selectedRole) {
+    <!-- Back Button Header -->
+    <div class="flex items-center justify-between border-b border-hairline pb-4">
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          (click)="goBackToList()"
+          class="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-hairline bg-surface hover:bg-surface-feature text-caption font-bold text-steel hover:text-ink transition-colors cursor-pointer"
+        >
+          <mat-icon class="!w-4 !h-4 !text-[16px]">arrow_back</mat-icon>
+          <span>Quay lại</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <mat-icon class="!w-6 !h-6 !text-[24px]" [style.color]="selectedRole.color">
+            shield
+          </mat-icon>
+          <h2 class="text-heading-4 font-bold text-ink">{{ selectedRole.name }}</h2>
         </div>
+      </div>
+
+      @if (!selectedRole.isDefault) {
+        <button
+          type="button"
+          (click)="deleteRole(selectedRole.id)"
+          class="px-3.5 py-1.5 rounded-xl border border-danger/40 text-danger hover:bg-danger-surface text-caption font-bold transition-colors cursor-pointer"
+        >
+          Xóa vai trò này
+        </button>
       }
     </div>
-  </div>
+
+    <!-- Sub-tabs: Hiển Thị / Quyền Hạn / Quyền Xem Kênh -->
+    <div class="p-1 rounded-xl bg-canvas border border-hairline flex items-center gap-1">
+      <button
+        type="button"
+        (click)="activeRoleSubTab.set('display')"
+        class="flex-1 py-2 px-3 rounded-lg text-caption font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+        [class.bg-surface]="activeRoleSubTab() === 'display'"
+        [class.text-primary]="activeRoleSubTab() === 'display'"
+        [class.shadow-2xs]="activeRoleSubTab() === 'display'"
+        [class.text-steel]="activeRoleSubTab() !== 'display'"
+      >
+        <mat-icon class="!w-4 !h-4 !text-[16px]">palette</mat-icon>
+        <span>Hiển Thị</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="activeRoleSubTab.set('permissions')"
+        class="flex-1 py-2 px-3 rounded-lg text-caption font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+        [class.bg-surface]="activeRoleSubTab() === 'permissions'"
+        [class.text-primary]="activeRoleSubTab() === 'permissions'"
+        [class.shadow-2xs]="activeRoleSubTab() === 'permissions'"
+        [class.text-steel]="activeRoleSubTab() !== 'permissions'"
+      >
+        <mat-icon class="!w-4 !h-4 !text-[16px]">admin_panel_settings</mat-icon>
+        <span>Quyền Hạn Quản Trị</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="activeRoleSubTab.set('channels')"
+        class="flex-1 py-2 px-3 rounded-lg text-caption font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+        [class.bg-surface]="activeRoleSubTab() === 'channels'"
+        [class.text-primary]="activeRoleSubTab() === 'channels'"
+        [class.shadow-2xs]="activeRoleSubTab() === 'channels'"
+        [class.text-steel]="activeRoleSubTab() !== 'channels'"
+      >
+        <mat-icon class="!w-4 !h-4 !text-[16px]">lock</mat-icon>
+        <span>Quyền Xem Kênh</span>
+      </button>
+    </div>
+
+    <!-- ── TAB 1: HIỂN THỊ (DISPLAY & COLOR PICKER) ── -->
+    @if (activeRoleSubTab() === 'display') {
+      <div class="card-base space-y-5 animate-fade-in">
+        <div>
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5">
+            TÊN VAI TRÒ
+          </label>
+          <input
+            type="text"
+            [value]="selectedRole.name"
+            (input)="selectedRole.name = $any($event.target).value"
+            class="input-base !bg-canvas text-body-sm font-bold text-ink"
+          />
+        </div>
+
+        <div>
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-2">
+            MÀU HIỂN THỊ VAI TRÒ
+          </label>
+
+          <!-- Color presets palette -->
+          <div class="grid grid-cols-5 sm:grid-cols-8 gap-2.5 pt-1">
+            @for (c of colorPresets; track c) {
+              <button
+                type="button"
+                (click)="updateRoleColor(c)"
+                class="w-10 h-10 rounded-xl border-2 transition-all transform hover:scale-110 active:scale-95 cursor-pointer shadow-xs relative"
+                [style.backgroundColor]="c"
+                [class.border-white]="selectedRole.color === c"
+                [class.ring-2]="selectedRole.color === c"
+                [class.ring-primary]="selectedRole.color === c"
+                [class.border-transparent]="selectedRole.color !== c"
+              >
+                @if (selectedRole.color === c) {
+                  <mat-icon class="!w-4 !h-4 !text-[16px] text-white absolute inset-0 m-auto">check</mat-icon>
+                }
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── TAB 2: QUYỀN HẠN QUẢN TRỊ (SYSTEM PERMISSIONS) ── -->
+    @if (activeRoleSubTab() === 'permissions') {
+      <div class="card-base space-y-4 animate-fade-in">
+        <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
+          CẤP QUYỀN HẠN BẢO MẬT &amp; QUẢN TRỊ SERVER
+        </span>
+
+        <div class="space-y-4 divide-y divide-hairline">
+          <!-- Administrator -->
+          <div class="flex items-center justify-between gap-4 pt-2">
+            <div>
+              <span class="block text-body-sm font-bold text-ink">Quản Trị Viên (Administrator)</span>
+              <span class="text-caption text-steel">Cấp toàn bộ quyền hạn tối cao. Bỏ qua mọi hạn chế quyền khác.</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="selectedRole.permissions.administrator"
+              (change)="togglePermission('administrator')"
+              aria-label="Administrator"
+            />
+          </div>
+
+          <!-- Manage server -->
+          <div class="flex items-center justify-between gap-4 pt-3">
+            <div>
+              <span class="block text-body-sm font-bold text-ink">Quản lý Máy chủ</span>
+              <span class="text-caption text-steel">Cho phép đổi tên, biểu tượng và các thiết lập toàn máy chủ.</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="selectedRole.permissions.manageServer"
+              (change)="togglePermission('manageServer')"
+              aria-label="Quản lý Máy chủ"
+            />
+          </div>
+
+          <!-- Manage Roles -->
+          <div class="flex items-center justify-between gap-4 pt-3">
+            <div>
+              <span class="block text-body-sm font-bold text-ink">Quản lý Vai Trò (Roles)</span>
+              <span class="text-caption text-steel">Tạo, chỉnh sửa và gán vai trò bên dưới vai trò của họ.</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="selectedRole.permissions.manageRoles"
+              (change)="togglePermission('manageRoles')"
+              aria-label="Quản lý Vai Trò"
+            />
+          </div>
+
+          <!-- Kick Members -->
+          <div class="flex items-center justify-between gap-4 pt-3">
+            <div>
+              <span class="block text-body-sm font-bold text-ink">Kick Thành Viên</span>
+              <span class="text-caption text-steel">Cho phép trục xuất thành viên vi phạm khỏi máy chủ.</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="selectedRole.permissions.kickMembers"
+              (change)="togglePermission('kickMembers')"
+              aria-label="Kick Thành Viên"
+            />
+          </div>
+
+          <!-- Ban Members -->
+          <div class="flex items-center justify-between gap-4 pt-3">
+            <div>
+              <span class="block text-body-sm font-bold text-ink">Cấm (Ban) Thành Viên</span>
+              <span class="text-caption text-steel">Cho phép cấm vĩnh viễn tài khoản khỏi máy chủ.</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="selectedRole.permissions.banMembers"
+              (change)="togglePermission('banMembers')"
+              aria-label="Cấm Thành Viên"
+            />
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── TAB 3: QUYỀN XEM KÊNH (CHANNEL ACCESS) ── -->
+    @if (activeRoleSubTab() === 'channels') {
+      <div class="card-base space-y-4 animate-fade-in">
+        <div class="flex items-center justify-between">
+          <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
+            QUYỀN TRUY CẬP KÊNH CỦA VAI TRÒ "{{ selectedRole.name }}"
+          </span>
+          <span class="text-micro text-steel">Kênh tắt sẽ bị ẩn khỏi người dùng</span>
+        </div>
+
+        <div class="divide-y divide-hairline rounded-2xl border border-hairline bg-canvas overflow-hidden">
+          @for (chan of availableChannels(); track chan.id) {
+            <div class="p-3.5 flex items-center justify-between gap-4 hover:bg-surface-feature/40 transition-colors">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-surface border border-hairline flex items-center justify-center text-steel shrink-0">
+                  <mat-icon class="!w-4 !h-4 !text-[18px]">
+                    {{ chan.type === 'voice' ? 'volume_up' : (isRoleAllowedForChannel(chan.id, selectedRole.id) ? 'tag' : 'lock') }}
+                  </mat-icon>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-body-sm font-bold text-ink"># {{ chan.name }}</span>
+                    @if (!isRoleAllowedForChannel(chan.id, selectedRole.id)) {
+                      <span class="rounded-full bg-danger/15 border border-danger/30 text-danger text-[9px] px-2 py-0.2 font-bold uppercase">
+                        Bị Ẩn với Role này
+                      </span>
+                    } @else {
+                      <span class="rounded-full bg-success/15 border border-success/30 text-success text-[9px] px-2 py-0.2 font-bold uppercase">
+                        Được Xem
+                      </span>
+                    }
+                  </div>
+                  <span class="text-micro text-steel">Loại: {{ chan.type === 'voice' ? 'Kênh thoại' : 'Kênh văn bản' }}</span>
+                </div>
+              </div>
+
+              <mat-slide-toggle
+                [checked]="isRoleAllowedForChannel(chan.id, selectedRole.id)"
+                (change)="toggleRoleChannelAccess(chan.id, selectedRole.id)"
+                [disabled]="selectedRole.permissions.administrator"
+                [matTooltip]="selectedRole.permissions.administrator ? 'Quản trị viên luôn có toàn quyền xem mọi kênh' : 'Bật/Tắt quyền truy cập kênh'"
+              />
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
 
   <!-- Create Role Modal Dialog -->
   @if (showCreateRoleModal()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
-      <div class="card-base max-w-md w-full space-y-4 animate-slide-up shadow-modal">
+      <div class="card-base max-w-md w-full space-y-4 animate-slide-up shadow-modal" (click)="$event.stopPropagation()">
         <div class="flex items-center justify-between">
           <span class="text-heading-5 font-bold text-ink">Tạo Vai Trò Mới</span>
           <button type="button" (click)="showCreateRoleModal.set(false)" class="text-steel hover:text-ink cursor-pointer">
@@ -197,8 +447,8 @@
               type="text"
               [value]="newRoleName"
               (input)="newRoleName = $any($event.target).value"
-              placeholder="VD: Quản Lý Kênh, Moderator, ..."
-              class="input-base"
+              placeholder="VD: Jockie Music, member, VIP..."
+              class="input-base !bg-canvas text-body-sm font-bold text-ink"
             />
           </div>
 
@@ -206,13 +456,16 @@
             <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="input-rcolor">
               Màu Hiển Thị Vai Trò
             </label>
-            <input
-              id="input-rcolor"
-              type="color"
-              [value]="newRoleColor"
-              (input)="newRoleColor = $any($event.target).value"
-              class="w-16 h-10 bg-transparent cursor-pointer rounded-lg border border-hairline"
-            />
+            <div class="flex items-center gap-3">
+              <input
+                id="input-rcolor"
+                type="color"
+                [value]="newRoleColor"
+                (input)="newRoleColor = $any($event.target).value"
+                class="w-14 h-10 bg-transparent cursor-pointer rounded-xl border border-hairline"
+              />
+              <span class="font-mono text-caption text-steel font-bold">{{ newRoleColor }}</span>
+            </div>
           </div>
         </div>
 
@@ -227,12 +480,20 @@
           <button
             type="button"
             (click)="createRole()"
-            class="btn-primary"
+            class="btn-primary !py-2 !px-5 !rounded-xl font-bold shadow-glow cursor-pointer"
           >
             Tạo Vai Trò
           </button>
         </div>
       </div>
+    </div>
+  }
+
+  <!-- Toast -->
+  @if (toastMessage()) {
+    <div class="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-full bg-primary text-on-primary shadow-modal font-bold text-caption flex items-center gap-2 animate-slide-down">
+      <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+      <span>{{ toastMessage() }}</span>
     </div>
   }
 </div>

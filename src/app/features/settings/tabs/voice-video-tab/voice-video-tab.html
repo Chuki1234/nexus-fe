@@ -185,11 +185,32 @@
         <div class="flex items-center justify-between gap-4">
           <div>
             <span class="block text-body-sm-medium font-bold text-ink">Phím gán Push-to-Talk</span>
-            <span class="text-caption text-steel">Nhấn giữ phím này khi muốn nói chuyện trong voice</span>
+            <span class="text-caption text-steel">
+              {{ isRecordingPttKey() ? 'Nhấn phím bất kỳ trên bàn phím để gán (hoặc nhấn Esc để hủy)' : 'Nhấn giữ phím này khi muốn nói chuyện trong voice' }}
+            </span>
           </div>
-          <kbd class="px-4 py-2 rounded-full bg-surface-feature border border-hairline-strong font-mono text-body-sm text-primary font-bold">
-            {{ settingsService.preferences().pushToTalkKey }}
-          </kbd>
+          <button
+            type="button"
+            (click)="startPttKeyRecording()"
+            class="px-4 py-2 rounded-full font-mono text-body-sm font-bold border transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+            [class.bg-danger/20]="isRecordingPttKey()"
+            [class.border-danger]="isRecordingPttKey()"
+            [class.text-danger]="isRecordingPttKey()"
+            [class.animate-pulse]="isRecordingPttKey()"
+            [class.bg-surface-feature]="!isRecordingPttKey()"
+            [class.border-hairline-strong]="!isRecordingPttKey()"
+            [class.text-primary]="!isRecordingPttKey()"
+            [class.hover:border-primary]="!isRecordingPttKey()"
+            [class.hover:scale-105]="!isRecordingPttKey()"
+          >
+            @if (isRecordingPttKey()) {
+              <mat-icon class="!w-4 !h-4 !text-[16px] text-danger">fiber_manual_record</mat-icon>
+              <span>Nhấn phím bất kỳ...</span>
+            } @else {
+              <mat-icon class="!w-4 !h-4 !text-[16px]">keyboard</mat-icon>
+              <span>{{ settingsService.preferences().pushToTalkKey }}</span>
+            }
+          </button>
         </div>
 
         <div>

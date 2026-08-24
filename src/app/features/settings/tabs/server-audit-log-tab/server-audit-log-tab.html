@@ -13,25 +13,31 @@
       LỊCH SỬ HÀNH ĐỘNG GẦN ĐÂY ({{ settingsService.auditLogs().length }})
     </span>
 
-    <div class="divide-y divide-hairline rounded-xl border border-hairline bg-surface">
-      @for (log of settingsService.auditLogs(); track log.id) {
-        <div class="p-4 flex items-start gap-4 hover:bg-surface-feature/30 transition-colors">
-          <div class="w-10 h-10 rounded-full bg-surface-feature text-primary flex items-center justify-center shrink-0 border border-hairline">
-            <mat-icon class="!w-5 !h-5 !text-[20px]">{{ log.icon }}</mat-icon>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-body-sm-medium font-bold text-ink">{{ log.action }}</span>
-              <span class="text-caption text-stone font-mono shrink-0">{{ log.timestamp }}</span>
-            </div>
-            <p class="text-caption text-steel mt-0.5">
-              Thực hiện bởi <strong class="text-ink font-semibold">{{ log.executor }}</strong>
-              @if (log.target) {
-                tới đối tượng <strong class="text-primary font-semibold">{{ log.target }}</strong>
-              }
-            </p>
-          </div>
+    <div class="divide-y divide-hairline rounded-2xl border border-hairline bg-surface overflow-hidden shadow-card">
+      @if (settingsService.auditLogs().length === 0) {
+        <div class="p-8 text-center text-caption text-steel">
+          Chưa có hành động kiểm toán nào được ghi nhận.
         </div>
+      } @else {
+        @for (log of settingsService.auditLogs(); track log.id) {
+          <div class="p-4 flex items-start gap-4 hover:bg-surface-feature/30 transition-colors">
+            <div class="w-10 h-10 rounded-full bg-surface-feature text-primary flex items-center justify-center shrink-0 border border-hairline">
+              <mat-icon class="!w-5 !h-5 !text-[20px]">{{ log.icon }}</mat-icon>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-body-sm-medium font-bold text-ink">{{ log.action }}</span>
+                <span class="text-caption text-stone font-mono shrink-0">{{ log.timestamp }}</span>
+              </div>
+              <p class="text-caption text-steel mt-0.5">
+                Thực hiện bởi <strong class="text-ink font-semibold">{{ log.executor }}</strong>
+                @if (log.target) {
+                  tới đối tượng <strong class="text-primary font-semibold">{{ log.target }}</strong>
+                }
+              </p>
+            </div>
+          </div>
+        }
       }
     </div>
   </div>

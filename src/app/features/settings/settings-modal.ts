@@ -13,11 +13,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
-import { ProfileLookup } from '../profile/profile-lookup';
-import { ProfilePendingImages } from '../profile/pending-images';
-import { ConnectedAppsService } from '../profile/connected-apps.service';
-import { CUSTOM_LINK_COLOR, tint } from '../profile/connected-apps';
-import { LINK_LABEL_MAX } from '../../../shared';
 import { UserSettingsService, SettingsTab } from './services/user-settings.service';
 import { Avatar } from '../../shared/ui/avatar/avatar';
 
@@ -41,9 +36,11 @@ import { DeveloperTab } from './tabs/developer-tab/developer-tab';
 import { ServerOverviewTab } from './tabs/server-overview-tab/server-overview-tab';
 import { ServerRolesTab } from './tabs/server-roles-tab/server-roles-tab';
 import { ServerMembersTab } from './tabs/server-members-tab/server-members-tab';
+import { ServerInvitesTab } from './tabs/server-invites-tab/server-invites-tab';
+import { ServerAccessTab } from './tabs/server-access-tab/server-access-tab';
 import { ServerSafetyTab } from './tabs/server-safety-tab/server-safety-tab';
 import { ServerAuditLogTab } from './tabs/server-audit-log-tab/server-audit-log-tab';
-import { ProfileStore } from '../profile/profile-store';
+import { ColorStudioModal } from './components/color-studio-modal/color-studio-modal';
 
 export interface NavItem {
   id: SettingsTab;
@@ -83,8 +80,11 @@ export interface NavCategory {
     ServerOverviewTab,
     ServerRolesTab,
     ServerMembersTab,
+    ServerInvitesTab,
+    ServerAccessTab,
     ServerSafetyTab,
     ServerAuditLogTab,
+    ColorStudioModal,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './settings-modal.html',
@@ -92,24 +92,10 @@ export interface NavCategory {
 })
 export class SettingsModal {
   protected readonly settingsService = inject(UserSettingsService);
-  private readonly profileStore = inject(ProfileStore);
-  /** Ảnh đại diện thật của chính mình — để phần xem trước khớp với mọi nơi khác. */
-  protected readonly myAvatarUrl = computed(() => this.profileStore.profile()?.avatarUrl ?? null);
   private readonly authService = inject(AuthService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
-  private readonly profileLookup = inject(ProfileLookup);
-  private readonly pendingImages = inject(ProfilePendingImages);
   private readonly destroyRef = inject(DestroyRef);
-  /**
-   * Thanh popup nhập tên tài khoản neo đáy khung (xem template) đọc state từ
-   * đây. Đặt ở service chứ không phải bên trong `ConnectionsTab`: popup phải
-   * nổi ở CẤP MODAL để không bị kẹt trong vùng cuộn riêng của từng tab.
-   */
-  protected readonly apps = inject(ConnectedAppsService);
-  protected readonly tint = tint;
-  protected readonly customLinkColor = CUSTOM_LINK_COLOR;
-  protected readonly labelMax = LINK_LABEL_MAX;
 
   protected readonly mobileSidebarOpen = signal<boolean>(false);
 
@@ -134,10 +120,10 @@ export class SettingsModal {
           subItems: [
             { label: 'Thông Tin Tài Khoản', actionId: 'account-info-heading' },
             { label: 'Mật Khẩu & Bảo Mật', actionId: 'security-heading' },
+            { label: 'Xác Thực Hai Yếu Tố', actionId: 'two-factor-heading' },
             { label: 'Trạng thái tài khoản', actionId: 'account-status-heading' },
           ],
         },
-        { id: 'profile', label: 'Hồ Sơ Người Dùng', icon: 'badge' },
         {
           id: 'privacy',
           label: 'Dữ Liệu & Bảo Mật',
@@ -191,26 +177,28 @@ export class SettingsModal {
     {
       title: 'MÁY CHỦ (SERVER)',
       items: [
-        { id: 'server-overview', label: 'Tổng Quan Máy Chủ', icon: 'dns' },
+        { id: 'server-overview', label: 'Hồ Sơ Máy Chủ', icon: 'badge' },
+      ],
+    },
+    {
+      title: 'MỌI NGƯỜI',
+      items: [
+        { id: 'server-members', label: 'Thành Viên', icon: 'people' },
         {
           id: 'server-roles',
-          label: 'Vai Trò & Phân Quyền (Roles)',
+          label: 'Vai Trò',
           icon: 'admin_panel_settings',
           badge: 'ADMIN',
         },
+        { id: 'server-invites', label: 'Lời Mời', icon: 'link' },
+        { id: 'server-access', label: 'Truy Cập', icon: 'door_sliding' },
       ],
     },
     {
       title: 'QUẢN TRỊ & BẢO MẬT',
       items: [
-        { id: 'server-safety', label: 'Bảo Mật & Phê Duyệt Thành Viên', icon: 'gavel' },
+        { id: 'server-safety', label: 'Bảo Mật & Phê Duyệt', icon: 'gavel' },
         { id: 'server-audit-log', label: 'Nhật Ký Kiểm Toán', icon: 'receipt_long' },
-      ],
-    },
-    {
-      title: 'QUẢN LÝ THÀNH VIÊN',
-      items: [
-        { id: 'server-members', label: 'Thành Viên & Ban/Kick', icon: 'people' },
       ],
     },
   ];
@@ -338,23 +326,9 @@ export class SettingsModal {
     }
   }
 
-  /**
-   * Dọn sạch mọi thứ đã nhớ về người vừa đăng xuất.
-   *
-   * Các `reset()` này trước nằm ở nút Đăng xuất trong thẻ hồ sơ dưới đáy; nút đó
-   * đã bỏ nên chúng phải theo về đây — đây giờ là đường đăng xuất duy nhất.
-   * Thiếu chúng thì người đăng nhập kế tiếp trên cùng máy sẽ thấy avatar, hồ sơ
-   * và cả ảnh chọn dở của người trước.
-   */
   protected async handleLogout(): Promise<void> {
     this.close();
     await this.authService.signOut();
-    this.profileService.reset();
-    this.profileStore.reset();
-    this.pendingImages.discard();
-    // Hồ sơ người khác đã nhớ mang cờ `isSelf` tính theo NGƯỜI ĐANG XEM — giữ
-    // lại thì người kế tiếp thấy nút sửa trên hồ sơ người khác.
-    this.profileLookup.reset();
     this.router.navigate(['/login']);
   }
 }

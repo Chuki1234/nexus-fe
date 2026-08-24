@@ -1,0 +1,35 @@
+/* two-factor-challenge.css */
+
+/* ─── Mã nhập TOTP / backup code ────────────────────────────── */
+.mfa-code-input {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border: 2px solid var(--color-hairline-strong);
+  border-radius: var(--radius-lg);
+  padding: 18px 24px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  caret-color: var(--color-primary);
+}
+
+.mfa-code-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.mfa-code-input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 15%, transparent);
+}
+
+.mfa-code-input--backup {
+  letter-spacing: 0.25em;
+  font-size: 1.5rem;
+}

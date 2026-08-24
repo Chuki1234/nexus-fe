@@ -1,0 +1,33 @@
+<div
+  class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/65 backdrop-blur-md p-3 sm:p-4 md:p-5 animate-fade-in"
+  (click)="onSaveAndClose()"
+>
+  <!-- Modal Window (3 Cột Chuẩn Discord: Thiết lập | Xem trước thẻ | Hoạt động Game & Widgets - Ảnh 3) -->
+  <div
+    class="relative w-full max-w-6xl max-h-[88vh] bg-surface rounded-3xl border border-hairline shadow-modal flex flex-col overflow-hidden animate-scale-in text-ink ring-1 ring-white/10"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Modal Header -->
+    <div class="h-13 border-b border-hairline bg-surface px-6 flex items-center justify-between shrink-0 select-none">
+      <div class="flex items-center gap-2 text-caption text-steel font-medium">
+        <span>Cài đặt Người dùng</span>
+        <span>/</span>
+        <span class="font-bold text-ink">Hồ Sơ &amp; Nhận Diện</span>
+      </div>
+
+      <button
+        type="button"
+        (click)="onSaveAndClose()"
+        class="flex items-center gap-1.5 px-3 py-1 rounded-full border border-hairline bg-surface hover:bg-surface-feature text-steel hover:text-ink text-caption font-bold transition-all cursor-pointer shadow-2xs group"
+      >
+        <mat-icon class="!w-4 !h-4 !text-[15px] group-hover:rotate-90 transition-transform">close</mat-icon>
+        <span>ESC</span>
+      </button>
+    </div>
+
+    <!-- Modal Body (3 Cột) -->
+    <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 md:p-6">
+      <app-profile-tab />
+    </div>
+  </div>
+</div>

@@ -9,6 +9,7 @@ import { ProfileStore } from '../../../profile/profile-store';
 
 @Component({
   selector: 'app-appearance-tab',
+  standalone: true,
   imports: [FormsModule, MatIconModule, MatSlideToggleModule, MatTooltipModule, Avatar],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './appearance-tab.html',
@@ -20,12 +21,16 @@ export class AppearanceTab {
   /** Ảnh đại diện thật của chính mình — để phần xem trước khớp với mọi nơi khác. */
   protected readonly myAvatarUrl = computed(() => this.profileStore.profile()?.avatarUrl ?? null);
 
-  protected readonly accentPresets = [
-    { label: 'Neon Mint', hex: '#00ed64' },
-    { label: 'Sapphire Blue', hex: '#3d4f9f' },
-    { label: 'Lavender Purple', hex: '#7b3ff2' },
-    { label: 'Solar Orange', hex: '#fa6e39' },
-    { label: 'Rose Pink', hex: '#f06bb8' },
+  // Danh sách màu cơ bản nhanh hiển thị ngoài Settings
+  protected readonly quickAccents = [
+    { label: 'Nexus Mint', hex: '#00ed64' },
+    { label: 'Discord Blurple', hex: '#5865f2' },
+    { label: 'Cyber Cyan', hex: '#06b6d4' },
+    { label: 'Royal Sapphire', hex: '#2563eb' },
+    { label: 'Cosmic Iris', hex: '#8b5cf6' },
+    { label: 'Sakura Rose', hex: '#fb7185' },
+    { label: 'Champagne Gold', hex: '#eab308' },
+    { label: 'Sunset Coral', hex: '#f97316' },
   ];
 
   protected readonly zoomLevels = [80, 90, 100, 110, 125];
@@ -36,6 +41,10 @@ export class AppearanceTab {
 
   protected setAccent(hex: string): void {
     this.settingsService.updatePreference('themeAccent', hex);
+  }
+
+  protected openStudio(): void {
+    this.settingsService.openColorStudio();
   }
 
   protected setMessageDensity(density: AppPreferences['messageDensity']): void {
