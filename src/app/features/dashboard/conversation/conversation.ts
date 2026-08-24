@@ -42,6 +42,7 @@ import {
   type ChatUiMessage,
 } from '../services/active-chat.store';
 import type { MessageResponseDto } from '../../../core/api/messages-api.service';
+import { ProfileAvatar } from '../../profile/components/profile-avatar/profile-avatar';
 import { Avatar } from '../../../shared/ui/avatar/avatar';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { ForwardMessageModal } from '../components/forward-message-modal/forward-message-modal';
@@ -276,6 +277,7 @@ export interface StreamMessageViewModel {
     MatTooltipModule,
     MessageActions,
     MessageComposer,
+    ProfileAvatar,
     RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -336,6 +338,11 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     }
     return details?.name || 'Cuộc trò chuyện';
   });
+
+  /** Username người bên kia (DM 1-1) — để mở thẻ hồ sơ khi bấm avatar. */
+  protected readonly recipientUsername = computed(
+    () => this.conversationDetails()?.recipient?.username ?? null,
+  );
 
   protected readonly recipientStatus = computed(() => {
     return this.conversationDetails()?.recipient?.statusMessage || null;

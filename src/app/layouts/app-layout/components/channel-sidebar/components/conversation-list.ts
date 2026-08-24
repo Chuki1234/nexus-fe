@@ -25,12 +25,15 @@ import { ChatSocketService } from '../../../../../core/realtime/chat-socket.serv
 import { PresenceService } from '../../../../../core/presence/presence.service';
 import { ActiveChatStore } from '../../../../../features/dashboard/services/active-chat.store';
 import { ServerInvitationsStore } from '../../../../../core/servers/server-invitations.store';
+import { ProfileAvatar } from '../../../../../features/profile/components/profile-avatar/profile-avatar';
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
 import { UnreadBadge } from '../../../../../shared/ui/unread-badge/unread-badge';
 
 export interface DisplayConversation {
   id: string;
+  /** Username của người bên kia (DM 1-1) — để mở thẻ hồ sơ. Null nếu không rõ. */
+  username: string | null;
   name: string;
   avatarUrl: string | null;
   presence: 'online' | 'idle' | 'dnd' | 'offline';
@@ -53,6 +56,7 @@ export interface DisplayConversation {
     MatListModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    ProfileAvatar,
     RouterLink,
     RouterLinkActive,
     SectionLabel,
@@ -88,6 +92,7 @@ export class ConversationList implements OnInit, OnDestroy {
     if (this.shell.demoEnabled()) {
       list = this.shell.conversations().map((c) => ({
         id: c.id,
+        username: null,
         name: c.name,
         avatarUrl: null,
         presence: c.presence,
@@ -107,6 +112,7 @@ export class ConversationList implements OnInit, OnDestroy {
           : ((c.recipient?.presence as PresenceStatus) || 'offline');
         return {
           id: c.id,
+          username: c.recipient?.username ?? null,
           name,
           avatarUrl: c.recipient?.avatarUrl || c.iconUrl || null,
           presence,

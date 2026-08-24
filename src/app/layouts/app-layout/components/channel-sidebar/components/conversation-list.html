@@ -71,13 +71,25 @@
           matListItemIcon
           class="conversation-avatar-slot !mr-3 !flex !size-8 !min-w-8 !items-center !justify-center !overflow-visible"
         >
-          <app-avatar
-            [name]="conversation.name"
-            [src]="conversation.avatarUrl"
-            [presence]="conversation.presence"
-            size="sm"
-            ring="surface"
-          />
+          @if (conversation.username; as uname) {
+            <!-- Bấm avatar mở thẻ hồ sơ, KHÔNG đi vào cuộc trò chuyện. -->
+            <app-profile-avatar
+              (click)="$event.preventDefault(); $event.stopPropagation()"
+              [username]="uname"
+              [name]="conversation.name"
+              [presence]="conversation.presence"
+              size="sm"
+              ring="surface"
+            />
+          } @else {
+            <app-avatar
+              [name]="conversation.name"
+              [src]="conversation.avatarUrl"
+              [presence]="conversation.presence"
+              size="sm"
+              ring="surface"
+            />
+          }
         </span>
         <span
           matListItemTitle

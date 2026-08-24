@@ -128,14 +128,25 @@
         }
 
         <section class="chat-intro max-w-2xl">
-          <span class="chat-intro__avatar flex w-fit" aria-hidden="true">
-            <app-avatar
-              [name]="recipientName()"
-              [src]="recipientAvatar()"
-              [presence]="recipientPresence()"
-              size="xl"
-              ring="canvas"
-            />
+          <span class="chat-intro__avatar flex w-fit">
+            @if (recipientUsername(); as uname) {
+              <!-- Bấm avatar người đang chat → mở thẻ hồ sơ đầy đủ. -->
+              <app-profile-avatar
+                [username]="uname"
+                [name]="recipientName()"
+                [presence]="recipientPresence()"
+                size="xl"
+                ring="canvas"
+              />
+            } @else {
+              <app-avatar
+                [name]="recipientName()"
+                [src]="recipientAvatar()"
+                [presence]="recipientPresence()"
+                size="xl"
+                ring="canvas"
+              />
+            }
           </span>
           <p class="mt-5 text-micro-uppercase text-steel">Kết nối trực tiếp</p>
           <h2 class="mt-1 text-heading-3 text-ink">{{ recipientName() }}</h2>
@@ -192,13 +203,23 @@
                   <!-- Cột Gutter: Avatar cho Head Message, Hover Time cho Grouped Message -->
                   <div class="message-gutter" aria-hidden="true">
                     @if (!item.isGrouped) {
-                      <app-avatar
-                        [userId]="msg.authorId"
-                        [name]="msg.author?.displayName || msg.author?.username || 'Người dùng'"
-                        [src]="msg.author?.avatarUrl ?? null"
-                        size="md"
-                        ring="canvas"
-                      />
+                      @if (msg.author?.username; as authorName) {
+                        <!-- Bấm avatar tác giả → mở thẻ hồ sơ của họ. -->
+                        <app-profile-avatar
+                          [username]="authorName"
+                          [name]="msg.author?.displayName || authorName"
+                          size="md"
+                          ring="canvas"
+                        />
+                      } @else {
+                        <app-avatar
+                          [userId]="msg.authorId"
+                          [name]="msg.author?.displayName || msg.author?.username || 'Người dùng'"
+                          [src]="msg.author?.avatarUrl ?? null"
+                          size="md"
+                          ring="canvas"
+                        />
+                      }
                     } @else {
                       <time
                         class="message-hover-time cursor-default"
