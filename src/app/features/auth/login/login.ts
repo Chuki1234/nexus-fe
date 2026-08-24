@@ -78,9 +78,23 @@ export class LoginPage {
 
     this.submitting.set(true);
     try {
-      await this.auth.signIn(this.form.getRawValue());
+      const result = await this.auth.signIn(this.form.getRawValue());
       const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
       const returnUrl = getAndClearReturnUrl(rawParam);
+
+      // Tài khoản bật 2FA: mật khẩu đúng nhưng chưa đủ — sang màn nhập mã, mang
+      // theo challenge + token AAL1 tạm để verify-login.
+      if ('requiresMfa' in result && result.requiresMfa) {
+        await this.router.navigate(['/2fa'], {
+          state: {
+            mfaChallengeId: result.mfaChallengeId,
+            accessToken: result.accessToken,
+            returnUrl,
+          },
+        });
+        return;
+      }
+
       await this.router.navigateByUrl(returnUrl);
     } catch (error) {
       this.errorMessage.set(toLoginErrorMessage(error));
