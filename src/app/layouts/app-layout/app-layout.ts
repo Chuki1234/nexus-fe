@@ -23,6 +23,7 @@ import { ServersStore } from '../../core/servers/servers.store';
 import { ShellData } from '../../core/api/shell-data';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { SettingsModal } from '../../features/settings/settings-modal';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
 
@@ -52,6 +53,7 @@ import {
     MatTooltipModule,
     RouterOutlet,
     ServerRail,
+    SettingsModal,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './app-layout.css',
