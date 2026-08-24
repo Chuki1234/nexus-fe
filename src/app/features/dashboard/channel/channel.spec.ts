@@ -2,7 +2,8 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { ShellData } from '../../../core/api/shell-data';
+import { ServersStore } from '../../../core/servers/servers.store';
+import { ChannelChatStore } from '../services/channel-chat.store';
 import {
   DashboardUiState,
   type DashboardBlockingState,
@@ -11,41 +12,74 @@ import {
 } from '../services/dashboard-ui-state';
 import { ChannelPage } from './channel';
 
-const SHELL_STUB = {
-  channelOf: (serverId: string, channelId: string) => {
-    if (serverId !== 'itss') {
-      return undefined;
-    }
-    if (channelId === 'do-an') {
-      return {
-        id: 'do-an',
-        name: 'đồ-án',
-        type: 'text' as const,
-        topic: 'Nexus — tiến độ tuần',
-        unread: false,
-        mentionCount: 0,
-      };
-    }
-    if (channelId === 'standup') {
-      return {
-        id: 'standup',
-        name: 'Standup',
-        type: 'voice' as const,
-        topic: null,
-        unread: false,
-        mentionCount: 0,
-      };
-    }
-    return undefined;
+const MOCK_CHANNELS = [
+  {
+    id: 'do-an',
+    name: 'đồ-án',
+    type: 'text' as const,
+    topic: 'Nexus — tiến độ tuần',
+    unread: false,
+    mentionCount: 0,
   },
-};
+  {
+    id: 'standup',
+    name: 'Standup',
+    type: 'voice' as const,
+    topic: null,
+    unread: false,
+    mentionCount: 0,
+  },
+];
 
 describe('ChannelPage', () => {
-  const mount = async (path: string, demo = false, uiState: DashboardUiStateName = 'ready') => {
-    const shell = {
-      ...SHELL_STUB,
-      demoEnabled: signal(demo).asReadonly(),
+  const mount = async (path: string, _demo = false, uiState: DashboardUiStateName = 'ready') => {
+    const serversStore = {
+      serverOf: () => ({ id: 'itss', name: 'ITSS Lab', iconUrl: null, unread: false, mentionCount: 0 }),
+      channelsOf: () => MOCK_CHANNELS,
+      setActive: () => {},
+      ensureHydrated: async () => {},
     };
+
+    const channelChatMock = {
+      allMessages: signal([
+        {
+          id: '1001',
+          channelId: 'do-an',
+          conversationId: null,
+          authorId: 'user-1',
+          author: { id: 'user-1', username: 'mon', displayName: 'Phan Thế Mon', avatarUrl: null },
+          type: 'default' as const,
+          content: 'Hello World',
+          replyToId: null,
+          clientNonce: 'n1',
+          editedAt: null,
+          deletedAt: null,
+          isForwarded: false,
+          attachments: [],
+          reactions: [{ emoji: '👍', count: 1, reactedByMe: true }],
+          createdAt: new Date().toISOString(),
+          status: 'persisted' as const,
+        },
+      ]).asReadonly(),
+      permissions: signal({ canView: true, canSend: true, canAttach: true, canManageMessages: true }).asReadonly(),
+      typingUserIds: signal([]).asReadonly(),
+      loadingInitial: signal(false).asReadonly(),
+      loadingMore: signal(false).asReadonly(),
+      hasMore: signal(false).asReadonly(),
+      chatError: signal(null).asReadonly(),
+      lastReadMessageId: signal('1000').asReadonly(),
+      loadInitial: async () => {},
+      loadMore: async () => {},
+      sendMessage: async () => {},
+      editMessage: async () => {},
+      deleteMessage: async () => {},
+      setReaction: async () => {},
+      startTyping: () => {},
+      markAsRead: async () => {},
+      retrySendMessage: async () => {},
+      cancelOptimisticMessage: () => {},
+    };
+
     const blockingState = signal<DashboardBlockingState | null>(
       uiState === 'loading' ||
         uiState === 'error' ||
@@ -57,10 +91,12 @@ describe('ChannelPage', () => {
     const connectionState = signal<DashboardConnectionState | null>(
       uiState === 'offline' || uiState === 'reconnecting' ? uiState : null,
     ).asReadonly();
+
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'c/:serverId/:channelId', component: ChannelPage }]),
-        { provide: ShellData, useValue: shell },
+        { provide: ServersStore, useValue: serversStore },
+        { provide: ChannelChatStore, useValue: channelChatMock },
         {
           provide: DashboardUiState,
           useValue: { blockingState, connectionState, clearPreview: async () => true },
@@ -89,26 +125,13 @@ describe('ChannelPage', () => {
     const chatStage = harness.routeNativeElement!.querySelector('.chat-stage');
     expect(chatStage?.classList.contains('justify-start')).toBe(true);
     expect(chatStage?.classList.contains('justify-end')).toBe(false);
-    expect(harness.routeNativeElement!.querySelector('[data-demo-message]')).toBeFalsy();
   });
 
-  it('chỉ render timeline Nexus Thread khi người dùng chủ động bật demo', async () => {
-    const harness = await mount('itss/do-an', true);
+  it('render tin nhắn và reaction chip từ ChannelChatStore', async () => {
+    const harness = await mount('itss/do-an');
 
-    expect(harness.routeNativeElement!.querySelectorAll('[data-demo-message]')).toHaveLength(3);
-    expect(harness.routeNativeElement!.querySelectorAll('app-message-actions')).toHaveLength(3);
-    expect(harness.routeNativeElement!.querySelector('.message-reply')).toBeTruthy();
-    expect(harness.routeNativeElement!.querySelector('.nexus-unread-divider')).toBeTruthy();
+    expect(harness.routeNativeElement!.textContent).toContain('Hello World');
     expect(harness.routeNativeElement!.querySelector('.reaction-chip')).toBeTruthy();
-
-    const reply = harness.routeNativeElement!.querySelector(
-      'app-message-actions button[aria-label="Trả lời"]',
-    ) as HTMLButtonElement;
-    reply.click();
-    harness.fixture.detectChanges();
-    expect(harness.routeNativeElement!.querySelector('.composer-context')?.textContent).toContain(
-      'Trả lời Phan Thế Mon',
-    );
   });
 
   it('kênh thoại KHÔNG có ô soạn tin và dựng VoiceRoom', async () => {

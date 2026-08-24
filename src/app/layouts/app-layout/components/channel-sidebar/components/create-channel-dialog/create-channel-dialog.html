@@ -97,7 +97,7 @@
           id="create-channel-name-input"
           type="text"
           [ngModel]="rawChannelName()"
-          (ngModelChange)="updateName($event)"
+          (ngModelChange)="onNameInput($event)"
           name="channelName"
           [placeholder]="channelType() === 'text' ? 'kênh-mới' : 'Phòng họp mới'"
           maxlength="100"

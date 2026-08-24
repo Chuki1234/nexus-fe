@@ -16,6 +16,7 @@ import {
 } from '../../../core/api/messages-api.service';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
 import { extractErrorMessage } from '../../../core/utils/error.util';
+import { compareMessageOrder } from '../../../core/utils/safe-message-comparator';
 
 export interface OptimisticMessage {
   clientNonce: string;
@@ -161,21 +162,8 @@ export class ActiveChatStore implements OnDestroy {
       errorMessage: opt.errorMessage,
     }));
 
-    // Gộp và sắp xếp
-    return [...uiPersisted, ...uiOptimistic].sort((a, b) => {
-      // Nếu cả 2 đều là persisted có bigint ID
-      if (
-        !a.id.startsWith('opt-') &&
-        !b.id.startsWith('opt-') &&
-        /^[1-9]\d*$/.test(a.id) &&
-        /^[1-9]\d*$/.test(b.id)
-      ) {
-        return compareMessageIds(a.id, b.id);
-      }
-      return (
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-    });
+    // Gộp và sắp xếp bằng compareMessageOrder an toàn
+    return [...uiPersisted, ...uiOptimistic].sort((a, b) => compareMessageOrder(a, b));
   });
 
   constructor() {

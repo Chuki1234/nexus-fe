@@ -96,212 +96,115 @@
               </div>
             }
 
-            <!-- Danh sách tin nhắn thật hoặc demo -->
-            @if (demoEnabled()) {
-              <ol class="message-list mt-6 grid gap-2.5" aria-label="Tin nhắn demo trong kênh">
-                <li class="message-row message-row--text-only" data-demo-message="channel-1">
-                  <app-avatar name="Phan Thế Mon" presence="online" size="md" ring="canvas" />
-                  <article class="message-card">
-                    <div class="message-content-cluster relative inline-flex flex-col items-start w-fit max-w-full">
-                      <div class="message-text-surface">
-                        <header class="flex flex-wrap items-baseline gap-x-2 mb-1">
-                          <strong class="text-body-sm-medium text-ink">Phan Thế Mon</strong>
-                          <time class="text-micro text-stone">Hôm nay, 19:24</time>
-                        </header>
-                        <p class="text-body-sm text-charcoal leading-relaxed">
-                          Tao vừa gom lại checklist Dashboard. Phần kéo nhóm server giờ nhìn vị trí thả rõ rồi.
-                        </p>
-                      </div>
-                      <div class="message-reactions mt-1.5 flex flex-wrap gap-1.5" aria-label="Cảm xúc">
-                        <span class="reaction-chip">👌 <span>3</span></span>
-                        <span class="reaction-chip">🌿 <span>2</span></span>
-                      </div>
-                      <div class="message-actions-slot">
-                        <app-message-actions
-                          messageId="channel-1"
-                          author="Phan Thế Mon"
-                          excerpt="Tao vừa gom lại checklist Dashboard. Phần kéo nhóm server giờ nhìn vị trí thả rõ rồi."
-                          (action)="composerContext.set($event)"
-                        />
-                      </div>
-                    </div>
-                  </article>
-                </li>
-
-                <li class="message-row message-row--compact message-row--text-only" data-demo-message="channel-2">
-                  <time class="message-row__compact-time text-micro text-stone">19:26</time>
-                  <article class="message-card">
-                    <div class="message-content-cluster relative inline-flex flex-col items-start w-fit max-w-full">
-                      <div class="message-text-surface">
-                        <p class="text-body-sm text-charcoal leading-relaxed">
-                          Tao để màu xanh chỉ làm trạng thái sống, không phủ lên cả card nữa.
-                        </p>
-                      </div>
-                      <div class="message-actions-slot">
-                        <app-message-actions
-                          messageId="channel-2"
-                          author="Phan Thế Mon"
-                          excerpt="Tao để màu xanh chỉ làm trạng thái sống, không phủ lên cả card nữa."
-                          (action)="composerContext.set($event)"
-                        />
-                      </div>
-                    </div>
-                  </article>
-                </li>
-
-                <li class="nexus-unread-divider my-3.5" aria-label="Có 2 tin nhắn mới">
-                  <span>2 tin nhắn mới</span>
-                </li>
-
-                <li class="message-row message-row--text-only" data-demo-message="channel-3">
-                  <app-avatar name="NguyenMinhTai" presence="online" size="md" ring="canvas" />
-                  <article class="message-card">
-                    <div class="message-reply mb-1">
-                      <span class="message-reply__avatar" aria-hidden="true">P</span>
-                      <strong>Phan Thế Mon</strong>
-                      <span class="truncate">Tao vừa gom lại checklist Dashboard...</span>
-                    </div>
-                    <div class="message-content-cluster relative inline-flex flex-col items-start w-fit max-w-[min(680px,100%)]">
-                      <div class="message-text-surface">
-                        <header class="flex flex-wrap items-baseline gap-x-2 mb-1">
-                          <strong class="text-body-sm-medium text-ink">NguyenMinhTai</strong>
-                          <time class="text-micro text-stone">19:31</time>
-                        </header>
-                        <p class="text-body-sm text-charcoal leading-relaxed">
-                          Ổn đó. Tao đang thử “Nexus Thread” để reply, unread và server active nói cùng một ngôn ngữ.
-                        </p>
-                      </div>
-                      <div class="message-actions-slot">
-                        <app-message-actions
-                          messageId="channel-3"
-                          author="NguyenMinhTai"
-                          excerpt="Ổn đó. Tao đang thử Nexus Thread để reply, unread và server active nói cùng một ngôn ngữ."
-                          [editable]="true"
-                          (action)="composerContext.set($event)"
-                        />
-                      </div>
-                    </div>
-                  </article>
-                </li>
-              </ol>
-            } @else {
-              <ol class="message-list mt-6" aria-label="Tin nhắn trong kênh">
-                @for (msg of messages(); track msg.clientNonce || msg.id; let idx = $index) {
-                  <!-- 1. Date Divider -->
-                  @if (shouldShowDateDivider(idx)) {
-                    <li class="chat-date-divider" [attr.aria-label]="getDateDividerLabel(idx)">
-                      <div class="chat-date-divider__line"></div>
-                      <span class="chat-date-divider__badge">{{ getDateDividerLabel(idx) }}</span>
-                      <div class="chat-date-divider__line"></div>
-                    </li>
-                  }
-
-                  <!-- 2. Unread Divider -->
-                  @if (isUnreadDivider(idx)) {
-                    <li class="nexus-unread-divider" aria-label="Tin nhắn mới">
-                      <div class="nexus-unread-divider__line"></div>
-                      <span class="nexus-unread-divider__badge">Tin nhắn mới</span>
-                    <div class="nexus-unread-divider__line"></div>
+            <!-- Danh sách tin nhắn thật canonical -->
+            <ol class="message-list mt-6" aria-label="Tin nhắn trong kênh">
+              @for (msg of messages(); track msg.clientNonce || msg.id; let idx = $index) {
+                <!-- 1. Date Divider -->
+                @if (shouldShowDateDivider(idx)) {
+                  <li class="chat-date-divider" [attr.aria-label]="getDateDividerLabel(idx)">
+                    <div class="chat-date-divider__line"></div>
+                    <span class="chat-date-divider__badge">{{ getDateDividerLabel(idx) }}</span>
+                    <div class="chat-date-divider__line"></div>
                   </li>
                 }
 
-                <!-- 3. Message Row -->
+                <!-- 2. Unread Divider -->
+                @if (isUnreadDivider(idx)) {
+                  <li class="nexus-unread-divider my-3.5" aria-label="Tin nhắn chưa đọc mới">
+                    <span>Tin nhắn mới</span>
+                  </li>
+                }
+
+                <!-- 3. Message Row Item -->
                 <li
-                  [id]="'msg-' + msg.id"
                   class="message-row"
-                  [class.message-row--head]="!isCompact(idx)"
-                  [class.message-row--grouped]="isCompact(idx)"
+                  [id]="'msg-' + msg.id"
+                  [class.message-row--compact]="isCompact(idx)"
+                  [class.message-row--highlighted]="highlightedMessageId() === msg.id"
                   [class.message-row--sending]="msg.status === 'sending'"
                   [class.message-row--failed]="msg.status === 'failed'"
-                  [class.message-row--highlighted]="highlightedMessageId() === msg.id"
+                  [class.message-row--unread]="channelChat.lastReadMessageId() ? msg.id > (channelChat.lastReadMessageId() || '') : false"
                 >
-                  <!-- Gutter: Avatar hoặc Compact Timestamp -->
-                  <div class="message-gutter">
-                    @if (!isCompact(idx)) {
-                      <app-avatar
-                        [name]="msg.author?.displayName || msg.author?.username || 'User'"
-                        [src]="msg.author?.avatarUrl ?? null"
-                        size="md"
-                        ring="canvas"
-                      />
-                    } @else {
-                      <time class="message-hover-time">{{ msg.createdAt | date: 'HH:mm' }}</time>
-                    }
-                  </div>
+                  <!-- Compact Time Gutter -->
+                  @if (isCompact(idx)) {
+                    <time class="message-row__compact-time text-micro text-stone">
+                      {{ msg.createdAt | date: 'HH:mm' }}
+                    </time>
+                  } @else {
+                    <app-avatar
+                      [name]="msg.author?.displayName || msg.author?.username || 'User'"
+                      [src]="msg.author?.avatarUrl ?? null"
+                      size="md"
+                      ring="canvas"
+                    />
+                  }
 
-                  <!-- Content Column -->
                   <article class="message-card">
-                    <!-- Reply reference banner nếu có -->
+                    <!-- Reply context header -->
                     @if (msg.replyToId) {
-                      <div
-                        class="message-reply"
-                        (click)="jumpToMessage(msg.replyToId)"
-                        role="button"
-                        tabindex="0"
-                        matTooltip="Xem tin nhắn gốc"
-                      >
-                        <mat-icon class="message-reply__icon">reply</mat-icon>
-                        <span class="message-reply__author">Trả lời tin nhắn</span>
+                      <div class="message-reply mb-1 cursor-pointer" (click)="jumpToMessage(msg.replyToId)">
+                        <mat-icon class="!size-3.5 !text-sm text-steel">reply</mat-icon>
+                        <span class="text-micro text-steel">Đang trả lời một tin nhắn</span>
                       </div>
                     }
 
-                    <div class="message-content-cluster relative inline-flex flex-col items-start w-fit max-w-full">
-                      <!-- Message Header nếu là message đầu nhóm -->
-                      @if (!isCompact(idx)) {
-                        <header class="message-header mb-1">
-                          <strong class="message-author-name">
-                            {{ msg.author?.displayName || msg.author?.username || 'Người dùng' }}
-                          </strong>
-                          <time class="message-time">
-                            {{ msg.createdAt | date: 'HH:mm' }}
-                          </time>
-                          @if (msg.isForwarded) {
-                            <span class="message-forwarded-indicator text-micro text-steel italic">
-                              (Đã chuyển tiếp)
-                            </span>
-                          }
-                        </header>
-                      }
+                    <div class="message-content-cluster relative inline-flex flex-col items-start w-fit max-w-[min(680px,100%)]">
+                      <!-- Message Text Surface -->
+                      <div class="message-text-surface">
+                        @if (!isCompact(idx)) {
+                          <header class="flex flex-wrap items-baseline gap-x-2 mb-1">
+                            <strong class="text-body-sm-medium text-ink">
+                              {{ msg.author?.displayName || msg.author?.username || 'User' }}
+                            </strong>
+                            <time class="text-micro text-stone">
+                              {{ msg.createdAt | date: 'HH:mm' }}
+                            </time>
+                            @if (msg.isForwarded) {
+                              <span class="forwarded-badge inline-flex items-center gap-0.5 text-micro text-steel italic">
+                                <mat-icon class="!size-3 !text-xs">forward</mat-icon>
+                                Đã chuyển tiếp
+                              </span>
+                            }
+                          </header>
+                        }
 
-                      <!-- Message Text Surface nếu có nội dung hoặc bị xóa -->
-                      @if (msg.deletedAt) {
-                        <div class="message-text-surface message-deleted-surface italic opacity-60">
-                          <p class="text-body-sm text-steel">Tin nhắn này đã bị xóa.</p>
-                        </div>
-                      } @else if (msg.content) {
-                        <div class="message-text-surface">
-                          <p class="message-body">
-                            @for (tok of parseContent(msg.content, msg.id); track tok.key) {
-                              @if (tok.type === 'link') {
-                                <a
-                                  [href]="tok.url"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  class="nexus-chat-link"
-                                >{{ tok.value }}</a>
-                              } @else {
-                                <span>{{ tok.value }}</span>
+                        <!-- Deleted Message State -->
+                        @if (msg.deletedAt) {
+                          <p class="text-body-sm text-steel italic">Tin nhắn đã bị xóa</p>
+                        } @else if (msg.content) {
+                          <!-- Normal Parsed Content -->
+                          <div class="message-body text-body-sm text-charcoal leading-relaxed break-words whitespace-pre-wrap">
+                            @for (token of parseContent(msg.content, msg.id); track $index) {
+                              @if (token.type === 'text') {
+                                <span>{{ token.value }}</span>
+                              } @else if (token.type === 'link') {
+                                <a [href]="token.url || token.value" target="_blank" rel="noopener noreferrer" class="chat-link">
+                                  {{ token.value }}
+                                </a>
+                              } @else if (token.type === 'mention') {
+                                <span class="chat-mention font-medium text-brand">@{{ token.value }}</span>
+                              } @else if (token.type === 'channel') {
+                                <span class="chat-channel-mention font-medium text-brand">#{{ token.value }}</span>
                               }
                             }
                             @if (msg.editedAt) {
-                              <span class="message-edited-badge ml-1 text-micro text-steel select-none">(đã chỉnh sửa)</span>
+                              <span class="text-micro text-stone ml-1.5 select-none">(đã chỉnh sửa)</span>
                             }
-                          </p>
-                        </div>
-                      }
+                          </div>
+                        }
+                      </div>
 
-                      <!-- Attachments (Ảnh / Tệp đính kèm) -->
+                      <!-- Attachments Slot -->
                       @if (!msg.deletedAt && msg.attachments && msg.attachments.length > 0) {
-                        <div class="message-attachments mt-1.5 flex flex-col gap-2">
-                          @for (att of msg.attachments; track att.id; let attIdx = $index) {
+                        <div class="message-attachments mt-2 grid gap-2" [class.grid-cols-2]="msg.attachments.length > 1">
+                          @for (att of msg.attachments; track att.id) {
                             @if (att.mimeType && att.mimeType.startsWith('image/')) {
-                              <div class="message-media-wrapper">
+                              <div class="message-media-tile">
                                 <img
                                   [src]="att.signedUrl"
                                   [alt]="att.filename"
                                   class="message-media-img"
                                   loading="lazy"
-                                  (click)="openLightbox(msg, att)"
                                 />
                               </div>
                             } @else {
@@ -392,7 +295,6 @@
                 </li>
               }
             </ol>
-            }
           </div>
         </div>
 
@@ -405,7 +307,13 @@
             aria-label="Cuộn xuống tin nhắn mới nhất"
           >
             <mat-icon class="!size-4 !text-base">arrow_downward</mat-icon>
-            <span>Tin nhắn mới nhất</span>
+            <span>
+              @if (unreadCountBelow() > 0) {
+                {{ unreadCountBelow() }} tin nhắn mới
+              } @else {
+                Tin nhắn mới nhất
+              }
+            </span>
           </button>
         }
 

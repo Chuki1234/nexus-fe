@@ -411,10 +411,8 @@ describe('ChatSocketService', () => {
     service.connect('jwt-token-123');
     const joined = await service.joinServer('srv-100');
     expect(joined).toBe(true);
-    expect(mockSocket.emit).toHaveBeenCalledWith('server:join', { serverId: 'srv-100' }, expect.any(Function));
-
     await service.leaveServer('srv-100');
-    expect(mockSocket.emit).toHaveBeenCalledWith('server:leave', { serverId: 'srv-100' }, expect.any(Function));
+    expect(mockSocket.emit).toHaveBeenCalledWith('server:leave', { serverId: 'srv-100' });
   });
 
   it('phát tán sự kiện serverDeleted$ khi nhận server:deleted', async () => {

@@ -143,10 +143,7 @@ export class ServerRail {
   private readonly router = inject(Router);
   private readonly commandDialog = viewChild.required<TemplateRef<unknown>>('commandDialog');
 
-  protected readonly servers = computed(() => {
-    const storeServers = this.serversStore.servers();
-    return storeServers.length > 0 ? storeServers : this.shell.servers();
-  });
+  protected readonly servers = this.serversStore.servers;
   protected readonly serverGroups = this.shell.serverGroups;
   protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
 

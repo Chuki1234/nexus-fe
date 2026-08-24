@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
 import {
+  afterNextRender,
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
@@ -7,15 +8,14 @@ import {
   DestroyRef,
   effect,
   ElementRef,
-  HostListener,
   inject,
-  OnDestroy,
+  Injector,
   OnInit,
   signal,
   untracked,
   viewChild,
 } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
@@ -41,9 +41,10 @@ import {
 import {
   ChannelChatStore,
   type ChannelChatUiMessage,
-  compareMessageIds,
 } from '../services/channel-chat.store';
+import { compareMessageOrder } from '../../../core/utils/safe-message-comparator';
 import { ServersStore } from '../../../core/servers/servers.store';
+import { ServerRealtimeCoordinator } from '../../../core/servers/server-realtime-coordinator.service';
 import { PresenceService } from '../../../core/presence/presence.service';
 import type { PresenceStatus } from '../../../../shared/dto/common';
 import { Avatar } from '../../../shared/ui/avatar/avatar';
@@ -53,7 +54,6 @@ import { ForwardMessageModal } from '../components/forward-message-modal/forward
 import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.service';
 import type { LightboxMediaItem } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.types';
 import { VoiceRoom } from '../../voice/voice-room/voice-room';
-import { ShellData } from '../../../core/api/shell-data';
 import {
   parseMessageContent,
   type MessageContentToken,
@@ -61,7 +61,6 @@ import {
 import {
   getMessagePresentationVariant,
   formatDateDividerLabel,
-  getLocalDateKey,
   isSameCalendarDay,
   parseTimestamp,
   type MessagePresentationVariant,
@@ -97,16 +96,16 @@ export class ChannelPage implements OnInit, AfterViewInit {
   private readonly router = inject(Router);
   private readonly serversStore = inject(ServersStore, { optional: true });
   private readonly serversApi = inject(ServersApiService, { optional: true });
-  private readonly shell = inject(ShellData, { optional: true });
+  private readonly coordinator = inject(ServerRealtimeCoordinator, { optional: true });
   readonly channelChat = inject(ChannelChatStore, { optional: true }) ?? inject(ChannelChatStore);
   protected readonly auth = inject(AuthService, { optional: true }) ?? inject(AuthService);
   private readonly presenceService = inject(PresenceService, { optional: true }) ?? inject(PresenceService);
   private readonly dialog = inject(MatDialog);
   private readonly lightbox = inject(LightboxGalleryService);
   private readonly uiState = inject(DashboardUiState);
+  private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
-
-  protected readonly demoEnabled = computed(() => this.shell?.demoEnabled() ?? false);
+  private isDestroyed = false;
 
   protected readonly chatViewportRef = viewChild<ElementRef<HTMLDivElement>>('chatViewport');
   protected readonly chatHistoryRef = viewChild<ElementRef<HTMLDivElement>>('chatHistory');
@@ -119,6 +118,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
   protected readonly loadingMembers = signal<boolean>(false);
   protected readonly showScrollDownButton = signal<boolean>(false);
   protected readonly highlightedMessageId = signal<string | null>(null);
+  protected readonly unreadCountBelow = signal<number>(0);
 
   protected readonly blockingState = this.uiState.blockingState;
   protected readonly connectionState = this.uiState.connectionState;
@@ -145,9 +145,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
     const sId = this.serverId();
     const cId = this.channelId();
     if (!sId || !cId) return undefined;
-    const storeChan = this.serversStore?.channelsOf(sId).find((c) => c.id === cId);
-    if (storeChan) return storeChan;
-    return this.shell?.channelOf(sId, cId);
+    return this.serversStore?.channelsOf(sId).find((c) => c.id === cId);
   });
 
   protected readonly permissions = this.channelChat.permissions;
@@ -176,6 +174,10 @@ export class ChannelPage implements OnInit, AfterViewInit {
   );
 
   constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.isDestroyed = true;
+    });
+
     // Tự động load channel khi params thay đổi
     effect(() => {
       const sId = this.serverId();
@@ -187,15 +189,36 @@ export class ChannelPage implements OnInit, AfterViewInit {
       }
     });
 
-    // Smart scroll on new messages
+    // DOM-Driven Smart Scroll khi messages thay đổi
     effect(() => {
       const msgs = this.messages();
-      if (msgs.length > 0) {
+      const isLoading = this.channelChat.loadingInitial();
+      if (msgs.length > 0 && !isLoading) {
         untracked(() => {
           this.handleMessagesChanged();
         });
       }
     });
+  }
+
+  private safeAfterNextRender(fn: () => void): void {
+    if (this.isDestroyed) return;
+    try {
+      afterNextRender(
+        () => {
+          if (!this.isDestroyed) {
+            fn();
+          }
+        },
+        { injector: this.injector },
+      );
+    } catch {
+      setTimeout(() => {
+        if (!this.isDestroyed) {
+          fn();
+        }
+      }, 0);
+    }
   }
 
   async ngOnInit(): Promise<void> {
@@ -205,12 +228,15 @@ export class ChannelPage implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.scrollToBottom('instant');
+    this.safeAfterNextRender(() => {
+      this.scrollToBottom('instant');
+    });
   }
 
   private async initChannel(serverId: string, channelId: string): Promise<void> {
     this.composerContext.set(null);
     this.forwardModalMessage.set(null);
+    this.unreadCountBelow.set(0);
     this.serversStore?.setActive(serverId, channelId);
 
     // Ensure hydration
@@ -226,10 +252,13 @@ export class ChannelPage implements OnInit, AfterViewInit {
     // Load server members
     void this.loadMembers(serverId);
 
-    // Scroll to bottom on initial load
-    setTimeout(() => {
-      this.scrollToBottom('instant');
-    }, 50);
+    // DOM-driven initial bottom scroll sau khi DOM render
+    this.safeAfterNextRender(() => {
+      const el = this.chatHistoryRef()?.nativeElement;
+      if (el && el.scrollHeight > 0) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
   }
 
   private async loadMembers(serverId: string): Promise<void> {
@@ -273,10 +302,9 @@ export class ChannelPage implements OnInit, AfterViewInit {
     const lastRead = this.channelChat.lastReadMessageId();
     if (!lastRead || curr.status !== 'persisted') return false;
 
-    // Hiển thị divider ngay trước message đầu tiên chưa đọc
     const prev = index > 0 ? list[index - 1] : null;
-    const isCurrUnread = compareMessageIds(curr.id, lastRead) > 0;
-    const isPrevRead = !prev || prev.status !== 'persisted' || compareMessageIds(prev.id, lastRead) <= 0;
+    const isCurrUnread = compareMessageOrder(curr, { id: lastRead }) > 0;
+    const isPrevRead = !prev || prev.status !== 'persisted' || compareMessageOrder(prev, { id: lastRead }) <= 0;
 
     return isCurrUnread && isPrevRead;
   }
@@ -302,7 +330,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
     const tPrev = parseTimestamp(prev.createdAt)?.getTime() ?? 0;
     const tCurr = parseTimestamp(curr.createdAt)?.getTime() ?? 0;
-    return Math.abs(tCurr - tPrev) < 5 * 60 * 1000; // Trong vòng 5 phút
+    return Math.abs(tCurr - tPrev) < 5 * 60 * 1000;
   }
 
   // --- Chat Actions ---
@@ -320,7 +348,12 @@ export class ChannelPage implements OnInit, AfterViewInit {
     this.composerContext.set(null);
 
     await this.channelChat.sendMessage(payload.content, payload.files, replyToId);
-    this.scrollToBottom('smooth');
+    this.unreadCountBelow.set(0);
+
+    // Gửi tin của chính mình -> cuộn mượt về đáy
+    this.safeAfterNextRender(() => {
+      this.scrollToBottom('smooth');
+    });
   }
 
   protected onAction(event: MessageComposerContext): void {
@@ -426,26 +459,25 @@ export class ChannelPage implements OnInit, AfterViewInit {
     const el = this.chatHistoryRef()?.nativeElement;
     if (!el) return;
 
-    // Load more when scrolled to top
+    // Load more khi cuộn lên đỉnh
     if (el.scrollTop < 80 && this.channelChat.hasMore() && !this.channelChat.loadingMore()) {
       const prevScrollHeight = el.scrollHeight;
       const prevScrollTop = el.scrollTop;
 
       void this.channelChat.loadMore().then(() => {
-        setTimeout(() => {
+        this.safeAfterNextRender(() => {
           if (el) {
             el.scrollTop = el.scrollHeight - prevScrollHeight + prevScrollTop;
           }
-        }, 0);
+        });
       });
     }
 
-    // Check if scrolled up
+    // Kiểm tra vị trí đọc
     const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
     this.showScrollDownButton.set(!isNearBottom);
-
-    // Mark as read if near bottom
     if (isNearBottom) {
+      this.unreadCountBelow.set(0);
       const msgs = this.messages();
       const lastPersisted = [...msgs].reverse().find((m) => m.status === 'persisted');
       if (lastPersisted) {
@@ -462,17 +494,23 @@ export class ChannelPage implements OnInit, AfterViewInit {
       } else {
         el.scrollTop = el.scrollHeight;
       }
+      this.unreadCountBelow.set(0);
+      this.showScrollDownButton.set(false);
     }
   }
 
   private handleMessagesChanged(): void {
     const el = this.chatHistoryRef()?.nativeElement;
     if (!el) return;
+
     const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 180;
     if (isNearBottom) {
-      setTimeout(() => {
+      this.safeAfterNextRender(() => {
         this.scrollToBottom('smooth');
-      }, 30);
+      });
+    } else {
+      // Người dùng đang đọc lịch sử cũ -> tăng counter tin nhắn mới phía dưới
+      this.unreadCountBelow.update((c) => c + 1);
     }
   }
 }

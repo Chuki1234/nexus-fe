@@ -63,7 +63,6 @@ export class ChannelList {
   @ViewChild('categoryMenuTrigger') private readonly categoryMenuTrigger?: MatMenuTrigger;
   @ViewChild('channelMenuTrigger') private readonly channelMenuTrigger?: MatMenuTrigger;
 
-  private readonly shell = inject(ShellData);
   private readonly serversStore = inject(ServersStore);
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
   private readonly dialog = inject(MatDialog);
@@ -114,13 +113,12 @@ export class ChannelList {
   });
 
   protected readonly serverName = computed(
-    () => this.serversStore.serverOf(this.serverId())?.name ?? this.shell.serverOf(this.serverId())?.name ?? 'Máy chủ',
+    () => this.serversStore.serverOf(this.serverId())?.name ?? 'Máy chủ',
   );
 
   /** Bỏ nhóm rỗng để không hiện tiêu đề khi danh sách kênh hoàn toàn rỗng */
   protected readonly groups = computed(() => {
-    const storeChannels = this.serversStore.channelsOf(this.serverId());
-    const channels = storeChannels.length > 0 ? storeChannels : this.shell.channelsOf(this.serverId());
+    const channels = this.serversStore.channelsOf(this.serverId());
     return GROUPS.map((group) => ({
       ...group,
       channels: channels.filter((channel) => channel.type === group.type),

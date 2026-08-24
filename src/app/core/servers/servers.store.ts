@@ -10,6 +10,9 @@ import { ChannelSummary, ServerSummary } from '../api/shell-data';
  */
 @Injectable({ providedIn: 'root' })
 export class ServersStore {
+  /** Generation counter để hủy mọi tác vụ dở dang khi chuyển tài khoản hoặc reset */
+  readonly generation = signal<number>(0);
+
   /** Danh sách máy chủ mà user đang tham gia */
   readonly serverList = signal<ServerSummary[]>([]);
 
@@ -38,7 +41,6 @@ export class ServersStore {
 
   /**
    * Đảm bảo danh sách server & channels đã được nạp từ backend.
-   * Ngăn chặn fallback shell-data rỗng khi deep link trực tiếp.
    */
   async ensureHydrated(serversApi: ServersApiService): Promise<void> {
     if (this.isHydrated() && this.serverList().length > 0) {
@@ -48,16 +50,21 @@ export class ServersStore {
       return this.hydrationPromise;
     }
 
+    const currentGen = this.generation();
     this.hydrationPromise = (async () => {
       this.isLoading.set(true);
       try {
         const serversWithChannels = await serversApi.listServers();
-        this.hydrateServers(serversWithChannels);
-        this.isHydrated.set(true);
+        if (this.generation() === currentGen) {
+          this.hydrateServers(serversWithChannels);
+          this.isHydrated.set(true);
+        }
       } catch {
         // Giữ trạng thái hiện tại nếu network error
       } finally {
-        this.isLoading.set(false);
+        if (this.generation() === currentGen) {
+          this.isLoading.set(false);
+        }
         this.hydrationPromise = null;
       }
     })();
@@ -93,6 +100,16 @@ export class ServersStore {
 
     this.serverList.set(servers);
     this.channelsByServer.set(channelMap);
+  }
+
+  /**
+   * Thay thế toàn bộ danh sách kênh của một server (ví dụ sau khi nhận server:channels-invalidated)
+   */
+  setChannels(serverId: string, channels: ChannelSummary[]): void {
+    this.channelsByServer.update((current) => ({
+      ...current,
+      [serverId]: channels,
+    }));
   }
 
   /**
@@ -211,7 +228,7 @@ export class ServersStore {
   }
 
   /**
-   * Xóa toàn bộ dữ liệu (khi logout).
+   * Xóa toàn bộ dữ liệu (khi logout hoặc chuyển tài khoản).
    */
   clear(): void {
     this.serverList.set([]);
@@ -219,5 +236,8 @@ export class ServersStore {
     this.activeServerId.set(null);
     this.activeChannelId.set(null);
     this.isLoading.set(false);
+    this.isHydrated.set(false);
+    this.hydrationPromise = null;
+    this.generation.update((g) => g + 1);
   }
 }

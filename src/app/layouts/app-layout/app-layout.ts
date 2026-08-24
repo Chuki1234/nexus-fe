@@ -20,7 +20,7 @@ import { filter, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ServersApiService } from '../../core/api/servers-api.service';
 import { ServersStore } from '../../core/servers/servers.store';
-import { ShellData } from '../../core/api/shell-data';
+import { ServerRealtimeCoordinator } from '../../core/servers/server-realtime-coordinator.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
@@ -64,7 +64,7 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly serversApi = inject(ServersApiService);
   private readonly serversStore = inject(ServersStore);
-  private readonly shell = inject(ShellData);
+  private readonly coordinator = inject(ServerRealtimeCoordinator);
   protected readonly layoutService = inject(DashboardLayoutService);
   protected readonly theme = inject(ThemeService).mode;
   protected readonly toastService = inject(ToastService);
@@ -203,11 +203,7 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
       if (!this.auth.isAuthenticated()) {
         return;
       }
-      const servers = await this.serversApi.listServers();
-      if (servers.length > 0) {
-        this.serversStore.hydrateServers(servers);
-        this.shell.hydrateServers(servers);
-      }
+      await this.coordinator.hydrateAndJoinAll();
     } catch {
       // Giữ live state rỗng nếu không kết nối được
     } finally {

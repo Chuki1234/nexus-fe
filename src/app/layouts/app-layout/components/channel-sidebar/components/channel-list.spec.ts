@@ -6,6 +6,7 @@ import { provideRouter, Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChannelSummary, ShellData } from '../../../../../core/api/shell-data';
 import { ServerCapabilitiesService } from '../../../../../core/servers/server-capabilities.service';
+import { ServersStore } from '../../../../../core/servers/servers.store';
 import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
 import { ChannelList } from './channel-list';
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
@@ -58,8 +59,14 @@ describe('ChannelList', () => {
     }).compileComponents();
 
     shellData = TestBed.inject(ShellData);
+    const serversStore = TestBed.inject(ServersStore);
     if (enableDemo) {
       shellData.setDemoEnabled(true);
+      serversStore.setChannels(serverId, [
+        { id: 'chung', name: 'chung', type: 'text', topic: 'Kênh chung', unread: false, mentionCount: 0 },
+        { id: 'nhac', name: 'nhạc', type: 'text', topic: null, unread: true, mentionCount: 0 },
+        { id: 'phong-hop', name: 'Phòng họp', type: 'voice', topic: null, unread: false, mentionCount: 0 },
+      ]);
     }
 
     const fixture = TestBed.createComponent(ChannelList);
@@ -204,6 +211,12 @@ describe('ChannelList', () => {
 
     shellData = TestBed.inject(ShellData);
     shellData.setDemoEnabled(true);
+    const serversStore = TestBed.inject(ServersStore);
+    serversStore.setChannels('lofi', [
+      { id: 'chung', name: 'chung', type: 'text', topic: 'Kênh chung', unread: false, mentionCount: 0 },
+      { id: 'nhac', name: 'nhạc', type: 'text', topic: null, unread: true, mentionCount: 0 },
+      { id: 'phong-hop', name: 'Phòng họp', type: 'voice', topic: null, unread: false, mentionCount: 0 },
+    ]);
 
     const fixture = TestBed.createComponent(ChannelList);
     (fixture.componentRef as ComponentRef<ChannelList>).setInput('serverId', 'lofi');
