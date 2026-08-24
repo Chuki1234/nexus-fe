@@ -1,0 +1,64 @@
+<div class="delete-server-dialog" role="dialog" aria-labelledby="delete-server-title">
+  <div class="delete-server-dialog__header">
+    <div class="delete-server-dialog__icon-wrap">
+      <mat-icon class="delete-server-dialog__icon">delete_forever</mat-icon>
+    </div>
+    <h2 id="delete-server-title" class="delete-server-dialog__title">Xóa '{{ serverName }}'</h2>
+  </div>
+
+  <div class="delete-server-dialog__content">
+    <div class="delete-server-dialog__warning-box">
+      <p class="delete-server-dialog__warning-text">
+        Bạn có chắc chắn muốn xóa máy chủ <strong>{{ serverName }}</strong> không? Hành động này <strong>không thể hoàn tác</strong>. Mọi kênh, tin nhắn và dữ liệu sẽ bị xóa vĩnh viễn.
+      </p>
+    </div>
+
+    <div class="delete-server-dialog__field">
+      <label for="confirm-server-name-input" class="delete-server-dialog__label">
+        NHẬP TÊN MÁY CHỦ ĐỂ XÁC NHẬN
+      </label>
+      <input
+        id="confirm-server-name-input"
+        type="text"
+        class="delete-server-dialog__input"
+        [formControl]="confirmControl"
+        [placeholder]="serverName"
+        autocomplete="off"
+        spellcheck="false"
+        [disabled]="isSubmitting()"
+      />
+    </div>
+
+    @if (errorMessage()) {
+      <div class="delete-server-dialog__error" role="alert">
+        <mat-icon class="delete-server-dialog__error-icon">error</mat-icon>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="delete-server-dialog__footer">
+    <button
+      type="button"
+      mat-button
+      class="delete-server-dialog__cancel-btn"
+      (click)="onCancel()"
+      [disabled]="isSubmitting()"
+    >
+      Hủy
+    </button>
+    <button
+      type="button"
+      mat-flat-button
+      class="delete-server-dialog__submit-btn"
+      (click)="onConfirmDelete()"
+      [disabled]="!isNameMatched() || isSubmitting()"
+    >
+      @if (isSubmitting()) {
+        <span>Đang xóa...</span>
+      } @else {
+        <span>Xóa máy chủ</span>
+      }
+    </button>
+  </div>
+</div>

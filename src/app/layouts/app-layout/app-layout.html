@@ -74,4 +74,34 @@
       </mat-sidenav-content>
     </mat-sidenav-container>
   }
+
+  <!-- Global Toast Notification Banner -->
+  @if (toastService.currentToast(); as toast) {
+    <div
+      class="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-surface-raised/95 border border-nexus-subtle shadow-2xl backdrop-blur-xl text-body-sm text-ink animate-fade-in"
+      role="status"
+      aria-live="polite"
+    >
+      <span>{{ toast.message }}</span>
+      @if (toast.action) {
+        <button
+          type="button"
+          (click)="toast.onAction?.(); toastService.dismiss()"
+          class="px-2.5 py-1 rounded-lg bg-mint-500 hover:bg-mint-400 text-surface-base font-semibold text-caption transition-colors cursor-pointer"
+        >
+          {{ toast.action }}
+        </button>
+      }
+      <button
+        type="button"
+        (click)="toastService.dismiss()"
+        class="p-1 rounded-md text-ink-muted hover:text-ink transition-colors cursor-pointer"
+        aria-label="Đóng thông báo"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  }
 </div>

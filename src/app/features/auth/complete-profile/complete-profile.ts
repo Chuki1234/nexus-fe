@@ -5,6 +5,7 @@ import {
   ProfileService,
   toCompleteProfileErrorMessage,
 } from '../../../core/profile/profile.service';
+import { getAndClearReturnUrl } from '../../../core/auth/auth-redirect.util';
 import { birthdateValidator, EARLIEST_BIRTH_YEAR, toIsoDate } from '../models/birthdate';
 import { DISPLAY_NAME_MAX_LENGTH, USERNAME_PATTERN } from '../models/register';
 
@@ -84,7 +85,8 @@ export class CompleteProfilePage {
         displayName: trimmedDisplayName || undefined,
         dateOfBirth: isoBirthdate,
       });
-      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+      const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
+      const returnUrl = getAndClearReturnUrl(rawParam);
       await this.router.navigateByUrl(returnUrl);
     } catch (error) {
       this.submitting.set(false);

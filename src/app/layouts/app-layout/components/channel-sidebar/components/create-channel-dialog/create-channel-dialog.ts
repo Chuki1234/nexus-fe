@@ -19,7 +19,7 @@ import {
   ServersApiService,
 } from '../../../../../../core/api/servers-api.service';
 import { ChannelSummary, ShellData } from '../../../../../../core/api/shell-data';
-
+import { ServerCapabilitiesService } from '../../../../../../core/servers/server-capabilities.service';
 
 export interface CreateChannelDialogData {
   serverId: string;
@@ -45,6 +45,7 @@ export class CreateChannelDialog {
   readonly data = inject<CreateChannelDialogData>(MAT_DIALOG_DATA);
   private readonly serversApi = inject(ServersApiService);
   private readonly shellData = inject(ShellData);
+  private readonly capabilitiesService = inject(ServerCapabilitiesService);
 
   protected readonly channelType = signal<'text' | 'voice'>(
     this.data.defaultType ?? 'text',
@@ -101,8 +102,13 @@ export class CreateChannelDialog {
       this.shellData.addChannel(this.data.serverId, createdChannel);
 
       this.dialogRef.close(createdChannel);
-    } catch (err) {
-      this.errorMessage.set(formatApiError(err));
+    } catch (err: any) {
+      const formatted = formatApiError(err);
+      this.errorMessage.set(formatted);
+
+      if (err?.status === 403 || formatted.includes('không có quyền')) {
+        this.capabilitiesService.refresh(this.data.serverId).catch(() => {});
+      }
     } finally {
       this.isSubmitting.set(false);
     }

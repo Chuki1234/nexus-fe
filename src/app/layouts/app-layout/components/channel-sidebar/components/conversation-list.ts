@@ -24,6 +24,7 @@ import { AuthService } from '../../../../../core/auth/auth.service';
 import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
 import { PresenceService } from '../../../../../core/presence/presence.service';
 import { ActiveChatStore } from '../../../../../features/dashboard/services/active-chat.store';
+import { ServerInvitationsStore } from '../../../../../core/servers/server-invitations.store';
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
 import { UnreadBadge } from '../../../../../shared/ui/unread-badge/unread-badge';
@@ -69,6 +70,7 @@ export class ConversationList implements OnInit, OnDestroy {
   private readonly presenceService = inject(PresenceService);
   private readonly auth = inject(AuthService);
   private readonly activeChatStore = inject(ActiveChatStore);
+  protected readonly invitationsStore = inject(ServerInvitationsStore);
   private readonly subs = new Subscription();
 
   readonly query = input('');
@@ -132,6 +134,7 @@ export class ConversationList implements OnInit, OnDestroy {
     if (!this.shell.demoEnabled()) {
       this.chatSocket.connect();
       void this.loadRealConversations();
+      void this.invitationsStore.hydrateInvitations();
       this.setupRealtimeListeners();
     }
   }

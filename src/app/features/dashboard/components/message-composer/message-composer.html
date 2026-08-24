@@ -99,10 +99,10 @@
     <button
       mat-icon-button
       type="button"
-      [disabled]="disabled() || context()?.kind === 'edit'"
+      [disabled]="disabled() || attachmentsDisabled() || context()?.kind === 'edit'"
       (click)="openFileDialog()"
       class="composer-action hover:text-primary-soft"
-      [matTooltip]="context()?.kind === 'edit' ? 'Không thể đính kèm tệp khi đang chỉnh sửa tin nhắn' : 'Đính kèm tệp/ảnh (tối đa 5 file, 10MB/file)'"
+      [matTooltip]="context()?.kind === 'edit' ? 'Không thể đính kèm tệp khi đang chỉnh sửa tin nhắn' : (attachmentsDisabled() ? attachmentsDisabledReason() : 'Đính kèm tệp/ảnh (tối đa 5 file, 10MB/file)')"
     >
       <mat-icon>add_circle</mat-icon>
       <span class="sr-only">Đính kèm tệp</span>

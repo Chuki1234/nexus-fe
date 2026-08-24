@@ -24,9 +24,22 @@ import {
   MessageResponseDto,
   MessagesApiService,
 } from '../../../../core/api/messages-api.service';
+import { ServersStore } from '../../../../core/servers/servers.store';
 import { extractErrorMessage } from '../../../../core/utils/error.util';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import { ChatUiMessage } from '../../services/active-chat.store';
+import type { PresenceStatus } from '../../../../../shared/dto/common';
+
+export interface ForwardTargetItem {
+  id: string;
+  type: 'conversation' | 'channel';
+  name: string;
+  subtitle?: string;
+  icon?: string;
+  avatarName?: string;
+  avatarUrl?: string | null;
+  presence?: PresenceStatus | null;
+}
 
 @Component({
   selector: 'app-forward-message-modal',
@@ -52,18 +65,20 @@ import { ChatUiMessage } from '../../services/active-chat.store';
 export class ForwardMessageModal implements OnInit {
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly messagesApi = inject(MessagesApiService);
+  private readonly serversStore = inject(ServersStore);
 
   readonly message = input.required<ChatUiMessage | MessageResponseDto>();
   readonly currentConversationId = input<string | null>(null);
+  readonly currentChannelId = input<string | null>(null);
 
   readonly close = output<void>();
   readonly forwardSuccess = output<MessageResponseDto>();
 
   readonly searchInputRef = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
-  readonly conversations = signal<ConversationResponseDto[]>([]);
+  readonly targets = signal<ForwardTargetItem[]>([]);
   readonly searchQuery = signal<string>('');
-  readonly selectedConversationId = signal<string | null>(null);
+  readonly selectedTarget = signal<ForwardTargetItem | null>(null);
   readonly isLoading = signal<boolean>(true);
   readonly isSubmitting = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
@@ -76,26 +91,59 @@ export class ForwardMessageModal implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    await this.loadConversations();
+    await this.loadTargets();
     setTimeout(() => {
       this.searchInputRef()?.nativeElement?.focus();
     }, 50);
   }
 
-  async loadConversations(): Promise<void> {
+  async loadTargets(): Promise<void> {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     try {
-      const list = await this.conversationsApi.listConversations();
-      // Lọc bỏ cuộc trò chuyện hiện tại
-      const currentId = this.currentConversationId();
-      const filtered = list.filter((c) => c.id !== currentId);
-      this.conversations.set(filtered);
+      const items: ForwardTargetItem[] = [];
+
+      // 1. Direct Messages
+      try {
+        const convList = await this.conversationsApi.listConversations();
+        const currentConv = this.currentConversationId();
+        for (const c of convList) {
+          if (c.id === currentConv) continue;
+          items.push({
+            id: c.id,
+            type: 'conversation',
+            name: c.recipient?.displayName || c.recipient?.username || c.name || 'Tin nhắn riêng',
+            subtitle: c.recipient?.username ? `@${c.recipient.username}` : undefined,
+            avatarName: c.recipient?.displayName || c.recipient?.username || c.name || 'Hội thoại',
+            avatarUrl: c.recipient?.avatarUrl || c.iconUrl || null,
+            presence: (c.recipient?.presence as PresenceStatus) || null,
+          });
+        }
+      } catch {}
+
+      // 2. Server Channels
+      const servers = this.serversStore.servers();
+      const currentChan = this.currentChannelId();
+      for (const s of servers) {
+        const channels = this.serversStore.channelsOf(s.id);
+        for (const ch of channels) {
+          if (ch.id === currentChan || ch.type === 'voice') continue;
+          items.push({
+            id: ch.id,
+            type: 'channel',
+            name: `#${ch.name}`,
+            subtitle: s.name,
+            icon: 'tag',
+          });
+        }
+      }
+
+      this.targets.set(items);
     } catch (err: unknown) {
       this.errorMessage.set(
         extractErrorMessage(
           err,
-          'Không thể tải danh sách cuộc trò chuyện. Vui lòng thử lại.',
+          'Không thể tải danh sách đích chuyển tiếp. Vui lòng thử lại.',
         ),
       );
     } finally {
@@ -103,33 +151,31 @@ export class ForwardMessageModal implements OnInit {
     }
   }
 
-  get filteredConversations(): ConversationResponseDto[] {
+  get filteredTargets(): ForwardTargetItem[] {
     const q = this.searchQuery().trim().toLowerCase();
-    const list = this.conversations();
+    const list = this.targets();
     if (!q) return list;
 
-    return list.filter((c) => {
-      const displayName = (c.recipient?.displayName || '').toLowerCase();
-      const username = (c.recipient?.username || '').toLowerCase();
-      const name = (c.name || '').toLowerCase();
-      return (
-        displayName.includes(q) || username.includes(q) || name.includes(q)
-      );
+    return list.filter((t) => {
+      const name = t.name.toLowerCase();
+      const sub = (t.subtitle || '').toLowerCase();
+      return name.includes(q) || sub.includes(q);
     });
   }
 
-  selectConversation(convId: string): void {
+  selectTarget(target: ForwardTargetItem): void {
     if (this.isSubmitting()) return;
-    this.selectedConversationId.set(convId);
+    this.selectedTarget.set(target);
     this.errorMessage.set(null);
   }
 
   async submitForward(): Promise<void> {
-    const targetId = this.selectedConversationId();
+    const target = this.selectedTarget();
     const srcMsg = this.message();
     const srcConvId = this.currentConversationId() || srcMsg.conversationId;
+    const srcChanId = this.currentChannelId() || srcMsg.channelId;
 
-    if (!targetId || !srcConvId || !srcMsg.id || this.isSubmitting()) {
+    if (!target || (!srcConvId && !srcChanId) || !srcMsg.id || this.isSubmitting()) {
       return;
     }
 
@@ -138,10 +184,23 @@ export class ForwardMessageModal implements OnInit {
 
     try {
       const clientNonce = crypto.randomUUID();
-      const res = await this.messagesApi.forwardMessage(srcConvId, srcMsg.id, {
-        targetConversationId: targetId,
-        clientNonce,
-      });
+      let res: MessageResponseDto;
+
+      if (srcChanId) {
+        // Forward from Channel
+        res = await this.messagesApi.forwardChannelMessage(srcChanId, srcMsg.id, {
+          targetConversationId: target.type === 'conversation' ? target.id : undefined,
+          targetChannelId: target.type === 'channel' ? target.id : undefined,
+          clientNonce,
+        });
+      } else {
+        // Forward from DM
+        res = await this.messagesApi.forwardMessage(srcConvId!, srcMsg.id, {
+          targetConversationId: target.type === 'conversation' ? target.id : undefined,
+          targetChannelId: target.type === 'channel' ? target.id : undefined,
+          clientNonce,
+        });
+      }
 
       this.forwardSuccess.emit(res);
       this.close.emit();

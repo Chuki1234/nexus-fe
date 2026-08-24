@@ -1,0 +1,27 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.invite-page-container {
+  background-color: var(--color-surface-base, #0d1117);
+}
+
+.invite-card {
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 30px 0 rgba(74, 222, 128, 0.05);
+}
+
+.server-icon-wrap img,
+.server-icon-wrap div {
+  transition: transform 0.2s ease;
+}
+
+.server-icon-wrap:hover img,
+.server-icon-wrap:hover div {
+  transform: scale(1.05);
+}
+
+.cta-btn {
+  min-height: 48px;
+}

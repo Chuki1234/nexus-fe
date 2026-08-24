@@ -43,6 +43,17 @@ export class ChatSocketService {
 
   /** Cuộc trò chuyện đang active để tự động rejoin sau khi reconnect */
   private activeConversationId: string | null = null;
+  /** Kênh máy chủ đang active để tự động rejoin sau khi reconnect */
+  private activeChannelId: string | null = null;
+
+  private readonly pendingJoinPromises = new Map<
+    string,
+    Promise<JoinConversationResponse>
+  >();
+  private readonly pendingJoinChannelPromises = new Map<
+    string,
+    Promise<JoinConversationResponse>
+  >();
 
   // Event Subjects
   private readonly messageCreatedSubject = new Subject<{
@@ -57,21 +68,36 @@ export class ChatSocketService {
     messageId: string;
   }>();
   private readonly messageReadSubject = new Subject<{
-    conversationId: string;
+    conversationId?: string | null;
+    channelId?: string | null;
     userId: string;
     lastReadMessageId: string;
   }>();
   private readonly typingUpdatedSubject = new Subject<{
-    conversationId: string;
+    conversationId?: string | null;
+    channelId?: string | null;
     userIds: string[];
   }>();
   private readonly joinErrorSubject = new Subject<{
-    conversationId: string;
+    conversationId?: string;
+    channelId?: string;
     error: string;
   }>();
   private readonly reactionUpdatedSubject = new Subject<ReactionUpdatedPayload>();
   private readonly presenceUpdatedSubject = new Subject<PresenceUpdatedPayload>();
   private readonly presenceSyncSubject = new Subject<PresenceSyncPayload>();
+
+  private readonly channelCreatedSubject = new Subject<{ serverId: string; channel: any }>();
+  private readonly invitationReceivedSubject = new Subject<{ invitation: any }>();
+  private readonly invitationUpdatedSubject = new Subject<{
+    invitationId: string;
+    serverId: string;
+    inviteeId: string;
+    status: 'accepted' | 'declined' | 'revoked' | 'expired';
+  }>();
+  private readonly capabilitiesUpdatedSubject = new Subject<{ serverId: string; capabilities: any }>();
+  private readonly serverDeletedSubject = new Subject<{ serverId: string }>();
+  private readonly serverMemberLeftSubject = new Subject<{ serverId: string; userId: string }>();
 
   readonly messageCreated$: Observable<{ message: MessagePayload }> =
     this.messageCreatedSubject.asObservable();
@@ -85,22 +111,42 @@ export class ChatSocketService {
   readonly reactionUpdated$: Observable<ReactionUpdatedPayload> =
     this.reactionUpdatedSubject.asObservable();
   readonly messageRead$: Observable<{
-    conversationId: string;
+    conversationId?: string | null;
+    channelId?: string | null;
     userId: string;
     lastReadMessageId: string;
   }> = this.messageReadSubject.asObservable();
   readonly typingUpdated$: Observable<{
-    conversationId: string;
+    conversationId?: string | null;
+    channelId?: string | null;
     userIds: string[];
   }> = this.typingUpdatedSubject.asObservable();
   readonly joinError$: Observable<{
-    conversationId: string;
+    conversationId?: string;
+    channelId?: string;
     error: string;
   }> = this.joinErrorSubject.asObservable();
   readonly presenceUpdated$: Observable<PresenceUpdatedPayload> =
     this.presenceUpdatedSubject.asObservable();
   readonly presenceSync$: Observable<PresenceSyncPayload> =
     this.presenceSyncSubject.asObservable();
+
+  readonly channelCreated$: Observable<{ serverId: string; channel: any }> =
+    this.channelCreatedSubject.asObservable();
+  readonly invitationReceived$: Observable<{ invitation: any }> =
+    this.invitationReceivedSubject.asObservable();
+  readonly invitationUpdated$: Observable<{
+    invitationId: string;
+    serverId: string;
+    inviteeId: string;
+    status: 'accepted' | 'declined' | 'revoked' | 'expired';
+  }> = this.invitationUpdatedSubject.asObservable();
+  readonly capabilitiesUpdated$: Observable<{ serverId: string; capabilities: any }> =
+    this.capabilitiesUpdatedSubject.asObservable();
+  readonly serverDeleted$: Observable<{ serverId: string }> =
+    this.serverDeletedSubject.asObservable();
+  readonly serverMemberLeft$: Observable<{ serverId: string; userId: string }> =
+    this.serverMemberLeftSubject.asObservable();
 
   private readonly conversationUpdatedSubject = new Subject<{
     conversationId: string;
@@ -249,16 +295,15 @@ export class ChatSocketService {
     }
   }
 
-  /** Các join promise đang pending để tránh gửi trùng lặp */
-  private readonly pendingJoinPromises = new Map<string, Promise<JoinConversationResponse>>();
-
   /**
    * Ngắt kết nối và dọn dẹp toàn bộ state khi đăng xuất
    */
   disconnect(): void {
     this.activeConversationId = null;
+    this.activeChannelId = null;
     this.currentToken = null;
     this.pendingJoinPromises.clear();
+    this.pendingJoinChannelPromises.clear();
 
     if (this.socket) {
       this.socket.removeAllListeners();
@@ -358,6 +403,107 @@ export class ChatSocketService {
   }
 
   /**
+   * Tham gia vào phòng channel để nhận realtime messages (có Timeout & Acknowledgment)
+   */
+  async joinChannel(
+    channelId: string,
+    timeoutMs = 5000,
+  ): Promise<JoinConversationResponse> {
+    if (!isPlatformBrowser(this.platformId)) {
+      return { success: false, status: 'disconnected' };
+    }
+
+    this.activeChannelId = channelId;
+
+    const existingPromise = this.pendingJoinChannelPromises.get(channelId);
+    if (existingPromise) {
+      return existingPromise;
+    }
+
+    const joinPromise = (async (): Promise<JoinConversationResponse> => {
+      try {
+        const isConnected = await this.ensureConnected(undefined, timeoutMs);
+        if (!isConnected || !this.socket || !this.socket.connected) {
+          return {
+            success: false,
+            error: 'Socket chưa kết nối, đã đưa vào hàng đợi tự join',
+            status: 'disconnected',
+          };
+        }
+
+        return await new Promise<JoinConversationResponse>((resolve) => {
+          let resolved = false;
+          const timer = setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              resolve({
+                success: false,
+                error: 'Hết thời gian chờ phản hồi join channel',
+                status: 'timeout',
+              });
+            }
+          }, timeoutMs);
+
+          this.socket?.emit(
+            'channel:join',
+            { channelId },
+            (res: JoinConversationResponse) => {
+              if (resolved) return;
+              resolved = true;
+              clearTimeout(timer);
+
+              if (!res?.success) {
+                const isForbidden =
+                  res?.error?.toLowerCase().includes('quyền') ||
+                  res?.error?.toLowerCase().includes('thành viên') ||
+                  res?.error?.toLowerCase().includes('forbidden');
+
+                if (isForbidden && this.activeChannelId === channelId) {
+                  this.activeChannelId = null;
+                }
+                this.joinErrorSubject.next({
+                  channelId,
+                  error: res?.error || 'Không thể tham gia kênh máy chủ.',
+                });
+                resolve({
+                  success: false,
+                  error: res?.error || 'Không thể tham gia kênh máy chủ.',
+                  status: isForbidden ? 'rejected' : (res?.status ?? 'rejected'),
+                });
+                return;
+              }
+
+              this.activeChannelId = channelId;
+              resolve({
+                success: true,
+                status: 'joined',
+              });
+            },
+          );
+        });
+      } finally {
+        this.pendingJoinChannelPromises.delete(channelId);
+      }
+    })();
+
+    this.pendingJoinChannelPromises.set(channelId, joinPromise);
+    return joinPromise;
+  }
+
+  /**
+   * Rời khỏi phòng channel
+   */
+  leaveChannel(channelId: string): void {
+    if (this.activeChannelId === channelId) {
+      this.activeChannelId = null;
+    }
+    this.pendingJoinChannelPromises.delete(channelId);
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('channel:leave', { channelId });
+    }
+  }
+
+  /**
    * Rời khỏi phòng conversation
    */
   leaveConversation(conversationId: string): void {
@@ -371,20 +517,28 @@ export class ChatSocketService {
   }
 
   /**
-   * Bắt đầu gõ phím trong cuộc trò chuyện
+   * Bắt đầu gõ phím (hỗ trợ cả conversationId và channelId)
    */
-  startTyping(conversationId: string): void {
+  startTyping(target: string | { conversationId?: string; channelId?: string }): void {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('typing:start', { conversationId });
+      if (typeof target === 'string') {
+        this.socket.emit('typing:start', { conversationId: target });
+      } else {
+        this.socket.emit('typing:start', target);
+      }
     }
   }
 
   /**
-   * Ngừng gõ phím trong cuộc trò chuyện
+   * Ngừng gõ phím (hỗ trợ cả conversationId và channelId)
    */
-  stopTyping(conversationId: string): void {
+  stopTyping(target: string | { conversationId?: string; channelId?: string }): void {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('typing:stop', { conversationId });
+      if (typeof target === 'string') {
+        this.socket.emit('typing:stop', { conversationId: target });
+      } else {
+        this.socket.emit('typing:stop', target);
+      }
     }
   }
 
@@ -393,9 +547,12 @@ export class ChatSocketService {
 
     this.socket.on('connect', () => {
       this._connectionStatus.set('connected');
-      // Tự động rejoin active conversation nếu có sau khi connect / reconnect thành công
+      // Tự động rejoin active conversation / channel nếu có sau khi connect / reconnect thành công
       if (this.activeConversationId) {
         void this.joinConversation(this.activeConversationId);
+      }
+      if (this.activeChannelId) {
+        void this.joinChannel(this.activeChannelId);
       }
     });
 
@@ -439,7 +596,11 @@ export class ChatSocketService {
     });
 
     this.socket.on('message:deleted', (payload) => {
-      this.messageDeletedSubject.next(payload);
+      this.messageDeletedSubject.next({
+        channelId: payload.channelId ?? null,
+        conversationId: payload.conversationId ?? null,
+        messageId: payload.messageId,
+      });
     });
 
     this.socket.on('message:reaction-updated', (payload) => {
@@ -447,11 +608,20 @@ export class ChatSocketService {
     });
 
     this.socket.on('message:read', (payload) => {
-      this.messageReadSubject.next(payload);
+      this.messageReadSubject.next({
+        conversationId: payload.conversationId ?? null,
+        channelId: payload.channelId ?? null,
+        userId: payload.userId || payload.readerId || '',
+        lastReadMessageId: payload.lastReadMessageId,
+      });
     });
 
     this.socket.on('typing:updated', (payload) => {
-      this.typingUpdatedSubject.next(payload);
+      this.typingUpdatedSubject.next({
+        conversationId: payload.conversationId ?? null,
+        channelId: payload.channelId ?? null,
+        userIds: payload.userIds,
+      });
     });
 
     this.socket.on('conversation:updated', (payload) => {
@@ -464,6 +634,58 @@ export class ChatSocketService {
 
     this.socket.on('presence:sync', (payload) => {
       this.presenceSyncSubject.next(payload);
+    });
+
+    this.socket.on('server:channel-created', (payload) => {
+      this.channelCreatedSubject.next(payload);
+    });
+
+    this.socket.on('server:invitation-received', (payload) => {
+      this.invitationReceivedSubject.next(payload);
+    });
+
+    this.socket.on('server:invitation-updated', (payload) => {
+      this.invitationUpdatedSubject.next(payload);
+    });
+
+    this.socket.on('server:capabilities-updated', (payload) => {
+      this.capabilitiesUpdatedSubject.next(payload);
+    });
+
+    this.socket.on('server:deleted', (payload) => {
+      this.serverDeletedSubject.next(payload);
+    });
+
+    this.socket.on('server:member-left', (payload) => {
+      this.serverMemberLeftSubject.next(payload);
+    });
+  }
+
+  /**
+   * Tham gia phòng máy chủ để nhận sự kiện realtime của server (tạo kênh, cập nhật thành viên)
+   */
+  joinServer(serverId: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (!this.socket || !this.socket.connected) {
+        return resolve(false);
+      }
+      this.socket.emit('server:join', { serverId }, (res: { success: boolean; error?: string }) => {
+        resolve(res?.success ?? false);
+      });
+    });
+  }
+
+  /**
+   * Rời phòng máy chủ khi chuyển server hoặc bị xóa khỏi server
+   */
+  leaveServer(serverId: string): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.socket || !this.socket.connected) {
+        return resolve();
+      }
+      this.socket.emit('server:leave', { serverId }, () => {
+        resolve();
+      });
     });
   }
 
@@ -486,3 +708,4 @@ export class ChatSocketService {
     });
   }
 }
+

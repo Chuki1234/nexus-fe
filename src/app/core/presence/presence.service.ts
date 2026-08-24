@@ -28,6 +28,7 @@ export class PresenceService {
 
   /** Map lưu trữ trạng thái hiện diện realtime của bạn bè và DM peers */
   private readonly presenceMap = signal<Map<string, UserPresenceInfo>>(new Map());
+  readonly presences = this.presenceMap.asReadonly();
 
   constructor() {
     // 1. Lắng nghe delta cập nhật presence realtime (an toàn khi ChatSocketService bị mock trong unit tests)

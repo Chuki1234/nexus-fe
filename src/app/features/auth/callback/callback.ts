@@ -9,6 +9,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { getAndClearReturnUrl } from '../../../core/auth/auth-redirect.util';
 
 /**
  * Điểm quay về sau khi đăng nhập Google. Supabase tự đổi `?code=...` trên URL
@@ -46,7 +47,8 @@ export class CallbackPage {
       if (this.auth.isAuthenticated()) {
         clearTimeout(timeout);
         watcher.destroy();
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+        const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
+        const returnUrl = getAndClearReturnUrl(rawParam);
         void this.router.navigateByUrl(returnUrl);
       }
     });

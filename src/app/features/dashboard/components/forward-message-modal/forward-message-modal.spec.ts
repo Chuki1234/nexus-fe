@@ -7,6 +7,7 @@ import {
   MessageResponseDto,
   MessagesApiService,
 } from '../../../../core/api/messages-api.service';
+import { ServersStore } from '../../../../core/servers/servers.store';
 import { ForwardMessageModal } from './forward-message-modal';
 
 describe('ForwardMessageModal', () => {
@@ -102,6 +103,11 @@ describe('ForwardMessageModal', () => {
   };
   let mockMessagesApi: {
     forwardMessage: ReturnType<typeof vi.fn>;
+    forwardChannelMessage: ReturnType<typeof vi.fn>;
+  };
+  let mockServersStore: {
+    servers: ReturnType<typeof vi.fn>;
+    channelsOf: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -114,6 +120,15 @@ describe('ForwardMessageModal', () => {
         conversationId: 'conv-2',
         isForwarded: true,
       }),
+      forwardChannelMessage: vi.fn().mockResolvedValue({
+        id: '201',
+        channelId: 'chan-1',
+        isForwarded: true,
+      }),
+    };
+    mockServersStore = {
+      servers: vi.fn().mockReturnValue([]),
+      channelsOf: vi.fn().mockReturnValue([]),
     };
 
     await TestBed.configureTestingModule({
@@ -121,6 +136,7 @@ describe('ForwardMessageModal', () => {
       providers: [
         { provide: ConversationsApiService, useValue: mockConversationsApi },
         { provide: MessagesApiService, useValue: mockMessagesApi },
+        { provide: ServersStore, useValue: mockServersStore },
       ],
     }).compileComponents();
 
@@ -136,8 +152,8 @@ describe('ForwardMessageModal', () => {
 
     expect(mockConversationsApi.listConversations).toHaveBeenCalledTimes(1);
     // conv-1 bị loại bỏ vì là currentConversationId
-    expect(component.conversations().length).toBe(2);
-    expect(component.conversations().map((c) => c.id)).toEqual(['conv-2', 'conv-3']);
+    expect(component.targets().length).toBe(2);
+    expect(component.targets().map((c) => c.id)).toEqual(['conv-2', 'conv-3']);
   });
 
   it('lọc danh sách cuộc trò chuyện theo từ khóa tìm kiếm (displayName hoặc username)', async () => {
@@ -145,15 +161,15 @@ describe('ForwardMessageModal', () => {
     await fixture.whenStable();
 
     component.searchQuery.set('Bob');
-    expect(component.filteredConversations.length).toBe(1);
-    expect(component.filteredConversations[0].id).toBe('conv-2');
+    expect(component.filteredTargets.length).toBe(1);
+    expect(component.filteredTargets[0].id).toBe('conv-2');
 
     component.searchQuery.set('charlie');
-    expect(component.filteredConversations.length).toBe(1);
-    expect(component.filteredConversations[0].id).toBe('conv-3');
+    expect(component.filteredTargets.length).toBe(1);
+    expect(component.filteredTargets[0].id).toBe('conv-3');
 
     component.searchQuery.set('không tồn tại');
-    expect(component.filteredConversations.length).toBe(0);
+    expect(component.filteredTargets.length).toBe(0);
   });
 
   it('single-select: chọn cuộc trò chuyện đích và kích hoạt chuyển tiếp', async () => {
@@ -166,8 +182,9 @@ describe('ForwardMessageModal', () => {
     component.close.subscribe(closeSpy);
 
     // Chọn conv-2
-    component.selectConversation('conv-2');
-    expect(component.selectedConversationId()).toBe('conv-2');
+    const target = component.targets().find((t) => t.id === 'conv-2')!;
+    component.selectTarget(target);
+    expect(component.selectedTarget()?.id).toBe('conv-2');
 
     // Submit
     await component.submitForward();
@@ -198,7 +215,8 @@ describe('ForwardMessageModal', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    component.selectConversation('conv-2');
+    const target = component.targets().find((t) => t.id === 'conv-2')!;
+    component.selectTarget(target);
     await component.submitForward();
 
     expect(component.errorMessage()).toContain('Không có quyền truy cập');

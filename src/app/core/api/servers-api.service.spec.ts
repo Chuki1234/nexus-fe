@@ -163,6 +163,31 @@ describe('ServersApiService', () => {
     expect(result).toEqual(mockChannel);
   });
 
+  it('should call DELETE /api/servers/:serverId when deleteServer is called', async () => {
+    const promise = service.deleteServer('srv-100');
+
+    const req = httpTesting.expectOne(`${environment.apiUrl}/servers/srv-100`);
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.headers.get('Authorization')).toBe('Bearer mock-token-123');
+
+    req.flush({ success: true, serverId: 'srv-100' });
+
+    const result = await promise;
+    expect(result).toEqual({ success: true, serverId: 'srv-100' });
+  });
+
+  it('should call DELETE /api/servers/:serverId/members/@me when leaveServer is called', async () => {
+    const promise = service.leaveServer('srv-100');
+
+    const req = httpTesting.expectOne(`${environment.apiUrl}/servers/srv-100/members/@me`);
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.headers.get('Authorization')).toBe('Bearer mock-token-123');
+
+    req.flush({ success: true, serverId: 'srv-100', alreadyLeft: false });
+
+    const result = await promise;
+    expect(result).toEqual({ success: true, serverId: 'srv-100', alreadyLeft: false });
+  });
 
   describe('formatApiError', () => {
     it('should format status 0 as network or CORS blocked error', () => {

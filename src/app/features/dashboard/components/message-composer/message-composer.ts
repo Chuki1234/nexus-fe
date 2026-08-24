@@ -165,6 +165,8 @@ export class MessageComposer implements OnDestroy {
   /** Tên kênh hoặc người nhận, hiện trong placeholder. */
   readonly target = input.required<string>();
   readonly disabled = input<boolean>(false);
+  readonly attachmentsDisabled = input<boolean>(false);
+  readonly attachmentsDisabledReason = input<string>('Đính kèm tệp đã bị vô hiệu hóa');
   readonly context = input<MessageComposerContext | null>(null);
 
   readonly send = output<SendMessagePayload>();

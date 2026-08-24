@@ -19,8 +19,10 @@ import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/ro
 import { filter, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ServersApiService } from '../../core/api/servers-api.service';
+import { ServersStore } from '../../core/servers/servers.store';
 import { ShellData } from '../../core/api/shell-data';
 import { ThemeService } from '../../core/theme/theme.service';
+import { ToastService } from '../../core/toast/toast.service';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
 
@@ -61,9 +63,11 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
   private readonly serversApi = inject(ServersApiService);
+  private readonly serversStore = inject(ServersStore);
   private readonly shell = inject(ShellData);
   protected readonly layoutService = inject(DashboardLayoutService);
   protected readonly theme = inject(ThemeService).mode;
+  protected readonly toastService = inject(ToastService);
 
   protected readonly navMinWidth = NAV_MIN_WIDTH;
   protected readonly navMaxWidth = NAV_MAX_WIDTH;
@@ -201,6 +205,7 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
       }
       const servers = await this.serversApi.listServers();
       if (servers.length > 0) {
+        this.serversStore.hydrateServers(servers);
         this.shell.hydrateServers(servers);
       }
     } catch {

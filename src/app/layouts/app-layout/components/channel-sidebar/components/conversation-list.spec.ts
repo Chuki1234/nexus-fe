@@ -14,6 +14,8 @@ describe('ConversationList', () => {
   let mockChatSocket: {
     conversationUpdated$: Subject<any>;
     messageRead$: Subject<any>;
+    invitationReceived$: Subject<any>;
+    invitationUpdated$: Subject<any>;
     connect: any;
   };
   let mockAuthService: any;
@@ -42,6 +44,8 @@ describe('ConversationList', () => {
     mockChatSocket = {
       conversationUpdated$: new Subject<any>(),
       messageRead$: new Subject<any>(),
+      invitationReceived$: new Subject<any>(),
+      invitationUpdated$: new Subject<any>(),
       connect: vi.fn(),
     };
     mockAuthService = {

@@ -1,4 +1,4 @@
-<mat-nav-list class="!px-1 !py-0">
+<mat-nav-list class="!px-1 !py-0 flex flex-col gap-1">
   <a
     mat-list-item
     routerLink="/channels/@me"
@@ -11,6 +11,28 @@
   >
     <mat-icon matListItemIcon aria-hidden="true">group</mat-icon>
     <span matListItemTitle [class.text-ink]="friends.isActive">Bạn bè</span>
+  </a>
+
+  <a
+    mat-list-item
+    routerLink="/channels/@me/server-invitations"
+    routerLinkActive
+    #invitations="routerLinkActive"
+    [routerLinkActiveOptions]="{ exact: true }"
+    [activated]="invitations.isActive"
+    [attr.aria-current]="invitations.isActive ? 'page' : null"
+    class="nexus-nav-item"
+  >
+    <mat-icon matListItemIcon aria-hidden="true">mail</mat-icon>
+    <span matListItemTitle [class.text-ink]="invitations.isActive">Lời mời máy chủ</span>
+    @if (invitationsStore.pendingCount() > 0) {
+      <span
+        matListItemMeta
+        class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold rounded-full bg-mint-500 text-surface-base"
+      >
+        {{ invitationsStore.pendingCount() }}
+      </span>
+    }
   </a>
 </mat-nav-list>
 

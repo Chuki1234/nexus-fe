@@ -3,6 +3,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { toAuthErrorMessage, toLoginErrorMessage } from '../../../core/auth/auth-error';
+import { getAndClearReturnUrl, saveReturnUrl } from '../../../core/auth/auth-redirect.util';
 
 @Component({
   selector: 'app-login-page',
@@ -44,7 +45,9 @@ export class LoginPage {
   /** Chuyển hướng sang Google; quay lại /auth/callback kèm returnUrl. */
   protected async onGoogle(): Promise<void> {
     this.errorMessage.set(null);
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+    const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
+    const returnUrl = getAndClearReturnUrl(rawParam);
+    saveReturnUrl(returnUrl);
     const redirectTo = `${window.location.origin}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`;
     try {
       await this.auth.signInWithGoogle(redirectTo);
@@ -76,7 +79,8 @@ export class LoginPage {
     this.submitting.set(true);
     try {
       await this.auth.signIn(this.form.getRawValue());
-      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+      const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
+      const returnUrl = getAndClearReturnUrl(rawParam);
       await this.router.navigateByUrl(returnUrl);
     } catch (error) {
       this.errorMessage.set(toLoginErrorMessage(error));

@@ -83,7 +83,7 @@
         <mat-icon class="error-icon">error_outline</mat-icon>
         <span class="error-text">{{ err }}</span>
         @if (isLoading()) {
-          <button type="button" class="retry-link" (click)="loadConversations()">
+          <button type="button" class="retry-link" (click)="loadTargets()">
             Thử lại
           </button>
         }
@@ -97,54 +97,58 @@
       @if (isLoading()) {
         <div class="loading-state">
           <mat-spinner diameter="28" strokeWidth="3" />
-          <span>Đang tải danh sách cuộc trò chuyện...</span>
+          <span>Đang tải danh sách đích chuyển tiếp...</span>
         </div>
-      } @else if (filteredConversations.length === 0) {
+      } @else if (filteredTargets.length === 0) {
         <div class="empty-state">
           <mat-icon class="empty-icon">chat_bubble_outline</mat-icon>
-          <p class="empty-title">Không tìm thấy cuộc trò chuyện</p>
+          <p class="empty-title">Không tìm thấy đích chuyển tiếp</p>
           <p class="empty-desc">
             @if (searchQuery()) {
               Không có kết quả khớp với "{{ searchQuery() }}".
             } @else {
-              Bạn chưa có cuộc trò chuyện khác để chuyển tiếp.
+              Bạn chưa có kênh hoặc cuộc trò chuyện khác để chuyển tiếp.
             }
           </p>
         </div>
       } @else {
-        <ul class="conversation-list" role="listbox" aria-label="Chọn cuộc trò chuyện đích">
-          @for (conv of filteredConversations; track conv.id) {
+        <ul class="conversation-list" role="listbox" aria-label="Chọn kênh hoặc cuộc trò chuyện đích">
+          @for (target of filteredTargets; track target.id) {
             <li
               class="conversation-item"
-              [class.selected]="selectedConversationId() === conv.id"
-              (click)="selectConversation(conv.id)"
-              (keydown.enter)="selectConversation(conv.id)"
-              (keydown.space)="selectConversation(conv.id)"
+              [class.selected]="selectedTarget()?.id === target.id"
+              (click)="selectTarget(target)"
+              (keydown.enter)="selectTarget(target)"
+              (keydown.space)="selectTarget(target)"
               tabindex="0"
               role="option"
-              [attr.aria-selected]="selectedConversationId() === conv.id"
+              [attr.aria-selected]="selectedTarget()?.id === target.id"
             >
               <div class="item-avatar-wrapper">
-                <app-avatar
-                  [name]="conv.recipient?.displayName || conv.recipient?.username || conv.name || 'Hội thoại'"
-                  [src]="conv.recipient?.avatarUrl || conv.iconUrl || null"
-                  [presence]="conv.recipient?.presence || null"
-                  size="md"
-                />
+                @if (target.type === 'channel') {
+                  <div class="flex size-9 items-center justify-center rounded-xl bg-surface-feature text-steel">
+                    <mat-icon class="!size-5 !text-xl">tag</mat-icon>
+                  </div>
+                } @else {
+                  <app-avatar
+                    [name]="target.avatarName || target.name"
+                    [src]="target.avatarUrl ?? null"
+                    [presence]="target.presence || null"
+                    size="md"
+                  />
+                }
               </div>
 
               <div class="item-info">
-                <div class="item-title">
-                  {{ conv.recipient?.displayName || conv.recipient?.username || conv.name || 'Trò chuyện' }}
-                </div>
-                @if (conv.recipient?.username && conv.recipient?.displayName) {
-                  <div class="item-subtitle">&#64;{{ conv.recipient?.username }}</div>
+                <div class="item-title">{{ target.name }}</div>
+                @if (target.subtitle) {
+                  <div class="item-subtitle">{{ target.subtitle }}</div>
                 }
               </div>
 
               <div class="item-radio-indicator">
                 <div class="radio-circle">
-                  @if (selectedConversationId() === conv.id) {
+                  @if (selectedTarget()?.id === target.id) {
                     <div class="radio-inner"></div>
                   }
                 </div>
@@ -172,7 +176,7 @@
         mat-flat-button
         color="primary"
         class="submit-btn"
-        [disabled]="!selectedConversationId() || isSubmitting() || isLoading()"
+        [disabled]="!selectedTarget() || isSubmitting() || isLoading()"
         (click)="submitForward()"
       >
         @if (isSubmitting()) {
