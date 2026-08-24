@@ -1,143 +1,205 @@
-<div class="space-y-8">
-  <!-- Header -->
-  <div>
-    <h2 class="text-heading-4 font-bold text-ink tracking-tight">Ứng Dụng Đã Kết Nối</h2>
-    <p class="text-caption text-steel mt-1">
-      Kết nối các tài khoản chơi game và mạng xã hội của bạn để hiển thị trạng thái và mở khóa các tích hợp đặc biệt trên Nexus.
+@let rows = apps.rows();
+@let busy = apps.busy();
+@let pendingId = apps.pending() === 'custom' ? 'custom' : apps.pendingPlatform()?.id;
+
+<div class="space-y-7">
+  <!-- ── Tiêu đề + thước hạn mức ─────────────────────────────────────────── -->
+  <header class="space-y-4 border-b border-hairline pb-6">
+    <div>
+      <span class="block text-micro-uppercase text-primary">Danh tính</span>
+      <h2 class="mt-1 text-heading-4 tracking-tight text-ink">Ứng Dụng Đã Kết Nối</h2>
+      <p class="mt-1.5 max-w-2xl text-caption leading-relaxed text-steel">
+        Gắn trang cá nhân của bạn ở nền tảng khác vào hồ sơ Nexus. Chúng hiện thành liên
+        kết trên thẻ hồ sơ để người khác tìm được bạn.
+      </p>
+    </div>
+
+    <!-- Năm ô = năm chỗ liên kết. Màu ô cho biết ai đang chiếm chỗ nào. -->
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <ul class="flex items-center gap-1.5" aria-label="Chỗ liên kết đã dùng">
+        @for (slot of slots(); track $index) {
+          <li
+            class="h-1.5 w-9 rounded-full transition-colors"
+            [class.bg-hairline]="slot.kind === 'free'"
+            [class.bg-steel]="slot.kind === 'link'"
+            [style.backgroundColor]="slot.color"
+            [attr.title]="slot.label"
+          ></li>
+        }
+      </ul>
+      <p class="text-caption text-steel">
+        <span class="font-bold text-ink">{{ apps.slotsLeft() }}</span> / {{ maxLinks }} chỗ còn
+        trống
+      </p>
+    </div>
+  </header>
+
+  @if (apps.errorMessage(); as message) {
+    <p role="alert" class="rounded-md border border-danger-border bg-danger-surface px-3 py-2 text-caption text-ink">
+      {{ message }}
     </p>
-  </div>
+  }
 
-  <!-- Connect Account Buttons Grid -->
-  <div class="space-y-3">
-    <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
-      KẾT NỐI TÀI KHOẢN CỦA BẠN
-    </span>
+  <!-- ── Đang gắn trên hồ sơ ─────────────────────────────────────────────── -->
+  <section class="space-y-3">
+    <h3 class="text-micro-uppercase text-stone">Đang gắn trên hồ sơ ({{ rows.length }})</h3>
 
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      @for (p of availablePlatforms; track p.id) {
+    @if (rows.length === 0) {
+      <p class="rounded-lg border border-dashed border-hairline px-4 py-6 text-center text-caption text-steel">
+        Chưa gắn nền tảng nào. Chọn một ứng dụng bên dưới để thêm vào hồ sơ.
+      </p>
+    } @else {
+      <ul class="space-y-2">
+        @for (row of rows; track row.url) {
+          <!-- Vạch màu bên trái: nhận ra nền tảng từ khoé mắt mà không phải đọc
+               chữ, và giữ hàng có nhịp khi danh sách dài. -->
+          <li
+            class="group relative flex items-center gap-3 overflow-hidden rounded-lg border border-hairline bg-surface py-2.5 pl-4 pr-2.5 transition-colors hover:border-hairline-strong"
+          >
+            <span
+              aria-hidden="true"
+              class="absolute inset-y-0 left-0 w-0.5"
+              [style.backgroundColor]="row.platform?.color ?? customColor"
+            ></span>
+
+            <span
+              aria-hidden="true"
+              class="flex size-9 shrink-0 items-center justify-center rounded-lg"
+              [style.backgroundColor]="tint(row.platform?.color ?? customColor)"
+              [style.color]="row.platform?.color ?? customColor"
+            >
+              <mat-icon class="size-4.5! text-[18px]!">
+                {{ row.platform?.icon ?? iconFor(row.url) }}
+              </mat-icon>
+            </span>
+
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center gap-1.5">
+                <span class="truncate text-body-sm-medium text-ink">{{ row.label }}</span>
+                @if (!row.platform) {
+                  <span class="shrink-0 rounded-full border border-hairline px-1.5 text-micro text-stone">
+                    Tự thêm
+                  </span>
+                }
+              </span>
+              <!-- Mở được luôn: cách duy nhất người dùng tự kiểm tra mình có gõ
+                   nhầm tên tài khoản hay không. -->
+              <a
+                [href]="row.url"
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                class="inline-flex max-w-full items-center gap-1 truncate text-caption text-steel transition-colors hover:text-primary"
+              >
+                <span class="truncate">{{ row.platform ? '@' + row.handle : row.handle }}</span>
+                <mat-icon aria-hidden="true" class="size-3.5! shrink-0 text-[14px]! opacity-0 transition-opacity group-hover:opacity-100">
+                  open_in_new
+                </mat-icon>
+              </a>
+            </span>
+
+            <button
+              type="button"
+              (click)="remove(row.url)"
+              [disabled]="busy !== null"
+              [attr.aria-label]="'Gỡ ' + row.label + ' khỏi hồ sơ'"
+              class="shrink-0 rounded-full px-3 py-1.5 text-caption text-stone transition-colors hover:bg-danger-surface hover:text-danger disabled:text-muted"
+            >
+              {{ busy === row.url ? 'Đang gỡ…' : 'Gỡ' }}
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <!-- ── Thêm nền tảng ───────────────────────────────────────────────────── -->
+  <section class="space-y-5">
+    <h3 class="text-micro-uppercase text-stone">Thêm nền tảng</h3>
+
+    @if (apps.isFull()) {
+      <p class="rounded-lg border border-dashed border-hairline px-4 py-6 text-center text-caption text-steel">
+        Hồ sơ đã đủ {{ maxLinks }} liên kết. Gỡ bớt một cái ở trên để thêm nền tảng khác.
+      </p>
+    } @else {
+      @for (group of groups(); track group.id) {
+        <div class="space-y-2">
+          <h4 class="flex items-center gap-2 text-caption font-bold text-slate">
+            {{ group.label }}
+            @if (group.id === 'recommended') {
+              <span class="rounded-full bg-primary/15 px-2 py-0.5 text-micro font-bold text-primary">
+                Phổ biến ở VN
+              </span>
+            }
+          </h4>
+
+          <ul class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            @for (platform of group.platforms; track platform.id) {
+              <li>
+                <!-- Bấm là mở popup ở đáy khung (xem settings-modal.html), không
+                     dựng ô nhập tại chỗ: nền tảng ở nhóm trên đầu mà ô nhập lại
+                     hiện ở cuối trang thì phải cuộn mới thấy. -->
+                <button
+                  type="button"
+                  (click)="apps.startConnect(platform)"
+                  [disabled]="busy !== null"
+                  class="group flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-hairline bg-surface px-3 py-2.5 text-left transition-colors hover:border-hairline-strong hover:bg-surface-soft disabled:cursor-not-allowed disabled:opacity-50"
+                  [class.border-primary]="pendingId === platform.id"
+                  [class.bg-surface-soft]="pendingId === platform.id"
+                >
+                  <span
+                    aria-hidden="true"
+                    class="flex size-8 shrink-0 items-center justify-center rounded-lg"
+                    [style.backgroundColor]="tint(platform.color)"
+                    [style.color]="platform.color"
+                  >
+                    <mat-icon class="size-4! text-[16px]!">{{ platform.icon }}</mat-icon>
+                  </span>
+                  <span class="min-w-0 flex-1 truncate text-body-sm-medium text-ink">
+                    {{ platform.name }}
+                  </span>
+                  <mat-icon
+                    aria-hidden="true"
+                    class="size-4! shrink-0 text-[16px]! text-stone transition-colors group-hover:text-primary"
+                  >
+                    add
+                  </mat-icon>
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      <!-- Lối thoát cho mọi nền tảng không có trong danh mục. Danh sách dựng sẵn
+           bao nhiêu cũng sẽ thiếu một cái mà ai đó đang dùng. -->
+      <div class="space-y-2">
+        <h4 class="text-caption font-bold text-slate">Không thấy nền tảng của bạn?</h4>
         <button
           type="button"
-          (click)="handleConnectClick(p)"
-          [disabled]="isConnected(p.id)"
-          class="flex items-center gap-2.5 p-3 rounded-xl border border-hairline bg-surface hover:bg-surface-feature hover:border-primary/50 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+          (click)="apps.startCustom()"
+          [disabled]="busy !== null"
+          class="group flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-dashed border-hairline bg-transparent px-3 py-2.5 text-left transition-colors hover:border-primary/60 hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-64"
+          [class.border-primary]="pendingId === 'custom'"
         >
-          <div
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs"
-            [style.backgroundColor]="p.color"
+          <span
+            aria-hidden="true"
+            class="flex size-8 shrink-0 items-center justify-center rounded-lg"
+            [style.backgroundColor]="tint(customColor)"
+            [style.color]="customColor"
           >
-            <mat-icon class="!w-4 !h-4 !text-[18px]">{{ p.icon }}</mat-icon>
-          </div>
-          <div class="min-w-0 flex-1">
-            <span class="block text-body-sm font-semibold text-ink group-hover:text-primary transition-colors truncate">
-              {{ p.name }}
-            </span>
-            @if (isConnected(p.id)) {
-              <span class="block text-micro text-success font-bold">Đã kết nối</span>
-            }
-          </div>
+            <mat-icon class="size-4! text-[16px]!">link</mat-icon>
+          </span>
+          <span class="min-w-0 flex-1 truncate text-body-sm-medium text-ink">
+            Thêm liên kết bất kỳ
+          </span>
+          <mat-icon
+            aria-hidden="true"
+            class="size-4! shrink-0 text-[16px]! text-stone transition-colors group-hover:text-primary"
+          >
+            add
+          </mat-icon>
         </button>
-      }
-    </div>
-  </div>
-
-  <!-- Connected Accounts Active List -->
-  <div class="space-y-3">
-    <span class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
-      TÀI KHOẢN ĐANG KẾT NỐI ({{ settingsService.connectedAccounts().length }})
-    </span>
-
-    @if (settingsService.connectedAccounts().length === 0) {
-      <div class="card-base text-center space-y-2">
-        <mat-icon class="text-stone !w-8 !h-8 !text-[32px]">link_off</mat-icon>
-        <p class="text-caption text-steel">Bạn chưa kết nối tài khoản nào. Nhấn vào một ứng dụng ở trên để kết nối ngay.</p>
-      </div>
-    } @else {
-      <div class="space-y-3">
-        @for (acc of settingsService.connectedAccounts(); track acc.id) {
-          <div class="card-base p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-center gap-3 min-w-0">
-              <div
-                class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0"
-                [style.backgroundColor]="acc.color"
-              >
-                <mat-icon class="!w-5 !h-5 !text-[20px]">{{ acc.icon }}</mat-icon>
-              </div>
-              <div class="min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="text-body-sm-medium font-bold text-ink truncate">{{ acc.name }}</span>
-                  <span class="rounded-full bg-success/15 text-success border border-success/30 text-[10px] px-2 py-0.2 font-semibold">Đã xác minh</span>
-                </div>
-                <span class="block text-caption text-steel truncate">&#64;{{ acc.username }}</span>
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between sm:justify-end gap-6 pt-3 sm:pt-0 border-t sm:border-t-0 border-hairline">
-              <div class="flex items-center gap-2">
-                <span class="text-caption text-steel">Hiển thị trên hồ sơ</span>
-                <mat-slide-toggle
-                  [checked]="acc.showOnProfile"
-                  (change)="settingsService.toggleConnectedAccount(acc.id)"
-                  aria-label="Hiển thị trên hồ sơ"
-                />
-              </div>
-
-              <button
-                type="button"
-                (click)="disconnect(acc.id)"
-                class="text-steel hover:text-danger p-1 transition-colors rounded-full hover:bg-danger-surface cursor-pointer"
-                title="Hủy kết nối tài khoản"
-              >
-                <mat-icon class="!w-5 !h-5 !text-[20px]">link_off</mat-icon>
-              </button>
-            </div>
-          </div>
-        }
       </div>
     }
-  </div>
-
-  <!-- Interactive OAuth Simulation Dialog Modal -->
-  @if (connectingModalPlatform()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
-      <div class="card-base max-w-md w-full space-y-5 animate-slide-up shadow-modal">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div
-              class="w-9 h-9 rounded-lg flex items-center justify-center text-white"
-              [style.backgroundColor]="connectingModalPlatform()?.color"
-            >
-              <mat-icon class="!w-5 !h-5 !text-[20px]">{{ connectingModalPlatform()?.icon }}</mat-icon>
-            </div>
-            <span class="text-heading-5 font-bold text-ink">
-              Kết nối với {{ connectingModalPlatform()?.name }}
-            </span>
-          </div>
-          <button type="button" (click)="cancelConnect()" class="text-steel hover:text-ink cursor-pointer">
-            <mat-icon class="!w-5 !h-5 !text-[20px]">close</mat-icon>
-          </button>
-        </div>
-
-        <p class="text-caption text-steel leading-relaxed">
-          Cho phép Nexus liên kết với tài khoản <strong class="text-ink font-semibold">{{ connectingModalPlatform()?.name }}</strong> của bạn để tự động cập nhật trạng thái hoạt động và hiển thị trên hồ sơ Nexus.
-        </p>
-
-        <div class="flex items-center justify-end gap-3 pt-2">
-          <button
-            type="button"
-            (click)="cancelConnect()"
-            class="px-4 py-2 text-caption font-semibold text-steel hover:text-ink hover:underline cursor-pointer"
-          >
-            Hủy
-          </button>
-          <button
-            type="button"
-            (click)="confirmConnect()"
-            class="btn-primary"
-          >
-            Ủy quyền kết nối
-          </button>
-        </div>
-      </div>
-    </div>
-  }
+  </section>
 </div>

@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserSettingsService, AppPreferences } from '../../services/user-settings.service';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import { ProfileStore } from '../../../profile/profile-store';
 
 @Component({
   selector: 'app-appearance-tab',
@@ -15,6 +16,9 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
 })
 export class AppearanceTab {
   protected readonly settingsService = inject(UserSettingsService);
+  private readonly profileStore = inject(ProfileStore);
+  /** Ảnh đại diện thật của chính mình — để phần xem trước khớp với mọi nơi khác. */
+  protected readonly myAvatarUrl = computed(() => this.profileStore.profile()?.avatarUrl ?? null);
 
   protected readonly accentPresets = [
     { label: 'Neon Mint', hex: '#00ed64' },

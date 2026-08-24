@@ -8,6 +8,7 @@ import { ProfilesApiService } from '../../../core/api/profiles-api.service';
 import { formatApiError } from '../../../core/api/servers-api.service';
 import type { PublicProfile } from '../../../../shared';
 import { ProfileCard } from '../components/profile-card/profile-card';
+import { ProfileSearch } from '../components/profile-search/profile-search';
 import { ProfileDialogService } from '../profile-dialog.service';
 
 /**
@@ -19,7 +20,7 @@ import { ProfileDialogService } from '../profile-dialog.service';
  */
 @Component({
   selector: 'app-profile-view',
-  imports: [ProfileCard, MatIconModule, MatTooltipModule, RouterLink],
+  imports: [ProfileCard, ProfileSearch, MatIconModule, MatTooltipModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './view.html',
   styleUrl: './view.css',

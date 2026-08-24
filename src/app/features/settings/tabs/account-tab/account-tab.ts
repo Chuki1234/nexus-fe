@@ -2,8 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProfileService } from '../../../../core/profile/profile.service';
+import { DeleteAccountDialog } from '../../components/delete-account-dialog/delete-account-dialog';
 import { UserSettingsService } from '../../services/user-settings.service';
 
 @Component({
@@ -16,6 +18,7 @@ import { UserSettingsService } from '../../services/user-settings.service';
 export class AccountTab {
   protected readonly settingsService = inject(UserSettingsService);
   protected readonly profileService = inject(ProfileService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly showEmail = signal<boolean>(false);
   protected readonly showPhone = signal<boolean>(false);
@@ -46,6 +49,19 @@ export class AccountTab {
     }
     return '••••••••@••••';
   });
+
+  /**
+   * Nút "Xóa tài khoản" ở Vùng Nguy Hiểm trước đây không gắn với gì cả — bấm vào
+   * không xảy ra chuyện gì. Hộp thoại xác nhận đã tồn tại sẵn, chỉ là nó bị treo
+   * ở thẻ hồ sơ dưới đáy màn hình, nơi không ai đi tìm cách xoá tài khoản.
+   */
+  protected openDeleteAccount(): void {
+    this.dialog.open(DeleteAccountDialog, {
+      data: { displayName: this.displayName(), email: this.email() },
+      panelClass: 'nexus-dialog-overlay',
+      autoFocus: false,
+    });
+  }
 
   protected goToProfileTab(): void {
     this.settingsService.setTab('profile');

@@ -2,8 +2,44 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { OwnProfile, ProfileSummary, PublicProfile } from '../../../shared';
+import type {
+  OwnProfile,
+  ProfileSummary,
+  PublicProfile,
+  UpdateProfileRequest,
+} from '../../../shared';
 import { AuthService } from '../auth/auth.service';
+
+/** Hai loại ảnh hồ sơ — khớp `ProfileImageKind` bên nexus-be. */
+export type ProfileImageKind = 'avatar' | 'banner';
+
+/** Ảnh người dùng chọn, TRƯỚC khi backend resize. Khớp `MAX_UPLOAD_BYTES`. */
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+export const ACCEPTED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+];
+
+/** Giá trị cho thuộc tính `accept` của `<input type="file">`. */
+export const IMAGE_ACCEPT_ATTRIBUTE = ACCEPTED_IMAGE_TYPES.join(',');
+
+/**
+ * Kiểm nhanh phía client trước khi tốn băng thông tải lên.
+ * Trả về câu lỗi, hoặc `null` nếu ảnh dùng được.
+ */
+export function validateImageFile(file: File): string | null {
+  if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+    return 'Chỉ nhận ảnh JPEG, PNG, WebP, GIF hoặc AVIF.';
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return `Ảnh tối đa ${Math.floor(MAX_IMAGE_BYTES / 1024 / 1024)} MB.`;
+  }
+  return null;
+}
 
 /**
  * Mọi lời gọi tới `/api/profiles/*`.
@@ -30,6 +66,40 @@ export class ProfilesApiService {
   async getByUsername(username: string): Promise<PublicProfile> {
     return firstValueFrom(
       this.http.get<PublicProfile>(`${this.baseUrl}/${encodeURIComponent(username)}`, {
+        headers: await this.authHeaders(),
+      }),
+    );
+  }
+
+  /** Sửa phần chữ của hồ sơ. Bỏ trường đi = giữ nguyên, `null` = xoá. */
+  async update(payload: UpdateProfileRequest): Promise<OwnProfile> {
+    return firstValueFrom(
+      this.http.patch<OwnProfile>(`${this.baseUrl}/me`, payload, {
+        headers: await this.authHeaders(),
+      }),
+    );
+  }
+
+  /**
+   * Gửi ảnh lên dạng multipart.
+   *
+   * Cố tình KHÔNG đặt `Content-Type`: trình duyệt phải tự sinh header kèm
+   * `boundary` của riêng nó, đặt tay vào là request hỏng.
+   */
+  async uploadImage(kind: ProfileImageKind, file: File): Promise<OwnProfile> {
+    const body = new FormData();
+    body.append('file', file, file.name);
+
+    return firstValueFrom(
+      this.http.post<OwnProfile>(`${this.baseUrl}/me/${kind}`, body, {
+        headers: await this.authHeaders(),
+      }),
+    );
+  }
+
+  async removeImage(kind: ProfileImageKind): Promise<OwnProfile> {
+    return firstValueFrom(
+      this.http.delete<OwnProfile>(`${this.baseUrl}/me/${kind}`, {
         headers: await this.authHeaders(),
       }),
     );

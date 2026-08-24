@@ -1,6 +1,8 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { ProfileService } from '../../../core/profile/profile.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ProfilePendingImages } from '../../profile/pending-images';
+import { ConnectedAppsService } from '../../profile/connected-apps.service';
 
 export type SettingsTab =
   | 'account'
@@ -88,16 +90,6 @@ export interface ServerSettingsData {
   joinRequests: JoinRequestItem[];
   bannedUsers: BannedUserItem[];
   auditLogs: AuditLogItem[];
-}
-
-export interface ConnectedAccount {
-  id: string;
-  platform: 'steam' | 'github' | 'spotify' | 'youtube' | 'twitch' | 'xbox' | 'playstation' | 'reddit';
-  name: string;
-  username: string;
-  icon: string;
-  showOnProfile: boolean;
-  color: string;
 }
 
 export interface RegisteredGameItem {
@@ -303,6 +295,13 @@ const STORAGE_KEY = 'nexus_user_preferences_v2';
 export class UserSettingsService {
   private readonly profileService = inject(ProfileService);
   private readonly authService = inject(AuthService, { optional: true });
+  /**
+   * Ảnh hồ sơ đã chọn nhưng chưa gửi lên. Phải tính vào "thay đổi chưa lưu":
+   * thiếu nó thì đổi ảnh xong thanh nhắc không hiện, trong khi đổi màu bìa lại
+   * hiện — hai luật khác nhau trong cùng một màn hình.
+   */
+  private readonly pendingImages = inject(ProfilePendingImages);
+  private readonly connectedApps = inject(ConnectedAppsService);
 
   private getEffectiveUsername(): string {
     const fromProfile = this.profileService.current()?.username;
@@ -832,37 +831,6 @@ export class UserSettingsService {
   // Live camera preview state
   readonly isTestingVideo = signal<boolean>(false);
 
-  // Connected accounts mock state
-  readonly connectedAccounts = signal<ConnectedAccount[]>([
-    {
-      id: 'steam',
-      platform: 'steam',
-      name: 'Steam',
-      username: 'NghienKhoPhai_99',
-      icon: 'sports_esports',
-      showOnProfile: true,
-      color: '#171a21',
-    },
-    {
-      id: 'github',
-      platform: 'github',
-      name: 'GitHub',
-      username: 'nexus-developer',
-      icon: 'code',
-      showOnProfile: true,
-      color: '#24292e',
-    },
-    {
-      id: 'spotify',
-      platform: 'spotify',
-      name: 'Spotify',
-      username: 'Nghiện Nhạc Chill',
-      icon: 'music_note',
-      showOnProfile: true,
-      color: '#1db954',
-    },
-  ]);
-
   // Registered games mock state
   readonly registeredGames = signal<RegisteredGameItem[]>([
     {
@@ -1002,6 +970,12 @@ export class UserSettingsService {
   close(): void {
     this.stopMicTest();
     this.isTestingVideo.set(false);
+    // Ảnh chọn dở mà không bỏ đi thì lần mở cài đặt sau vẫn còn nằm đó kèm thanh
+    // "chưa lưu", trong khi người dùng đã đóng modal tức là đã bỏ ý định.
+    this.pendingImages.discard();
+    // Popup nhập tên tài khoản đang mở cũng vậy — đóng modal giữa chừng thì lần
+    // sau mở lại không nên thấy ô nhập dở của lần trước.
+    this.connectedApps.cancelConnect();
     this.isOpen.set(false);
   }
 
@@ -1253,36 +1227,6 @@ export class UserSettingsService {
     this.preferences.update((prev) => ({ ...prev, [key]: value }));
   }
 
-  toggleConnectedAccount(id: string): void {
-    this.connectedAccounts.update((accounts) =>
-      accounts.map((acc) =>
-        acc.id === id ? { ...acc, showOnProfile: !acc.showOnProfile } : acc,
-      ),
-    );
-  }
-
-  connectAccount(platformId: string, name: string, icon: string, color: string): void {
-    const exists = this.connectedAccounts().some((acc) => acc.id === platformId);
-    if (exists) return;
-
-    this.connectedAccounts.update((prev) => [
-      ...prev,
-      {
-        id: platformId,
-        platform: platformId as ConnectedAccount['platform'],
-        name,
-        username: `${this.editUsername() || 'nexus_user'}_${platformId}`,
-        icon,
-        showOnProfile: true,
-        color,
-      },
-    ]);
-  }
-
-  disconnectAccount(id: string): void {
-    this.connectedAccounts.update((prev) => prev.filter((acc) => acc.id !== id));
-  }
-
   toggleGameOverlay(id: string): void {
     this.registeredGames.update((games) =>
       games.map((g) =>
@@ -1314,7 +1258,8 @@ export class UserSettingsService {
       this.editBio() !== this.baselineBio ||
       this.editPronouns() !== this.baselinePronouns ||
       this.editBannerColor() !== this.baselineBannerColor ||
-      this.editCustomStatus() !== this.baselineCustomStatus
+      this.editCustomStatus() !== this.baselineCustomStatus ||
+      this.pendingImages.hasPending()
     );
   }
 
@@ -1325,11 +1270,17 @@ export class UserSettingsService {
     this.editPronouns.set(this.baselinePronouns);
     this.editBannerColor.set(this.baselineBannerColor);
     this.editCustomStatus.set(this.baselineCustomStatus);
+    this.pendingImages.discard();
   }
 
   async saveChanges(): Promise<void> {
     this.isSaving.set(true);
     try {
+      // Ảnh đi trước: đây là phần DUY NHẤT thật sự gọi máy chủ nên cũng là phần
+      // duy nhất hỏng được. Hỏng thì ném ra, không đụng tới baseline — thanh
+      // nhắc ở lại cùng ảnh vừa chọn để người dùng bấm Lưu lần nữa.
+      await this.pendingImages.commit();
+
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       this.baselineDisplayName = this.editDisplayName();
@@ -1343,6 +1294,9 @@ export class UserSettingsService {
       setTimeout(() => {
         this.saveSuccessNotice.set(false);
       }, 2500);
+    } catch {
+      // Câu lỗi cụ thể đã nằm trong khối đổi ảnh; ở đây chỉ cần không báo
+      // "đã lưu thành công" cho một lần lưu hỏng.
     } finally {
       this.isSaving.set(false);
     }

@@ -15,7 +15,7 @@ interface StateCopy {
 
 const STATE_COPY: Record<VisibleDashboardState, StateCopy> = {
   loading: {
-    icon: 'progress_activity',
+    icon: 'refresh',
     title: 'Đang sắp xếp không gian của bạn',
     message: 'NexusCord đang tải dữ liệu mới nhất.',
     action: null,
