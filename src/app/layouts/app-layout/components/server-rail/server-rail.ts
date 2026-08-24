@@ -9,13 +9,29 @@ import {
 } from '@angular/core';
 import { CdkDrag, type CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormControl,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+
+export function trimmedMinLength(min: number) {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const val = typeof control.value === 'string' ? control.value.trim() : '';
+    if (!val || val.length < min) {
+      return { trimmedMinLength: { requiredLength: min, actualLength: val.length } };
+    }
+    return null;
+  };
+}
 import {
   CANONICAL_SERVER_TEMPLATES,
   type ChannelTemplateSeed,
@@ -84,6 +100,9 @@ export type RailItem =
 
 type GroupingTargetKind = 'folder' | 'server';
 
+import { ServerCapabilitiesService } from '../../../../core/servers/server-capabilities.service';
+import { ServersStore } from '../../../../core/servers/servers.store';
+
 /**
  * Cột 1 — dải icon server dọc mép trái chuẩn Discord.
  * Tái thiết kế toàn diện theo đặc tả Drag & Drop và Folder System.
@@ -117,12 +136,17 @@ type GroupingTargetKind = 'folder' | 'server';
 })
 export class ServerRail {
   private readonly shell = inject(ShellData);
+  private readonly serversStore = inject(ServersStore);
+  private readonly capabilitiesService = inject(ServerCapabilitiesService);
   private readonly dialog = inject(MatDialog);
   private readonly serversApi = inject(ServersApiService);
   private readonly router = inject(Router);
   private readonly commandDialog = viewChild.required<TemplateRef<unknown>>('commandDialog');
 
-  protected readonly servers = this.shell.servers;
+  protected readonly servers = computed(() => {
+    const storeServers = this.serversStore.servers();
+    return storeServers.length > 0 ? storeServers : this.shell.servers();
+  });
   protected readonly serverGroups = this.shell.serverGroups;
   protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
 
@@ -217,7 +241,7 @@ export class ServerRail {
 
   protected readonly serverNameControl = new FormControl('', {
     nonNullable: true,
-    validators: [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
+    validators: [Validators.required, trimmedMinLength(2), Validators.maxLength(100)],
   });
   protected readonly isSubmitting = signal(false);
   protected readonly createErrorMessage = signal<string | null>(null);
@@ -566,7 +590,10 @@ export class ServerRail {
     try {
       const template = this.selectedTemplate();
       const result = await this.serversApi.createServer(serverName, template.id);
+      this.serversStore.upsertServerWithChannels(result.server, result.channels);
       this.shell.upsertServerWithChannels(result.server, result.channels);
+      // Nạp và refresh canonical capability ngay lập tức cho creator (không cần F5)
+      void this.capabilitiesService.refresh(result.server.id);
       if (this.shell.demoEnabled()) {
         this.shell.setDemoEnabled(false);
       }

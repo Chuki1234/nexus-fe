@@ -1,0 +1,46 @@
+<div class="leave-server-dialog" role="dialog" aria-labelledby="leave-server-title">
+  <div class="leave-server-dialog__header">
+    <div class="leave-server-dialog__icon-wrap">
+      <mat-icon class="leave-server-dialog__icon">logout</mat-icon>
+    </div>
+    <h2 id="leave-server-title" class="leave-server-dialog__title">Rời khỏi '{{ serverName }}'</h2>
+  </div>
+
+  <div class="leave-server-dialog__content">
+    <p class="leave-server-dialog__text">
+      Bạn có chắc chắn muốn rời khỏi máy chủ <strong>{{ serverName }}</strong> không? Bạn sẽ không thể quay lại trừ khi được mời lại.
+    </p>
+
+    @if (errorMessage()) {
+      <div class="leave-server-dialog__error" role="alert">
+        <mat-icon class="leave-server-dialog__error-icon">error</mat-icon>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="leave-server-dialog__footer">
+    <button
+      type="button"
+      mat-button
+      class="leave-server-dialog__cancel-btn"
+      (click)="onCancel()"
+      [disabled]="isSubmitting()"
+    >
+      Hủy
+    </button>
+    <button
+      type="button"
+      mat-flat-button
+      class="leave-server-dialog__submit-btn"
+      (click)="onConfirmLeave()"
+      [disabled]="isSubmitting()"
+    >
+      @if (isSubmitting()) {
+        <span>Đang rời...</span>
+      } @else {
+        <span>Rời máy chủ</span>
+      }
+    </button>
+  </div>
+</div>

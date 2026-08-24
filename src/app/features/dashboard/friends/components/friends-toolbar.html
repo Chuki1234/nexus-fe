@@ -29,15 +29,13 @@
     <button
       mat-icon-button
       type="button"
-      class="nexus-icon-control xl:!hidden"
+      class="nexus-icon-control"
       [attr.aria-expanded]="activityOpen()"
       [attr.aria-label]="activityOpen() ? 'Ẩn hoạt động bạn bè' : 'Hiện hoạt động bạn bè'"
       [matTooltip]="activityOpen() ? 'Ẩn hoạt động' : 'Hiện hoạt động'"
       (click)="toggleActivity.emit()"
     >
-      <mat-icon aria-hidden="true">
-        {{ activityOpen() ? 'right_panel_close' : 'right_panel_open' }}
-      </mat-icon>
+      <mat-icon aria-hidden="true">view_sidebar</mat-icon>
     </button>
 
     <button

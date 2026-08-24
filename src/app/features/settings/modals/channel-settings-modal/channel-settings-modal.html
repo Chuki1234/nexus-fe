@@ -310,5 +310,13 @@
         <span>{{ saveNotice() }}</span>
       </div>
     }
+
+    <!-- Error Toast -->
+    @if (errorMessage()) {
+      <div class="absolute top-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full bg-danger px-4 py-2 text-body-sm font-semibold text-white shadow-modal">
+        <mat-icon class="!size-4 !text-base">error</mat-icon>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
   </main>
 </div>

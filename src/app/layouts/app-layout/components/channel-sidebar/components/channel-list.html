@@ -23,8 +23,8 @@
         </span>
       </button>
 
-      <!-- Add Channel Button -->
-      @if (group.type === 'text' || group.type === 'voice') {
+      <!-- Add Channel Button (chỉ render trong DOM khi có quyền canManageChannels) -->
+      @if ((group.type === 'text' || group.type === 'voice') && canManageChannels()) {
         <button
           type="button"
           (click)="openCreateChannelDialog(group.type, $event)"
@@ -76,27 +76,31 @@
                   </button>
                 }
 
-                <!-- Invite Button -->
-                <button
-                  type="button"
-                  (click)="onInvite($event, channel)"
-                  matTooltip="Tạo lời mời"
-                  [attr.aria-label]="'Tạo lời mời vào kênh ' + channel.name"
-                  class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  <mat-icon class="!size-4 !text-base">person_add</mat-icon>
-                </button>
+                <!-- Invite Button (chỉ render khi có quyền canInviteMembers) -->
+                @if (canInviteMembers()) {
+                  <button
+                    type="button"
+                    (click)="onInvite($event, channel)"
+                    matTooltip="Tạo lời mời"
+                    [attr.aria-label]="'Tạo lời mời vào kênh ' + channel.name"
+                    class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <mat-icon class="!size-4 !text-base">person_add</mat-icon>
+                  </button>
+                }
 
-                <!-- Channel Settings Button -->
-                <button
-                  type="button"
-                  (click)="onChannelSettings($event, channel)"
-                  matTooltip="Chỉnh sửa kênh"
-                  [attr.aria-label]="'Chỉnh sửa kênh ' + channel.name"
-                  class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  <mat-icon class="!size-4 !text-base">settings</mat-icon>
-                </button>
+                <!-- Channel Settings Button (chỉ render khi có quyền canManageChannels) -->
+                @if (canManageChannels()) {
+                  <button
+                    type="button"
+                    (click)="onChannelSettings($event, channel)"
+                    matTooltip="Chỉnh sửa kênh"
+                    [attr.aria-label]="'Chỉnh sửa kênh ' + channel.name"
+                    class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <mat-icon class="!size-4 !text-base">settings</mat-icon>
+                  </button>
+                }
               </div>
 
               <!-- Unread Badge -->

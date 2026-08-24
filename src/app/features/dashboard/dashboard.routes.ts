@@ -19,6 +19,14 @@ export const dashboardRoutes: Routes = [
         loadComponent: () => import('./friends/friends').then((m) => m.FriendsPage),
       },
       {
+        path: '@me/server-invitations',
+        title: 'Lời mời máy chủ · Nexus',
+        loadComponent: () =>
+          import('./server-invitations/server-invitations.component').then(
+            (m) => m.ServerInvitationsComponent,
+          ),
+      },
+      {
         path: '@me/:conversationId',
         title: 'Tin nhắn · Nexus',
         loadComponent: () => import('./conversation/conversation').then((m) => m.ConversationPage),

@@ -42,6 +42,46 @@
   transition-delay: 0s;
 }
 
+/* Resize Handle for Member Panel */
+.pane-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 30;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pane-resize-handle--member {
+  left: 0;
+}
+
+.pane-resize-handle::after {
+  content: '';
+  width: 2px;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  transition: background-color var(--motion-fast) var(--ease-nexus-out);
+}
+
+.pane-resize-handle:hover::after,
+.pane-resize-handle:focus-visible::after,
+.pane-resize-handle--active::after {
+  background-color: var(--color-primary-soft, #00ed64);
+}
+
+:host-context(html[data-theme='light']) .pane-resize-handle:hover::after,
+:host-context(html[data-theme='light']) .pane-resize-handle:focus-visible::after,
+:host-context(html[data-theme='light']) .pane-resize-handle--active::after {
+  background-color: var(--color-primary, #006241);
+}
 
 @media (min-width: 1280px) {
   .context-panel__backdrop {
@@ -63,32 +103,28 @@
     visibility: hidden;
     transform: translateX(1rem);
     transition:
-      width var(--motion-base) var(--ease-nexus-out),
-      min-width var(--motion-base) var(--ease-nexus-out),
-      max-width var(--motion-base) var(--ease-nexus-out),
       transform var(--motion-base) var(--ease-nexus-out),
       visibility 0s var(--motion-base);
   }
 
-  .context-panel--open,
-  .context-panel--pinned {
-    width: 21rem;
-    min-width: 21rem;
-    max-width: 21rem;
+  .context-panel--open {
     box-shadow: -1px 0 0 color-mix(in srgb, var(--color-hairline) 64%, transparent);
     visibility: visible;
     transform: translateX(0);
     transition-delay: 0s;
   }
+}
 
-  .context-panel--pinned:not(.context-panel--open) .context-panel__close {
-    display: none;
+@media (max-width: 79.999rem) {
+  .pane-resize-handle--member {
+    display: none !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .context-panel,
-  .context-panel__backdrop {
+  .context-panel__backdrop,
+  .pane-resize-handle::after {
     transition: none;
   }
 }

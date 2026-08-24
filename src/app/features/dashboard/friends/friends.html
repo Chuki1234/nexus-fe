@@ -24,7 +24,7 @@
       class="friends-main nexus-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6 lg:p-8"
       aria-live="polite"
     >
-      <section class="friends-content mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
+      <section class="friends-content flex min-h-0 w-full max-w-6xl flex-1 flex-col">
         @if (!demoEnabled() && friendsLoading()) {
           <app-dashboard-state class="flex min-h-80" state="loading" layout="list" />
         } @else {
@@ -146,7 +146,6 @@
     <app-context-panel
       title="Đang hoạt động"
       [open]="contextOpen()"
-      [pinned]="true"
       (closed)="closeContext()"
     >
       <app-activity-panel [people]="onlineFriends()" />

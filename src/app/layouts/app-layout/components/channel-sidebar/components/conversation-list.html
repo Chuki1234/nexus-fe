@@ -1,4 +1,4 @@
-<mat-nav-list class="!px-1 !py-0">
+<mat-nav-list class="!px-1 !py-0 flex flex-col gap-1">
   <a
     mat-list-item
     routerLink="/channels/@me"
@@ -11,6 +11,28 @@
   >
     <mat-icon matListItemIcon aria-hidden="true">group</mat-icon>
     <span matListItemTitle [class.text-ink]="friends.isActive">Bạn bè</span>
+  </a>
+
+  <a
+    mat-list-item
+    routerLink="/channels/@me/server-invitations"
+    routerLinkActive
+    #invitations="routerLinkActive"
+    [routerLinkActiveOptions]="{ exact: true }"
+    [activated]="invitations.isActive"
+    [attr.aria-current]="invitations.isActive ? 'page' : null"
+    class="nexus-nav-item"
+  >
+    <mat-icon matListItemIcon aria-hidden="true">mail</mat-icon>
+    <span matListItemTitle [class.text-ink]="invitations.isActive">Lời mời máy chủ</span>
+    @if (invitationsStore.pendingCount() > 0) {
+      <span
+        matListItemMeta
+        class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold rounded-full bg-mint-500 text-surface-base"
+      >
+        {{ invitationsStore.pendingCount() }}
+      </span>
+    }
   </a>
 </mat-nav-list>
 
@@ -27,54 +49,64 @@
   </button>
 </app-section-label>
 
-<mat-nav-list class="!px-1 !py-0 flex flex-col gap-1.5">
-  @for (conversation of conversations(); track conversation.id) {
-    <a
-      mat-list-item
-      [routerLink]="['/channels/@me', conversation.id]"
-      routerLinkActive
-      #link="routerLinkActive"
-      [activated]="link.isActive"
-      [attr.aria-current]="link.isActive ? 'page' : null"
-      [lines]="conversation.statusMessage ? 2 : 1"
-      [attr.data-conversation-id]="conversation.id"
-      class="conversation-row nexus-nav-item !h-auto !min-h-14 !rounded-lg"
-    >
-      <span
-        matListItemIcon
-        class="conversation-avatar-slot !mr-3 !flex !size-8 !min-w-8 !items-center !justify-center !overflow-visible"
+@if (loading()) {
+  <div class="flex items-center justify-center py-6">
+    <mat-spinner diameter="24" strokeWidth="2" aria-label="Đang tải cuộc trò chuyện..." />
+  </div>
+} @else {
+  <mat-nav-list class="!px-1 !py-0 flex flex-col gap-1.5">
+    @for (conversation of conversations(); track conversation.id) {
+      <a
+        mat-list-item
+        [routerLink]="['/channels/@me', conversation.id]"
+        routerLinkActive
+        #link="routerLinkActive"
+        [activated]="link.isActive"
+        [attr.aria-current]="link.isActive ? 'page' : null"
+        [lines]="conversation.statusMessage ? 2 : 1"
+        [attr.data-conversation-id]="conversation.id"
+        class="conversation-row nexus-nav-item !h-auto !min-h-14 !rounded-lg"
       >
-        <app-avatar
-          [name]="conversation.name"
-          [presence]="conversation.presence"
-          size="sm"
-          ring="surface"
-        />
-      </span>
-      <span
-        matListItemTitle
-        class="!block min-w-0 truncate pr-1"
-        [class.text-ink]="!link.isActive && conversation.unread"
-      >
-        {{ conversation.name }}
-      </span>
-      @if (conversation.statusMessage) {
-        <span matListItemLine class="!block min-w-0 truncate pr-1">
-          {{ conversation.statusMessage }}
+        <span
+          matListItemIcon
+          class="conversation-avatar-slot !mr-3 !flex !size-8 !min-w-8 !items-center !justify-center !overflow-visible"
+        >
+          <app-avatar
+            [name]="conversation.name"
+            [src]="conversation.avatarUrl"
+            [presence]="conversation.presence"
+            size="sm"
+            ring="surface"
+          />
         </span>
-      }
-    </a>
-  } @empty {
-    <div class="mx-1 rounded-xl bg-surface-soft px-3 py-5 text-center shadow-glow">
-      @if (hasQuery()) {
-        <mat-icon aria-hidden="true" class="text-steel">person_search</mat-icon>
-        <p class="mt-2 text-body-sm-medium text-ink">Không tìm thấy trong danh bạ</p>
-        <p class="mt-1 text-caption text-steel">Thử tên khác hoặc mở Bạn bè để thêm người mới.</p>
-      } @else {
-        <mat-icon aria-hidden="true" class="text-steel">chat_bubble_outline</mat-icon>
-        <p class="mt-2 text-body-sm-medium text-ink">Chưa có cuộc trò chuyện</p>
-        <p class="mt-1 text-caption text-steel">Thêm bạn để bắt đầu nhắn tin trên NexusCord.</p>
-      }
-    </div>
-  }
-</mat-nav-list>
+        <span
+          matListItemTitle
+          class="!flex min-w-0 items-center justify-between gap-1 pr-1"
+          [class.text-ink]="!link.isActive && conversation.unread"
+        >
+          <span class="truncate">{{ conversation.name }}</span>
+          @if (conversation.unreadCount > 0) {
+            <app-unread-badge [count]="conversation.unreadCount" />
+          }
+        </span>
+        @if (conversation.statusMessage) {
+          <span matListItemLine class="!block min-w-0 truncate pr-1">
+            {{ conversation.statusMessage }}
+          </span>
+        }
+      </a>
+    } @empty {
+      <div class="mx-1 rounded-xl bg-surface-soft px-3 py-5 text-center shadow-glow">
+        @if (hasQuery()) {
+          <mat-icon aria-hidden="true" class="text-steel">person_search</mat-icon>
+          <p class="mt-2 text-body-sm-medium text-ink">Không tìm thấy trong danh bạ</p>
+          <p class="mt-1 text-caption text-steel">Thử tên khác hoặc mở Bạn bè để thêm người mới.</p>
+        } @else {
+          <mat-icon aria-hidden="true" class="text-steel">chat_bubble_outline</mat-icon>
+          <p class="mt-2 text-body-sm-medium text-ink">Chưa có cuộc trò chuyện</p>
+          <p class="mt-1 text-caption text-steel">Thêm bạn để bắt đầu nhắn tin trên NexusCord.</p>
+        }
+      </div>
+    }
+  </mat-nav-list>
+}

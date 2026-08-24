@@ -7,9 +7,9 @@
     <span class="composer-context__icon" aria-hidden="true">
       <mat-icon>{{ activeContext.icon }}</mat-icon>
     </span>
-    <span class="composer-context__copy">
-      <strong>{{ activeContext.label }}</strong>
-      <span>{{ activeContext.description }}</span>
+    <span class="composer-context__copy min-w-0 flex-1">
+      <strong class="block truncate">{{ activeContext.label }}</strong>
+      <span class="block truncate text-xs text-slate">{{ activeContext.description }}</span>
     </span>
     <button
       mat-icon-button
@@ -24,48 +24,168 @@
   </section>
 }
 
+<!-- Lỗi file đính kèm nếu có -->
+@if (fileErrorMessage(); as fileErr) {
+  <div class="composer-file-alert mb-2 flex items-center justify-between gap-2 rounded-lg bg-rose-500/10 px-3 py-1.5 text-xs text-rose-400 border border-rose-500/20">
+    <div class="flex items-center gap-1.5 min-w-0">
+      <mat-icon class="!w-4 !h-4 text-base text-rose-400">error_outline</mat-icon>
+      <span class="truncate">{{ fileErr }}</span>
+    </div>
+    <button type="button" class="text-rose-300 hover:text-rose-100" (click)="fileErrorMessage.set(null)">
+      <mat-icon class="!w-4 !h-4 text-base">close</mat-icon>
+    </button>
+  </div>
+}
+
+<!-- Khay xem trước File đính kèm -->
+@if (pendingFiles().length > 0) {
+  <div class="composer-preview-tray mb-2 flex flex-wrap gap-2 p-2 rounded-xl bg-surface-soft border border-surface-feature/30">
+    @for (item of pendingFiles(); track item.id) {
+      <div class="preview-item relative group flex items-center gap-2 rounded-lg bg-canvas p-1.5 pr-3 border border-border-subtle shadow-sm">
+        @if (item.isImage && item.previewUrl) {
+          <img [src]="item.previewUrl" [alt]="item.name" class="w-10 h-10 object-cover rounded-md border border-border-subtle" />
+        } @else {
+          <div class="w-10 h-10 rounded-md bg-surface-feature/50 flex items-center justify-center text-primary-soft">
+            <mat-icon class="!w-6 !h-6 text-xl">description</mat-icon>
+          </div>
+        }
+        <div class="min-w-0 flex-1 max-w-[140px]">
+          <p class="truncate text-xs font-medium text-ink">{{ item.name }}</p>
+          <span class="text-micro text-steel">{{ item.formattedSize }}</span>
+        </div>
+        <button
+          type="button"
+          class="remove-file-btn w-5 h-5 rounded-full bg-surface-soft hover:bg-rose-500 hover:text-white flex items-center justify-center transition-colors"
+          (click)="removeFile(item.id)"
+          matTooltip="Xoá tệp"
+        >
+          <mat-icon class="!w-3.5 !h-3.5 text-xs">close</mat-icon>
+        </button>
+      </div>
+    }
+  </div>
+}
+
 <div
   class="composer-shell relative rounded-xl bg-surface-soft p-1 shadow-card"
-  data-composer-state="preview"
+  [attr.data-composer-state]="disabled() ? 'disabled' : 'ready'"
+  [class.drag-over]="isDraggingOver()"
+  (dragenter)="onDragEnter($event)"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
 >
-  <span class="composer-thread" aria-hidden="true"></span>
-  <div class="composer-core flex items-center gap-2 rounded-lg bg-canvas px-2 py-1">
-    <button
-      mat-icon-button
-      type="button"
-      disabled
-      class="composer-action"
-      matTooltip="Đính kèm (chưa làm)"
-    >
-      <mat-icon>add_circle</mat-icon>
-      <span class="sr-only">Đính kèm tệp</span>
-    </button>
+  @if (isDraggingOver()) {
+    <div class="drag-overlay absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-primary/20 backdrop-blur-sm border-2 border-dashed border-primary">
+      <div class="flex items-center gap-2 text-sm font-medium text-primary-soft bg-surface/90 px-4 py-2 rounded-lg shadow-lg">
+        <mat-icon>cloud_upload</mat-icon>
+        <span>Thả file vào đây để gửi</span>
+      </div>
+    </div>
+  }
 
+  <span class="composer-thread" aria-hidden="true"></span>
+  <div class="composer-core flex items-end gap-1 rounded-lg bg-canvas px-2 py-1.5">
+    <!-- Nút đính kèm file -->
     <input
-      type="text"
-      disabled
-      [attr.aria-label]="'Nhắn ' + target()"
-      [placeholder]="'Nhắn ' + target()"
-      class="min-w-0 flex-1 bg-transparent py-2 text-body-sm text-ink placeholder:text-steel focus:outline-none disabled:cursor-not-allowed"
+      #fileInput
+      type="file"
+      multiple
+      accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,application/zip,application/x-zip-compressed"
+      class="hidden"
+      (change)="onFileSelected($event)"
     />
 
     <button
       mat-icon-button
       type="button"
-      disabled
-      class="composer-action"
-      matTooltip="Sticker (chưa làm)"
+      [disabled]="disabled() || attachmentsDisabled() || context()?.kind === 'edit'"
+      (click)="openFileDialog()"
+      class="composer-action hover:text-primary-soft"
+      [matTooltip]="context()?.kind === 'edit' ? 'Không thể đính kèm tệp khi đang chỉnh sửa tin nhắn' : (attachmentsDisabled() ? attachmentsDisabledReason() : 'Đính kèm tệp/ảnh (tối đa 5 file, 10MB/file)')"
     >
-      <mat-icon>emoji_emotions</mat-icon>
-      <span class="sr-only">Chọn sticker</span>
+      <mat-icon>add_circle</mat-icon>
+      <span class="sr-only">Đính kèm tệp</span>
     </button>
 
+    <!-- Khung nhập Textarea Auto-resize -->
+    <textarea
+      #messageTextarea
+      rows="1"
+      [disabled]="disabled()"
+      [attr.aria-label]="'Nhắn ' + target()"
+      [placeholder]="'Nhắn ' + target()"
+      [ngModel]="text()"
+      (ngModelChange)="onInput($event)"
+      (keydown)="onKeydown($event)"
+      (blur)="onBlur()"
+      (paste)="onPaste($event)"
+      class="composer-textarea min-w-0 flex-1 bg-transparent py-1 text-body-sm text-ink placeholder:text-steel focus:outline-none disabled:cursor-not-allowed resize-none leading-relaxed"
+    ></textarea>
+
+    <!-- Nút Emoji Picker -->
+    <div class="relative">
+      <button
+        mat-icon-button
+        type="button"
+        [disabled]="disabled()"
+        (click)="toggleEmojiPicker()"
+        class="composer-action emoji-toggle-btn hover:text-amber-400"
+        [class.text-amber-400]="showEmojiPicker()"
+        matTooltip="Chọn emoji Unicode"
+      >
+        <mat-icon>emoji_emotions</mat-icon>
+        <span class="sr-only">Chọn emoji</span>
+      </button>
+
+      <!-- Bảng chọn Emoji Unicode -->
+      @if (showEmojiPicker()) {
+        <div class="composer-emoji-palette absolute bottom-full right-0 mb-3 w-80 rounded-2xl bg-surface border border-border-subtle shadow-2xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+          <!-- Header phân loại emoji -->
+          <div class="emoji-tabs flex items-center justify-between border-b border-border-subtle bg-surface-soft/80 p-1 px-2">
+            @for (cat of emojiCategories; track cat.name; let i = $index) {
+              <button
+                type="button"
+                class="emoji-tab-btn p-1.5 rounded-lg text-steel hover:text-ink transition-colors"
+                [class.active-tab]="activeEmojiCategoryIndex() === i"
+                [matTooltip]="cat.name"
+                (click)="selectEmojiCategory(i)"
+              >
+                <mat-icon class="!w-4 !h-4 text-base">{{ cat.icon }}</mat-icon>
+              </button>
+            }
+          </div>
+
+          <!-- Tiêu đề danh mục hiện tại -->
+          <div class="px-3 pt-2 pb-1 text-xs font-semibold text-steel">
+            {{ emojiCategories[activeEmojiCategoryIndex()].name }}
+          </div>
+
+          <!-- Lưới Emoji -->
+          <div class="emoji-grid grid grid-cols-8 gap-1 p-2 max-h-52 overflow-y-auto custom-scrollbar">
+            @for (emoji of emojiCategories[activeEmojiCategoryIndex()].emojis; track emoji) {
+              <button
+                type="button"
+                class="emoji-btn text-xl h-8 w-8 flex items-center justify-center rounded-lg hover:bg-surface-soft hover:scale-125 transition-transform"
+                (click)="insertEmoji(emoji)"
+              >
+                {{ emoji }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Nút Gửi tin nhắn -->
     <button
       mat-icon-button
       type="button"
-      disabled
+      [disabled]="disabled() || (!text().trim() && pendingFiles().length === 0)"
+      (click)="submit()"
       class="composer-send"
-      matTooltip="Gửi tin nhắn (chưa kết nối backend)"
+      [matTooltip]="'Gửi tin nhắn (Enter)'"
+      [attr.aria-label]="'Gửi tin nhắn'"
     >
       <mat-icon>arrow_upward</mat-icon>
       <span class="sr-only">Gửi tin nhắn</span>
@@ -74,5 +194,5 @@
 </div>
 
 <p class="composer-hint mt-1.5 px-2 text-micro text-stone">
-  Chế độ xem trước · Kết nối backend để gửi tin nhắn
+  Nhấn Enter để gửi · Shift+Enter để xuống dòng · Kéo thả hoặc dán ảnh từ clipboard
 </p>

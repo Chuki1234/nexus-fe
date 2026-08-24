@@ -1,15 +1,21 @@
+import { signal } from '@angular/core';
 import { ComponentRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
+import { of, Subject } from 'rxjs';
 import { ShellData } from '../../../../core/api/shell-data';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
+import { ServerCapabilitiesService } from '../../../../core/servers/server-capabilities.service';
 import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
 import { ChannelSidebar } from './channel-sidebar';
 import { CreateChannelDialog } from './components/create-channel-dialog/create-channel-dialog';
 
 class AuthStub {
+  user = signal(null);
+  session = signal(null);
+  accessToken = () => null;
   signOut = () => Promise.resolve();
 }
 class ProfileStub {
@@ -17,8 +23,17 @@ class ProfileStub {
   reset = () => undefined;
 }
 
+interface MockMatDialog {
+  open: ReturnType<typeof vi.fn>;
+  openDialogs: unknown[];
+  afterOpened: Subject<unknown>;
+  afterAllClosed: Subject<unknown>;
+  _getAfterOpened?: () => Subject<unknown>;
+  _getAfterAllClosed?: () => Subject<unknown>;
+}
+
 describe('ChannelSidebar', () => {
-  let mockDialog: { open: ReturnType<typeof vi.fn> };
+  let mockDialog: MockMatDialog;
   let mockSettingsService: {
     canAccessServerSettings: ReturnType<typeof vi.fn>;
     canManageOverview: ReturnType<typeof vi.fn>;
@@ -28,9 +43,26 @@ describe('ChannelSidebar', () => {
     canViewAuditLog: ReturnType<typeof vi.fn>;
     openServerSettings: ReturnType<typeof vi.fn>;
   };
+  let mockCapabilitiesService: {
+    capabilitiesMap: ReturnType<typeof signal<Map<string, any>>>;
+    load: ReturnType<typeof vi.fn>;
+    refresh: ReturnType<typeof vi.fn>;
+    clear: ReturnType<typeof vi.fn>;
+  };
 
   const mount = async (serverId: string | null, shell: ShellData = new ShellData()) => {
-    mockDialog = { open: vi.fn() };
+    mockDialog = {
+      open: vi.fn().mockReturnValue({
+        afterClosed: () => of(null),
+        afterOpened: () => of(null),
+        componentInstance: {},
+      }),
+      openDialogs: [] as unknown[],
+      afterOpened: new Subject(),
+      afterAllClosed: new Subject(),
+      _getAfterOpened: () => new Subject(),
+      _getAfterAllClosed: () => new Subject(),
+    };
     mockSettingsService = {
       canAccessServerSettings: vi.fn().mockReturnValue(true),
       canManageOverview: vi.fn().mockReturnValue(true),
@@ -39,6 +71,51 @@ describe('ChannelSidebar', () => {
       canManageSafety: vi.fn().mockReturnValue(true),
       canViewAuditLog: vi.fn().mockReturnValue(true),
       openServerSettings: vi.fn(),
+    };
+    mockCapabilitiesService = {
+      capabilitiesMap: signal(
+        new Map([
+          [
+            'itss',
+            {
+              isOwner: true,
+              canInviteMembers: true,
+              canManageServer: true,
+              canManageChannels: true,
+              canManageRoles: true,
+            },
+          ],
+          [
+            'lofi',
+            {
+              isOwner: true,
+              canInviteMembers: true,
+              canManageServer: true,
+              canManageChannels: true,
+              canManageRoles: true,
+            },
+          ],
+          [
+            'server-1',
+            {
+              isOwner: true,
+              canInviteMembers: true,
+              canManageServer: true,
+              canManageChannels: true,
+              canManageRoles: true,
+            },
+          ],
+        ]),
+      ),
+      load: vi.fn().mockResolvedValue({
+        isOwner: true,
+        canInviteMembers: true,
+        canManageServer: true,
+        canManageChannels: true,
+        canManageRoles: true,
+      }),
+      refresh: vi.fn(),
+      clear: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -50,6 +127,7 @@ describe('ChannelSidebar', () => {
         { provide: ShellData, useValue: shell },
         { provide: MatDialog, useValue: mockDialog },
         { provide: UserSettingsService, useValue: mockSettingsService },
+        { provide: ServerCapabilitiesService, useValue: mockCapabilitiesService },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(ChannelSidebar);
@@ -130,10 +208,11 @@ describe('ChannelSidebar', () => {
     const shell = new ShellData();
     shell.setDemoEnabled(true);
     const fixture = await mount('lofi', shell);
+    const dialogSpy = vi.spyOn(fixture.componentInstance['dialog'], 'open');
 
     fixture.componentInstance['openCreateChannelDialog']();
 
-    expect(mockDialog.open).toHaveBeenCalledWith(
+    expect(dialogSpy).toHaveBeenCalledWith(
       CreateChannelDialog,
       expect.objectContaining({
         data: expect.objectContaining({
@@ -169,6 +248,28 @@ describe('ChannelSidebar', () => {
     const fixture = await mount('server-chua-tai');
 
     expect(fixture.nativeElement.querySelector('app-user-panel')).toBeTruthy();
+  });
+
+  it('gọi openDeleteServerDialog khi chọn Xóa máy chủ (Owner)', async () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    const fixture = await mount('lofi', shell);
+    const dialogSpy = vi.spyOn(fixture.componentInstance['dialog'], 'open');
+
+    fixture.componentInstance['openDeleteServerDialog']();
+
+    expect(dialogSpy).toHaveBeenCalled();
+  });
+
+  it('gọi openLeaveServerDialog khi chọn Rời khỏi máy chủ (Non-Owner)', async () => {
+    const shell = new ShellData();
+    shell.setDemoEnabled(true);
+    const fixture = await mount('lofi', shell);
+    const dialogSpy = vi.spyOn(fixture.componentInstance['dialog'], 'open');
+
+    fixture.componentInstance['openLeaveServerDialog']();
+
+    expect(dialogSpy).toHaveBeenCalled();
   });
 });
 

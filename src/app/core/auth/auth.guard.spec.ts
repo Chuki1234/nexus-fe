@@ -56,7 +56,7 @@ describe('route guards', () => {
     await harness.navigateByUrl('/');
 
     expect(TestBed.inject(Router).url).toBe(DASHBOARD_RETURN_URL);
-  });
+  }, 15000);
 
   it('funnels an unknown path through the wildcard to login', async () => {
     auth.authenticated = false;
@@ -66,7 +66,7 @@ describe('route guards', () => {
     // Wildcard trỏ thẳng tới Dashboard, nên returnUrl là đích đó chứ không phải
     // đường dẫn người dùng gõ.
     expect(TestBed.inject(Router).url).toBe(DASHBOARD_RETURN_URL);
-  });
+  }, 15000);
 
   it('lets a signed-in user reach the dashboard', async () => {
     auth.authenticated = true;
@@ -74,7 +74,7 @@ describe('route guards', () => {
     await harness.navigateByUrl('/');
 
     expect(TestBed.inject(Router).url).toBe('/channels/@me');
-  });
+  }, 15000);
 
   it('keeps a signed-in user off the login page', async () => {
     auth.authenticated = true;

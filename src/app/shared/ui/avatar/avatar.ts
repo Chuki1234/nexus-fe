@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import type { PresenceStatus } from '../../../../shared/dto/common';
+import { PresenceService } from '../../../core/presence/presence.service';
 import { StatusDot } from '../status-dot/status-dot';
 
 type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -49,11 +50,14 @@ const DOT: Record<AvatarSize, 'sm' | 'md' | 'lg'> = {
 })
 export class Avatar {
   readonly name = input.required<string>();
+  readonly userId = input<string | null>(null);
   readonly src = input<string | null>(null);
   readonly size = input<AvatarSize>('md');
   readonly presence = input<PresenceStatus | null>(null);
   /** Nền phía sau — quyết định màu viền của chấm trạng thái. */
   readonly ring = input<'canvas' | 'surface'>('surface');
+
+  private readonly presenceService = inject(PresenceService);
 
   protected readonly imageFailed = signal(false);
 
@@ -61,16 +65,28 @@ export class Avatar {
   protected readonly text = computed(() => TEXT[this.size()]);
   protected readonly dotSize = computed(() => DOT[this.size()]);
 
+  protected readonly effectivePresence = computed<PresenceStatus | null>(() => {
+    const explicit = this.presence();
+    if (explicit !== null && explicit !== undefined) {
+      return explicit;
+    }
+    const uid = this.userId();
+    if (uid) {
+      return this.presenceService.getPresence(uid)();
+    }
+    return null;
+  });
+
   protected readonly initials = computed(() => {
     const trimmed = this.name().trim();
     return trimmed ? trimmed[0].toUpperCase() : '?';
   });
 
   protected readonly tone = computed(() => {
-    const name = this.name();
+    const key = this.userId() || this.name();
     let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff;
+    for (let i = 0; i < key.length; i++) {
+      hash = (hash * 31 + key.charCodeAt(i)) & 0xffffffff;
     }
     const tones = ['emerald', 'teal', 'slate', 'indigo', 'amber', 'rose'] as const;
     return tones[Math.abs(hash) % tones.length];

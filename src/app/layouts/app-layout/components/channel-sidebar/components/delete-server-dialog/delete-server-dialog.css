@@ -1,0 +1,135 @@
+.delete-server-dialog {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface, #1e1f22);
+  color: var(--color-text-normal, #dbdee1);
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 440px;
+  width: 100%;
+}
+
+.delete-server-dialog__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px 12px 24px;
+}
+
+.delete-server-dialog__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(224, 108, 117, 0.15);
+  color: #e06c75;
+}
+
+.delete-server-dialog__icon {
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+
+.delete-server-dialog__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #ffffff);
+}
+
+.delete-server-dialog__content {
+  padding: 0 24px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.delete-server-dialog__warning-box {
+  background-color: rgba(224, 108, 117, 0.08);
+  border-left: 4px solid #e06c75;
+  padding: 12px 14px;
+  border-radius: 4px;
+}
+
+.delete-server-dialog__warning-text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-text-normal, #dbdee1);
+}
+
+.delete-server-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.delete-server-dialog__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #949ba4);
+}
+
+.delete-server-dialog__input {
+  background-color: var(--color-surface-soft, #111214);
+  border: 1px solid var(--color-border, #313338);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary, #ffffff);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.delete-server-dialog__input:focus {
+  border-color: #e06c75;
+}
+
+.delete-server-dialog__error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: #e06c75;
+  background-color: rgba(224, 108, 117, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.delete-server-dialog__error-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.delete-server-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background-color: var(--color-surface-soft, #2b2d31);
+}
+
+.delete-server-dialog__cancel-btn {
+  color: var(--color-text-normal, #dbdee1) !important;
+}
+
+.delete-server-dialog__submit-btn {
+  background-color: #e06c75 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-radius: 20px !important;
+  padding: 0 20px !important;
+}
+
+.delete-server-dialog__submit-btn:disabled {
+  opacity: 0.5 !important;
+  background-color: #e06c75 !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  cursor: not-allowed;
+}
