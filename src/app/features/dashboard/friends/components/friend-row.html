@@ -6,9 +6,9 @@
     class="flex min-w-0 flex-1 items-center gap-3 rounded-md"
   >
     <span class="flex size-10 shrink-0 items-center justify-center">
-      <app-profile-avatar
-        [username]="person().id"
+      <app-avatar
         [name]="person().name"
+        [src]="person().avatarUrl ?? null"
         [presence]="person().presence"
         size="lg"
         ring="canvas"
@@ -53,11 +53,10 @@
   [overlapTrigger]="false"
 >
   <div class="friend-options__identity" role="presentation">
-    <app-profile-avatar
-      [username]="person().id"
+    <app-avatar
       [name]="person().name"
+      [src]="person().avatarUrl ?? null"
       [presence]="person().presence"
-      [clickable]="false"
       size="md"
       ring="surface"
     />
@@ -95,7 +94,13 @@
 
   <div class="friend-options__divider" role="separator"></div>
   <p class="friend-options__section-label">An toàn</p>
-  <button mat-menu-item type="button" class="friend-options__danger" disabled>
+  <button
+    mat-menu-item
+    type="button"
+    class="friend-options__danger"
+    [disabled]="!canManage() || busy()"
+    (click)="removed.emit(person().id)"
+  >
     <mat-icon aria-hidden="true">person_remove</mat-icon>
     <span>Xóa khỏi danh sách bạn</span>
   </button>

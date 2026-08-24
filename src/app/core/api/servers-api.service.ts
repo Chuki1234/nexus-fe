@@ -113,8 +113,15 @@ interface CreateServerPayload {
   templateId: string;
 }
 
+interface CreateChannelPayload {
+  name: string;
+  type: 'text' | 'voice';
+  topic?: string;
+}
+
 /**
  * Chuẩn hóa thông báo lỗi từ HTTP request cho người dùng cuối:
+
  * - Status 0: Lỗi mạng hoặc bị chặn bởi CORS
  * - Status 401: Hết phiên đăng nhập
  * - Status 400: Lỗi dữ liệu không hợp lệ từ DTO backend
@@ -217,4 +224,32 @@ export class ServersApiService {
       this.http.get<ServerWithChannels[]>(`${environment.apiUrl}/servers`, { headers }),
     );
   }
+
+  /**
+   * Tạo kênh mới trong một máy chủ cụ thể qua POST /api/servers/:serverId/channels.
+   */
+  async createChannel(
+    serverId: string,
+    name: string,
+    type: 'text' | 'voice' = 'text',
+    topic?: string,
+  ): Promise<ChannelSummary> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    const payload: CreateChannelPayload = {
+      name: name.trim(),
+      type,
+      topic: topic?.trim() || undefined,
+    };
+
+    return firstValueFrom(
+      this.http.post<ChannelSummary>(
+        `${environment.apiUrl}/servers/${serverId}/channels`,
+        payload,
+        { headers },
+      ),
+    );
+  }
 }
+

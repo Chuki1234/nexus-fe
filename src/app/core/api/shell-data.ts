@@ -396,6 +396,32 @@ export class ShellData {
     this.updateServerOrder(() => [...desiredTopLevel, ...groupedIds]);
   }
 
+  /** Thêm một kênh mới vào cuối danh sách kênh của server. */
+  addChannel(serverId: string, channel: ChannelSummary): void {
+    this.channelsByServer.update((current) => ({
+      ...current,
+      [serverId]: [...(current[serverId] ?? []), channel],
+    }));
+  }
+
+  /** Cập nhật một phần thông tin kênh (tên, chủ đề...) trong live state. */
+  updateChannel(serverId: string, channelId: string, patch: Partial<ChannelSummary>): void {
+    this.channelsByServer.update((current) => ({
+      ...current,
+      [serverId]: (current[serverId] ?? []).map((channel) =>
+        channel.id === channelId ? { ...channel, ...patch } : channel,
+      ),
+    }));
+  }
+
+  /** Xóa một kênh khỏi live state. */
+  removeChannel(serverId: string, channelId: string): void {
+    this.channelsByServer.update((current) => ({
+      ...current,
+      [serverId]: (current[serverId] ?? []).filter((channel) => channel.id !== channelId),
+    }));
+  }
+
   channelsOf(serverId: string): ChannelSummary[] {
     const channels = this.demoMode() ? DEMO_CHANNELS_BY_SERVER : this.channelsByServer();
     return channels[serverId] ?? [];

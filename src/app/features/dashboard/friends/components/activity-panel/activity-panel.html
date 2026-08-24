@@ -4,9 +4,9 @@
       @for (person of activePeople(); track person.id) {
         <li class="activity-card rounded-xl bg-canvas p-3">
           <div class="flex items-start gap-3">
-            <app-profile-avatar
-              [username]="person.id"
+            <app-avatar
               [name]="person.name"
+              [src]="person.avatarUrl ?? null"
               [presence]="person.presence"
               size="sm"
               ring="canvas"

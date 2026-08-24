@@ -1,15 +1,14 @@
-import { OverlayModule } from '@angular/cdk/overlay';
+import { OverlayModule, type ConnectedPosition } from '@angular/cdk/overlay';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { RouterLink } from '@angular/router';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
 import { ProfilePopover } from '../../../../features/profile/components/profile-popover/profile-popover';
-import { ProfileLookup } from '../../../../features/profile/profile-lookup';
 import { ProfileStore } from '../../../../features/profile/profile-store';
 import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
+import { VoiceRoomService } from '../../../../features/voice/services/voice-room.service';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 
 /**
@@ -35,16 +34,27 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
   styleUrl: './user-panel.css',
 })
 export class UserPanel {
-  private readonly auth = inject(AuthService);
   private readonly profile = inject(ProfileService);
-  private readonly router = inject(Router);
   private readonly settingsService = inject(UserSettingsService);
+  private readonly voiceRoom = inject(VoiceRoomService);
   protected readonly store = inject(ProfileStore);
-  private readonly lookup = inject(ProfileLookup);
+
+  protected readonly isVoiceConnected = this.voiceRoom.isConnected;
+  protected readonly voiceChannelName = this.voiceRoom.currentChannelName;
+  protected readonly isScreenSharing = this.voiceRoom.isScreenSharing;
+  protected readonly isCameraOn = this.voiceRoom.isCameraOn;
+
+  /**
+   * Thẻ bung LÊN TRÊN: khối này nằm sát đáy cột, mở xuống dưới là ra ngoài màn
+   * hình. Dự phòng mở xuống chỉ dùng khi cửa sổ quá thấp để chứa thẻ ở trên.
+   */
+  protected readonly popoverPositions: ConnectedPosition[] = [
+    { originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom', offsetY: -8 },
+    { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top', offsetY: 8 },
+  ];
 
   protected readonly micMuted = signal(false);
   protected readonly deafened = signal(false);
-  protected readonly signingOut = signal(false);
   /** Thẻ hồ sơ nhỏ đang nổi đè lên hay không. */
   protected readonly popoverOpen = signal(false);
 
@@ -88,20 +98,15 @@ export class UserPanel {
     this.settingsService.openUserSettings('account');
   }
 
-  protected async onSignOut(): Promise<void> {
-    this.signingOut.set(true);
-    try {
-      await this.auth.signOut();
-      this.profile.reset();
-      // Hồ sơ đã nhớ là của NGƯỜI VỪA ĐĂNG XUẤT — không quên đi thì người đăng
-      // nhập tiếp theo trên cùng máy sẽ thấy avatar và tên của người trước.
-      this.store.reset();
-      // Hồ sơ người khác đã nhớ mang cờ `isSelf` tính theo NGƯỜI ĐANG XEM —
-      // giữ lại thì người đăng nhập kế tiếp thấy nút sửa trên hồ sơ người khác.
-      this.lookup.reset();
-      await this.router.navigateByUrl('/login');
-    } finally {
-      this.signingOut.set(false);
-    }
+  protected disconnectVoice(): void {
+    void this.voiceRoom.leaveRoom();
+  }
+
+  protected toggleScreenShare(): void {
+    void this.voiceRoom.toggleScreenShare();
+  }
+
+  protected toggleCamera(): void {
+    void this.voiceRoom.toggleCamera();
   }
 }

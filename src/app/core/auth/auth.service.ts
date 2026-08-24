@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { Session, User } from '@supabase/supabase-js';
 import { firstValueFrom } from 'rxjs';
@@ -68,6 +68,33 @@ export class AuthService {
     }
   }
 
+  /** Alias của {@link signIn} nhận thẳng `{ email, password }` — khớp form đăng nhập/đăng ký. */
+  async signInWithPassword(credentials: { email: string; password: string }): Promise<Session> {
+    return this.signIn({ identifier: credentials.email, password: credentials.password });
+  }
+
+  /**
+   * Project Supabase có bật đăng nhập qua `provider` hay không.
+   *
+   * Gọi thẳng endpoint public `/auth/v1/settings` của GoTrue — không cần đăng
+   * nhập, không đi qua backend. Lỗi mạng thì coi như tắt: ẩn nút còn hơn hiện
+   * một nút bấm vào là lỗi.
+   */
+  async isProviderEnabled(provider: 'google'): Promise<boolean> {
+    try {
+      const response = await fetch(`${environment.supabaseUrl}/auth/v1/settings`, {
+        headers: { apikey: environment.supabaseKey },
+      });
+      if (!response.ok) {
+        return false;
+      }
+      const settings: { external?: Record<string, boolean> } = await response.json();
+      return settings.external?.[provider] === true;
+    } catch {
+      return false;
+    }
+  }
+
   private async restoreSession(): Promise<void> {
     const { data } = await this.supabase.client.auth.getSession();
     this.currentSession.set(data.session);
@@ -118,6 +145,19 @@ export class AuthService {
   }
 
   /**
+   * Biến thể LINK của khôi phục mật khẩu: Supabase gửi email chứa link về
+   * `redirectTo`, mở link đó tự đổi thành phiên tạm (xem `reset-password.page.ts`).
+   * Song song với {@link sendPasswordResetCode} (biến thể mã 6 số) — hai luồng
+   * dùng hai trang khác nhau, không phải một hàm đổi tên.
+   */
+  async sendPasswordReset(email: string, redirectTo: string): Promise<void> {
+    const { error } = await this.supabase.client.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) {
+      throw error;
+    }
+  }
+
+  /**
    * Bước 2: đổi mã đúng lấy một phiên tạm, đủ quyền để đặt lại mật khẩu.
    *
    * Ném `AuthError` khi mã sai hoặc hết hạn.
@@ -150,6 +190,24 @@ export class AuthService {
     if (error) {
       throw error;
     }
+    this.currentSession.set(null);
+  }
+
+  /** Xóa vĩnh viễn tài khoản hiện tại rồi dọn phiên cục bộ. */
+  async deleteAccount(email: string): Promise<void> {
+    const token = this.accessToken();
+    if (!token) {
+      throw new Error('Phiên đăng nhập đã hết hạn.');
+    }
+
+    await firstValueFrom(
+      this.http.delete<void>(`${environment.apiUrl}/auth/account`, {
+        headers: new HttpHeaders({ Authorization: `Bearer ${token}` }),
+        body: { email },
+      }),
+    );
+
+    await this.supabase.client.auth.signOut({ scope: 'local' });
     this.currentSession.set(null);
   }
 }

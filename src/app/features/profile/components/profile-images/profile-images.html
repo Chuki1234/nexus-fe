@@ -1,4 +1,6 @@
-@let profile = store.profile();
+@let banner = bannerPreview();
+@let avatar = avatarPreview();
+@let saving = staged.saving();
 
 <div class="space-y-4">
   @if (errorMessage(); as message) {
@@ -9,26 +11,38 @@
 
   <!-- ── Ảnh bìa ── -->
   <div>
-    <span class="mb-2 block text-micro-uppercase text-stone">Ảnh bìa</span>
+    <span class="mb-2 flex items-center gap-2 text-micro-uppercase text-stone">
+      Ảnh bìa
+      @if (bannerChanged()) {
+        <span class="rounded-full bg-primary/15 px-2 py-0.5 text-caption font-bold text-primary normal-case">
+          Chờ lưu
+        </span>
+      }
+    </span>
 
     <div
       class="relative aspect-3/1 w-full overflow-hidden rounded-lg border border-hairline"
+      [class.border-primary]="bannerChanged()"
       [style.background]="
-        profile?.bannerUrl ? 'transparent' : 'linear-gradient(135deg, ' + bannerColor() + ' 0%, #001e2b 100%)'
+        banner ? 'transparent' : 'linear-gradient(135deg, ' + bannerColor() + ' 0%, #001e2b 100%)'
       "
     >
-      @if (profile?.bannerUrl; as banner) {
+      @if (banner) {
         <img [src]="banner" alt="" decoding="async" class="size-full object-cover" />
       } @else {
         <span class="absolute inset-0 flex items-center justify-center text-caption text-on-dark-muted">
-          Chưa có ảnh bìa — đang dùng màu chủ đạo
+          @if (bannerChanged()) {
+            Sẽ gỡ ảnh bìa khi bạn bấm Lưu thay đổi
+          } @else {
+            Chưa có ảnh bìa — đang dùng màu chủ đạo
+          }
         </span>
       }
 
-      @if (busy() === 'banner') {
+      @if (saving && bannerChanged()) {
         <span class="absolute inset-0 flex items-center justify-center bg-canvas/70">
           <mat-icon aria-hidden="true" class="animate-spin text-ink">refresh</mat-icon>
-          <span class="sr-only">Đang tải ảnh bìa lên…</span>
+          <span class="sr-only">Đang lưu ảnh bìa…</span>
         </span>
       }
     </div>
@@ -38,21 +52,21 @@
            display:none — ẩn hẳn thì bàn phím không tab tới được. -->
       <label class="btn-secondary cursor-pointer">
         <mat-icon aria-hidden="true" class="size-4! text-[16px]!">upload</mat-icon>
-        {{ profile?.bannerUrl ? 'Đổi ảnh bìa' : 'Tải ảnh bìa' }}
+        {{ banner ? 'Đổi ảnh bìa' : 'Tải ảnh bìa' }}
         <input
           type="file"
           class="sr-only"
           [accept]="accept"
-          [disabled]="busy() !== null"
+          [disabled]="saving"
           (change)="onPick('banner', $event)"
         />
       </label>
 
-      @if (profile?.bannerUrl) {
+      @if (banner) {
         <button
           type="button"
           (click)="onRemove('banner')"
-          [disabled]="busy() !== null"
+          [disabled]="saving"
           class="rounded-full px-3 py-2 text-caption text-steel transition-colors hover:text-danger disabled:text-muted"
         >
           Gỡ ảnh bìa
@@ -63,15 +77,25 @@
 
   <!-- ── Ảnh đại diện ── -->
   <div class="border-t border-hairline pt-4">
-    <span class="mb-2 block text-micro-uppercase text-stone">Ảnh đại diện</span>
+    <span class="mb-2 flex items-center gap-2 text-micro-uppercase text-stone">
+      Ảnh đại diện
+      @if (avatarChanged()) {
+        <span class="rounded-full bg-primary/15 px-2 py-0.5 text-caption font-bold text-primary normal-case">
+          Chờ lưu
+        </span>
+      }
+    </span>
 
     <div class="flex flex-wrap items-center gap-4">
-      <span class="relative inline-flex rounded-full ring-4 ring-surface">
-        <app-avatar [name]="name()" [src]="profile?.avatarUrl ?? null" size="xl" ring="surface" />
-        @if (busy() === 'avatar') {
+      <span
+        class="relative inline-flex rounded-full ring-4 ring-surface"
+        [class.ring-primary]="avatarChanged()"
+      >
+        <app-avatar [name]="name()" [src]="avatar" size="xl" ring="surface" />
+        @if (saving && avatarChanged()) {
           <span class="absolute inset-0 flex items-center justify-center rounded-full bg-canvas/70">
             <mat-icon aria-hidden="true" class="animate-spin text-ink">refresh</mat-icon>
-            <span class="sr-only">Đang tải ảnh đại diện lên…</span>
+            <span class="sr-only">Đang lưu ảnh đại diện…</span>
           </span>
         }
       </span>
@@ -79,21 +103,21 @@
       <div class="flex flex-wrap items-center gap-2">
         <label class="btn-secondary cursor-pointer">
           <mat-icon aria-hidden="true" class="size-4! text-[16px]!">upload</mat-icon>
-          {{ profile?.avatarUrl ? 'Đổi ảnh' : 'Tải ảnh lên' }}
+          {{ avatar ? 'Đổi ảnh' : 'Tải ảnh lên' }}
           <input
             type="file"
             class="sr-only"
             [accept]="accept"
-            [disabled]="busy() !== null"
+            [disabled]="saving"
             (change)="onPick('avatar', $event)"
           />
         </label>
 
-        @if (profile?.avatarUrl) {
+        @if (avatar) {
           <button
             type="button"
             (click)="onRemove('avatar')"
-            [disabled]="busy() !== null"
+            [disabled]="saving"
             class="rounded-full px-3 py-2 text-caption text-steel transition-colors hover:text-danger disabled:text-muted"
           >
             Gỡ ảnh
@@ -106,4 +130,11 @@
       JPEG, PNG, WebP, GIF hoặc AVIF — tối đa 5 MB. Ảnh được tự cắt vuông và nén lại.
     </p>
   </div>
+
+  @if (staged.hasPending()) {
+    <p class="text-caption text-steel">
+      Ảnh mới chỉ là xem trước — bấm <span class="font-bold text-ink">Lưu thay đổi</span> ở
+      thanh dưới để áp dụng.
+    </p>
+  }
 </div>

@@ -136,6 +136,34 @@ describe('ServersApiService', () => {
     httpTesting.expectNone(`${environment.apiUrl}/servers`);
   });
 
+  it('should send POST request with channel payload to create channel', async () => {
+    const mockChannel = {
+      id: 'c-new-1',
+      name: 'kênh-mới',
+      type: 'text' as const,
+      topic: 'Chủ đề',
+      unread: false,
+      mentionCount: 0,
+    };
+
+    const promise = service.createChannel('s-1', '  kênh-mới  ', 'text', '  Chủ đề  ');
+
+    const req = httpTesting.expectOne(`${environment.apiUrl}/servers/s-1/channels`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.headers.get('Authorization')).toBe('Bearer mock-token-123');
+    expect(req.request.body).toEqual({
+      name: 'kênh-mới',
+      type: 'text',
+      topic: 'Chủ đề',
+    });
+
+    req.flush(mockChannel);
+
+    const result = await promise;
+    expect(result).toEqual(mockChannel);
+  });
+
+
   describe('formatApiError', () => {
     it('should format status 0 as network or CORS blocked error', () => {
       const error = new HttpErrorResponse({ status: 0, statusText: 'Unknown Error' });

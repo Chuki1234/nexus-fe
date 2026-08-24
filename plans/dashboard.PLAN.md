@@ -1706,6 +1706,550 @@ Status: APPROVED
   giả tìm người ngoài danh bạ hoặc message content, không sửa API/backend/database/Auth/Profile/Settings và không thêm
   dependency/folder/file code.
 
+### Phase UI-23 — Gỡ bỏ Nexus Atmospheres khỏi Dashboard
+
+Status: APPROVED
+
+> Tài xác nhận Atmosphere chỉ là phần thử nghiệm ngoài phạm vi Dashboard và hiện đã có thành viên khác phụ trách
+> theme. Theo quyền append phase UI đã được duyệt, phase này xóa trọn feature Atmosphere nhưng giữ dark/light nền
+> tảng để không xâm phạm phần theme chung hoặc Settings/Appearance của thành viên khác.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:** bỏ nút palette và Theme Studio khỏi Friends toolbar/context panel; cụm công cụ còn lại tự liền mạch,
+  Activity Panel tiếp tục mở/đóng đúng hành vi cũ và Dashboard vẫn dùng token Hybrid ở dark/light.
+- **Feature:** xóa service/state/persistence Atmosphere, sáu palette, `data-atmosphere` và component preview; không để
+  selector, import, test hoặc localStorage key mồ côi.
+- **Data:** không sửa ShellData, API, backend hoặc database. Không đụng Auth, Profile, Settings/Appearance và
+  `ThemeService` dùng chung.
+
+#### File dự kiến
+
+- `src/app/features/dashboard/components/theme-studio/**` — xóa component và test Atmosphere.
+- `src/app/features/dashboard/services/dashboard-appearance.ts|spec.ts` — xóa state/persistence Atmosphere.
+- `src/app/features/dashboard/friends/**` — tháo nút, panel, binding và test liên quan.
+- `src/app/layouts/app-layout/app-layout.ts|html|spec.ts` — bỏ injection và `data-atmosphere`.
+- `src/styles.css` — xóa palette/preview Atmosphere, giữ semantic surface hierarchy của Dashboard.
+- `plans/dashboard.PLAN.md` — ghi scope và kết quả gỡ feature.
+
+#### Kiểm chứng và tiêu chí hoàn thành
+
+- `rg` không còn tham chiếu Atmosphere trong source code Dashboard.
+- Friends toolbar không còn nút palette; demo, activity và dark/light vẫn hoạt động.
+- Targeted test, toàn bộ unit/component test, `npm run build`, Prettier và `git diff --check` pass.
+
+#### Kết quả Phase UI-23
+
+- Ngày hoàn thành code/test: 2026-08-21 trên branch `pages/dashboard/minh-tai`; không commit/push tự động.
+- Kết quả rà soát: source Dashboard còn `0` tham chiếu Atmosphere/Theme Studio/`data-atmosphere`; xóa 6 file
+  chuyên biệt và tháo toàn bộ binding, CSS palette, persistence cùng test tương ứng.
+- Kết quả test: hai targeted Friends spec `19/19` pass. Toàn bộ frontend `40/41` test file và `221/222` test pass;
+  một test AppLayout cũ vẫn đòi nút Settings disabled với aria-label cũ, thuộc vùng Settings và không liên quan phase.
+- `npm run build` pass browser/SSR/prerender; warning duy nhất là CSS budget của `settings/account-tab` vượt 185 bytes,
+  không thuộc Dashboard. Prettier và `git diff --check` pass.
+- Đánh giá UI/UX: Friends toolbar không còn nút palette; Activity Panel, demo toggle và dark/light nền tảng giữ nguyên.
+  Dashboard quay về duy nhất token Hybrid với semantic surface hierarchy cho cả hai mode.
+- Đánh giá Feature: đã xóa service/state/localStorage/6 palette/Theme Studio/`data-atmosphere`; không còn import,
+  selector hoặc test mồ côi trong source.
+- Đánh giá Data: không sửa ShellData, API, backend, database, Auth, Profile, Settings/Appearance hoặc ThemeService.
+
+### Phase UI-24 — Quản lý nhóm kênh & Tạo kênh thật qua Backend API
+
+Status: COMPLETED
+
+> Tài đã yêu cầu bổ sung nút `+` tạo kênh cho từng nhóm Kênh chữ / Kênh thoại trong sidebar máy chủ,
+> hỗ trợ thu gọn/mở rộng nhóm bằng chevron, hiện action buttons khi hover/focus từng hàng kênh (Mời, Cài đặt, Mở chat thoại),
+> và tạo kênh thật lưu vào cơ sở dữ liệu qua Backend API thay vì dùng dữ liệu giả.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:**
+  - Tiêu đề nhóm kênh (Kênh chữ, Kênh thoại) có chevron xoay/lật mượt mà khi thu gọn/mở rộng và nút `+` nhỏ gọn tinh tế ở góc phải (`mat-icon` add) với tooltip "Tạo kênh".
+  - Hàng kênh trong danh sách: khi hover hoặc focus bàn phím, xuất hiện dải action buttons bán trong suốt chuyển opacity êm ái:
+    - Kênh chữ: nút "Mời" (`person_add`) và "Cài đặt kênh" (`settings`).
+    - Kênh thoại: nút "Mở trò chuyện" (`chat_bubble_outline`), "Mời" (`person_add`) và "Cài đặt kênh" (`settings`).
+  - Dialog "Tạo kênh" theo phong cách NexusCord Hybrid (Dark deep-teal / Light warm-cream):
+    - Chọn loại kênh dạng thẻ radio trực quan (Kênh chữ vs Kênh thoại) kèm icon và mô tả.
+    - Nhập tên kênh có tiền tố trực quan (`#` cho kênh chữ, volume cho kênh thoại) và hỗ trợ format slug.
+    - Nút CTA pill chuẩn NexusCord với trạng thái loading spinner và hiển thị thông báo lỗi inline nếu API thất bại.
+- **Feature:**
+  - Bấm `+` ở nhóm nào mở dialog Tạo kênh với loại kênh đó được chọn sẵn.
+  - Thu gọn/mở rộng từng nhóm độc lập, lưu trạng thái thu gọn trong component signal.
+  - Các nút action trên hàng kênh chặn nổi bọt sự kiện (`event.stopPropagation()`) để không kích hoạt điều hướng nhầm kênh.
+  - Gửi request tạo kênh thật lên backend qua `POST /api/servers/:serverId/channels`.
+  - Cập nhật reactive danh sách kênh ngay trên `ShellData` sau khi tạo thành công mà không cần F5 trang.
+- **Data:**
+  - Backend NestJS `ServersController` & `ServersService`: Thêm endpoint `POST /api/servers/:serverId/channels`.
+  - Kiểm tra quyền thành viên / owner trong `server_members`, tính toán `position` tự động tăng và insert vào bảng `public.channels`.
+  - Trả về DTO `ChannelSummaryDto` chuẩn xác.
+  - Tuyệt đối không hardcode dữ liệu giả trong `shell-data.ts`.
+
+#### File thực hiện
+
+- Frontend:
+  - `plans/dashboard.PLAN.md` — ghi nhận kết quả và tiêu chí nghiệm thu.
+  - `src/app/layouts/app-layout/components/channel-sidebar/components/channel-list.ts|html|css|spec.ts` — header nhóm (chevron + nút `+`), thu gọn/mở rộng, action buttons on hover/focus với `stopPropagation()`.
+  - `src/app/layouts/app-layout/components/channel-sidebar/components/create-channel-dialog/create-channel-dialog.ts|html|css|spec.ts` — component dialog tạo kênh mới chuẩn Hybrid design.
+  - `src/app/core/api/servers-api.service.ts|spec.ts` — method `createChannel(serverId, name, type, topic)`.
+  - `src/app/core/api/shell-data.ts|spec.ts` — method `addChannel(serverId, channel)`.
+- Backend:
+  - `nexus-be/src/modules/servers/dto/create-channel.dto.ts` — DTO validate tạo channel.
+  - `nexus-be/src/modules/servers/servers.controller.ts|spec.ts` — endpoint `POST /api/servers/:serverId/channels`.
+  - `nexus-be/src/modules/servers/servers.service.ts|spec.ts` — logic kiểm tra membership, tính position và insert vào DB `channels`.
+
+#### Kết quả kiểm thử & Nghiệm thu
+
+- **Backend Tests:**
+  - `npm test` trong `nexus-be`: **5/5 test suites passed, 36/36 tests passed (100%)**.
+  - `npm run build` trong `nexus-be`: **Build thành công 0 lỗi**.
+- **Frontend Tests:**
+  - `npm test -- --watch=false` trong `nexus-fe`: **42/42 test files passed, 235/235 tests passed (100%)**.
+  - `npm run build` trong `nexus-fe`: **Build production bundle thành công 0 lỗi**.
+- **Đánh giá UI/UX:**
+  - Chevron xoay êm ái `-90deg` khi thu gọn nhóm kênh, nút `+` hover đổi màu và hiện tooltip rõ ràng.
+  - Hover/focus vào hàng kênh hiển thị mượt mà dải nút thao tác nhanh (Mời, Cài đặt, Mở chat thoại), không bị giật layout hay shift dòng.
+  - Modal tạo kênh theo đúng bảng màu Hybrid Dark (Deep Teal) / Light (Warm Cream), có radio cards, auto slug slugify cho text channel, spinner loading và báo lỗi inline.
+- **Đánh giá Feature:**
+  - Bấm `+` ở Kênh chữ mở modal chọn sẵn Kênh chữ; bấm `+` ở Kênh thoại mở modal chọn sẵn Kênh thoại.
+  - Click các nút action không gây nhảy route ngoài ý muốn.
+  - Tạo kênh xong được đẩy vào `ShellData` và hiển thị tức thì trên sidebar.
+- **Đánh giá Data:**
+  - Backend NestJS insert trực tiếp vào bảng `public.channels` của Supabase, tự động gán vị trí thứ tự `position` kế tiếp.
+  - Không sinh thêm dữ liệu giả mạo trong `shell-data.ts`.
+
+---
+
+### Phase UI-25 — Menu tùy chọn máy chủ (Server Context Menu) chuẩn mẫu Discord
+
+Status: APPROVED
+
+> Tài đã gửi hình ảnh mẫu menu tùy chọn kế bên tên máy chủ của Discord và yêu cầu xây dựng một bảng tùy chọn đầy đủ,
+> chuẩn xác từng icon, danh mục phân cấp và cơ chế đóng mở (chevron xoay/đổi hướng, nút mời góc phải, các action phân nhóm, checkbox ẩn kênh tắt thông báo).
+> Theo quy trình `implement-skill`, phase này ở trạng thái PENDING chờ Tài duyệt trước khi code.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:**
+  - Header máy chủ trong sidebar: hiển thị tên máy chủ cắt gọn (`truncate`), chevron `expand_more` lật `expand_less` (xoay 180deg) mượt mà khi menu mở/đóng, và nút icon `person_add` (Mời vào máy chủ) ở góc phải.
+  - Menu tùy chọn máy chủ theo phong cách Hybrid (Dark deep-teal / Light warm-cream), bo góc `rounded-2xl`, bóng đổ `shadow-modal`, đường viền `border-hairline`:
+    - **Nhóm 1:** `Nâng Cấp Máy Chủ` (`diamond` / `rocket_launch` với hiệu ứng màu tím/hồng đặc trưng).
+    - **Nhóm 2:** `Mời Vào Máy Chủ` (`person_add` với màu primary xanh sáng), `Cài đặt máy chủ` (`settings`), `Tạo kênh` (`add_circle`), `Tạo Danh Mục` (`create_new_folder`), `Tạo Sự kiện` (`calendar_today`), `Thư Mục App` (`apps`).
+    - **Nhóm 3:** `Cài đặt thông báo` (`notifications`), `Cài Đặt Bảo Mật` (`security`).
+    - **Nhóm 4:** `Chỉnh Sửa Hồ Sơ Theo Máy Chủ` (`edit`), `Ẩn Các Kênh Bị Tắt Thông Báo` (`visibility_off` kèm checkbox toggle trạng thái).
+    - **Nhóm 5:** `Rời khỏi máy chủ` (`logout` với màu đỏ `text-danger`).
+- **Feature:**
+  - Click vào header mở dropdown menu, đóng lại khi click ra ngoài hoặc chọn một mục.
+  - Mục `Tạo kênh` kết nối mở trực tiếp `CreateChannelDialog`.
+  - Mục `Cài đặt máy chủ` kết nối mở trực tiếp cài đặt server qua `UserSettingsService.openServerSettings('server-overview', serverId)`.
+  - Mục `Mời Vào Máy Chủ` tích hợp trigger mời thành viên.
+  - Mục `Ẩn Các Kênh Bị Tắt Thông Báo` hỗ trợ toggle checkbox trực tiếp trong menu.
+  - Các mục nâng cao khác được cắm seam an toàn không làm lỗi hệ thống hay break layout.
+- **Data:**
+  - Giữ nguyên trạng thái phân quyền `canAccessServerSettings()` / vai trò người dùng trong server.
+  - Không thêm dữ liệu giả mạo hay sinh mã rác.
+
+#### File dự kiến thay đổi
+
+- `plans/dashboard.PLAN.md` — kế hoạch phase UI-25.
+- `src/app/layouts/app-layout/components/channel-sidebar/channel-sidebar.ts|html|css|spec.ts` — cập nhật header máy chủ, server menu dropdown đầy đủ mục theo mẫu, kết nối dialog tạo kênh và cài đặt.
+
+#### Kiểm chứng và tiêu chí hoàn thành
+
+- Click vào tên máy chủ / header mở menu tùy chọn với toàn bộ các nhóm theo hình chụp mẫu của Discord.
+- Chevron trên header lật hướng khi menu mở / đóng.
+- Nút "Tạo kênh" trong menu mở dialog tạo kênh (`CreateChannelDialog`).
+- Nút "Cài đặt máy chủ" mở modal Cài đặt máy chủ.
+- Nút "Ẩn Các Kênh Bị Tắt Thông Báo" có thể tick/untick checkbox.
+- Tất cả unit tests FE (`npm test -- --watch=false`) và BE (`npm test`) tiếp tục pass 100%.
+- `npm run build` thành công 0 lỗi.
+
+---
+
+### Phase UI-26 — Context Menu khi nhấp chuột phải trong Channel Sidebar (Category & Channel Context Menus)
+
+Status: COMPLETED
+
+> Bổ sung Context Menu khi nhấp chuột phải vào Danh mục/Nhóm kênh (Kênh chữ, Kênh thoại) và Từng hàng kênh (#chung, Kênh thoại).
+> Menu xuất hiện chính xác tại vị trí con trỏ chuột (`clientX, clientY`), hỗ trợ bàn phím (`Shift+F10`), tự động lật hướng nếu gần mép màn hình,
+> có submenu đa cấp cho Tắt âm (thời gian) và Cài đặt thông báo (mức độ), item nguy hiểm màu đỏ ở cuối, và các tính năng khả dụng hoạt động thật (Thu gọn danh mục, Thu gọn tất cả, Sao chép liên kết kênh, Đánh dấu đã đọc, Tạo kênh cùng loại).
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:**
+  - Context menu định vị tại vị trí con trỏ chuột (`position: fixed; left, top`), tự động lật hướng và tránh tràn màn hình (nhờ CDK Overlay / MatMenu).
+  - Phong cách Hybrid (Dark deep-teal / Light warm-cream), bo góc `rounded-lg` (`8px`), viền mờ `border-hairline`, bóng đổ `shadow-modal`.
+  - Icon bên trái `20px` với khoảng cách `margin-right: 12px` chuẩn xác, nhãn chữ rõ ràng, mũi tên submenu `chevron_right` bên phải.
+  - Submenu đa cấp cho:
+    - `Tắt âm`: Lựa chọn 15 phút, 1 giờ, 8 giờ, 24 giờ, Đến khi tôi bật lại.
+    - `Cài đặt thông báo`: Mặc định, Tất cả tin nhắn, Chỉ @mentions, Không có gì.
+  - Mục nguy hiểm (`Xóa kênh`, `Xóa danh mục`) dùng `text-danger` với icon đỏ cảnh báo.
+  - Phím tắt `Shift+F10` / phím Context Menu và phím `Escape` đóng menu hoạt động tự nhiên.
+- **Feature:**
+  - Chuột phải trên tiêu đề nhóm (Kênh chữ, Kênh thoại):
+    - `Đánh dấu đã đọc`: Gọi đánh dấu đã đọc cho tất cả kênh trong nhóm.
+    - `Thu gọn danh mục`: Toggle trạng thái thu gọn với checkbox trực quan.
+    - `Thu gọn tất cả danh mục`: Thu gọn toàn bộ các nhóm kênh trong server.
+    - `Tắt âm danh mục`: Mở submenu chọn thời gian tắt âm.
+    - `Cài đặt thông báo`: Mở submenu chọn mức thông báo.
+    - `Chỉnh sửa danh mục`: Seam (disabled hoặc thông báo nhóm mặc định hệ thống).
+    - `Xóa danh mục`: Seam (disabled hoặc thông báo nhóm mặc định hệ thống).
+  - Chuột phải trên hàng kênh (#chung, voice channel):
+    - `Đánh dấu đã đọc`: Đánh dấu kênh là đã đọc.
+    - `Mời vào kênh`: Seam trigger mở modal mời.
+    - `Ghim kênh lên đầu`: Seam ghim kênh.
+    - `Sao chép liên kết`: Sao chép URL kênh thật vào clipboard (`navigator.clipboard.writeText`) kèm thông báo.
+    - `Tắt âm kênh`: Mở submenu chọn thời gian tắt âm.
+    - `Cài đặt thông báo`: Mở submenu chọn mức thông báo.
+    - `Chỉnh sửa kênh`: Mở modal cài đặt kênh / seam.
+    - `Trùng lặp kênh`: Seam nhân bản kênh.
+    - `Tạo kênh mới cùng loại`: Mở trực tiếp `CreateChannelDialog` với `defaultType` tương ứng.
+    - `Xóa kênh`: Mục nguy hiểm (danger) với seam xác nhận xóa.
+- **Data:**
+  - Ghi nhận rõ: Do backend hiện chưa có bảng `categories` riêng biệt mà nhóm theo `channel.type`, các thao tác chỉnh sửa/xóa category hệ thống sẽ là seam an toàn không phá vỡ schema.
+  - Sao chép liên kết, thu gọn nhóm, tạo kênh cùng loại hoạt động thật trên dữ liệu hiện hành.
+
+#### File thực hiện
+
+- `plans/dashboard.PLAN.md` — ghi nhận kết quả và nghiệm thu phase UI-26.
+- `src/app/layouts/app-layout/components/channel-sidebar/components/channel-list.ts|html|css|spec.ts` — tích hợp context menu cho category header và channel row.
+
+#### Kết quả kiểm thử & Nghiệm thu
+
+- **Frontend Tests:**
+  - `npm test -- --watch=false` trong `nexus-fe`: **42/42 test files passed, 245/245 tests passed (100%)**.
+  - `npm run build` trong `nexus-fe`: **Build production bundle thành công 0 lỗi**.
+- **Đánh giá UI/UX:**
+  - Context menu mở chính xác tại vị trí con trỏ chuột khi nhấp chuột phải trên category header hoặc channel row.
+  - Thiết kế chuẩn Discord với icon 20px, khoảng cách đệm 12px, submenu mượt mà, danger item màu đỏ cảnh báo.
+- **Đánh giá Feature:**
+  - Thu gọn danh mục có checkbox trạng thái, thu gọn tất cả nhóm kênh hoạt động tức thì.
+  - Sao chép liên kết kênh vào clipboard hoạt động chuẩn xác.
+  - Tạo kênh mới cùng loại mở trực tiếp modal `CreateChannelDialog` với đúng channel type.
+  - Click chuột trái bình thường không bị ảnh hưởng.
+- **Đánh giá Data:**
+  - Hoạt động an toàn trên dữ liệu hiện hữu, không sửa đổi schema database hay sinh mã rác.
+
+---
+
+### Phase UI-27 — Tái thiết kế toàn diện hệ thống Drag & Drop và Folder của Server Rail chuẩn 100% Discord
+
+Status: COMPLETED
+
+> Đập bỏ và xây dựng lại toàn bộ cơ chế Drag & Drop và Folder của Server Rail theo đúng 100% tài liệu kỹ thuật chuẩn Discord:
+>
+> 1. Mảng 1 chiều chứa hỗn hợp Server đơn lẻ và Folder theo thứ tự người dùng.
+> 2. Vùng tác động (Hitbox & Drop zones) tính toán chính xác theo tỷ lệ con trỏ chuột:
+>    - 25% trên / 25% dưới: Reorder (hiển thị Drop Line Indicator thanh ngang trắng bo tròn giữa 2 item, không nhảy giật layout).
+>    - 50% trung tâm: Gom nhóm tạo Folder mới (hiển thị highlight aura bao quanh item đích).
+>    - Kéo vào Folder (đóng/mở): Folder đóng có viền highlight nhận item; Folder mở hiển thị drop line chèn vào danh sách con.
+>    - Kéo Server ra ngoài Folder: Hiển thị drop line ở danh sách chính; tự động giải tán Folder khi chỉ còn <= 1 server.
+> 3. Trạng thái hiển thị (UI States):
+>    - Icon 48x48px: Mặc định tròn `50%` (circle), hover chuyển squircle `30%` trong 150ms.
+>    - Folder đóng: Ô vuông bo góc chứa grid 2x2 icon thu nhỏ.
+>    - Folder mở: Khung mở rộng theo chiều dọc với background dạng viên thuốc (Pill shape) màu xám mờ ôm trọn danh sách con.
+>    - Chỉ báo Pill mép trái: Unread (chấm 8px), Hover (vạch 20px), Active (vạch 40px).
+>    - Kéo thả mượt mà: Item gốc mờ 40%, drag preview bám theo chuột với bóng đổ, transition co giãn 200ms-300ms, không lag giật layout khi đang kéo.
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:**
+  - Icon server/folder kích thước cố định 48x48px, circle 50% sang squircle 30% khi hover trong 150ms.
+  - Folder đóng hiển thị 2x2 grid icon thu nhỏ (size 16x16px mỗi ô).
+  - Folder mở hiển thị nền dạng viên nang (Pill background) xám mờ mượt mà ôm trọn danh sách server con.
+  - Thanh chỉ báo mép trái (Pill indicator) 3 trạng thái: Không hiển thị (bình thường), Chấm nhỏ (unread), Vạch dài (hover/active).
+  - Hiệu ứng Drag Preview nổi bám chuột và icon gốc giảm opacity 0.4.
+  - Drop Line Indicator sắc nét dày 2-3px bo tròn 2 đầu xuất hiện giữa khe hở các item.
+- **Feature:**
+  - Sắp xếp thứ tự Server đơn lẻ và Folder trong một mảng thống nhất.
+  - Kéo Server vào 25% trên/dưới item khác $\rightarrow$ Chèn thứ tự trước/sau (Reorder).
+  - Kéo Server vào 50% trung tâm Server khác $\rightarrow$ Tạo Folder mới chứa 2 server.
+  - Kéo Server vào Folder (đóng/mở) $\rightarrow$ Thêm server vào Folder.
+  - Kéo Server từ trong Folder ra ngoài $\rightarrow$ Trả về Server đơn lẻ ngoài rail, tự động xóa Folder nếu chỉ còn $\le 1$ server.
+  - Click mở/đóng Folder với animation chuyển động 200ms.
+- **Data:**
+  - Cấu trúc dữ liệu rail thống nhất: ServerItem & FolderItem.
+  - Tương thích 100% với `ShellData` và API backend hiện tại.
+
+#### File thực hiện
+
+- `plans/dashboard.PLAN.md` — ghi nhận kết quả và nghiệm thu phase UI-27.
+- `src/app/layouts/app-layout/components/server-rail/server-rail.ts|html|css|spec.ts` — tái thiết kế toàn diện logic, template và styling.
+
+#### Kết quả kiểm thử & Nghiệm thu
+
+- **Frontend Tests:**
+  - `npm test -- --watch=false` trong `nexus-fe`: **42/42 test files passed, 250/250 tests passed (100%)**.
+  - `npm run build` trong `nexus-fe`: **Build production bundle thành công 0 lỗi**.
+- **Đánh giá UI/UX:**
+  - Icon 48x48px chuyển từ tròn sang vuông mềm mại (150ms).
+  - Drop line phát sáng xuất hiện chính xác ở khe giữa các item khi hover vào 25% trên/dưới.
+  - Aura viền highlight phát sáng khi hover 50% tâm server hoặc folder.
+  - Folder đóng hiển thị 2x2 grid thu nhỏ; Folder mở hiển thị nền viên thuốc ôm trọn danh sách con.
+- **Đánh giá Feature:**
+  - Toàn bộ cơ chế Drag & Drop và Folder hoạt động chính xác 100% theo đặc tả chuẩn Discord.
+
+### Phase UI-28 — Hiệu chỉnh Server Rail theo video tương tác Discord thực tế
+
+Status: COMPLETED
+
+> Phase này thay thế các giả định chưa đúng trong UI-27 bằng hành vi quan sát trực tiếp từ video
+> Discord do Tài cung cấp ngày 21/08/2026. Chỉ sửa Dashboard server rail và state sắp xếp cục bộ;
+> không đụng Profile, Settings, Auth, backend, database hoặc schema dùng chung.
+
+#### Vấn đề đã xác định
+
+- `pointermove` của server con trong folder mở nổi bọt lên shell folder, khiến drop target con có thể
+  bị target cha ghi đè; reorder trong group vì vậy không ổn định dù unit test gọi handler trực tiếp vẫn pass.
+- Handler drop đang phụ thuộc `dropTarget` cuối cùng và các tham số target của `dropOnServer`,
+  `dropOnGroup`, `dropIntoGroupAt` chưa được dùng, nên `pointerleave` ngay trước lúc thả có thể làm mất intent.
+- `railItems` có cả server và folder nhưng `moveServerOutsideGroups()` lại tính vị trí từ danh sách chỉ
+  có server ngoài nhóm; thả trước/sau folder có thể ra sai vị trí.
+- Folder mới tạo chưa có quy tắc thu gọn ngay và center target chỉ có halo, chưa tạo cảm giác hai server
+  đang nhập thành folder như video Discord.
+- Drop line hiện dày, phát sáng và chiếm chiều cao; video dùng line mảnh, rõ nhưng không chói hoặc làm layout nhảy.
+
+#### Mục tiêu tương tác
+
+- Dùng một rail order thống nhất cho `server` và `folder`, giữ đúng vị trí khi group, reorder, move vào,
+  kéo ra và tự rã folder; không duplicate hoặc đẩy item sai vị trí.
+- Phân biệt ổn định ba intent: khe trên/dưới để reorder, tâm để group, ngoài vỏ folder để ungroup; truyền
+  target cụ thể vào drop handler thay vì chỉ tin pointer state cuối cùng.
+- Folder mới tạo thu gọn với preview 2×2; folder mở là surface dọc liên tục, có header và insertion line
+  đúng index cho server con.
+- Center target có merge preview và nở nhẹ sau dwell ngắn; folder đóng có thể tự mở khi hover-drag đủ lâu.
+- Drag preview 48px, source giữ ghost slot; motion chỉ dùng transform/opacity, có reduced-motion, không neon.
+- Kéo ra ngoài group hiện rail slot rõ; folder còn một server tự rã và giữ vị trí logic giống Discord.
+
+#### File dự kiến
+
+- `src/app/layouts/app-layout/components/server-rail/server-rail.ts|html|css|spec.ts`
+- `src/app/core/api/shell-data.ts|spec.ts` nếu cần chuẩn hóa rail order runtime.
+- Không tạo folder/component/dependency mới; không đổi API hoặc persistence backend.
+
+#### Kiểm chứng bắt buộc
+
+- Test DOM cho event bubbling, stale target sau pointerleave và explicit target drop.
+- Test mixed server/folder order, group mới thu gọn, reorder trong group, ungroup, auto-dissolve, no duplicate.
+- Giữ route, Command Center, Add Server, badge, empty state và demo/live data contract.
+- Chạy target tests, toàn bộ frontend tests và production build; Tài kiểm tra pointer drag trên Chrome.
+
+---
+
+### Phase UI-29 — Giao diện & Kết nối Voice Room WebRTC (LiveKit) chuẩn NexusCord
+
+Status: APPROVED
+
+> Thiết kế và triển khai Voice Room toàn diện thuộc Dashboard: giao diện phòng thoại/video chuẩn sản phẩm thật, có mic, camera, chia sẻ màn hình, danh sách người tham gia và trạng thái kết nối tương tự trải nghiệm Discord nhưng mang ngôn ngữ thiết kế NexusCord Hybrid (deep-teal, brand-green, typography Euclid Circular A/Manrope, WCAG AA, full responsiveness).
+>
+> 1. **Kiến trúc WebRTC & Backend Token:**
+>    - Frontend Angular 21 kết nối media qua `livekit-client`.
+>    - Backend NestJS cấp token bảo mật qua `livekit-server-sdk` tại `POST /api/voice/channels/:channelId/token` (hoặc `POST /api/voice/token`).
+>    - Token xác thực người dùng qua JWT/Supabase, kiểm tra quyền `CONNECT_VOICE` và `SPEAK_VOICE` của channel, không hardcode API secret ở client.
+>    - Tên phòng chuẩn: `nexus:{serverId}:voice:{channelId}`.
+>    - Xử lý mượt mà khi thiếu biến môi trường LiveKit (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`), hiển thị thông báo cấu hình rõ ràng mà không làm crash app.
+> 2. **Trạng thái & Vòng đời Voice Room (State Machine):**
+>    - Quản lý các trạng thái: `idle` | `requesting-permission` | `previewing` | `connecting` | `connected` | `reconnecting` | `disconnected` | `error`.
+>    - Xử lý đầy đủ các ca: Permission denied, no device, device busy, network weak/reconnecting, room full, kick/server disconnect.
+>    - Khi rời phòng (Leave/Disconnect), ngắt kết nối và tắt hoàn toàn local tracks (tắt đèn camera/mic phần cứng).
+> 3. **Bố cục & Giao diện (Layout & UI/UX):**
+>    - **Header:** Icon `volume_up`/`spatial_audio`, tên voice channel, subtitle/status, nút chat drawer, danh sách thành viên, grid/focus mode, fullscreen.
+>    - **Trạng thái chưa tham gia (Unjoined / Voice Empty State):** Không để màn hình trống, hiển thị illustration, tên channel, số người đang trong phòng, mô tả ngắn, nút CTA “Tham gia thoại” và nút phụ “Xem thiết bị” (mở pre-join preview).
+>    - **Pre-join preview:** Camera preview / avatar fallback, chọn microphone/camera/output speaker, audio level test meter trực quan, toggle mic/cam trước khi vào.
+>    - **Connected Stage (Participant Grid):**
+>      - 1 participant: focus tile lớn.
+>      - 2 participants: 2 cột cân bằng.
+>      - 3–4 participants: grid 2×2.
+>      - 5–9 participants: grid 3×3.
+>      - Nhiều hơn: grid responsive / pagination filmstrip.
+>      - Screen share mode: luồng chia sẻ màn hình chiếm stage chính, participants chuyển thành filmstrip ngang/dọc.
+>      - Mỗi Participant Tile: Video stream khi cam bật, Avatar fallback sắc nét khi cam tắt, Display name, Badge "Bạn", icon `mic_off`/`videocam_off`, connection quality indicator, viền speaking màu brand-green dịu khi đang nói, menu tùy chọn khi hover/focus, skeleton loading.
+>    - **Control Bar:** Thanh điều khiển cố định đáy stage gồm: Mic toggle (`mic`/`mic_off`) kèm menu chọn input device/test mic, Camera toggle (`videocam`/`videocam_off`) kèm menu chọn camera, Screen share toggle (`screen_share`/`stop_screen_share`), Nút Mời (`person_add`), Activities placeholder disabled kèm tooltip, Participant list toggle (`group`), Fullscreen toggle (`fullscreen`), Ngắt kết nối (`call_end` màu danger riêng).
+>    - **Channel Sidebar & User Panel Integration:**
+>      - Khi kết nối thoại: Voice channel trên sidebar đổi sang trạng thái connected (icon/chữ brand-green, hiển thị thời lượng cuộc gọi).
+>      - Danh sách thành viên đang ở trong phòng thoại xuất hiện thụt lề ngay dưới voice channel trên sidebar.
+>      - User panel ở đáy sidebar hiển thị "Đã Kết Nối Giọng Nói", tên channel/server, sound wave/ping indicator, nút disconnect nhanh, và thanh quick action toolbar (screen share, video, activity).
+
+#### Mục tiêu theo ba tiêu chí
+
+- **UI/UX:**
+  - Bám sát design system NexusCord Hybrid: Dark mode deep-teal `#001e2b`, `#002634`, `#003d4f`, brand-green `#00ed64` cho speaking/connected/CTA, text ink/slate/steel.
+  - Sử dụng Angular Material wrapper, `mat-icon` (Material Symbols), pill buttons/badges, card bo tròn 12px.
+  - Thiết kế responsive mượt mà trên desktop rộng, laptop nhỏ và mobile/tablet.
+  - Đảm bảo chuẩn WCAG AA, focus-visible, keyboard navigation, tooltip, ARIA labels và tôn trọng `prefers-reduced-motion`.
+- **Feature:**
+  - Kết nối LiveKit WebRTC thật (publish/subscribe audio, video, screen share).
+  - Tự động phát hiện active speaker và hiển thị viền xanh lá.
+  - Chọn và chuyển đổi thiết bị microphone/camera/loa thời gian thực.
+  - Trạng thái Sidebar Voice Channel và User Panel đồng bộ theo phiên gọi.
+- **Data:**
+  - API endpoint NestJS phát token có chữ ký ngắn hạn (TTL), kiểm tra quyền server/channel.
+  - Clean state management với Angular Signals (OnPush).
+  - Không truyền media qua Socket.IO, không ghi rác liên tục vào database.
+
+#### File dự kiến thực hiện
+
+- **Frontend (`nexus-fe`):**
+  - `package.json` — bổ sung dependency `livekit-client`.
+  - `src/app/core/api/voice-api.service.ts|spec.ts` — gọi API lấy LiveKit token.
+  - `src/app/features/voice/services/voice-room.service.ts|spec.ts` — quản lý Room LiveKit, tracks, participants và signals.
+  - `src/app/features/voice/services/media-device.service.ts|spec.ts` — quản lý media permissions, danh sách thiết bị và audio level meter.
+  - `src/app/features/voice/voice-room/voice-room.ts|html|css|spec.ts` — Voice Room controller & layout.
+  - `src/app/features/voice/voice-room/components/voice-prejoin/voice-prejoin.ts|html|css|spec.ts` — Pre-join modal/view.
+  - `src/app/features/voice/voice-room/components/voice-stage/voice-stage.ts|html|css|spec.ts` — Grid layout & Screen share stage.
+  - `src/app/features/voice/voice-room/components/participant-tile/participant-tile.ts|html|css|spec.ts` — Participant tile.
+  - `src/app/features/voice/voice-room/components/voice-controls/voice-controls.ts|html|css|spec.ts` — Fixed bottom control bar.
+  - `src/app/features/voice/voice-room/components/device-menu/device-menu.ts|html|css|spec.ts` — Menu chọn thiết bị mic/camera.
+  - `src/app/features/dashboard/channel/channel.ts|html|css|spec.ts` — nhúng Voice Room vào kênh loại `voice`.
+  - `src/app/layouts/app-layout/components/user-panel/user-panel.ts|html|css|spec.ts` — hiển thị trạng thái thoại đang kết nối.
+  - `src/app/layouts/app-layout/components/channel-sidebar/components/channel-list.ts|html|css|spec.ts` — hiển thị danh sách người trong kênh thoại.
+- **Backend (`nexus-be`):**
+  - `package.json` — bổ sung dependency `livekit-server-sdk`.
+  - `src/modules/voice/voice.module.ts`
+  - `src/modules/voice/voice.controller.ts|spec.ts`
+  - `src/modules/voice/voice.service.ts|spec.ts`
+  - `src/modules/voice/dto/voice-token.dto.ts`
+  - `src/app.module.ts` — import `VoiceModule`.
+
+#### Kiểm chứng & Tiêu chí hoàn thành
+
+- Khởi tạo kênh thoại hiển thị Unjoined Voice Empty State đầy đủ thông tin, không phải trang trống.
+- Bấm "Xem thiết bị" mở Pre-join preview, hiển thị camera preview/avatar fallback và thanh đo âm lượng mic thật.
+- Bấm "Tham gia thoại" xin token LiveKit, chuyển trạng thái `connecting` $\rightarrow$ `connected`.
+- Lưới hiển thị thích ứng đúng số lượng participant (1, 2, 4, 9) và tự chuyển sang stage focus khi có screen share.
+- Bật/tắt mic, camera, chia sẻ màn hình hoạt động chính xác với WebRTC tracks.
+- Sidebar và User Panel hiển thị đúng trạng thái kết nối, thời lượng, và nút ngắt kết nối.
+- Rời phòng dọn dẹp sạch sẽ tracks, tắt đèn mic/cam phần cứng.
+- Toàn bộ unit tests (`npm test`) và build (`npm run build`) trên cả FE và BE đều pass 100%.
+
+---
+
+### Phase UI-30 — Channel Actions Suite: Invite Dialog, Voice Chat Drawer & Channel Settings Modal
+
+Status: APPROVED
+
+> Thiết kế và triển khai trọn bộ giao diện cho 3 nút tùy chọn/tương tác kênh (Text & Voice Channel) trên Sidebar và trong Dashboard theo đúng ảnh thiết kế Discord mẫu nhưng mang ngôn ngữ NexusCord Hybrid (deep-teal, brand-green, typography Euclid/Manrope, WCAG AA):
+>
+> 1. **Nút 1 (`person_add` / Mời vào kênh) — Dialog Mời Bạn Bè (`InviteChannelDialog`):**
+>    - Mở khi bấm nút `person_add` trên thanh kênh (hover), trong context menu hoặc trong Voice Room.
+>    - Header: Tiêu đề `"Mời bạn bè vào [Tên máy chủ]"`, phụ đề `"Người nhận sẽ đến #[Tên kênh]"`, nút đóng 'X'.
+>    - Ô tìm kiếm bạn bè nhanh với icon kính lúp.
+>    - Danh sách bạn bè scrollable: Avatar, tên hiển thị, username, nút "Mời" (bấm đổi sang "Đã gửi").
+>    - Khối liên kết mời ở đáy: Input readonly link `https://nexus.gg/c/[code]`, nút "Sao chép" (đổi sang "Đã sao chép" khi click), ghi chú thời hạn 30 ngày và nút "Chỉnh sửa link mời".
+> 2. **Nút 2 (`chat_bubble_outline` / Mở Trò Chuyện) — Voice Chat Drawer (`VoiceChatDrawer`):**
+>    - Mở khi bấm icon tin nhắn trên kênh thoại hoặc nút chat trong Header kênh thoại.
+>    - Chia đôi màn hình Dashboard:
+>      - Cột chính (trái): Voice Room Stage (phòng thoại, grid, controls).
+>      - Drawer trượt vào (phải, 360px–420px): Khung chat văn bản riêng của kênh thoại.
+>      - Header drawer: `# [Tên kênh thoại]` + nút đóng 'X'.
+>      - Timeline: Tin nhắn mở đầu `"Chào mừng bạn đến với #[Tên kênh thoại]!"` + danh sách tin nhắn.
+>      - Message Composer ở đáy: Input `+ Nhắn [Tên kênh thoại]`, nút emoji, nút gửi.
+> 3. **Nút 3 (`settings` / Chỉnh sửa kênh) — Modal Cài Đặt Kênh (`ChannelSettingsModal`):**
+>    - Mở khi bấm nút bánh răng ⚙️ trên kênh hoặc chọn "Chỉnh sửa kênh" từ Context Menu.
+>    - Bố cục 2 cột toàn màn hình chuẩn NexusCord Settings:
+>      - Sidebar trái (240px): Tiêu đề `# [TÊN_KÊNH] KÊNH CHAT / KÊNH THOẠI`, danh sách tab (Tổng quan, Quyền hạn, Lời mời, Tích hợp), mục Xóa kênh màu đỏ nguy hiểm (`delete`).
+>      - Panel phải (Tab **Tổng quan**):
+>        - 1. **Tên kênh**: Input chỉnh sửa tên kênh.
+>        - 2. **Chủ đề kênh**: Textarea kèm thanh công cụ định dạng mini (B, I, U, S, Eye), bộ đếm ký tự 1024, placeholder: `Hãy hướng dẫn mọi người cách sử dụng kênh này!`.
+>        - 3. **Chế độ chậm (Slowmode)**: Dropdown chọn thời gian (Tắt, 5s, 10s, 15s, 30s, 1m, 2m, 5m, 10m, 15m, 30m, 1h, 2h, 6h) kèm hướng dẫn chi tiết.
+>        - 4. **Độ Hiển Thị Nội Dung**: Radio options (Mặc định / Kênh Nội Dung Ẩn / Kênh giới hạn độ tuổi) kèm mô tả chi tiết.
+>        - 5. **Ẩn sau khi không hoạt động**: Dropdown chọn thời gian (3 Ngày, 1 Giờ, 24 Giờ, 1 Tuần).
+>        - Nút đóng `ESC` ở góc trên bên phải (hỗ trợ phím tắt ESC).
+>        - Thanh thông báo lưu thay đổi ở đáy khi form dirty: "Bạn có thay đổi chưa lưu" + "Đặt lại" + "Lưu thay đổi".
+
+#### File dự kiến thực hiện
+
+- `src/app/layouts/app-layout/components/channel-sidebar/components/invite-channel-dialog/invite-channel-dialog.ts|html|css|spec.ts`
+- `src/app/features/voice/voice-room/components/voice-chat-drawer/voice-chat-drawer.ts|html|css|spec.ts`
+- `src/app/features/settings/modals/channel-settings-modal/channel-settings-modal.ts|html|css|spec.ts`
+- `src/app/layouts/app-layout/components/channel-sidebar/components/channel-list.ts|html|css|spec.ts`
+- `src/app/features/voice/voice-room/voice-room.ts|html|css|spec.ts`
+- `src/app/features/dashboard/channel/channel.ts|html|css|spec.ts`
+
+#### Kiểm chứng & Tiêu chí hoàn thành
+
+- Bấm nút `person_add` mở `InviteChannelDialog`, tìm kiếm bạn bè, bấm Mời, bấm Sao chép liên kết có phản hồi rõ ràng.
+- Kênh thoại: Bấm icon tin nhắn mở `VoiceChatDrawer` chia đôi màn hình cạnh Voice Stage mượt mà, có thể soạn tin và đóng mở drawer.
+- Bấm nút `settings` ⚙️ mở `ChannelSettingsModal` 2 cột, xem và chỉnh sửa Tổng quan (tên kênh, chủ đề kênh, slowmode, độ hiển thị, ẩn không hoạt động), nhấn ESC hoặc nút X để đóng.
+- 100% unit tests frontend (`npm test`) và build (`npm run build`) pass.
+
+---
+
+### Phase UI-31 — Voice Room Discord Parity: Single Header, Stream Viewer UX & Screen Scaling
+
+Status: APPROVED
+
+> Tinh chỉnh và đồng bộ trải nghiệm phòng thoại theo chuẩn Discord thực tế, giải quyết 4 điểm phản hồi từ người dùng:
+>
+> 1. **Loại bỏ Header kép (Single Header):** Ẩn `app-chat-toolbar` khi route đang mở kênh thoại (`type === 'voice'`), để `VoiceRoom` sử dụng một header duy nhất hiển thị trạng thái thoại, thời lượng kết nối, Live WebRTC pill, và 3 nút hành động (Chat, Mời, Cài đặt).
+> 2. **Kích hoạt Mở Trò Chuyện từ Sidebar:** Đồng bộ trạng thái `isChatDrawerOpen` vào `VoiceRoomService` để bấm nút icon tin nhắn trên hàng kênh thoại ở Sidebar sẽ mở ngay Voice Chat Drawer mà không bị trễ.
+> 3. **Nút "Mời vào phòng thoại" ở màn hình một mình:** Kết nối sự kiện `(inviteClicked)` của `app-voice-stage` để mở `InviteChannelDialog` trực tiếp.
+> 4. **Chuẩn hóa Screen Share & Tính năng "Xem Stream" (Watch Stream UX):**
+>    - Khi có người chia sẻ màn hình, ô participant trong lưới hiển thị badge **"TRỰC TIẾP" / "LIVE"** và nút **"Xem Stream"** (không tự động ép phóng to chiếm toàn màn hình khi người dùng chưa chọn xem).
+>    - Khi bấm **"Xem Stream"**: mở giao diện phóng to stream ở sân khấu chính (Stage Focus), có nút **"Thu nhỏ stream"** (quay lại lưới) và **"Toàn màn hình"** (Fullscreen).
+>    - Video screen share áp dụng `object-contain` với tỉ lệ chuẩn ứng dụng gốc (16:9/native scale) trên nền tối, không bị crop hay méo hình.
+
+#### File dự kiến thực hiện
+
+- `src/app/features/dashboard/channel/channel.html`
+- `src/app/features/voice/services/voice-room.service.ts|spec.ts`
+- `src/app/features/voice/voice-room/voice-room.ts|html|css|spec.ts`
+- `src/app/features/voice/voice-room/components/voice-stage/voice-stage.ts|html|css|spec.ts`
+- `src/app/features/voice/voice-room/components/participant-tile/participant-tile.ts|html|css|spec.ts`
+- `src/app/layouts/app-layout/components/channel-sidebar/components/channel-list.ts|html|css|spec.ts`
+
+#### Kiểm chứng & Tiêu chí hoàn thành
+
+- Kênh thoại chỉ có đúng 1 header chuẩn duy nhất, không bị lặp 2 thanh header trên dưới.
+- Bấm icon "Mở trò chuyện" trên Sidebar mở ngay Voice Chat Drawer.
+- Bấm nút "Mời vào phòng thoại" khi ở phòng một mình mở ngay `InviteChannelDialog`.
+- Screen share hiển thị badge LIVE trong lưới, bấm "Xem Stream" phóng to tỉ lệ chuẩn `object-contain`, có nút thu nhỏ quay lại lưới.
+- Toàn bộ unit tests (`npm test`) và build (`npm run build`) đều pass 100%.
+
+---
+### Phase UI-32 — Friends API & dữ liệu kết bạn thật trên Supabase
+
+Status: APPROVED
+
+> **Gate bắt buộc:** Tài đọc toàn bộ phase này trong `plans/dashboard.PLAN.md` rồi tự đổi đúng dòng trên thành `Status: APPROVED`. Chưa có chữ APPROVED thì không được scaffold hoặc sửa code.
+
+#### Mục tiêu
+
+Thay luồng “Thêm bạn” UI preview bằng dữ liệu thật qua Angular → NestJS → Supabase, dùng bảng `public.friendships` đã có trong migration `20260731090400_social_and_settings.sql`. Không tạo bảng `friends` hoặc `friend_requests` mới và không tự thay đổi schema dùng chung.
+
+#### Phạm vi Backend — `src/modules/friends/**`
+
+- Scaffold bằng Nest CLI: module, controller, service và test; gateway realtime để phase sau.
+- Bảo vệ toàn bộ endpoint bằng `SupabaseAuthGuard`; user gửi request luôn lấy từ `@CurrentUser()`, không nhận requester ID từ body.
+- API REST:
+  - `POST /api/friends/requests` — gửi lời mời bằng username.
+  - `GET /api/friends` — danh sách quan hệ `accepted`.
+  - `GET /api/friends/requests` — tách `incoming` và `outgoing`.
+  - `PATCH /api/friends/requests/:userId/accept` — người nhận chấp nhận.
+  - `DELETE /api/friends/requests/:userId` — từ chối hoặc hủy lời mời.
+  - `DELETE /api/friends/:userId` — xóa bạn.
+- Chuẩn hóa cặp UUID thành `user_a_id < user_b_id`; chặn tự kết bạn, request trùng và race condition; map lỗi unique `23505` thành HTTP 409.
+- Query profile theo lô, không N+1; response chỉ trả id, username, tên hiển thị, avatar, presence/status cần cho Dashboard, không trả email/phone/token.
+- Phase này chưa làm block vì schema hiện thiếu `blocked_by`; nếu cần phải lập migration riêng và chờ mentor duyệt.
+
+#### Phạm vi Frontend — `src/app/features/dashboard/friends/**`
+
+- Generate `FriendsApiService`/store đúng cấu trúc Angular hiện có, tái sử dụng form và component Friends hiện tại.
+- `AddFriendForm` emit username; page/store gọi API thật, có pending/success/error rõ ràng và không còn copy “Không có API nào được gọi”.
+- Tab `Tất cả`/“Trực tuyến” đọc danh sách accepted thật; tab `Chờ duyệt` hiển thị incoming/outgoing thật với accept/reject/cancel.
+- Khi demo bật, chỉ dùng ShellData để preview; khi demo tắt, tải API thật. Tuyệt đối không ghi dữ liệu demo xuống Supabase.
+- Friendship và DM là hai dữ liệu khác nhau; không tự tạo conversation khi vừa accept. Chỉ tạo/mở DM khi user bấm “Nhắn tin” ở phase Messages.
+- Không sửa Profile, Settings, Auth, Theme/Atmosphere hoặc feature của member khác.
+
+#### Kiểm chứng và tiêu chí hoàn thành
+
+- **Data:** xác nhận `public.friendships` tồn tại; không migration schema mới; mỗi cặp user chỉ có một dòng ordered; dữ liệu còn sau F5 và đăng nhập lại.
+- **Feature:** dùng hai tài khoản thật A/B kiểm tra gửi → B thấy incoming → B accept → cả hai thấy nhau trong danh sách; kiểm tra từ chối, hủy, xóa bạn, tự kết bạn và request trùng.
+- **UI/UX:** loading/empty/error/success đầy đủ, button pending không gửi hai lần, copy tiếng Việt rõ ràng, WCAG AA và Material icon theo NexusCord Hybrid.
+- **Test BE:** service/controller cover 201/200/204 và 400/401/404/409, Supabase error mapping, không lộ dữ liệu nhạy cảm.
+- **Test FE:** form submit, pending, error, incoming/outgoing, accept/reject/cancel, demo-off dùng API thật.
+- Chạy `npm test` và `npm run build` ở cả nexus-fe và nexus-be; chạy `npm run check:shared` nếu sửa type dùng chung.
+- Không commit/push; Tài tự kiểm tra và commit.
+
 ---
 
 ## Phạm vi

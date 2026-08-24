@@ -389,9 +389,46 @@ html[data-theme='light'] {
 }
 
 /* ===========================================================================
-   NEXUS ATMOSPHERES — chỉ đổi họ neutral bên trong Dashboard
-   Brand green và semantic state tiếp tục lấy từ Hybrid Design System. Mỗi bộ
-   phối có cặp light/dark riêng, nên đổi mode không làm mất lựa chọn không khí.
+   MATERIAL ICONS OPTICAL CENTERING & ALIGNMENT
+   Căn giữa tuyệt đối (horizontal + vertical optical center) cho toàn bộ icon,
+   loại bỏ triệt để hiện tượng lệch baseline / tụt/trụng xuống dưới.
+   ========================================================================== */
+mat-icon,
+.mat-icon,
+.material-icons {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  overflow: hidden !important;
+  user-select: none !important;
+  line-height: 1 !important;
+  letter-spacing: normal !important;
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mat-mdc-icon-button,
+button.mat-mdc-icon-button,
+button[mat-icon-button] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.mat-mdc-icon-button .mat-icon,
+button[mat-icon-button] .mat-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: auto !important;
+  line-height: 1 !important;
+}
+
+/* ===========================================================================
+   DASHBOARD SEMANTIC SURFACES — phân cấp bề mặt dùng chung
+   Các token này giữ độ tương phản nhất quán cho dark/light mà không tạo thêm
+   một hệ chọn palette riêng trong Dashboard.
    ========================================================================== */
 
 .dashboard-shell {
@@ -400,7 +437,11 @@ html[data-theme='light'] {
   --nexus-surface-canvas: var(--color-canvas);
   --nexus-surface-well: color-mix(in srgb, var(--color-surface-soft) 85%, var(--color-canvas));
   --nexus-surface-card: color-mix(in srgb, var(--color-surface-feature) 72%, var(--color-surface));
-  --nexus-surface-input: color-mix(in srgb, var(--color-surface-soft) 90%, var(--color-surface-feature));
+  --nexus-surface-input: color-mix(
+    in srgb,
+    var(--color-surface-soft) 90%,
+    var(--color-surface-feature)
+  );
   --nexus-surface-hover: color-mix(in srgb, var(--color-surface-feature) 88%, var(--color-surface));
   --nexus-surface-selected: var(--color-surface-feature);
   --nexus-surface-overlay: color-mix(in srgb, var(--color-surface) 92%, var(--color-surface-soft));
@@ -409,9 +450,11 @@ html[data-theme='light'] {
   --nexus-border-strong: var(--color-hairline-strong);
   --nexus-border-focus: var(--color-primary-soft);
 
-  --nexus-shadow-card: 0 1px 3px color-mix(in srgb, var(--color-canvas-dark) 20%, transparent),
+  --nexus-shadow-card:
+    0 1px 3px color-mix(in srgb, var(--color-canvas-dark) 20%, transparent),
     0 1px 0 color-mix(in srgb, var(--color-ink) 7%, transparent) inset;
-  --nexus-shadow-hover: 0 2px 8px color-mix(in srgb, var(--color-canvas-dark) 25%, transparent),
+  --nexus-shadow-hover:
+    0 2px 8px color-mix(in srgb, var(--color-canvas-dark) 25%, transparent),
     0 1px 0 color-mix(in srgb, var(--color-ink) 9%, transparent) inset;
 }
 
@@ -431,295 +474,6 @@ html[data-theme='light'] .dashboard-shell {
 
   --nexus-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--color-hairline-soft);
   --nexus-shadow-hover: 0 4px 12px rgba(30, 57, 50, 0.08), 0 0 0 1px var(--color-hairline);
-}
-
-.dashboard-shell[data-atmosphere='sage'] {
-  --color-canvas: #061c1a;
-  --color-canvas-dark: #061c1a;
-  --color-surface: #0d2925;
-  --color-surface-soft: #12332f;
-  --color-surface-feature: #17433b;
-  --color-hairline: #27534b;
-  --color-hairline-soft: #1d453e;
-  --color-hairline-strong: #66827d;
-  --color-hairline-dark: #102d29;
-  --color-ink: #f4fbf7;
-  --color-charcoal: #dce9e2;
-  --color-slate: #b9cbc1;
-  --color-steel: #8ea69a;
-  --color-stone: #789187;
-  --color-muted: #5d756c;
-}
-
-.dashboard-shell[data-atmosphere='apricot'] {
-  --color-canvas: #181625;
-  --color-canvas-dark: #181625;
-  --color-surface: #272032;
-  --color-surface-soft: #32233a;
-  --color-surface-feature: #3d2a42;
-  --color-hairline: #54405b;
-  --color-hairline-soft: #45334d;
-  --color-hairline-strong: #87738d;
-  --color-hairline-dark: #2d2235;
-  --color-ink: #faf7fb;
-  --color-charcoal: #eee8f0;
-  --color-slate: #d0c3d3;
-  --color-steel: #a995ae;
-  --color-stone: #8e7c94;
-  --color-muted: #6e5e76;
-}
-
-.dashboard-shell[data-atmosphere='lilac'] {
-  --color-canvas: #0e0c25;
-  --color-canvas-dark: #0e0c25;
-  --color-surface: #171431;
-  --color-surface-soft: #211b42;
-  --color-surface-feature: #2c2454;
-  --color-hairline: #3d3567;
-  --color-hairline-soft: #302953;
-  --color-hairline-strong: #7f78a2;
-  --color-hairline-dark: #191535;
-  --color-ink: #f7f5ff;
-  --color-charcoal: #e5e0f2;
-  --color-slate: #c5bfd8;
-  --color-steel: #9992b3;
-  --color-stone: #817a9d;
-  --color-muted: #625c7d;
-}
-
-.dashboard-shell[data-atmosphere='lagoon'] {
-  --color-canvas: #031b25;
-  --color-canvas-dark: #031b25;
-  --color-surface: #072731;
-  --color-surface-soft: #0c333b;
-  --color-surface-feature: #11434b;
-  --color-hairline: #20545b;
-  --color-hairline-soft: #17444c;
-  --color-hairline-strong: #67868b;
-  --color-hairline-dark: #092d36;
-  --color-ink: #f3fbfc;
-  --color-charcoal: #dcebee;
-  --color-slate: #b7cdd1;
-  --color-steel: #89a8ad;
-  --color-stone: #729096;
-  --color-muted: #55737a;
-}
-
-.dashboard-shell[data-atmosphere='midnight'] {
-  --color-canvas: #080d26;
-  --color-canvas-dark: #080d26;
-  --color-surface: #101734;
-  --color-surface-soft: #182043;
-  --color-surface-feature: #222c58;
-  --color-hairline: #313b68;
-  --color-hairline-soft: #252e56;
-  --color-hairline-strong: #7079a0;
-  --color-hairline-dark: #121938;
-  --color-ink: #f6f7ff;
-  --color-charcoal: #e2e5f3;
-  --color-slate: #bec4dd;
-  --color-steel: #929ab9;
-  --color-stone: #7b83a4;
-  --color-muted: #5d6688;
-}
-
-html[data-theme='light'] .dashboard-shell[data-atmosphere='sage'] {
-  --color-canvas: #edf3ec;
-  --color-canvas-dark: #183a32;
-  --color-surface: #f7f8f2;
-  --color-surface-soft: #dfeade;
-  --color-surface-feature: #d4e9df;
-  --color-hairline: #c4d4c4;
-  --color-hairline-soft: #d5e2d3;
-  --color-hairline-strong: #7d9482;
-  --color-hairline-dark: #31594d;
-  --color-ink: #13251e;
-  --color-charcoal: #18372c;
-  --color-slate: #435e54;
-  --color-steel: #5f776e;
-  --color-stone: #6e8079;
-  --color-muted: #899a94;
-}
-
-html[data-theme='light'] .dashboard-shell[data-atmosphere='apricot'] {
-  --color-canvas: #f8eee5;
-  --color-canvas-dark: #432d35;
-  --color-surface: #fff8f0;
-  --color-surface-soft: #f2dfd0;
-  --color-surface-feature: #f3e5dc;
-  --color-hairline: #dfcabb;
-  --color-hairline-soft: #ead8ca;
-  --color-hairline-strong: #9c7f6d;
-  --color-hairline-dark: #654751;
-  --color-ink: #2a201c;
-  --color-charcoal: #442f28;
-  --color-slate: #66544e;
-  --color-steel: #7a6963;
-  --color-stone: #887873;
-  --color-muted: #a2928d;
-}
-
-html[data-theme='light'] .dashboard-shell[data-atmosphere='lilac'] {
-  --color-canvas: #f0eff7;
-  --color-canvas-dark: #292743;
-  --color-surface: #f8f7fb;
-  --color-surface-soft: #e4e4f1;
-  --color-surface-feature: #e0e8f1;
-  --color-hairline: #cecfdf;
-  --color-hairline-soft: #dcdeea;
-  --color-hairline-strong: #87899f;
-  --color-hairline-dark: #4b4c68;
-  --color-ink: #22243a;
-  --color-charcoal: #282b45;
-  --color-slate: #50536c;
-  --color-steel: #6c6f84;
-  --color-stone: #7b7d90;
-  --color-muted: #9597a8;
-}
-
-html[data-theme='light'] .dashboard-shell[data-atmosphere='lagoon'] {
-  --color-canvas: #e9f3f2;
-  --color-canvas-dark: #173b3d;
-  --color-surface: #f4f8f6;
-  --color-surface-soft: #d6e8e5;
-  --color-surface-feature: #d2e8e3;
-  --color-hairline: #bfd4d0;
-  --color-hairline-soft: #d0e0dd;
-  --color-hairline-strong: #748e89;
-  --color-hairline-dark: #315b5a;
-  --color-ink: #153131;
-  --color-charcoal: #153c3c;
-  --color-slate: #426160;
-  --color-steel: #607b79;
-  --color-stone: #708a87;
-  --color-muted: #8da29f;
-}
-
-html[data-theme='light'] .dashboard-shell[data-atmosphere='midnight'] {
-  --color-canvas: #edf0f5;
-  --color-canvas-dark: #202b49;
-  --color-surface: #f7f8fa;
-  --color-surface-soft: #dde3ec;
-  --color-surface-feature: #dfe7f0;
-  --color-hairline: #c5ceda;
-  --color-hairline-soft: #d5dce5;
-  --color-hairline-strong: #738196;
-  --color-hairline-dark: #3b4a67;
-  --color-ink: #1d2638;
-  --color-charcoal: #202a42;
-  --color-slate: #4d586f;
-  --color-steel: #6d778a;
-  --color-stone: #7c8597;
-  --color-muted: #969ead;
-}
-
-/* Preview bốn vùng: rail · sidebar · workspace · context panel. */
-.theme-atmosphere-preview[data-atmosphere-preview='hybrid'] {
-  --preview-rail: #001e2b;
-  --preview-sidebar: #002634;
-  --preview-workspace: #001e2b;
-  --preview-panel: #082b38;
-  --preview-hairline: #1c4553;
-  --preview-ink: #ffffff;
-}
-
-.theme-atmosphere-preview[data-atmosphere-preview='sage'] {
-  --preview-rail: #061c1a;
-  --preview-sidebar: #0d2925;
-  --preview-workspace: #061c1a;
-  --preview-panel: #12332f;
-  --preview-hairline: #27534b;
-  --preview-ink: #f4fbf7;
-}
-
-.theme-atmosphere-preview[data-atmosphere-preview='apricot'] {
-  --preview-rail: #181625;
-  --preview-sidebar: #272032;
-  --preview-workspace: #181625;
-  --preview-panel: #32233a;
-  --preview-hairline: #54405b;
-  --preview-ink: #faf7fb;
-}
-
-.theme-atmosphere-preview[data-atmosphere-preview='lilac'] {
-  --preview-rail: #0e0c25;
-  --preview-sidebar: #171431;
-  --preview-workspace: #0e0c25;
-  --preview-panel: #211b42;
-  --preview-hairline: #3d3567;
-  --preview-ink: #f7f5ff;
-}
-
-.theme-atmosphere-preview[data-atmosphere-preview='lagoon'] {
-  --preview-rail: #031b25;
-  --preview-sidebar: #072731;
-  --preview-workspace: #031b25;
-  --preview-panel: #0c333b;
-  --preview-hairline: #20545b;
-  --preview-ink: #f3fbfc;
-}
-
-.theme-atmosphere-preview[data-atmosphere-preview='midnight'] {
-  --preview-rail: #080d26;
-  --preview-sidebar: #101734;
-  --preview-workspace: #080d26;
-  --preview-panel: #182043;
-  --preview-hairline: #313b68;
-  --preview-ink: #f6f7ff;
-}
-
-html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='hybrid'] {
-  --preview-rail: #f2f0eb;
-  --preview-sidebar: #f7f5f0;
-  --preview-workspace: #f2f0eb;
-  --preview-panel: #edebe9;
-  --preview-hairline: #ddd8ce;
-  --preview-ink: rgba(0, 0, 0, 0.87);
-}
-
-html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='sage'] {
-  --preview-rail: #edf3ec;
-  --preview-sidebar: #f7f8f2;
-  --preview-workspace: #edf3ec;
-  --preview-panel: #dfeade;
-  --preview-hairline: #c4d4c4;
-  --preview-ink: #13251e;
-}
-
-html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='apricot'] {
-  --preview-rail: #f8eee5;
-  --preview-sidebar: #fff8f0;
-  --preview-workspace: #f8eee5;
-  --preview-panel: #f2dfd0;
-  --preview-hairline: #dfcabb;
-  --preview-ink: #2a201c;
-}
-
-html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='lilac'] {
-  --preview-rail: #f0eff7;
-  --preview-sidebar: #f8f7fb;
-  --preview-workspace: #f0eff7;
-  --preview-panel: #e4e4f1;
-  --preview-hairline: #cecfdf;
-  --preview-ink: #22243a;
-}
-
-html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='lagoon'] {
-  --preview-rail: #e9f3f2;
-  --preview-sidebar: #f4f8f6;
-  --preview-workspace: #e9f3f2;
-  --preview-panel: #d6e8e5;
-  --preview-hairline: #bfd4d0;
-  --preview-ink: #153131;
-}
-
-html[data-theme='light'] .theme-atmosphere-preview[data-atmosphere-preview='midnight'] {
-  --preview-rail: #edf0f5;
-  --preview-sidebar: #f7f8fa;
-  --preview-workspace: #edf0f5;
-  --preview-panel: #dde3ec;
-  --preview-hairline: #c5ceda;
-  --preview-ink: #1d2638;
 }
 
 /* ===========================================================================
@@ -881,6 +635,13 @@ html {
     0 0 0 1px color-mix(in srgb, var(--color-primary-soft) 18%, transparent);
 }
 
+.nexus-delete-account-dialog .mat-mdc-dialog-surface {
+  overflow: visible;
+  border-radius: var(--radius-xl);
+  background: transparent;
+  box-shadow: none;
+}
+
 html[data-theme='light'] .nexus-add-server-dialog .mat-mdc-dialog-surface {
   border-color: var(--color-hairline);
   background-color: #ffffff;
@@ -923,8 +684,7 @@ html[data-theme='light'] .nexus-add-server-dialog .mat-mdc-dialog-surface {
   border-radius: var(--radius-lg);
   background: var(--color-surface-soft);
   padding: 0.75rem 1rem;
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
   transition:
     background-color var(--motion-fast) var(--ease-nexus-out),
     border-color var(--motion-fast) var(--ease-nexus-out),
@@ -1082,7 +842,8 @@ app-avatar .avatar-fallback {
 
 app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='emerald'] {
   background-color: color-mix(in srgb, var(--color-primary-soft) 22%, var(--nexus-surface-card));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 36%, var(--nexus-border-subtle)) inset;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 36%, var(--nexus-border-subtle))
+    inset;
 }
 
 app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='teal'] {
@@ -1102,7 +863,8 @@ app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='indigo'] {
 
 app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='amber'] {
   background-color: color-mix(in srgb, var(--color-warning) 22%, var(--nexus-surface-card));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-warning) 36%, var(--nexus-border-subtle)) inset;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-warning) 36%, var(--nexus-border-subtle))
+    inset;
 }
 
 app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='rose'] {
@@ -1110,8 +872,12 @@ app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='rose'] {
   box-shadow: 0 0 0 1px color-mix(in srgb, #fb7185 36%, var(--nexus-border-subtle)) inset;
 }
 
-app-dashboard-shell :is(.nexus-nav-item, .friend-row, .context-member):hover app-avatar > span[aria-hidden='true'] {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 42%, var(--nexus-border-subtle)) inset;
+app-dashboard-shell
+  :is(.nexus-nav-item, .friend-row, .context-member):hover
+  app-avatar
+  > span[aria-hidden='true'] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 42%, var(--nexus-border-subtle))
+    inset;
 }
 
 .nexus-nav-item.mat-mdc-list-item {
@@ -1133,7 +899,10 @@ app-dashboard-shell :is(.nexus-nav-item, .friend-row, .context-member):hover app
   display: none;
 }
 
-.nexus-nav-item.mat-mdc-list-item:not([aria-current='page']):not(.mdc-list-item--activated):is(:hover, :focus-visible) {
+.nexus-nav-item.mat-mdc-list-item:not([aria-current='page']):not(.mdc-list-item--activated):is(
+    :hover,
+    :focus-visible
+  ) {
   background-color: var(--nexus-surface-hover);
   border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
   color: var(--color-primary-soft);
@@ -1152,10 +921,15 @@ app-dashboard-shell :is(.nexus-nav-item, .friend-row, .context-member):hover app
   box-shadow: 3px 0 0 var(--color-primary) inset;
 }
 
-.nexus-nav-item.mat-mdc-list-item:is([aria-current='page'], .mdc-list-item--activated):is(:hover, :focus-visible) {
+.nexus-nav-item.mat-mdc-list-item:is([aria-current='page'], .mdc-list-item--activated):is(
+    :hover,
+    :focus-visible
+  ) {
   background-color: color-mix(in srgb, var(--color-primary-soft) 18%, var(--nexus-surface-hover));
   border-color: color-mix(in srgb, var(--color-primary) 75%, transparent);
-  box-shadow: 3px 0 0 var(--color-primary) inset, var(--shadow-glow);
+  box-shadow:
+    3px 0 0 var(--color-primary) inset,
+    var(--shadow-glow);
 }
 
 .nexus-nav-item.mat-mdc-list-item .mdc-list-item__primary-text {
@@ -1167,7 +941,10 @@ app-dashboard-shell :is(.nexus-nav-item, .friend-row, .context-member):hover app
   color: var(--color-slate);
 }
 
-.nexus-nav-item.mat-mdc-list-item:not([aria-current='page']):not(.mdc-list-item--activated):is(:hover, :focus-visible)
+.nexus-nav-item.mat-mdc-list-item:not([aria-current='page']):not(.mdc-list-item--activated):is(
+    :hover,
+    :focus-visible
+  )
   :is(.mat-icon, .mdc-list-item__primary-text, .mdc-list-item__secondary-text) {
   color: var(--color-primary-soft);
 }
@@ -1333,12 +1110,8 @@ app-dashboard-shell :is(.nexus-nav-item, .friend-row, .context-member):hover app
     transform var(--motion-fast) var(--ease-nexus-out);
 }
 
-:is(app-channel-page, app-conversation-page)
-  .message-row:hover
-  .message-actions,
-:is(app-channel-page, app-conversation-page)
-  .message-row:has(:focus-visible)
-  .message-actions {
+:is(app-channel-page, app-conversation-page) .message-row:hover .message-actions,
+:is(app-channel-page, app-conversation-page) .message-row:has(:focus-visible) .message-actions {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
@@ -1800,7 +1573,6 @@ app-server-rail .server-ungroup-zone--active {
   box-shadow: var(--shadow-glow);
 }
 
-
 .nexus-add-server-dialog .command-center__shortcut {
   align-items: center;
   min-height: 1.75rem;
@@ -1933,11 +1705,12 @@ app-server-rail .server-ungroup-zone--active {
     transform var(--motion-fast) var(--ease-nexus-out);
 }
 
-.nexus-add-server-dialog .command-result:is(:hover, :focus-visible, .command-result--active) .command-result__arrow {
+.nexus-add-server-dialog
+  .command-result:is(:hover, :focus-visible, .command-result--active)
+  .command-result__arrow {
   opacity: 1;
   transform: translateX(0);
 }
-
 
 .nexus-add-server-dialog .command-center__footer {
   background: color-mix(in srgb, var(--color-surface-soft) 68%, var(--color-canvas));
@@ -1975,11 +1748,11 @@ app-server-rail .server-ungroup-zone--active {
 
   :is(app-channel-page, app-conversation-page)
     :is(.message-card, .message-actions, .message-row__compact-time),
-  .nexus-add-server-dialog :is(.command-center__search, .command-result, .command-result__arrow, .command-chip) {
+  .nexus-add-server-dialog
+    :is(.command-center__search, .command-result, .command-result__arrow, .command-chip) {
     transition: none;
     transform: none;
   }
-
 
   .nexus-message-reaction-menu .mat-mdc-menu-item.message-reaction-option {
     transition: none;

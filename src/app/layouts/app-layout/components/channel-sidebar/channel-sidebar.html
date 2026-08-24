@@ -1,69 +1,211 @@
 <header class="channel-sidebar__header shrink-0 border-b border-hairline">
   @if (serverId(); as id) {
-    @if (canAccessServerSettings()) {
-      <!-- Full-width unified server header — 1 nút mở dropdown menu server (bao gồm Tổng quan máy chủ) cho Admin/Mod -->
-      <div
-        [matMenuTriggerFor]="serverMenu"
-        class="flex h-12 w-full items-center justify-between px-4 text-left font-bold text-ink hover:bg-surface-feature transition-colors group cursor-pointer shadow-2xs select-none"
-      >
-        <h2 class="truncate text-body-md-medium font-bold text-ink m-0 flex-1">{{ title() }}</h2>
-        <button
-          type="button"
-          matTooltip="Cài đặt máy chủ"
-          class="w-7 h-7 rounded-md text-steel hover:text-ink hover:bg-surface/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-2"
+    <!-- Full-width unified server header — Nút mở dropdown menu server chuẩn phong cách Discord -->
+    <div
+      #serverMenuTrigger="matMenuTrigger"
+      [matMenuTriggerFor]="serverMenu"
+      class="channel-sidebar__server-header flex h-12 w-full items-center justify-between px-4 text-left font-bold text-ink hover:bg-surface-feature transition-colors group cursor-pointer shadow-2xs select-none"
+    >
+      <div class="flex items-center gap-1.5 min-w-0 flex-1">
+        <h2 class="truncate text-body-md font-bold text-ink m-0">{{ title() }}</h2>
+        <mat-icon
+          class="server-header-chevron text-steel group-hover:text-ink"
+          [class.server-header-chevron--open]="serverMenuTrigger.menuOpen || isMenuOpen()"
         >
-          <mat-icon class="!w-5 !h-5 !text-[20px] leading-none group-hover:text-ink transition-colors">
-            expand_more
-          </mat-icon>
-          <span class="sr-only">Cài đặt máy chủ</span>
-        </button>
+          expand_more
+        </mat-icon>
       </div>
 
-      <!-- Server Context Menu -->
-      <mat-menu #serverMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal">
-        @if (canManageOverview()) {
-          <button mat-menu-item type="button" (click)="openServerSettings('server-overview')">
-            <mat-icon>dns</mat-icon>
-            <span>Tổng quan máy chủ</span>
-          </button>
-        }
-        @if (canManageRoles()) {
-          <button mat-menu-item type="button" (click)="openServerSettings('server-roles')">
-            <mat-icon>admin_panel_settings</mat-icon>
-            <span>Vai trò &amp; Phân quyền (Roles)</span>
-          </button>
-        }
-        @if (canManageMembers()) {
-          <button mat-menu-item type="button" (click)="openServerSettings('server-members')">
-            <mat-icon>people</mat-icon>
-            <span>Quản lý thành viên &amp; Ban/Kick</span>
-          </button>
-        }
-        @if (canManageSafety()) {
-          <button mat-menu-item type="button" (click)="openServerSettings('server-safety')">
-            <mat-icon>gavel</mat-icon>
-            <span>Bảo mật &amp; Phê duyệt người mới</span>
-          </button>
-        }
-        @if (canViewAuditLog()) {
-          <button mat-menu-item type="button" (click)="openServerSettings('server-audit-log')">
-            <mat-icon>receipt_long</mat-icon>
-            <span>Nhật ký kiểm toán (Audit Log)</span>
-          </button>
-        }
+      <!-- Nút tạo lời mời nhanh ở góc phải (Discord style) -->
+      <button
+        type="button"
+        (click)="onInviteServer($event)"
+        matTooltip="Tạo lời mời"
+        aria-label="Tạo lời mời vào máy chủ"
+        class="server-header-invite-btn size-7 rounded-md text-steel hover:text-ink hover:bg-surface/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-2"
+      >
+        <mat-icon class="!size-4.5 !text-lg leading-none">person_add</mat-icon>
+      </button>
+    </div>
 
-        <div class="my-1 border-t border-hairline"></div>
-        <button mat-menu-item type="button" class="text-danger">
-          <mat-icon class="!text-danger">logout</mat-icon>
-          <span class="text-danger font-semibold">Rời khỏi máy chủ</span>
+    <!-- Server Context Menu: compact and aligned on a shared three-column grid. -->
+    <mat-menu
+      #serverMenu="matMenu"
+      (menuOpened)="onMenuOpened()"
+      (menuClosed)="onMenuClosed()"
+      class="nexus-server-menu"
+    >
+      <!-- Nhóm 1: Nâng cấp máy chủ -->
+      <button
+        mat-menu-item
+        type="button"
+        (click)="onServerOption('boost')"
+        class="server-menu-item server-menu-item--boost"
+      >
+        <mat-icon class="server-menu-icon text-steel">auto_awesome</mat-icon>
+        <div class="server-menu-label-box">
+          <span class="server-menu-label font-semibold text-ink">Nâng cấp máy chủ</span>
+        </div>
+      </button>
+
+      <div class="server-menu-divider" role="separator"></div>
+
+      <!-- Nhóm 2: Quản trị & Hành động -->
+      <button
+        mat-menu-item
+        type="button"
+        (click)="onInviteServer($event)"
+        class="server-menu-item server-menu-item--invite"
+      >
+        <mat-icon class="server-menu-icon text-primary">person_add</mat-icon>
+        <div class="server-menu-label-box">
+          <span class="server-menu-label font-semibold text-primary">Mời vào máy chủ</span>
+        </div>
+      </button>
+
+      @if (canAccessServerSettings()) {
+        <button
+          mat-menu-item
+          type="button"
+          (click)="openServerSettings('server-overview')"
+          class="server-menu-item"
+        >
+          <mat-icon class="server-menu-icon text-steel">settings</mat-icon>
+          <div class="server-menu-label-box">
+            <span class="server-menu-label text-ink">Cài đặt máy chủ</span>
+          </div>
         </button>
-      </mat-menu>
-    } @else {
-      <!-- Non-admin member header: Plain title without gear or dropdown chevron -->
-      <div class="flex h-12 w-full items-center px-4 text-left font-bold text-ink shadow-2xs select-none">
-        <h2 class="truncate text-body-md-medium font-bold text-ink m-0 flex-1">{{ title() }}</h2>
-      </div>
-    }
+
+        <button
+          mat-menu-item
+          type="button"
+          (click)="openCreateChannelDialog()"
+          class="server-menu-item"
+        >
+          <mat-icon class="server-menu-icon text-steel">add_circle</mat-icon>
+          <div class="server-menu-label-box">
+            <span class="server-menu-label text-ink">Tạo kênh</span>
+          </div>
+        </button>
+
+        <button
+          mat-menu-item
+          type="button"
+          (click)="onServerOption('create-category')"
+          class="server-menu-item"
+        >
+          <mat-icon class="server-menu-icon text-steel">create_new_folder</mat-icon>
+          <div class="server-menu-label-box">
+            <span class="server-menu-label text-ink">Tạo danh mục</span>
+          </div>
+        </button>
+
+        <button
+          mat-menu-item
+          type="button"
+          (click)="onServerOption('create-event')"
+          class="server-menu-item"
+        >
+          <mat-icon class="server-menu-icon text-steel">calendar_today</mat-icon>
+          <div class="server-menu-label-box">
+            <span class="server-menu-label text-ink">Tạo sự kiện</span>
+          </div>
+        </button>
+
+        <button
+          mat-menu-item
+          type="button"
+          (click)="onServerOption('app-directory')"
+          class="server-menu-item"
+        >
+          <mat-icon class="server-menu-icon text-steel">apps</mat-icon>
+          <div class="server-menu-label-box">
+            <span class="server-menu-label text-ink">Thư mục ứng dụng</span>
+          </div>
+        </button>
+      }
+
+      <div class="server-menu-divider" role="separator"></div>
+
+      <!-- Nhóm 3: Thông báo & Bảo mật -->
+      <button
+        mat-menu-item
+        type="button"
+        (click)="onServerOption('notifications')"
+        class="server-menu-item"
+      >
+        <mat-icon class="server-menu-icon text-steel">notifications</mat-icon>
+        <div class="server-menu-label-box">
+          <span class="server-menu-label text-ink">Cài đặt thông báo</span>
+        </div>
+      </button>
+
+      <button
+        mat-menu-item
+        type="button"
+        (click)="onServerOption('privacy')"
+        class="server-menu-item"
+      >
+        <mat-icon class="server-menu-icon text-steel">security</mat-icon>
+        <div class="server-menu-label-box">
+          <span class="server-menu-label text-ink">Cài đặt bảo mật</span>
+        </div>
+      </button>
+
+      <div class="server-menu-divider" role="separator"></div>
+
+      <!-- Nhóm 4: Hồ sơ & Hiển thị -->
+      <button
+        mat-menu-item
+        type="button"
+        (click)="onServerOption('edit-server-profile')"
+        class="server-menu-item"
+      >
+        <mat-icon class="server-menu-icon text-steel">edit</mat-icon>
+        <div class="server-menu-label-box">
+          <span class="server-menu-label text-ink">Chỉnh sửa hồ sơ theo máy chủ</span>
+        </div>
+      </button>
+
+      <button
+        mat-menu-item
+        type="button"
+        (click)="toggleHideMutedChannels($event)"
+        class="server-menu-item server-menu-item--checkbox"
+      >
+        <mat-icon class="server-menu-icon text-steel">visibility_off</mat-icon>
+        <div class="server-menu-label-box">
+          <span class="server-menu-label text-ink">Ẩn các kênh đã tắt thông báo</span>
+        </div>
+        <div
+          class="menu-checkbox"
+          aria-hidden="true"
+          [class.menu-checkbox--checked]="hideMutedChannels()"
+        >
+          @if (hideMutedChannels()) {
+            <mat-icon class="!size-3 !text-xs !text-on-primary">check</mat-icon>
+          }
+        </div>
+      </button>
+
+      <div class="server-menu-divider" role="separator"></div>
+
+      <!-- Nhóm 5: Rời khỏi máy chủ -->
+      <button
+        mat-menu-item
+        type="button"
+        (click)="onServerOption('leave-server')"
+        class="server-menu-item server-menu-item--danger"
+      >
+        <mat-icon class="server-menu-icon !text-danger">logout</mat-icon>
+        <div class="server-menu-label-box">
+          <span class="server-menu-label font-semibold text-danger">Rời khỏi máy chủ</span>
+        </div>
+      </button>
+    </mat-menu>
+    <div class="flex h-12 w-full items-center px-4 text-left font-bold text-ink shadow-2xs select-none">
+      <h2 class="m-0 flex-1 truncate text-body-md-medium font-bold text-ink">{{ title() }}</h2>
+    </div>
   } @else {
     <div class="p-2.5">
       <app-search-field
@@ -74,7 +216,6 @@
     </div>
   }
 </header>
-
 
 <nav class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-2 py-2" [attr.aria-label]="title()">
   @if (serverId(); as id) {

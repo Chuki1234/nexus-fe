@@ -1,8 +1,27 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { ProfilesApiService } from '../../../../core/api/profiles-api.service';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
+import { ProfileStore } from '../../../../features/profile/profile-store';
+import type { OwnProfile } from '../../../../../shared';
 import { UserPanel } from './user-panel';
+
+const OWN_PROFILE: OwnProfile = {
+  id: 'u1',
+  username: 'minhtai',
+  displayName: 'Minh Tài',
+  avatarUrl: 'https://x/avatar.webp',
+  bannerUrl: null,
+  statusMessage: null,
+  bio: null,
+  location: null,
+  links: [],
+  accentColor: null,
+  createdAt: '2026-03-15T00:00:00.000Z',
+  isSelf: true,
+  birthdate: '2001-11-03',
+};
 
 class AuthStub {
   signOut = () => Promise.resolve();
@@ -18,6 +37,10 @@ describe('UserPanel', () => {
         provideRouter([]),
         { provide: AuthService, useValue: new AuthStub() },
         { provide: ProfileService, useValue: profile },
+        {
+          provide: ProfilesApiService,
+          useValue: { getOwn: () => Promise.resolve(OWN_PROFILE) },
+        },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(UserPanel);
@@ -105,6 +128,60 @@ describe('UserPanel', () => {
     expect(identity).toBeTruthy();
     expect(identity.textContent).toContain('Nguyễn Minh Tài');
     expect(controlGroup.getAttribute('aria-label')).toBe('Điều khiển âm thanh và ứng dụng');
+  });
+
+  /**
+   * Bấm vào avatar của CHÍNH MÌNH trước đây chỉ ra một menu hai lệnh xoá tài
+   * khoản / đăng xuất. Giờ phải là thẻ hồ sơ nhỏ, còn hai lệnh kia lùi xuống
+   * làm hành động phụ trong thẻ.
+   */
+  it('bấm khối danh tính bung thẻ hồ sơ nhỏ, không phải menu', async () => {
+    const fixture = await mount();
+    TestBed.inject(ProfileStore).set(OWN_PROFILE);
+
+    (fixture.nativeElement.querySelector('button.user-panel__identity') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Thẻ nổi nằm trong overlay container của CDK, không nằm trong host.
+    const card = document.querySelector('app-profile-popover');
+    expect(card).toBeTruthy();
+    expect(document.querySelector('.mat-mdc-menu-panel')).toBeNull();
+
+    const text = card?.textContent ?? '';
+    expect(text).toContain('Minh Tài');
+    expect(text).toContain('@minhtai');
+    expect(text).toContain('Xem hồ sơ đầy đủ');
+  });
+
+  /**
+   * Cài đặt đã có nút bánh răng ngay cạnh; Đăng xuất và Xóa tài khoản nằm trong
+   * màn Cài đặt. Nhắc lại ở thẻ hồ sơ chỉ làm nó trông như một menu thoát.
+   */
+  it('thẻ hồ sơ không nhắc lại cài đặt, đăng xuất hay xóa tài khoản', async () => {
+    const fixture = await mount();
+    TestBed.inject(ProfileStore).set(OWN_PROFILE);
+
+    (fixture.nativeElement.querySelector('button.user-panel__identity') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = document.querySelector('app-profile-popover')?.textContent ?? '';
+    expect(text).not.toContain('Đăng xuất');
+    expect(text).not.toContain('Xóa tài khoản');
+  });
+
+  it('avatar ở thanh đáy dùng ảnh thật chứ không rơi về chữ cái', async () => {
+    const fixture = await mount();
+    TestBed.inject(ProfileStore).set(OWN_PROFILE);
+    fixture.detectChanges();
+
+    const img = fixture.nativeElement.querySelector(
+      'button.user-panel__identity app-avatar img',
+    ) as HTMLImageElement | null;
+    expect(img?.getAttribute('src')).toBe('https://x/avatar.webp');
   });
 
   /**

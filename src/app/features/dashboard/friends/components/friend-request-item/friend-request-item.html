@@ -1,7 +1,10 @@
-<article class="friend-row nexus-interactive-row group flex min-h-16 items-center gap-3 rounded-xl px-3.5 py-2.5">
-  <app-profile-avatar
-    [username]="person().id"
+<article
+  class="friend-row nexus-interactive-row group flex min-h-16 items-center gap-3 rounded-xl px-3.5 py-2.5"
+  [attr.aria-busy]="busy()"
+>
+  <app-avatar
     [name]="person().name"
+    [src]="person().avatarUrl ?? null"
     [presence]="person().presence"
     size="lg"
     ring="canvas"
@@ -12,30 +15,42 @@
       class="block truncate text-body-sm-medium text-ink transition-colors group-hover:text-primary-soft group-focus-within:text-primary-soft"
     >
       {{ person().name }}
+      <small class="ml-1 text-caption text-steel">@{{ person().username }}</small>
     </span>
     <span class="block truncate text-caption text-slate">
-      {{ person().statusMessage ?? 'Đã gửi một lời mời kết bạn' }}
+      {{
+        person().direction === 'incoming'
+          ? 'Đã gửi cho bạn một lời mời kết bạn'
+          : 'Đang chờ người này phản hồi'
+      }}
     </span>
   </span>
 
   <span class="flex shrink-0 items-center gap-1">
+    @if (person().direction === 'incoming') {
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control"
+        [disabled]="busy()"
+        (click)="accepted.emit(person().id)"
+        [attr.aria-label]="'Chấp nhận lời mời của ' + person().name"
+        matTooltip="Chấp nhận"
+      >
+        <mat-icon aria-hidden="true">{{ busy() ? 'hourglass_top' : 'check' }}</mat-icon>
+      </button>
+    }
     <button
       mat-icon-button
       type="button"
       class="nexus-icon-control"
-      (click)="accepted.emit(person().id)"
-      [attr.aria-label]="'Chấp nhận lời mời của ' + person().name"
-      matTooltip="Chấp nhận"
-    >
-      <mat-icon aria-hidden="true">check</mat-icon>
-    </button>
-    <button
-      mat-icon-button
-      type="button"
-      class="nexus-icon-control"
+      [disabled]="busy()"
       (click)="dismissed.emit(person().id)"
-      [attr.aria-label]="'Từ chối lời mời của ' + person().name"
-      matTooltip="Từ chối"
+      [attr.aria-label]="
+        (person().direction === 'incoming' ? 'Từ chối lời mời của ' : 'Hủy lời mời tới ') +
+        person().name
+      "
+      [matTooltip]="person().direction === 'incoming' ? 'Từ chối' : 'Hủy lời mời'"
     >
       <mat-icon aria-hidden="true">close</mat-icon>
     </button>

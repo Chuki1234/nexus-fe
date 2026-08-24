@@ -1,0 +1,170 @@
+<div class="flex h-dvh min-w-0 flex-1 flex-col bg-canvas">
+  <!-- ══ Đầu trang ══ -->
+  <header class="flex shrink-0 items-center gap-3 border-b border-hairline px-4 py-3">
+    @if (isDirectMessage()) {
+      @if (partner(); as partner) {
+        <button
+          type="button"
+          (click)="openCard(partner, $event)"
+          class="flex min-w-0 items-center gap-3 rounded-sm"
+        >
+          <app-avatar [src]="null" [name]="partner.displayName" size="sm" />
+          <h1 class="min-w-0 truncate text-body-md-strong text-ink-strong">{{ title() }}</h1>
+          <span class="shrink-0 text-caption text-mute">&commat;{{ partner.username }}</span>
+        </button>
+      }
+    } @else {
+      <span aria-hidden="true" class="shrink-0 text-display-sm text-mute">#</span>
+      <h1 class="shrink-0 text-body-md-strong text-ink-strong">{{ title() }}</h1>
+      @if (topic(); as topic) {
+        <span aria-hidden="true" class="h-5 w-px shrink-0 bg-hairline"></span>
+        <p class="min-w-0 truncate text-body-sm text-mute">{{ topic }}</p>
+      }
+      @if (channel(); as channel) {
+        <a
+          [routerLink]="['/settings/channel', channel.id, 'overview']"
+          class="ml-auto shrink-0 rounded-sm px-3 py-1 text-body-sm text-body hover:text-ink"
+        >
+          Cài đặt kênh
+        </a>
+      }
+    }
+  </header>
+
+  <!-- ══ Danh sách tin ══
+       flex-col-reverse: nội dung mới nhất dính đáy và khung tự cuộn xuống cuối
+       khi mở lên, không cần chạm tới scrollTop bằng JavaScript. -->
+  <div class="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto">
+    <ol class="flex flex-col gap-0.5 px-4 py-4">
+      @for (row of rows(); track row.id) {
+        <li class="flex gap-3" [class.mt-4]="!row.grouped">
+          <!-- Chỗ giữ avatar rộng bằng avatar để tin gộp thẳng hàng với tin đầu. -->
+          <div class="w-10 shrink-0">
+            @if (!row.grouped) {
+              @if (row.author; as author) {
+                <button type="button" (click)="openCard(author, $event)" class="rounded-full">
+                  <app-avatar [src]="null" [name]="author.displayName" size="sm" />
+                  <span class="sr-only">Xem hồ sơ của {{ author.displayName }}</span>
+                </button>
+              } @else {
+                <app-avatar [src]="null" [name]="'Bạn'" size="sm" />
+              }
+            }
+          </div>
+
+          <div class="min-w-0 flex-1">
+            @if (!row.grouped) {
+              <p class="flex items-baseline gap-2">
+                @if (row.author; as author) {
+                  <button
+                    type="button"
+                    (click)="openCard(author, $event)"
+                    class="rounded-xs text-body-sm-strong hover:underline"
+                    [style.color]="author.color"
+                    [class.text-ink]="!author.color"
+                  >
+                    {{ author.displayName }}
+                  </button>
+                } @else {
+                  <span class="text-body-sm-strong text-ink">Bạn</span>
+                }
+                <span class="text-caption text-mute">{{ row.time }}</span>
+              </p>
+            }
+            <p class="whitespace-pre-line text-body-md text-body">{{ row.body }}</p>
+          </div>
+        </li>
+      } @empty {
+        <li class="py-12 text-center">
+          <p class="text-body-md text-mute">Chưa có tin nhắn nào ở đây.</p>
+          <p class="mt-1 text-body-sm text-mute">Gõ gì đó bên dưới để mở đầu.</p>
+        </li>
+      }
+    </ol>
+  </div>
+
+  <!-- ══ Ô soạn tin ══ -->
+  <div class="shrink-0 px-4 pb-4">
+    <form
+      (ngSubmit)="onSend()"
+      class="flex items-end gap-2 rounded-md border border-hairline-strong bg-canvas-soft px-3 py-2 focus-within:border-primary"
+    >
+      <label for="composer" class="sr-only">
+        Nhắn tin tới {{ isDirectMessage() ? title() : '#' + title() }}
+      </label>
+      <textarea
+        id="composer"
+        rows="1"
+        [formControl]="draft"
+        (keydown)="onKeydown($event)"
+        [placeholder]="'Nhắn ' + (isDirectMessage() ? title() : '#' + title())"
+        class="max-h-40 min-h-6 w-full resize-none bg-transparent py-1 text-body-md text-ink placeholder:text-mute focus:outline-none"
+      ></textarea>
+
+      <button
+        type="submit"
+        [disabled]="!draft.value.trim()"
+        class="shrink-0 rounded-sm bg-primary px-4 py-2 text-button text-on-primary hover:bg-primary-soft disabled:cursor-not-allowed disabled:bg-hairline disabled:text-mute"
+      >
+        Gửi
+      </button>
+    </form>
+    <p class="mt-1 text-caption text-mute">
+      Enter để gửi, Shift+Enter để xuống dòng. Bản mẫu — tin chỉ hiện trên máy bạn.
+    </p>
+  </div>
+</div>
+
+<!-- ══ Danh sách thành viên — chỉ có ở kênh máy chủ ══ -->
+@if (!isDirectMessage()) {
+  <aside
+    aria-label="Thành viên"
+    class="hidden h-dvh w-60 shrink-0 overflow-y-auto border-l border-hairline bg-canvas-soft px-3 py-4 xl:block"
+  >
+    <h2 class="px-2 text-caption-strong text-mute uppercase">Thành viên — {{ members.length }}</h2>
+    <ul class="mt-3 flex flex-col gap-1">
+      @for (member of members; track member.id) {
+        <li>
+          <!-- Bấm mở thẻ hồ sơ chứ không điều hướng thẳng — giống Discord, và
+               trong thẻ vẫn có nút sang trang hồ sơ đầy đủ. -->
+          <button
+            type="button"
+            (click)="openCard(member, $event)"
+            class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-canvas"
+          >
+            <span class="relative shrink-0">
+              <app-avatar [src]="null" [name]="member.displayName" size="sm" />
+              <app-presence-dot
+                [status]="member.status"
+                ringClass="border-canvas-soft"
+                class="absolute right-0 bottom-0"
+              />
+            </span>
+            <span class="min-w-0">
+              <span
+                class="block truncate text-body-sm"
+                [style.color]="member.color"
+                [class.text-ink]="!member.color"
+              >
+                {{ member.displayName }}
+              </span>
+              <span class="block truncate text-caption text-mute">{{ member.roleName }}</span>
+            </span>
+          </button>
+        </li>
+      }
+    </ul>
+  </aside>
+}
+
+<!-- ══ Hồ sơ người đang nhắn riêng — cạnh khung chat ══
+     Chiếm đúng chỗ mà danh sách thành viên chiếm ở kênh máy chủ: hai thứ không
+     bao giờ cùng xuất hiện, nên bố cục không nhảy khi chuyển qua lại. -->
+@if (isDirectMessage() && partner(); as partner) {
+  <aside
+    [attr.aria-label]="'Hồ sơ của ' + partner.displayName"
+    class="hidden h-dvh w-72 shrink-0 overflow-y-auto border-l border-hairline bg-canvas lg:block"
+  >
+    <app-profile-body [member]="partner" />
+  </aside>
+}

@@ -1,0 +1,78 @@
+<!-- Header -->
+<header class="flex h-14 shrink-0 items-center justify-between border-b border-hairline/60 bg-surface/90 px-4">
+  <div class="flex items-center gap-2 min-w-0">
+    <mat-icon class="!size-5 !text-xl text-steel">chat_bubble_outline</mat-icon>
+    <h3 class="truncate text-body-sm-medium font-bold text-ink">#{{ channel().name }}</h3>
+  </div>
+
+  <button
+    type="button"
+    (click)="closed.emit()"
+    aria-label="Đóng trò chuyện thoại"
+    matTooltip="Đóng"
+    class="flex size-8 items-center justify-center rounded-lg text-steel hover:bg-surface-feature hover:text-ink transition-colors cursor-pointer"
+  >
+    <mat-icon class="!size-5 !text-xl">close</mat-icon>
+  </button>
+</header>
+
+<!-- Message Timeline -->
+<div #messageListContainer class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-4">
+  <!-- Intro Hero -->
+  <div class="intro-card flex flex-col items-start gap-3 rounded-2xl bg-surface-feature/40 p-4 border border-hairline/40">
+    <div class="flex size-10 items-center justify-center rounded-xl bg-surface-feature text-primary">
+      <mat-icon class="!size-6 !text-2xl">chat</mat-icon>
+    </div>
+    <div>
+      <h4 class="text-heading-5 font-bold text-ink">Chào mừng bạn đến với #{{ channel().name }}!</h4>
+      <p class="mt-1 text-body-sm text-steel">Đây là sự khởi đầu của kênh {{ channel().name }}.</p>
+    </div>
+  </div>
+
+  <!-- Messages List -->
+  <div class="flex flex-col gap-3">
+    @for (msg of messages(); track msg.id) {
+      <div class="flex items-start gap-3 rounded-xl p-1.5 hover:bg-surface-feature/30 transition-colors">
+        <app-avatar [name]="msg.author" size="sm" presence="online" ring="surface" />
+        <div class="min-w-0 flex-1">
+          <div class="flex items-baseline gap-2">
+            <strong class="text-body-sm-medium text-ink font-semibold">{{ msg.author }}</strong>
+            <span class="text-micro text-stone">{{ msg.time }}</span>
+          </div>
+          <p class="mt-0.5 text-body-sm text-slate select-text">{{ msg.content }}</p>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Composer -->
+<footer class="p-3 border-t border-hairline/60 bg-surface">
+  <div class="relative flex items-center rounded-2xl bg-canvas border border-hairline px-3 py-2 focus-within:border-primary">
+    <button
+      type="button"
+      class="text-steel hover:text-ink mr-2 flex items-center justify-center"
+      aria-label="Thêm tệp"
+    >
+      <mat-icon class="!size-5 !text-xl">add_circle</mat-icon>
+    </button>
+
+    <input
+      type="text"
+      [(ngModel)]="messageText"
+      (keydown)="onKeyDown($event)"
+      [placeholder]="'+ Nhắn #' + channel().name"
+      class="w-full bg-transparent text-body-sm text-ink placeholder:text-stone outline-none"
+    />
+
+    <button
+      type="button"
+      (click)="sendMessage()"
+      [disabled]="!messageText().trim()"
+      class="ml-2 flex size-7 items-center justify-center rounded-lg text-primary disabled:text-stone hover:bg-primary/10 transition-colors cursor-pointer"
+      aria-label="Gửi tin nhắn"
+    >
+      <mat-icon class="!size-5 !text-xl">send</mat-icon>
+    </button>
+  </div>
+</footer>

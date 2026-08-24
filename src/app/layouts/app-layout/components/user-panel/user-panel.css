@@ -92,11 +92,6 @@
   flex: 0 0 auto;
   align-items: center;
   gap: 0.125rem;
-  border-radius: var(--radius-lg);
-  padding: 0.125rem;
-  background: var(--nexus-surface-well);
-  border: 1px solid var(--nexus-border-subtle);
-  box-shadow: var(--shadow-glow);
 }
 
 .user-panel__control {
@@ -106,7 +101,7 @@
   flex: 0 0 2.25rem;
   place-items: center;
   padding: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
 
   --mat-icon-button-icon-size: 1.25rem;
   --mat-icon-button-state-layer-size: 2.25rem;
@@ -114,21 +109,23 @@
 }
 
 .user-panel__control .mat-icon {
-  display: grid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 1.25rem;
   height: 1.25rem;
-  place-items: center;
   font-size: 1.25rem;
   line-height: 1;
+  margin: auto;
 }
 
-/* Glyph mic và headset có trọng tâm thị giác lệch nhẹ dù cùng hộp 20px. */
+/* Chuẩn hóa vi chỉnh quang học cho các glyph */
 .user-panel__control--mic .mat-icon {
-  transform: translateY(-0.03125rem);
+  transform: translateY(-0.02rem);
 }
 
 .user-panel__control--deafen .mat-icon {
-  transform: translateY(0.03125rem);
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

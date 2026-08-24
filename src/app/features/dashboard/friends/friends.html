@@ -1,11 +1,10 @@
 <app-friends-toolbar
   [(tab)]="tab"
-  [(theme)]="theme"
+  [theme]="theme()"
+  (themeChange)="onThemeChange($event)"
   [activityOpen]="activityExpanded()"
-  [atmosphereOpen]="atmosphereExpanded()"
   [demoEnabled]="demoEnabled()"
   (toggleActivity)="toggleActivity()"
-  (toggleAtmosphere)="toggleAtmosphere()"
   (toggleDemo)="toggleDemoData()"
 />
 
@@ -27,76 +26,131 @@
       aria-live="polite"
     >
       <section class="friends-content mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
-        @if (tab() === 'online' || tab() === 'all') {
-          <app-search-field placeholder="Tìm kiếm bạn bè" [(value)]="query" />
-
-          @if (visible().length > 0) {
-            <app-section-label class="mt-6 block" [text]="sectionLabel()" />
-
-            <div class="friends-list-well mt-3 rounded-2xl p-2">
-              <ul class="flex flex-col gap-2" aria-label="Danh sách bạn bè">
-                @for (person of visible(); track person.id) {
-                  <li><app-friend-row [person]="person" /></li>
-                }
-              </ul>
-            </div>
-          } @else if (query()) {
-            <app-empty-state
-              class="mt-6 flex min-h-0 flex-1"
-              icon="person_search"
-              title="Không tìm thấy người phù hợp"
-              [message]="'Không có ai khớp với “' + query() + '”.'"
-            />
-          } @else {
-            <app-empty-state
-              class="mt-6 flex min-h-0 flex-1"
-              icon="group_off"
-              title="Danh sách đang trống"
-              message="Hãy thêm bạn để bắt đầu trò chuyện trên NexusCord."
-            />
-          }
-        } @else if (tab() === 'pending') {
-          <app-section-label [text]="'Chờ duyệt — ' + pendingRequests().length" />
-
-          @if (pendingRequests().length > 0) {
-            <div class="friends-list-well mt-3 rounded-2xl p-2">
-              <ul class="flex flex-col gap-2" aria-label="Lời mời kết bạn đang chờ">
-                @for (request of pendingRequests(); track request.id) {
-                  <li>
-                    <app-friend-request-item
-                      [person]="request"
-                      (accepted)="removeRequest($event)"
-                      (dismissed)="removeRequest($event)"
-                    />
-                  </li>
-                }
-              </ul>
-            </div>
-          } @else {
-            <app-empty-state
-              class="mt-6 flex min-h-0 flex-1"
-              icon="mark_email_read"
-              title="Đã xử lý hết"
-              message="Bạn không còn lời mời kết bạn nào đang chờ."
-            />
-          }
+        @if (!demoEnabled() && friendsLoading()) {
+          <app-dashboard-state class="flex min-h-80" state="loading" layout="list" />
         } @else {
-          <app-add-friend-form />
+          @if (!demoEnabled() && friendFeedback() && tab() !== 'add') {
+            <p
+              class="friends-feedback mb-4 flex items-center gap-2 rounded-xl border border-hairline bg-surface-feature px-4 py-3 text-body-sm text-ink"
+              role="status"
+            >
+              <mat-icon aria-hidden="true">check_circle</mat-icon>
+              {{ friendFeedback() }}
+            </p>
+          }
+
+          @if (!demoEnabled() && friendsError() && tab() !== 'add') {
+            <div
+              class="friends-error mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-danger bg-danger-surface px-4 py-3"
+              role="alert"
+            >
+              <mat-icon class="text-danger" aria-hidden="true">error</mat-icon>
+              <p class="min-w-0 flex-1 text-body-sm text-danger">{{ friendsError() }}</p>
+              <button mat-stroked-button type="button" (click)="retryFriends()">Thử lại</button>
+            </div>
+          }
+
+          @if (tab() === 'online' || tab() === 'all') {
+            <app-search-field placeholder="Tìm theo tên hoặc username" [(value)]="query" />
+
+            @if (visible().length > 0) {
+              <app-section-label class="mt-6 block" [text]="sectionLabel()" />
+
+              <div class="friends-list-well mt-3 rounded-2xl p-2">
+                <ul class="flex flex-col gap-2" aria-label="Danh sách bạn bè">
+                  @for (person of visible(); track person.id) {
+                    <li>
+                      <app-friend-row
+                        [person]="person"
+                        [canManage]="!demoEnabled()"
+                        [busy]="busyIds().has(person.id)"
+                        (removed)="removeFriend($event)"
+                      />
+                    </li>
+                  }
+                </ul>
+              </div>
+            } @else if (query()) {
+              <app-empty-state
+                class="mt-6 flex min-h-0 flex-1"
+                icon="person_search"
+                title="Không tìm thấy người phù hợp"
+                [message]="'Không có ai khớp với “' + query() + '”.'"
+              />
+            } @else {
+              <app-empty-state
+                class="mt-6 flex min-h-0 flex-1"
+                icon="group_off"
+                title="Danh sách đang trống"
+                message="Hãy thêm bạn để bắt đầu trò chuyện trên NexusCord."
+              />
+            }
+          } @else if (tab() === 'pending') {
+            <app-section-label [text]="'Chờ duyệt — ' + pendingCount()" />
+
+            @if (pendingCount() > 0) {
+              @if (incomingRequests().length > 0) {
+                <h2 class="mt-4 text-caption-bold text-ink">Lời mời đã nhận</h2>
+                <div class="friends-list-well mt-2 rounded-2xl p-2">
+                  <ul class="flex flex-col gap-2" aria-label="Lời mời kết bạn đã nhận">
+                    @for (request of incomingRequests(); track request.id) {
+                      <li>
+                        <app-friend-request-item
+                          [person]="request"
+                          [busy]="busyIds().has(request.id)"
+                          (accepted)="acceptRequest($event)"
+                          (dismissed)="deleteRequest(request)"
+                        />
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (outgoingRequests().length > 0) {
+                <h2 class="mt-6 text-caption-bold text-ink">Lời mời đã gửi</h2>
+                <div class="friends-list-well mt-2 rounded-2xl p-2">
+                  <ul class="flex flex-col gap-2" aria-label="Lời mời kết bạn đã gửi">
+                    @for (request of outgoingRequests(); track request.id) {
+                      <li>
+                        <app-friend-request-item
+                          [person]="request"
+                          [busy]="busyIds().has(request.id)"
+                          (dismissed)="deleteRequest(request)"
+                        />
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+            } @else {
+              <app-empty-state
+                class="mt-6 flex min-h-0 flex-1"
+                icon="mark_email_read"
+                title="Đã xử lý hết"
+                message="Bạn không còn lời mời kết bạn nào đang chờ."
+              />
+            }
+          } @else {
+            <app-add-friend-form
+              [pending]="sendingRequest()"
+              [error]="friendsError()"
+              [feedback]="friendFeedback()"
+              [demoMode]="demoEnabled()"
+              (submitted)="sendFriendRequest($event)"
+            />
+          }
         }
       </section>
     </main>
 
     <app-context-panel
-      [title]="contextTitle()"
+      title="Đang hoạt động"
       [open]="contextOpen()"
       [pinned]="true"
       (closed)="closeContext()"
     >
-      @if (atmosphereExpanded()) {
-        <app-theme-studio [selected]="atmosphere()" (selectedChange)="selectAtmosphere($event)" />
-      } @else {
-        <app-activity-panel [people]="onlineFriends()" />
-      }
+      <app-activity-panel [people]="onlineFriends()" />
     </app-context-panel>
   </div>
 }
