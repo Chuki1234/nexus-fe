@@ -121,6 +121,23 @@ export class ProfileService {
     );
     this.markComplete();
   }
+
+  /** Cập nhật thông tin hồ sơ (avatar, display name, banner, status) lên backend. */
+  async updateProfile(payload: {
+    displayName?: string | null;
+    avatarUrl?: string | null;
+    bannerColor?: string | null;
+    customStatus?: string | null;
+  }): Promise<Profile> {
+    const token = this.auth.accessToken();
+    const updated = await firstValueFrom(
+      this.http.patch<Profile>(`${environment.apiUrl}/auth/profile`, payload, {
+        headers: { Authorization: `Bearer ${token ?? ''}` },
+      }),
+    );
+    this.profileData.set(updated);
+    return updated;
+  }
 }
 
 /** Biến lỗi HTTP thành câu hiển thị được cho người dùng. */

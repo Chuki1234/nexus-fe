@@ -1,21 +1,30 @@
-import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { Avatar } from '../../../../shared/ui/avatar/avatar';
-import { UserSettingsService, ServerMemberItem } from '../../services/user-settings.service';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { UserSettingsService, ServerMemberItem, ServerRoleItem } from '../../services/user-settings.service';
 
 @Component({
   selector: 'app-server-members-tab',
-  imports: [MatIconModule, Avatar],
+  standalone: true,
+  imports: [FormsModule, MatIconModule, MatMenuModule, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './server-members-tab.html',
   styleUrl: './server-members-tab.css',
 })
 export class ServerMembersTab {
   protected readonly settingsService = inject(UserSettingsService);
+
   protected readonly memberSearchQuery = signal<string>('');
+  protected readonly selectedRoleFilter = signal<string>('all');
+  protected readonly selectedMemberIds = signal<string[]>([]);
+  protected readonly activeTab = signal<'active' | 'banned'>('active');
+
   protected readonly banReason = signal<string>('');
   protected readonly selectedMemberForBan = signal<ServerMemberItem | null>(null);
   protected readonly activeRoleMenuMemberId = signal<string | null>(null);
+  protected readonly toastMessage = signal<string | null>(null);
 
   @HostListener('document:click', ['$event'])
   protected onDocumentClick(event: MouseEvent): void {
@@ -34,21 +43,62 @@ export class ServerMembersTab {
     }
   }
 
-  protected get filteredMembers(): ServerMemberItem[] {
+  protected readonly filteredMembers = computed<ServerMemberItem[]>(() => {
     const q = this.memberSearchQuery().trim().toLowerCase();
-    if (!q) return this.settingsService.serverMembers();
-    return this.settingsService.serverMembers().filter(
-      (m: ServerMemberItem) => m.displayName.toLowerCase().includes(q) || m.username.toLowerCase().includes(q),
-    );
+    const roleFilter = this.selectedRoleFilter();
+    let members = this.settingsService.serverMembers();
+
+    if (q) {
+      members = members.filter(
+        (m) => m.displayName.toLowerCase().includes(q) || m.username.toLowerCase().includes(q),
+      );
+    }
+
+    if (roleFilter !== 'all') {
+      members = members.filter((m) => m.roles.includes(roleFilter));
+    }
+
+    return members;
+  });
+
+  protected readonly isAllSelected = computed<boolean>(() => {
+    const list = this.filteredMembers();
+    const selected = this.selectedMemberIds();
+    return list.length > 0 && list.every((m) => selected.includes(m.id));
+  });
+
+  protected toggleSelectAll(): void {
+    if (this.isAllSelected()) {
+      this.selectedMemberIds.set([]);
+    } else {
+      this.selectedMemberIds.set(this.filteredMembers().map((m) => m.id));
+    }
+  }
+
+  protected toggleSelectMember(memberId: string): void {
+    const current = this.selectedMemberIds();
+    if (current.includes(memberId)) {
+      this.selectedMemberIds.set(current.filter((id) => id !== memberId));
+    } else {
+      this.selectedMemberIds.set([...current, memberId]);
+    }
+  }
+
+  protected isMemberSelected(memberId: string): boolean {
+    return this.selectedMemberIds().includes(memberId);
+  }
+
+  protected clearSelection(): void {
+    this.selectedMemberIds.set([]);
   }
 
   protected getRoleColor(roleId: string): string {
-    const role = this.settingsService.serverRoles().find((r: any) => r.id === roleId);
+    const role = this.settingsService.serverRoles().find((r: ServerRoleItem) => r.id === roleId);
     return role?.color || '#99aab5';
   }
 
   protected getRoleName(roleId: string): string {
-    const role = this.settingsService.serverRoles().find((r: any) => r.id === roleId);
+    const role = this.settingsService.serverRoles().find((r: ServerRoleItem) => r.id === roleId);
     return role?.name || roleId;
   }
 
@@ -63,8 +113,22 @@ export class ServerMembersTab {
     return member.roles.includes(roleId);
   }
 
+  protected copyUserId(id: string): void {
+    navigator.clipboard?.writeText(id);
+    this.showToast('Đã sao chép ID người dùng: ' + id);
+  }
+
   protected kick(id: string): void {
     this.settingsService.kickServerMember(id);
+    this.selectedMemberIds.set(this.selectedMemberIds().filter((mId) => mId !== id));
+    this.showToast('Đã trục xuất (Kick) thành viên khỏi máy chủ.');
+  }
+
+  protected bulkKick(): void {
+    const ids = this.selectedMemberIds();
+    ids.forEach((id) => this.settingsService.kickServerMember(id));
+    this.selectedMemberIds.set([]);
+    this.showToast(`Đã trục xuất ${ids.length} thành viên khỏi máy chủ.`);
   }
 
   protected openBanModal(m: ServerMemberItem): void {
@@ -76,7 +140,9 @@ export class ServerMembersTab {
     const m = this.selectedMemberForBan();
     if (m) {
       this.settingsService.banServerMember(m.id, this.banReason());
+      this.selectedMemberIds.set(this.selectedMemberIds().filter((mId) => mId !== m.id));
       this.selectedMemberForBan.set(null);
+      this.showToast(`Đã cấm (Ban) ${m.displayName} khỏi máy chủ.`);
     }
   }
 
@@ -86,5 +152,12 @@ export class ServerMembersTab {
 
   protected unban(id: string): void {
     this.settingsService.unbanServerMember(id);
+    this.showToast('Đã bỏ cấm (Unban) thành công. Thành viên đã quay lại danh sách!');
+    this.activeTab.set('active');
+  }
+
+  private showToast(msg: string): void {
+    this.toastMessage.set(msg);
+    setTimeout(() => this.toastMessage.set(null), 3000);
   }
 }

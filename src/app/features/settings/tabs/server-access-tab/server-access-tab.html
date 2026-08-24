@@ -1,0 +1,216 @@
+<div class="space-y-7 animate-fade-in pb-12 max-w-4xl">
+  <!-- Title -->
+  <div class="border-b border-hairline pb-4">
+    <h2 class="text-heading-3 font-bold text-ink tracking-tight">Truy cập</h2>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SECTION 1: MỌI NGƯỜI CÓ THỂ THAM GIA MÁY CHỦ BẰNG CÁCH NÀO?
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="space-y-3.5">
+    <div>
+      <h3 class="text-body-md-medium font-bold text-ink">
+        Mọi người có thể tham gia máy chủ của bạn bằng cách nào?
+      </h3>
+      <p class="text-caption text-steel mt-0.5">
+        Giữ máy chủ của bạn ở chế độ riêng tư hoặc mở cho nhiều người tham gia hơn.
+        <a href="javascript:void(0)" class="text-primary hover:underline font-semibold ml-0.5">Tìm hiểu thêm.</a>
+      </p>
+    </div>
+
+    <!-- 3 Joined Modes Cards (Y hệt Discord screenshot 1) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1 bg-surface-feature/30 p-2 rounded-2xl border border-hairline">
+      <!-- 1. Chỉ Dành Cho Lời Mời -->
+      <button
+        type="button"
+        (click)="setJoinMode('invite-only')"
+        class="text-center rounded-xl p-5 border transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group"
+        [class.bg-surface-feature]="accessSettings().joinMode === 'invite-only'"
+        [class.border-primary]="accessSettings().joinMode === 'invite-only'"
+        [class.shadow-card]="accessSettings().joinMode === 'invite-only'"
+        [class.ring-2]="accessSettings().joinMode === 'invite-only'"
+        [class.ring-primary/40]="accessSettings().joinMode === 'invite-only'"
+        [class.bg-surface/50]="accessSettings().joinMode !== 'invite-only'"
+        [class.border-transparent]="accessSettings().joinMode !== 'invite-only'"
+        [class.hover:bg-surface-feature/50]="accessSettings().joinMode !== 'invite-only'"
+      >
+        <div class="w-10 h-10 rounded-full flex items-center justify-center text-ink text-xl">
+          <mat-icon class="!w-6 !h-6 !text-[24px]">lock</mat-icon>
+        </div>
+        <span class="block text-body-sm font-bold text-ink">Chỉ Dành Cho Lời Mời</span>
+        <span class="block text-caption text-steel text-center text-[12px] leading-relaxed">
+          Mọi người có thể tham gia máy chủ của bạn trực tiếp bằng một lời mời
+        </span>
+      </button>
+
+      <!-- 2. Đăng ký tham gia -->
+      <button
+        type="button"
+        (click)="setJoinMode('apply')"
+        class="text-center rounded-xl p-5 border transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group"
+        [class.bg-surface-feature]="accessSettings().joinMode === 'apply'"
+        [class.border-primary]="accessSettings().joinMode === 'apply'"
+        [class.shadow-card]="accessSettings().joinMode === 'apply'"
+        [class.ring-2]="accessSettings().joinMode === 'apply'"
+        [class.ring-primary/40]="accessSettings().joinMode === 'apply'"
+        [class.bg-surface/50]="accessSettings().joinMode !== 'apply'"
+        [class.border-transparent]="accessSettings().joinMode !== 'apply'"
+        [class.hover:bg-surface-feature/50]="accessSettings().joinMode !== 'apply'"
+      >
+        <div class="w-10 h-10 rounded-full flex items-center justify-center text-ink text-xl">
+          <mat-icon class="!w-6 !h-6 !text-[24px]">mail</mat-icon>
+        </div>
+        <span class="block text-body-sm font-bold text-ink">Đăng ký tham gia</span>
+        <span class="block text-caption text-steel text-center text-[12px] leading-relaxed">
+          Phải nộp đơn đăng ký và được chấp thuận mới có thể tham gia
+        </span>
+      </button>
+
+      <!-- 3. Có Thể Khám Phá -->
+      <button
+        type="button"
+        (click)="setJoinMode('discoverable')"
+        class="text-center rounded-xl p-5 border transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group"
+        [class.bg-surface-feature]="accessSettings().joinMode === 'discoverable'"
+        [class.border-primary]="accessSettings().joinMode === 'discoverable'"
+        [class.shadow-card]="accessSettings().joinMode === 'discoverable'"
+        [class.ring-2]="accessSettings().joinMode === 'discoverable'"
+        [class.ring-primary/40]="accessSettings().joinMode === 'discoverable'"
+        [class.bg-surface/50]="accessSettings().joinMode !== 'discoverable'"
+        [class.border-transparent]="accessSettings().joinMode !== 'discoverable'"
+        [class.hover:bg-surface-feature/50]="accessSettings().joinMode !== 'discoverable'"
+      >
+        <div class="w-10 h-10 rounded-full flex items-center justify-center text-ink text-xl">
+          <mat-icon class="!w-6 !h-6 !text-[24px]">public</mat-icon>
+        </div>
+        <span class="block text-body-sm font-bold text-ink">Có Thể Khám Phá</span>
+        <span class="block text-caption text-steel text-center text-[12px] leading-relaxed">
+          Bất kỳ ai cũng có thể trực tiếp tham gia máy chủ của bạn thông qua Khám Phá Máy Chủ
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <hr class="border-hairline" />
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SECTION 2: MÁY CHỦ GIỚI HẠN ĐỘ TUỔI (Y HỆT DISCORD)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <h3 class="text-body-sm-medium font-bold text-ink">
+        Máy Chủ Giới Hạn Độ Tuổi
+      </h3>
+      <p class="text-caption text-steel mt-0.5">
+        Người dùng sẽ cần xác nhận đủ tuổi hợp pháp để xem các nội dung trong máy chủ này.
+        <a href="javascript:void(0)" class="text-primary hover:underline font-semibold ml-0.5">Tìm hiểu thêm.</a>
+      </p>
+    </div>
+
+    <mat-slide-toggle
+      [checked]="accessSettings().ageRestricted"
+      (change)="toggleAgeRestriction()"
+      aria-label="Máy Chủ Giới Hạn Độ Tuổi"
+    />
+  </div>
+
+  <hr class="border-hairline" />
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SECTION 3: QUY ĐỊNH MÁY CHỦ (Y HỆT DISCORD)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <h3 class="text-body-sm-medium font-bold text-ink">
+          Quy Định Máy Chủ
+        </h3>
+        <p class="text-caption text-steel mt-0.5">
+          Thành viên phải đồng ý với các quy tắc trước khi có thể trò chuyện hoặc tương tác trong máy chủ.
+        </p>
+      </div>
+
+      <mat-slide-toggle
+        [checked]="accessSettings().rulesAgreement"
+        (change)="toggleRulesAgreement()"
+        aria-label="Quy Định Máy Chủ"
+      />
+    </div>
+
+    <!-- Quy Định Editor Card (Khi bật quy định) -->
+    @if (accessSettings().rulesAgreement) {
+      <div class="rounded-2xl border border-hairline bg-surface p-5 space-y-4 shadow-card animate-fade-in">
+        <span class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
+          QUY ĐỊNH
+        </span>
+
+        <!-- Existing Rules List -->
+        <div class="space-y-2.5">
+          @for (rule of accessSettings().rulesList; track $index) {
+            <div class="p-3 rounded-xl bg-canvas border border-hairline flex items-center justify-between gap-3 group">
+              <span class="text-caption font-medium text-ink leading-relaxed flex-1">
+                {{ rule }}
+              </span>
+              <button
+                type="button"
+                (click)="deleteRule($index)"
+                matTooltip="Xóa quy định này"
+                class="w-7 h-7 rounded-lg text-steel hover:text-danger hover:bg-danger-surface border border-transparent hover:border-danger/30 flex items-center justify-center cursor-pointer transition-colors opacity-70 group-hover:opacity-100"
+              >
+                <mat-icon class="!w-4 !h-4 !text-[16px]">delete</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- Add Rule Input Form -->
+        @if (isAddingRule()) {
+          <div class="space-y-3 p-3 rounded-xl border border-primary/40 bg-surface-feature/20 animate-scale-in">
+            <textarea
+              rows="2"
+              [value]="newRuleText()"
+              (input)="newRuleText.set($any($event.target).value)"
+              placeholder="Nhập nội dung quy định mới..."
+              class="w-full bg-surface border border-hairline rounded-xl p-3 text-caption font-semibold text-ink focus:outline-none focus:border-primary resize-none"
+            ></textarea>
+
+            <div class="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                (click)="isAddingRule.set(false); newRuleText.set('')"
+                class="px-3 py-1.5 rounded-lg text-caption font-semibold text-steel hover:text-ink cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                (click)="addRule()"
+                class="btn-primary !py-1.5 !px-4 !rounded-xl text-caption font-bold shadow-glow cursor-pointer"
+              >
+                Lưu Quy Định
+              </button>
+            </div>
+          </div>
+        } @else {
+          <!-- Add Rule Button -->
+          <button
+            type="button"
+            (click)="isAddingRule.set(true)"
+            class="w-full py-3 rounded-xl border-2 border-dashed border-hairline hover:border-primary/50 text-steel hover:text-primary hover:bg-surface-feature/30 text-caption font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">add</mat-icon>
+            <span>Thêm quy định</span>
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Toast -->
+  @if (toastMessage()) {
+    <div class="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-full bg-primary text-on-primary shadow-modal font-bold text-caption flex items-center gap-2 animate-slide-down">
+      <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+      <span>{{ toastMessage() }}</span>
+    </div>
+  }
+</div>

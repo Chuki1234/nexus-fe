@@ -7,8 +7,43 @@
     </p>
   </div>
 
+  <!-- ══ SECTION: THỬ NGHIỆM THÔNG BÁO POPUP (Ảnh 1 & 2) ══ -->
+  <div class="rounded-2xl border border-primary/30 bg-primary/5 p-5 space-y-3 shadow-2xs">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-xs">
+          <mat-icon class="!w-4 !h-4 !text-[18px]">notifications_active</mat-icon>
+        </div>
+        <div>
+          <span class="block text-body-sm font-extrabold text-ink">Thử nghiệm Popup Thông Báo Nổi</span>
+          <span class="text-micro text-steel">Bấm để kiểm tra thông báo xuất hiện ở góc màn hình và phát âm thanh</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          (click)="sendTestMessageNotification()"
+          class="btn-primary !py-1.5 !px-3.5 !rounded-xl text-caption font-bold shadow-glow flex items-center gap-1.5 cursor-pointer"
+        >
+          <mat-icon class="!w-4 !h-4 !text-[15px]">chat</mat-icon>
+          <span>Thử tin nhắn</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="sendTestMentionNotification()"
+          class="py-1.5 px-3.5 rounded-xl border border-hairline bg-surface hover:bg-surface-feature text-ink font-bold text-caption transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+        >
+          <mat-icon class="!w-4 !h-4 !text-[15px] text-primary">alternate_email</mat-icon>
+          <span>Thử &#64;mention</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Desktop Notification Banner Card -->
-  <div class="rounded-xl border border-hairline bg-surface p-6 space-y-4">
+  <div class="rounded-2xl border border-hairline bg-surface p-6 space-y-4 shadow-card">
     <div class="flex items-center justify-between gap-4">
       <div>
         <div class="flex items-center gap-2">
@@ -38,10 +73,10 @@
   </div>
 
   <!-- Sound Events Configuration -->
-  <div class="rounded-xl border border-hairline bg-surface p-6 space-y-4">
+  <div class="rounded-2xl border border-hairline bg-surface p-6 space-y-4 shadow-card">
     <h3 class="text-heading-5 font-bold text-ink flex items-center gap-2">
       <mat-icon class="text-primary">volume_up</mat-icon>
-      Âm thanh thông báo sự kiện
+      <span>Âm thanh thông báo sự kiện</span>
     </h3>
     <p class="text-caption text-steel">
       Bật hoặc tắt âm thanh cho từng loại sự kiện cụ thể trong phòng chat và kênh đàm thoại.
@@ -50,9 +85,19 @@
     <div class="divide-y divide-hairline/60">
       <!-- Message Sound -->
       <div class="flex items-center justify-between gap-4 py-3">
-        <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Tin nhắn mới</span>
-          <span class="text-caption text-steel">Phát âm thanh khi có tin nhắn mới trong các kênh bạn theo dõi.</span>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            (click)="playSoundPreview('soundMessage')"
+            class="w-7 h-7 rounded-lg text-steel hover:text-primary hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+            title="Nghe thử âm thanh"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">play_circle</mat-icon>
+          </button>
+          <div>
+            <span class="block text-body-sm-medium font-semibold text-ink">Tin nhắn mới</span>
+            <span class="text-caption text-steel">Phát âm thanh khi có tin nhắn mới trong các kênh bạn theo dõi.</span>
+          </div>
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().soundMessage"
@@ -62,9 +107,19 @@
 
       <!-- Mention Sound -->
       <div class="flex items-center justify-between gap-4 py-3">
-        <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Lời nhắc trực tiếp &#64;mention</span>
-          <span class="text-caption text-steel">Phát âm thanh ưu tiên khi ai đó nhắc đến bạn hoặc vai trò của bạn.</span>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            (click)="playSoundPreview('soundMention')"
+            class="w-7 h-7 rounded-lg text-steel hover:text-primary hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+            title="Nghe thử âm thanh"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">play_circle</mat-icon>
+          </button>
+          <div>
+            <span class="block text-body-sm-medium font-semibold text-ink">Lời nhắc trực tiếp &#64;mention</span>
+            <span class="text-caption text-steel">Phát âm thanh ưu tiên khi ai đó nhắc đến bạn hoặc vai trò của bạn.</span>
+          </div>
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().soundMention"
@@ -74,9 +129,19 @@
 
       <!-- Voice Join -->
       <div class="flex items-center justify-between gap-4 py-3">
-        <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Người dùng vào kênh thoại</span>
-          <span class="text-caption text-steel">Phát âm thanh báo hiệu khi có thành viên kết nối vào voice channel.</span>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            (click)="playSoundPreview('soundJoin')"
+            class="w-7 h-7 rounded-lg text-steel hover:text-primary hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+            title="Nghe thử âm thanh"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">play_circle</mat-icon>
+          </button>
+          <div>
+            <span class="block text-body-sm-medium font-semibold text-ink">Người dùng vào kênh thoại</span>
+            <span class="text-caption text-steel">Phát âm thanh báo hiệu khi có thành viên kết nối vào voice channel.</span>
+          </div>
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().soundJoin"
@@ -86,9 +151,19 @@
 
       <!-- Voice Leave -->
       <div class="flex items-center justify-between gap-4 py-3">
-        <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Người dùng rời kênh thoại</span>
-          <span class="text-caption text-steel">Phát âm thanh báo hiệu khi có người ngắt kết nối voice.</span>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            (click)="playSoundPreview('soundLeave')"
+            class="w-7 h-7 rounded-lg text-steel hover:text-primary hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+            title="Nghe thử âm thanh"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">play_circle</mat-icon>
+          </button>
+          <div>
+            <span class="block text-body-sm-medium font-semibold text-ink">Người dùng rời kênh thoại</span>
+            <span class="text-caption text-steel">Phát âm thanh báo hiệu khi có người ngắt kết nối voice.</span>
+          </div>
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().soundLeave"
@@ -98,9 +173,19 @@
 
       <!-- Mic Mute / Unmute Chime -->
       <div class="flex items-center justify-between gap-4 py-3">
-        <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Bật / Tắt micrô</span>
-          <span class="text-caption text-steel">Phát âm thanh xác nhận mỗi khi bạn bấm nút tắt/mở mic.</span>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            (click)="playSoundPreview('soundMute')"
+            class="w-7 h-7 rounded-lg text-steel hover:text-primary hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+            title="Nghe thử âm thanh"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">play_circle</mat-icon>
+          </button>
+          <div>
+            <span class="block text-body-sm-medium font-semibold text-ink">Bật / Tắt micrô</span>
+            <span class="text-caption text-steel">Phát âm thanh xác nhận mỗi khi bạn bấm nút tắt/mở mic.</span>
+          </div>
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().soundMute"
@@ -110,9 +195,19 @@
 
       <!-- Deafen / Undeafen -->
       <div class="flex items-center justify-between gap-4 py-3">
-        <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Tắt tiếng loa (Deafen)</span>
-          <span class="text-caption text-steel">Phát âm thanh khi bạn bật hoặc tắt chế độ điếc tai nghe.</span>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            (click)="playSoundPreview('soundDeafen')"
+            class="w-7 h-7 rounded-lg text-steel hover:text-primary hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+            title="Nghe thử âm thanh"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">play_circle</mat-icon>
+          </button>
+          <div>
+            <span class="block text-body-sm-medium font-semibold text-ink">Tắt tiếng loa (Deafen)</span>
+            <span class="text-caption text-steel">Phát âm thanh khi bạn bật hoặc tắt chế độ điếc tai nghe.</span>
+          </div>
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().soundDeafen"
@@ -122,9 +217,19 @@
 
       <!-- Ringtone -->
       <div class="flex items-center justify-between gap-4 py-3">
-        <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Chuông cuộc gọi đến</span>
-          <span class="text-caption text-steel">Phát chuông gọi thoại khi bạn bè gọi riêng cho bạn.</span>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            (click)="playSoundPreview('soundRing')"
+            class="w-7 h-7 rounded-lg text-steel hover:text-primary hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+            title="Nghe thử âm thanh"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">play_circle</mat-icon>
+          </button>
+          <div>
+            <span class="block text-body-sm-medium font-semibold text-ink">Chuông cuộc gọi đến</span>
+            <span class="text-caption text-steel">Phát chuông gọi thoại khi bạn bè gọi riêng cho bạn.</span>
+          </div>
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().soundRing"
@@ -135,10 +240,10 @@
   </div>
 
   <!-- Email Notifications Card -->
-  <div class="rounded-xl border border-hairline bg-surface p-6 space-y-4">
+  <div class="rounded-2xl border border-hairline bg-surface p-6 space-y-4 shadow-card">
     <h3 class="text-heading-5 font-bold text-ink flex items-center gap-2">
       <mat-icon class="text-primary">mail</mat-icon>
-      Thông báo qua Email
+      <span>Thông báo qua Email</span>
     </h3>
 
     <div class="divide-y divide-hairline/60">
@@ -167,7 +272,7 @@
   </div>
 
   <!-- Inactive AFK Timeout -->
-  <div class="rounded-xl border border-hairline bg-surface p-6">
+  <div class="rounded-2xl border border-hairline bg-surface p-6 shadow-card">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <span class="block text-body-sm-medium font-bold text-ink">Thời gian chờ tự động chuyển Vắng mặt (AFK)</span>
@@ -180,7 +285,7 @@
         <select
           [ngModel]="settingsService.preferences().afkTimeout"
           (ngModelChange)="setAfkTimeout($event)"
-          class="w-full rounded-lg bg-canvas border border-hairline-strong px-3.5 py-2.5 text-body-sm text-ink focus:border-primary focus:outline-none transition-colors appearance-none cursor-pointer pr-10"
+          class="w-full rounded-xl bg-canvas border border-hairline px-3.5 py-2.5 text-body-sm text-ink font-semibold focus:border-primary focus:outline-none transition-colors appearance-none cursor-pointer pr-10 shadow-2xs"
         >
           @for (opt of afkOptions; track opt.value) {
             <option [value]="opt.value">{{ opt.label }}</option>
@@ -190,4 +295,12 @@
       </div>
     </div>
   </div>
+
+  <!-- Toast Notification -->
+  @if (toastMessage()) {
+    <div class="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-full bg-primary text-on-primary shadow-modal font-bold text-caption flex items-center gap-2 animate-slide-down">
+      <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+      <span>{{ toastMessage() }}</span>
+    </div>
+  }
 </div>

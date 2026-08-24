@@ -1,0 +1,152 @@
+<main class="grid min-h-dvh bg-canvas lg:grid-cols-2">
+  <!-- ══ Cột trái: panel thương hiệu ══ -->
+  <aside
+    class="relative hidden items-center justify-center border-r border-hairline bg-surface p-12 lg:flex overflow-hidden"
+  >
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--color-primary)_0%,_transparent_70%)] opacity-10 blur-3xl pointer-events-none"></div>
+    <div class="relative z-10 flex w-full max-w-lg flex-col items-center text-center space-y-6">
+      <div class="flex flex-col items-center space-y-4">
+        <div class="w-24 h-24 rounded-3xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shadow-glow">
+          <mat-icon class="!w-12 !h-12 !text-[48px]">security</mat-icon>
+        </div>
+        <h2 class="text-heading-1 font-extrabold text-ink tracking-wider">NEXUS</h2>
+      </div>
+      <div class="space-y-2">
+        <p class="text-heading-4 font-bold text-ink tracking-tight">Xác thực hai yếu tố</p>
+        <p class="text-caption text-steel max-w-sm mx-auto leading-relaxed">
+          Tài khoản của bạn được bảo vệ bởi lớp xác thực bổ sung.
+          Mở Google Authenticator và nhập mã 6 chữ số.
+        </p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ Cột phải: form nhập mã ══ -->
+  <div class="flex items-center justify-center px-6 py-12">
+    <div class="w-full max-w-auth-card space-y-8 animate-fade-in">
+
+      <header>
+        <span class="text-[11px] font-mono font-extrabold text-primary uppercase tracking-[0.1em] block mb-1">Bảo mật</span>
+        <h1 class="text-heading-2 font-extrabold text-ink tracking-tight">
+          @if (useBackupCode()) {
+            Mã dự phòng
+          } @else {
+            Xác thực hai yếu tố
+          }
+        </h1>
+        <p class="text-body-sm text-steel mt-2">
+          @if (useBackupCode()) {
+            Nhập một trong các mã dự phòng bạn đã lưu lúc bật 2FA.
+          } @else {
+            Mở ứng dụng xác thực (Google Authenticator, Authy...) và nhập mã 6 chữ số hiện tại.
+          }
+        </p>
+      </header>
+
+      <!-- Error message -->
+      @if (errorMessage()) {
+        <div
+          id="mfa-error"
+          role="alert"
+          class="flex items-start gap-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3"
+          tabindex="-1"
+        >
+          <mat-icon class="!w-4 !h-4 !text-[16px] text-danger shrink-0 mt-0.5">error</mat-icon>
+          <p class="text-body-sm text-danger">{{ errorMessage() }}</p>
+        </div>
+      }
+
+      <form (ngSubmit)="onSubmit()" novalidate class="space-y-6">
+
+        <!-- Code input -->
+        <div class="space-y-2">
+          <label
+            class="block text-[11px] font-extrabold uppercase tracking-[0.06em] text-stone"
+            [for]="useBackupCode() ? 'input-backup-code' : 'input-totp-code'"
+          >
+            @if (useBackupCode()) {
+              Mã dự phòng
+            } @else {
+              Mã xác thực (6 chữ số)
+            }
+          </label>
+
+          @if (useBackupCode()) {
+            <input
+              id="input-backup-code"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+              maxlength="8"
+              [ngModel]="code()"
+              (ngModelChange)="code.set($event)"
+              name="backupCode"
+              placeholder="xxxxxxxx"
+              class="mfa-code-input mfa-code-input--backup"
+              [attr.aria-invalid]="!!errorMessage()"
+              [attr.aria-describedby]="errorMessage() ? 'mfa-error' : null"
+            />
+          } @else {
+            <input
+              id="input-totp-code"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              autocorrect="off"
+              maxlength="6"
+              [ngModel]="code()"
+              (ngModelChange)="code.set($event.replace(/\D/g, ''))"
+              name="totpCode"
+              placeholder="000000"
+              class="mfa-code-input"
+              [attr.aria-invalid]="!!errorMessage()"
+              [attr.aria-describedby]="errorMessage() ? 'mfa-error' : null"
+            />
+          }
+        </div>
+
+        <!-- Submit button -->
+        <button
+          id="btn-verify-mfa"
+          type="submit"
+          class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-body-sm font-bold text-on-primary transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+          [disabled]="submitting() || !code()"
+        >
+          @if (submitting()) {
+            <mat-icon class="!w-4 !h-4 !text-[16px] animate-spin">progress_activity</mat-icon>
+            Đang xác thực...
+          } @else {
+            <mat-icon class="!w-4 !h-4 !text-[16px]">verified_user</mat-icon>
+            Xác nhận
+          }
+        </button>
+
+      </form>
+
+      <!-- Toggle backup code / TOTP -->
+      <div class="text-center space-y-3">
+        <button
+          id="btn-toggle-backup-code"
+          type="button"
+          (click)="toggleMode()"
+          class="text-body-sm text-primary font-semibold hover:underline"
+        >
+          @if (useBackupCode()) {
+            Dùng mã từ ứng dụng xác thực
+          } @else {
+            Dùng mã dự phòng thay thế
+          }
+        </button>
+
+        <p class="text-caption text-stone">
+          <a routerLink="/login" class="text-steel hover:text-primary transition-colors">
+            ← Quay lại đăng nhập
+          </a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+</main>

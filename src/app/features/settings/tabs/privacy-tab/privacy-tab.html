@@ -28,7 +28,7 @@
           </h3>
           <p class="text-caption text-steel leading-relaxed">
             Cho phép Nexus sử dụng và xử lý thông tin của tôi để hiểu và cải thiện các dịch vụ của Nexus.
-            <a href="javascript:void(0)" class="text-primary hover:underline ml-1">Tìm hiểu thêm</a>
+            <button type="button" (click)="openInfo('improvement')" class="text-primary hover:underline ml-1 font-semibold cursor-pointer">Tìm hiểu thêm</button>
           </p>
         </div>
         <mat-slide-toggle
@@ -46,7 +46,7 @@
           </h3>
           <p class="text-caption text-steel leading-relaxed">
             Cho phép Nexus sử dụng các thông tin, ví dụ như người mà bạn nói chuyện hay trò chơi mà bạn chơi, để cá nhân hóa Nexus cho bạn.
-            <a href="javascript:void(0)" class="text-primary hover:underline ml-1">Tìm hiểu thêm</a>
+            <button type="button" (click)="openInfo('personalization')" class="text-primary hover:underline ml-1 font-semibold cursor-pointer">Tìm hiểu thêm</button>
           </p>
         </div>
         <mat-slide-toggle
@@ -81,7 +81,7 @@
           </h3>
           <p class="text-caption text-steel leading-relaxed">
             Cho phép Nexus cá nhân hóa Nội Dung Được Tài Trợ, như Nhiệm Vụ, bằng cách sử dụng dữ liệu Nexus nhận được từ các nhà quảng cáo và nhà cung cấp dữ liệu bên thứ ba. Nếu bạn chọn không tham gia, bạn vẫn có thể thấy Nhiệm Vụ, nhưng chúng sẽ không được cá nhân hóa bằng dữ liệu từ bên thứ ba.
-            <a href="javascript:void(0)" class="text-primary hover:underline ml-1">Tìm hiểu thêm</a>
+            <button type="button" (click)="openInfo('thirdparty')" class="text-primary hover:underline ml-1 font-semibold cursor-pointer">Tìm hiểu thêm</button>
           </p>
         </div>
         <mat-slide-toggle
@@ -99,6 +99,7 @@
           </h3>
           <p class="text-caption text-steel leading-relaxed">
             Cho phép bao gồm giọng nói của bạn khi có người trong cùng kênh thoại sử dụng Clip.
+            <button type="button" (click)="openInfo('clips')" class="text-primary hover:underline ml-1 font-semibold cursor-pointer">Tìm hiểu thêm</button>
           </p>
         </div>
         <mat-slide-toggle
@@ -292,5 +293,72 @@
         </div>
       }
     </div>
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 3: YÊU CẦU BẢN SAO DỮ LIỆU CÁ NHÂN
+    ════════════════════════════════════════════ -->
+    <div class="card-base space-y-3 p-5 rounded-2xl border border-hairline bg-surface shadow-card">
+      <div class="flex items-start justify-between gap-4">
+        <div class="space-y-1">
+          <h3 class="text-body-sm-medium font-bold text-ink flex items-center gap-2">
+            <mat-icon class="text-primary !w-5 !h-5 !text-[20px]">download</mat-icon>
+            <span>Yêu cầu bản sao dữ liệu cá nhân</span>
+          </h3>
+          <p class="text-caption text-steel leading-relaxed">
+            Bạn có quyền tải xuống toàn bộ lịch sử tin nhắn, danh sách máy chủ, bạn bè và cài đặt cá nhân của tài khoản Nexus của bạn dưới định dạng JSON &amp; ZIP.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          (click)="requestDataPackage()"
+          [disabled]="isRequestingData() || dataRequested()"
+          class="btn-primary !py-2 !px-4 !rounded-xl text-caption font-bold shadow-glow shrink-0 transition-all cursor-pointer disabled:opacity-60"
+        >
+          @if (isRequestingData()) {
+            <span>Đang xử lý...</span>
+          } @else if (dataRequested()) {
+            <span>✔ Đã gửi yêu cầu</span>
+          } @else {
+            <span>Yêu cầu tất cả dữ liệu</span>
+          }
+        </button>
+      </div>
+    </div>
   </div>
+
+  <!-- Info Modal Dialog -->
+  @if (infoModal(); as modal) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 animate-fade-in" (click)="closeInfo()">
+      <div class="card-base max-w-md w-full p-6 space-y-4 rounded-3xl border border-hairline bg-surface shadow-modal animate-scale-in text-ink" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between border-b border-hairline pb-3">
+          <h3 class="text-heading-5 font-bold text-ink flex items-center gap-2">
+            <mat-icon class="text-primary">info</mat-icon>
+            <span>{{ modal.title }}</span>
+          </h3>
+          <button type="button" (click)="closeInfo()" class="text-steel hover:text-ink cursor-pointer">
+            <mat-icon class="!w-4 !h-4">close</mat-icon>
+          </button>
+        </div>
+
+        <p class="text-body-sm text-steel leading-relaxed">
+          {{ modal.content }}
+        </p>
+
+        <div class="flex justify-end pt-2">
+          <button type="button" (click)="closeInfo()" class="btn-primary !py-2 !px-5 !rounded-xl text-caption font-bold shadow-glow cursor-pointer">
+            Đã hiểu
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Toast Notification -->
+  @if (toastMessage()) {
+    <div class="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-full bg-primary text-on-primary shadow-modal font-bold text-caption flex items-center gap-2 animate-slide-down">
+      <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+      <span>{{ toastMessage() }}</span>
+    </div>
+  }
 </div>

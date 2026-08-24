@@ -258,3 +258,354 @@
   gap: 10px;
   padding-top: 8px;
 }
+
+/* ─── Settings Buttons (actions) ──────────────────────────── */
+.settings-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.settings-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.settings-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--color-steel);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-full);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-btn-ghost:hover {
+  background: var(--color-surface-feature);
+  color: var(--color-ink);
+}
+
+.settings-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: var(--color-danger);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.settings-btn-danger:hover {
+  opacity: 0.9;
+}
+
+.settings-btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-btn-danger-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 50%, transparent);
+  border-radius: var(--radius-full);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-btn-danger-outline:hover {
+  background: var(--color-danger-surface);
+}
+
+.settings-btn-danger-text {
+  background: none;
+  border: none;
+  color: var(--color-danger);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+
+.settings-btn-danger-text:hover {
+  background: var(--color-danger-surface);
+}
+
+/* ─── Badge ────────────────────────────────────────────────── */
+.settings-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.settings-badge--primary {
+  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  color: var(--color-primary);
+}
+
+.settings-badge--success {
+  background: color-mix(in srgb, var(--color-brand-green) 20%, transparent);
+  color: var(--color-brand-green);
+}
+
+.settings-badge--danger {
+  background: color-mix(in srgb, var(--color-danger) 15%, transparent);
+  color: var(--color-danger);
+}
+
+/* ─── Sessions Panel ───────────────────────────────────────── */
+.settings-sessions-panel {
+  padding: 20px;
+  background: var(--color-canvas);
+  border-top: 1px solid var(--color-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-sessions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-session-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+}
+
+.settings-session-icon {
+  color: var(--color-steel);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.settings-session-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-session-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-session-name {
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.settings-session-meta {
+  font-size: var(--text-caption);
+  color: var(--color-steel);
+}
+
+.settings-session-time {
+  font-size: 11px;
+  color: var(--color-stone);
+}
+
+.settings-success-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-brand-green);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+/* ─── 2FA Wizard ───────────────────────────────────────────── */
+.tfa-wizard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tfa-step-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-primary);
+  margin-bottom: 2px;
+}
+
+.tfa-qr-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-hairline);
+}
+
+.tfa-qr-img {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.tfa-secret-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tfa-secret-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tfa-secret-toggle:hover {
+  text-decoration: underline;
+}
+
+.tfa-secret-box {
+  background: var(--color-surface-feature);
+  border: 1px solid var(--color-hairline-strong);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tfa-secret-text {
+  font-family: var(--font-mono);
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  color: var(--color-ink);
+  letter-spacing: 0.05em;
+  word-break: break-all;
+}
+
+.tfa-secret-hint {
+  font-size: var(--text-caption);
+  color: var(--color-steel);
+}
+
+.tfa-code-input {
+  width: 100%;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border: 2px solid var(--color-hairline-strong);
+  border-radius: var(--radius-lg);
+  padding: 14px 20px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tfa-code-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+
+.tfa-error {
+  font-size: var(--text-caption);
+  color: var(--color-danger);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tfa-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--color-brand-green) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-green) 30%, transparent);
+  border-radius: var(--radius-md);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-brand-green);
+}
+
+.tfa-backup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.tfa-backup-code {
+  background: var(--color-surface-feature);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.tfa-backup-code code {
+  font-family: var(--font-mono);
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  color: var(--color-ink);
+  letter-spacing: 0.1em;
+}
