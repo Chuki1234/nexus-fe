@@ -17,7 +17,9 @@ import {
 import { ServersApiService } from '../../../core/api/servers-api.service';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
 import { extractErrorMessage } from '../../../core/utils/error.util';
-import { Permission, ALL_PERMISSIONS } from '../../../../shared/permissions';
+import { compareMessageOrder } from '../../../core/utils/safe-message-comparator';
+export { compareMessageOrder as compareMessageIds } from '../../../core/utils/safe-message-comparator';
+import type { MessagePayload } from '../../../../shared/socket-events';
 
 export interface OptimisticChannelMessage {
   clientNonce: string;
@@ -29,6 +31,7 @@ export interface OptimisticChannelMessage {
   files?: File[];
   errorMessage?: string;
   createdAt: string;
+  optimisticSeq?: number;
 }
 
 export interface ChannelChatUiMessage {
@@ -58,16 +61,6 @@ export interface ChannelEffectivePermissions {
   canManageMessages: boolean;
 }
 
-/** So sánh 2 bigint message ID dạng string */
-export function compareMessageIds(a: string, b: string): number {
-  try {
-    const diff = BigInt(a) - BigInt(b);
-    return diff < 0n ? -1 : diff > 0n ? 1 : 0;
-  } catch {
-    return a.localeCompare(b);
-  }
-}
-
 @Injectable({
   providedIn: 'root',
 })
@@ -81,6 +74,11 @@ export class ChannelChatStore implements OnDestroy {
 
   /** Thế hệ request hiện tại để huỷ bỏ response cũ đến muộn */
   private currentGeneration = 0;
+
+  /** Buffer lưu tạm các realtime events đến trong lúc REST getMessages đang fetch */
+  private bufferedRealtimeMessages: MessagePayload[] = [];
+  private isReconciling = false;
+  private optimisticSeqCounter = 0;
 
   // State Signals
   private readonly _serverId = signal<string | null>(null);
@@ -124,7 +122,8 @@ export class ChannelChatStore implements OnDestroy {
   readonly permissions = this._permissions.asReadonly();
 
   /**
-   * Danh sách toàn bộ tin nhắn UI kết hợp giữa persisted và optimistic messages.
+   * Danh sách toàn bộ tin nhắn UI kết hợp giữa persisted và optimistic messages,
+   * được sắp xếp bằng compareMessageOrder an toàn.
    */
   readonly allMessages = computed<ChannelChatUiMessage[]>(() => {
     const persisted = this._messages();
@@ -169,7 +168,7 @@ export class ChannelChatStore implements OnDestroy {
       status: 'persisted',
     }));
 
-    return [...persistedUi, ...optimistic];
+    return [...persistedUi, ...optimistic].sort((a, b) => compareMessageOrder(a, b));
   });
 
   constructor() {
@@ -185,10 +184,20 @@ export class ChannelChatStore implements OnDestroy {
   }
 
   /**
-   * Khởi tạo tải tin nhắn của channel (Generation Guard chống race condition).
+   * Join–Fetch–Reconciliation Sequence:
+   * 1. Tăng generation counter (hủy buffer cũ).
+   * 2. Bắt đầu buffer realtime messages & updates.
+   * 3. Join socket room.
+   * 4. Gọi REST getChannelMessages({ limit: 50 }).
+   * 5. Merge REST history + Buffered realtime events.
+   * 6. Deduplicate theo message.id và clientNonce.
+   * 7. Sắp xếp bằng compareMessageOrder.
+   * 8. Render vào _messages signal rồi mới hoàn tất loading.
    */
   async loadInitial(serverId: string, channelId: string): Promise<void> {
     const generation = ++this.currentGeneration;
+    this.isReconciling = true;
+    this.bufferedRealtimeMessages = [];
 
     // Rời khỏi channel cũ nếu khác channel
     const oldChannelId = this._channelId();
@@ -211,6 +220,7 @@ export class ChannelChatStore implements OnDestroy {
 
     // Tính toán quyền và join socket song song
     void this.refreshPermissions(serverId, channelId);
+    void this.chatSocket.joinChannel(channelId);
 
     try {
       const response = await this.messagesApi.getChannelMessages(channelId, { limit: 50 });
@@ -220,16 +230,28 @@ export class ChannelChatStore implements OnDestroy {
         return;
       }
 
-      this._messages.set(response.messages || []);
+      // Merge REST messages + Buffered realtime messages
+      const combinedMap = new Map<string, MessageResponseDto>();
+      for (const m of response.messages || []) {
+        combinedMap.set(m.id, m);
+      }
+      for (const b of this.bufferedRealtimeMessages) {
+        combinedMap.set(b.id, b as MessageResponseDto);
+      }
+
+      const mergedMessages = Array.from(combinedMap.values()).sort((a, b) => compareMessageOrder(a, b));
+
+      this._messages.set(mergedMessages);
       this._hasMore.set(response.hasMore);
       this._nextCursor.set(response.nextCursor);
       this._lastReadMessageId.set(response.lastReadMessageId ?? null);
+      this.isReconciling = false;
+      this.bufferedRealtimeMessages = [];
       this._loadingInitial.set(false);
-
-      // Join socket room
-      void this.chatSocket.joinChannel(channelId);
     } catch (err: any) {
       if (generation !== this.currentGeneration) return;
+      this.isReconciling = false;
+      this.bufferedRealtimeMessages = [];
       this._loadingInitial.set(false);
 
       const status = err?.status ?? err?.statusCode;
@@ -273,7 +295,9 @@ export class ChannelChatStore implements OnDestroy {
       const existingIds = new Set(current.map((m) => m.id));
       const newUnique = response.messages.filter((m) => !existingIds.has(m.id));
 
-      this._messages.set([...newUnique, ...current]);
+      const merged = [...newUnique, ...current].sort((a, b) => compareMessageOrder(a, b));
+
+      this._messages.set(merged);
       this._hasMore.set(response.hasMore);
       this._nextCursor.set(response.nextCursor);
       this._loadingMore.set(false);
@@ -322,6 +346,8 @@ export class ChannelChatStore implements OnDestroy {
     if (!channelId) return null;
 
     const clientNonce = crypto.randomUUID();
+    const optimisticSeq = ++this.optimisticSeqCounter;
+
     const optimisticAttachments: AttachmentResponseDto[] = (files || []).map((file) => ({
       id: `opt-att-${crypto.randomUUID()}`,
       filename: file.name,
@@ -342,6 +368,7 @@ export class ChannelChatStore implements OnDestroy {
       attachments: optimisticAttachments.length > 0 ? optimisticAttachments : undefined,
       files,
       createdAt: new Date().toISOString(),
+      optimisticSeq,
     };
 
     this._optimisticMessages.update((curr) => [...curr, optMsg]);
@@ -485,13 +512,12 @@ export class ChannelChatStore implements OnDestroy {
     const channelId = this._channelId();
     if (!channelId) return;
 
-    // Không đánh dấu nếu tab ẩn
     if (typeof document !== 'undefined' && document.hidden) {
       return;
     }
 
     const currentLastRead = this._lastReadMessageId();
-    if (currentLastRead && compareMessageIds(messageId, currentLastRead) <= 0) {
+    if (currentLastRead && compareMessageOrder({ id: messageId }, { id: currentLastRead }) <= 0) {
       return;
     }
 
@@ -504,9 +530,6 @@ export class ChannelChatStore implements OnDestroy {
     }
   }
 
-  /**
-   * Gõ phím trong channel.
-   */
   startTyping(): void {
     const channelId = this._channelId();
     if (channelId) {
@@ -527,9 +550,9 @@ export class ChannelChatStore implements OnDestroy {
       if (idx >= 0) {
         const next = [...curr];
         next[idx] = msg;
-        return next;
+        return next.sort((a, b) => compareMessageOrder(a, b));
       }
-      return [...curr, msg];
+      return [...curr, msg].sort((a, b) => compareMessageOrder(a, b));
     });
   }
 
@@ -539,6 +562,11 @@ export class ChannelChatStore implements OnDestroy {
       this.chatSocket.messageCreated$.subscribe(({ message }) => {
         const activeChan = this._channelId();
         if (!activeChan || message.channelId !== activeChan) return;
+
+        if (this.isReconciling) {
+          this.bufferedRealtimeMessages.push(message);
+          return;
+        }
 
         // Xóa optimistic message tương ứng nếu có clientNonce
         if (message.clientNonce) {
@@ -614,7 +642,7 @@ export class ChannelChatStore implements OnDestroy {
         if (!activeChan || payload.channelId !== activeChan) return;
 
         const current = this._lastReadMessageId();
-        if (!current || compareMessageIds(payload.lastReadMessageId, current) > 0) {
+        if (!current || compareMessageOrder({ id: payload.lastReadMessageId }, { id: current }) > 0) {
           this._lastReadMessageId.set(payload.lastReadMessageId);
         }
       }),

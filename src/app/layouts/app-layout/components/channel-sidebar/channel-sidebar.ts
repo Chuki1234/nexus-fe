@@ -56,7 +56,6 @@ import { LeaveServerDialog } from './components/leave-server-dialog/leave-server
   templateUrl: './channel-sidebar.html',
 })
 export class ChannelSidebar {
-  private readonly shell = inject(ShellData);
   private readonly serversStore = inject(ServersStore);
   private readonly settingsService = inject(UserSettingsService);
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
@@ -87,7 +86,7 @@ export class ChannelSidebar {
     if (!id) {
       return 'Tin nhắn trực tiếp';
     }
-    return this.serversStore.serverOf(id)?.name ?? this.shell.serverOf(id)?.name ?? 'Máy chủ';
+    return this.serversStore.serverOf(id)?.name ?? 'Máy chủ';
   });
 
   /** Quyền năng server canonical được tính toán từ DB */

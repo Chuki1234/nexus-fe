@@ -236,6 +236,21 @@ export class ServersApiService {
   }
 
   /**
+   * Lấy danh sách toàn bộ kênh của một máy chủ: GET /api/servers/:serverId/channels
+   */
+  async listChannels(serverId: string): Promise<ChannelSummary[]> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.get<ChannelSummary[]>(
+        `${environment.apiUrl}/servers/${serverId}/channels`,
+        { headers },
+      ),
+    );
+  }
+
+  /**
    * Tạo kênh mới trong một máy chủ cụ thể qua POST /api/servers/:serverId/channels.
    */
   async createChannel(

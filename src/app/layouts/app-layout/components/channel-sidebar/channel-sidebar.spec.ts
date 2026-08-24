@@ -8,6 +8,7 @@ import { ShellData } from '../../../../core/api/shell-data';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
 import { ServerCapabilitiesService } from '../../../../core/servers/server-capabilities.service';
+import { ServersStore } from '../../../../core/servers/servers.store';
 import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
 import { ChannelSidebar } from './channel-sidebar';
 import { CreateChannelDialog } from './components/create-channel-dialog/create-channel-dialog';
@@ -130,6 +131,14 @@ describe('ChannelSidebar', () => {
         { provide: ServerCapabilitiesService, useValue: mockCapabilitiesService },
       ],
     }).compileComponents();
+
+    const serversStore = TestBed.inject(ServersStore);
+    serversStore.serverList.set([
+      { id: 'lofi', name: 'Lofi Study', iconUrl: null, unread: false, mentionCount: 0 },
+      { id: 'itss', name: 'ITSS Lab', iconUrl: null, unread: false, mentionCount: 0 },
+      { id: 'server-1', name: 'Máy chủ 1', iconUrl: null, unread: false, mentionCount: 0 },
+    ]);
+
     const fixture = TestBed.createComponent(ChannelSidebar);
     (fixture.componentRef as ComponentRef<ChannelSidebar>).setInput('serverId', serverId);
     fixture.detectChanges();

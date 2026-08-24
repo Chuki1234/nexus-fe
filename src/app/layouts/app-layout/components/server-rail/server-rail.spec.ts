@@ -14,6 +14,7 @@ import type {
   ServerSummary,
 } from '../../../../core/api/shell-data';
 import { ShellData } from '../../../../core/api/shell-data';
+import { ServersStore } from '../../../../core/servers/servers.store';
 import { ServerRail } from './server-rail';
 
 describe('ServerRail', () => {
@@ -50,6 +51,12 @@ describe('ServerRail', () => {
         { provide: ServersApiService, useValue: mockServersApi },
       ],
     }).compileComponents();
+
+    const serversStore = TestBed.inject(ServersStore);
+    if (shell.servers().length > 0) {
+      serversStore.serverList.set(shell.servers());
+    }
+
     const fixture = TestBed.createComponent(ServerRail);
     fixture.detectChanges();
     return fixture;
