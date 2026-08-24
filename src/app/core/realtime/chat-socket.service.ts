@@ -2,6 +2,7 @@ import { isPlatformBrowser } from '@angular/common';
 import {
   effect,
   inject,
+  InjectionToken,
   Injectable,
   PLATFORM_ID,
   signal,
@@ -26,6 +27,11 @@ export type ConnectionStatus =
   | 'connected'
   | 'error';
 
+export const CHAT_SOCKET_FACTORY = new InjectionToken<typeof io>(
+  'CHAT_SOCKET_FACTORY',
+  { providedIn: 'root', factory: () => io },
+);
+
 @Injectable({
   providedIn: 'root',
 })
@@ -33,6 +39,7 @@ export class ChatSocketService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly auth = inject(AuthService);
 
+  private readonly socketFactory = inject(CHAT_SOCKET_FACTORY);
   private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null =
     null;
 
@@ -208,7 +215,7 @@ export class ChatSocketService {
 
     const socketUrl = `${environment.apiBaseUrl}/chat`;
 
-    this.socket = io(socketUrl, {
+    this.socket = this.socketFactory(socketUrl, {
       auth: { token: authToken },
       transports: ['websocket', 'polling'],
       autoConnect: true,

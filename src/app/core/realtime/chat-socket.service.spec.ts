@@ -1,13 +1,10 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { io } from 'socket.io-client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../auth/auth.service';
-import { ChatSocketService } from './chat-socket.service';
+import { CHAT_SOCKET_FACTORY, ChatSocketService } from './chat-socket.service';
 
-vi.mock('socket.io-client', () => ({
-  io: vi.fn(),
-}));
+const io = vi.fn();
 
 describe('ChatSocketService', () => {
   let service: ChatSocketService;
@@ -37,6 +34,7 @@ describe('ChatSocketService', () => {
   }
 
   beforeEach(() => {
+    TestBed.resetTestingModule();
     vi.clearAllMocks();
     mockSocket = createFreshMockSocket();
     vi.mocked(io).mockImplementation(() => mockSocket);
@@ -48,17 +46,21 @@ describe('ChatSocketService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        ChatSocketService,
         { provide: PLATFORM_ID, useValue: 'browser' },
+        { provide: CHAT_SOCKET_FACTORY, useValue: io },
         { provide: AuthService, useValue: authMock },
       ],
     });
 
-    service = TestBed.runInInjectionContext(() => new ChatSocketService());
+    service = TestBed.inject(ChatSocketService);
+    service.disconnect();
     vi.mocked(io).mockClear();
   });
 
   afterEach(() => {
     service?.disconnect();
+    TestBed.resetTestingModule();
   });
 
   it('khởi tạo kết nối Socket.IO với namespace /chat và auth credential', () => {
