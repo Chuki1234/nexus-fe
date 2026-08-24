@@ -115,6 +115,19 @@
         Tiếp tục với Google
       </button>
 
+      <!-- Đăng nhập nhanh bằng mã dự phòng 2FA (không cần mật khẩu). -->
+      <button
+        type="button"
+        (click)="openFastLogin()"
+        class="mt-3 flex w-full items-center justify-center gap-3 rounded-full border border-hairline-strong bg-canvas px-4 py-3 text-button-md text-ink hover:border-primary"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4" />
+        </svg>
+        Đăng nhập bằng mã xác thực
+      </button>
+
       <div class="my-6 flex items-center gap-3" aria-hidden="true">
         <span class="h-px flex-1 bg-hairline"></span>
         <span class="text-caption text-steel uppercase">hoặc</span>
@@ -195,3 +208,69 @@
     </div>
   </div>
 </main>
+
+@if (showFastLoginModal()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Đăng nhập bằng mã xác thực"
+    (click)="closeFastLogin()"
+  >
+    <div
+      class="w-full max-w-sm rounded-lg border border-hairline bg-surface p-6 shadow-modal"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 class="text-heading-4 text-ink">Đăng nhập bằng mã xác thực</h2>
+      <p class="mt-1 text-body-sm text-slate">
+        Nhập email hoặc tên đăng nhập và một <strong class="text-ink">mã dự phòng 2FA</strong> của bạn.
+      </p>
+
+      @if (fastErrorMessage(); as err) {
+        <p class="mt-3 rounded-md bg-danger-surface px-3 py-2 text-body-sm text-danger">{{ err }}</p>
+      }
+
+      <label class="mt-4 block text-caption text-steel" for="fast-identifier">Email hoặc tên đăng nhập</label>
+      <input
+        id="fast-identifier"
+        type="text"
+        autocomplete="username"
+        [value]="fastIdentifier()"
+        (input)="onFastIdInput($event)"
+        placeholder="ban@vidu.com hoặc tendangnhap"
+        class="mt-1 w-full rounded-lg border border-hairline-strong bg-canvas px-3 py-2.5 text-body-md text-ink placeholder:text-steel focus:border-primary focus:outline-none"
+      />
+
+      <label class="mt-3 block text-caption text-steel" for="fast-code">Mã dự phòng</label>
+      <input
+        id="fast-code"
+        type="text"
+        inputmode="text"
+        autocomplete="one-time-code"
+        [value]="fastCode()"
+        (input)="onFastCodeInput($event)"
+        (keydown.enter)="onSubmitFastLogin()"
+        placeholder="VD: A1B2C3D4"
+        class="mt-1 w-full rounded-lg border border-hairline-strong bg-canvas px-3 py-2.5 text-center font-mono text-body-md tracking-widest text-ink placeholder:text-steel focus:border-primary focus:outline-none"
+      />
+
+      <div class="mt-5 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          (click)="closeFastLogin()"
+          class="rounded-full px-4 py-2 text-button-md text-slate hover:text-ink"
+        >
+          Hủy
+        </button>
+        <button
+          type="button"
+          (click)="onSubmitFastLogin()"
+          [disabled]="fastSubmitting()"
+          class="rounded-full bg-primary px-5 py-2 text-button-md text-on-primary transition-colors hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {{ fastSubmitting() ? 'Đang đăng nhập…' : 'Đăng nhập' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

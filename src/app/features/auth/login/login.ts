@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, ElementRef, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -38,8 +39,78 @@ export class LoginPage {
   /** Bật true khi /assets/logo.png chưa có (hoặc lỗi tải) → dùng logo SVG dự phòng. */
   protected readonly logoFailed = signal(false);
 
+  // Đăng nhập nhanh bằng MÃ DỰ PHÒNG 2FA (không cần mật khẩu).
+  protected readonly showFastLoginModal = signal(false);
+  protected readonly fastIdentifier = signal('');
+  protected readonly fastCode = signal('');
+  protected readonly fastSubmitting = signal(false);
+  protected readonly fastErrorMessage = signal<string | null>(null);
+
   protected togglePasswordVisibility(): void {
     this.passwordVisible.update((visible) => !visible);
+  }
+
+  protected openFastLogin(): void {
+    this.fastErrorMessage.set(null);
+    this.fastCode.set('');
+    const currentId = this.form.controls.identifier.value.trim();
+    if (currentId && !this.fastIdentifier()) {
+      this.fastIdentifier.set(currentId);
+    }
+    this.showFastLoginModal.set(true);
+  }
+
+  protected closeFastLogin(): void {
+    this.showFastLoginModal.set(false);
+    this.fastErrorMessage.set(null);
+    this.fastCode.set('');
+  }
+
+  protected onFastIdInput(event: Event): void {
+    this.fastIdentifier.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onFastCodeInput(event: Event): void {
+    // Mã dự phòng chỉ gồm chữ và số (bỏ gạch nối người dùng có thể gõ theo mẫu A1B2-C3D4).
+    this.fastCode.set((event.target as HTMLInputElement).value.replace(/[^0-9a-zA-Z]/g, ''));
+  }
+
+  protected async onSubmitFastLogin(): Promise<void> {
+    const identifier = this.fastIdentifier().trim();
+    const code = this.fastCode().trim();
+
+    if (!identifier) {
+      this.fastErrorMessage.set('Vui lòng nhập email hoặc tên đăng nhập.');
+      return;
+    }
+    if (!code) {
+      this.fastErrorMessage.set('Vui lòng nhập mã dự phòng.');
+      return;
+    }
+
+    this.fastSubmitting.set(true);
+    this.fastErrorMessage.set(null);
+    try {
+      await this.auth.fastLoginTotp(identifier, code);
+      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+      this.showFastLoginModal.set(false);
+      await this.router.navigateByUrl(returnUrl);
+    } catch (error: unknown) {
+      let msg = 'Mã dự phòng không đúng hoặc đã được dùng.';
+      if (error instanceof HttpErrorResponse) {
+        if (typeof error.error?.message === 'string') {
+          msg = error.error.message;
+        } else if (Array.isArray(error.error?.message)) {
+          msg = error.error.message.join('. ');
+        }
+      } else {
+        msg = toAuthErrorMessage(error);
+      }
+      this.fastErrorMessage.set(msg);
+      this.fastCode.set('');
+    } finally {
+      this.fastSubmitting.set(false);
+    }
   }
 
   /** Chuyển hướng sang Google; quay lại /auth/callback kèm returnUrl. */
