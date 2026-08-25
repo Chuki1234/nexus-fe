@@ -1,0 +1,113 @@
+:host {
+  display: block;
+}
+.footer {
+  background-color: var(--color-surface);
+  border-block-start: 1px solid var(--color-hairline-soft);
+  overflow: clip;
+}
+
+.footer__inner {
+  max-inline-size: var(--container-band);
+  margin-inline: auto;
+  padding: 72px 24px 48px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 48px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand__mark {
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-brand-green), var(--color-brand-green-mid));
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-brand-green) 14%, transparent);
+}
+.brand__name {
+  font-size: var(--text-heading-3);
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--color-ink);
+}
+.footer__tag {
+  margin-block-start: 16px;
+  font-size: var(--text-body-sm);
+  color: var(--color-steel);
+  max-inline-size: 18rem;
+}
+
+/* Cột link bên phải */
+.footer__cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 40px;
+}
+.footer__heading {
+  margin: 0 0 16px;
+  font-size: var(--text-caption-bold);
+  font-weight: 600;
+  color: var(--color-slate);
+}
+.footer__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.footer__link {
+  font-size: var(--text-body-sm);
+  color: var(--color-steel);
+  text-decoration: none;
+  transition: color var(--motion-fast) var(--ease-nexus-out);
+}
+.footer__link:hover {
+  color: var(--color-ink);
+}
+
+/* Wordmark khổng lồ — tràn chiều ngang, cắt gọn hai mép. */
+.footer__wordmark {
+  font-size: clamp(96px, 21vw, 320px);
+  font-weight: 800;
+  line-height: 0.82;
+  letter-spacing: -0.04em;
+  text-align: center;
+  color: color-mix(in srgb, var(--color-steel) 42%, var(--color-surface));
+  padding-inline: 12px;
+  margin-block: 8px -0.12em;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.footer__base {
+  max-inline-size: var(--container-band);
+  margin-inline: auto;
+  padding: 24px;
+  border-block-start: 1px solid var(--color-hairline-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  font-size: var(--text-caption);
+  color: var(--color-stone);
+}
+
+@media (max-width: 720px) {
+  .footer__inner {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer__link {
+    transition: none;
+  }
+}

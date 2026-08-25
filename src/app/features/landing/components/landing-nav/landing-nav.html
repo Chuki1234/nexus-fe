@@ -1,0 +1,21 @@
+<a class="skip-link" href="#main">Bỏ qua tới nội dung chính</a>
+
+<header class="nav">
+  <div class="nav__inner">
+    <a class="brand" routerLink="/" aria-label="Nexus — trang chủ">
+      <span class="brand__mark" aria-hidden="true"></span>
+      <span class="brand__name">Nexus</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Điều hướng chính">
+      @for (link of links; track link.href) {
+        <a class="nav__link" [href]="link.href">{{ link.label }}</a>
+      }
+    </nav>
+
+    <div class="nav__actions">
+      <a class="nav__signin" routerLink="/login">Đăng nhập</a>
+      <a class="btn-pill" routerLink="/register">Bắt đầu miễn phí</a>
+    </div>
+  </div>
+</header>

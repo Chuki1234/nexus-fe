@@ -30,6 +30,24 @@ export const authGuard: CanActivateFn = async (_route, state) => {
   );
 };
 
+/**
+ * Trang landing công khai ở route gốc: khách xem landing, còn người đã đăng
+ * nhập được đưa thẳng vào ứng dụng. Trong prerender chưa có phiên nên cứ render
+ * landing; quyết định thật để lại cho trình duyệt.
+ */
+export const landingGuard: CanActivateFn = async () => {
+  const isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  if (!isBrowser) {
+    return true;
+  }
+  await auth.whenReady();
+
+  return auth.isAuthenticated() ? router.createUrlTree(['/channels/@me']) : true;
+};
+
 /** Keeps an already signed-in user off the login page. */
 export const guestGuard: CanActivateFn = async () => {
   const isBrowser = isPlatformBrowser(inject(PLATFORM_ID));

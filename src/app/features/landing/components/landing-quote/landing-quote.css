@@ -1,0 +1,57 @@
+:host {
+  display: block;
+}
+.quote {
+  max-inline-size: 880px;
+  margin-inline: auto;
+  padding: 72px 24px;
+  text-align: center;
+}
+.quote__figure {
+  margin: 0;
+}
+.quote__text {
+  margin: 0;
+  font-size: var(--text-heading-3);
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+  color: var(--color-ink);
+  text-wrap: balance;
+}
+.quote__by {
+  margin-block-start: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.quote__avatar {
+  inline-size: 46px;
+  block-size: 46px;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #fff;
+  background-color: var(--color-accent-orange);
+}
+.quote__id {
+  text-align: start;
+  display: flex;
+  flex-direction: column;
+}
+.quote__name {
+  font-size: var(--text-body-md-medium);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.quote__role {
+  font-size: var(--text-caption);
+  color: var(--color-steel);
+}
+
+@media (max-width: 700px) {
+  .quote__text {
+    font-size: var(--text-heading-4);
+  }
+}

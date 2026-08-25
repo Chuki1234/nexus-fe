@@ -1,0 +1,64 @@
+:host {
+  display: block;
+}
+.cta-wrap {
+  max-inline-size: var(--container-band);
+  margin-inline: auto;
+  padding: 24px 24px 96px;
+}
+.cta {
+  position: relative;
+  overflow: hidden;
+  padding: 72px 32px;
+  border-radius: var(--radius-xxl);
+  text-align: center;
+  background-color: var(--color-surface-feature);
+  border: 1px solid var(--color-hairline);
+}
+/* Quầng sáng brand rất nhẹ phía sau — điểm nhấn đơn sắc, không gradient loè. */
+.cta::before {
+  content: '';
+  position: absolute;
+  inset-block-start: -40%;
+  inset-inline: 20%;
+  block-size: 320px;
+  background: radial-gradient(
+    50% 60% at 50% 0%,
+    color-mix(in srgb, var(--color-brand-green) 22%, transparent),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+.cta__title {
+  position: relative;
+  margin: 0;
+  font-size: var(--text-heading-1);
+  line-height: var(--text-heading-1--line-height);
+  letter-spacing: var(--text-heading-1--letter-spacing);
+  font-weight: var(--text-heading-1--font-weight);
+  color: var(--color-ink);
+}
+.cta__body {
+  position: relative;
+  margin: 18px auto 0;
+  max-inline-size: 34rem;
+  font-size: var(--text-subtitle);
+  color: var(--color-slate);
+}
+.cta__actions {
+  position: relative;
+  margin-block-start: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+
+@media (max-width: 700px) {
+  .cta {
+    padding: 48px 24px;
+  }
+  .cta__title {
+    font-size: var(--text-heading-2);
+  }
+}

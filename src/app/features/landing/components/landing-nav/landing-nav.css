@@ -1,0 +1,104 @@
+:host {
+  display: block;
+}
+
+/* Bỏ qua tới nội dung — chỉ hiện khi focus bằng bàn phím (WCAG 2.4.1). */
+.skip-link {
+  position: absolute;
+  inset-block-start: -48px;
+  inset-inline-start: 16px;
+  z-index: 60;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-green);
+  color: var(--color-on-primary);
+  font-size: var(--text-button-md);
+  font-weight: 600;
+  transition: inset-block-start var(--motion-fast) var(--ease-nexus-out);
+}
+.skip-link:focus {
+  inset-block-start: 12px;
+}
+
+.nav {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 50;
+  background-color: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+  backdrop-filter: blur(12px);
+  border-block-end: 1px solid var(--color-hairline-soft);
+}
+
+.nav__inner {
+  max-inline-size: var(--container-band);
+  margin-inline: auto;
+  block-size: 64px;
+  padding-inline: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.brand__mark {
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--color-brand-green), var(--color-brand-green-mid));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-brand-green) 16%, transparent);
+}
+.brand__name {
+  font-size: var(--text-heading-5);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--color-ink);
+}
+
+.nav__links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.nav__link {
+  font-size: var(--text-body-sm-medium);
+  font-weight: 500;
+  color: var(--color-slate);
+  text-decoration: none;
+  transition: color var(--motion-fast) var(--ease-nexus-out);
+}
+.nav__link:hover {
+  color: var(--color-ink);
+}
+
+.nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.nav__signin {
+  font-size: var(--text-body-sm-medium);
+  font-weight: 500;
+  color: var(--color-slate);
+  text-decoration: none;
+}
+.nav__signin:hover {
+  color: var(--color-ink);
+}
+
+/* Điều hướng giữa gập lại dưới 1024px (theo responsive MongoDB). */
+@media (max-width: 1023px) {
+  .nav__links {
+    display: none;
+  }
+}
+@media (max-width: 520px) {
+  .nav__signin {
+    display: none;
+  }
+}

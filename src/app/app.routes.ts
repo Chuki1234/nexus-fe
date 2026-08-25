@@ -1,10 +1,16 @@
 import { Routes } from '@angular/router';
-import { authGuard, profileGuard } from './core/auth/auth.guard';
+import { authGuard, landingGuard, profileGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
-  // Đích sau khi đăng nhập. Chưa đăng nhập thì `authGuard` trong /channels đá
-  // sang /login kèm returnUrl.
-  { path: '', pathMatch: 'full', redirectTo: '/channels/@me' },
+  // Route gốc là trang landing công khai. Người đã đăng nhập được `landingGuard`
+  // đưa thẳng vào /channels/@me; khách xem trang giới thiệu.
+  {
+    path: '',
+    pathMatch: 'full',
+    canActivate: [landingGuard],
+    title: 'Nexus · Không gian cộng đồng thời gian thực',
+    loadComponent: () => import('./features/landing/landing').then((m) => m.Landing),
+  },
 
   {
     path: 'channels',

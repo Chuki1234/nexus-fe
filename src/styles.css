@@ -1949,3 +1949,65 @@ app-server-rail .server-ungroup-zone--active {
    5. Light mode đổi token trong `html[data-theme='light']`; geometry và semantic state
       phải dùng chung với dark mode, không tách hai bộ component.
    ========================================================================== */
+
+/* ===========================================================================
+   LANDING — nút pill dùng chung cho trang giới thiệu công khai
+   Chỉ dùng token thiết kế; pill (rounded-full) theo luật NexusCord.
+   ========================================================================== */
+@layer components {
+  .btn-pill,
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font: inherit;
+    font-size: var(--text-button-md);
+    font-weight: var(--text-button-md--font-weight);
+    line-height: var(--text-button-md--line-height);
+    padding: 12px 22px;
+    border-radius: var(--radius-full);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    cursor: pointer;
+    text-decoration: none;
+    transition:
+      transform var(--motion-fast) var(--ease-nexus-out),
+      background-color var(--motion-fast) var(--ease-nexus-out),
+      border-color var(--motion-fast) var(--ease-nexus-out);
+  }
+
+  .btn-pill {
+    background-color: var(--color-brand-green);
+    color: var(--color-on-primary);
+  }
+  .btn-pill:hover {
+    background-color: var(--color-primary-soft);
+    transform: translateY(-1px);
+  }
+  .btn-pill:active {
+    background-color: var(--color-primary-pressed);
+    transform: translateY(0);
+  }
+
+  .btn-outline {
+    background-color: transparent;
+    color: var(--color-on-dark);
+    border-color: var(--color-hairline-strong);
+  }
+  .btn-outline:hover {
+    border-color: var(--color-on-dark);
+    transform: translateY(-1px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-pill,
+    .btn-outline {
+      transition: none;
+    }
+    .btn-pill:hover,
+    .btn-outline:hover {
+      transform: none;
+    }
+  }
+}
