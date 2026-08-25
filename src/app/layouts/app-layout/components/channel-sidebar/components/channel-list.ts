@@ -22,7 +22,17 @@ import {
   RouterLinkActive,
 } from '@angular/router';
 import { filter, map } from 'rxjs';
-import { ChannelSummary, ShellData } from '../../../../../core/api/shell-data';
+import {
+  CdkDrag,
+  type CdkDragDrop,
+  CdkDragPlaceholder,
+  CdkDropList,
+  CdkDropListGroup,
+} from '@angular/cdk/drag-drop';
+import {
+  ChannelSummary,
+  ServerCategorySummary,
+} from '../../../../../core/servers/server.models';
 import { ServerCapabilitiesService } from '../../../../../core/servers/server-capabilities.service';
 import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
 import { ChannelSettingsModal } from '../../../../../features/settings/modals/channel-settings-modal/channel-settings-modal';
@@ -30,21 +40,24 @@ import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { UnreadBadge } from '../../../../../shared/ui/unread-badge/unread-badge';
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
 import { InviteChannelDialog } from './invite-channel-dialog/invite-channel-dialog';
-
-/** Nhãn nhóm theo loại kênh. Thứ tự trong mảng là thứ tự hiển thị. */
-const GROUPS = [
-  { type: 'text' as const, label: 'Kênh chữ', icon: 'tag' },
-  { type: 'forum' as const, label: 'Kênh bài đăng', icon: 'forum' },
-  { type: 'voice' as const, label: 'Kênh thoại', icon: 'volume_up' },
-];
-
 import { ServersStore } from '../../../../../core/servers/servers.store';
+
+export interface ChannelGroupViewModel {
+  id: string;
+  label: string;
+  isPrivate?: boolean;
+  channels: ChannelSummary[];
+}
 
 /** Danh sách kênh của một server — nội dung cột 2 khi đang mở server. */
 @Component({
   selector: 'app-channel-list',
   imports: [
     Avatar,
+    CdkDrag,
+    CdkDragPlaceholder,
+    CdkDropList,
+    CdkDropListGroup,
     MatButtonModule,
     MatIconModule,
     MatListModule,
@@ -92,7 +105,7 @@ export class ChannelList {
   protected readonly contextMenuPosition = signal<{ x: number; y: number }>({ x: 0, y: 0 });
 
   /** Nhóm hoặc Kênh đang được chọn bởi chuột phải */
-  protected readonly selectedGroup = signal<{ type: string; label: string; icon: string } | null>(null);
+  protected readonly selectedGroup = signal<ChannelGroupViewModel | null>(null);
   protected readonly selectedChannel = signal<ChannelSummary | null>(null);
 
   /** Lắng nghe route để xác định kênh đang mở hiện tại */
@@ -116,13 +129,59 @@ export class ChannelList {
     () => this.serversStore.serverOf(this.serverId())?.name ?? 'Máy chủ',
   );
 
-  /** Bỏ nhóm rỗng để không hiện tiêu đề khi danh sách kênh hoàn toàn rỗng */
-  protected readonly groups = computed(() => {
-    const channels = this.serversStore.channelsOf(this.serverId());
-    return GROUPS.map((group) => ({
-      ...group,
-      channels: channels.filter((channel) => channel.type === group.type),
-    })).filter((group) => group.channels.length > 0);
+  /** Nhóm kênh theo danh mục thật của server (hỗ trợ cả text và voice trong cùng 1 danh mục) */
+  protected readonly groups = computed<ChannelGroupViewModel[]>(() => {
+    const serverId = this.serverId();
+    const channels = this.serversStore.channelsOf(serverId);
+    const customCategories = this.serversStore.categoriesOf(serverId);
+
+    const defaultCategories: ServerCategorySummary[] = [
+      { id: 'cat-text', name: 'Kênh chữ' },
+      { id: 'cat-voice', name: 'Kênh thoại' },
+    ];
+
+    const allCategories: ServerCategorySummary[] =
+      customCategories.length > 0 ? customCategories : defaultCategories;
+
+    const result: ChannelGroupViewModel[] = [];
+
+    for (const cat of allCategories) {
+      const catChannels = channels.filter((c) => {
+        if (c.categoryId) {
+          return c.categoryId === cat.id;
+        }
+        if (cat.id === 'cat-voice') {
+          return c.type === 'voice';
+        }
+        if (cat.id === 'cat-text') {
+          return c.type !== 'voice';
+        }
+        return false;
+      });
+
+      result.push({
+        id: cat.id,
+        label: cat.name,
+        isPrivate: cat.isPrivate,
+        channels: catChannels,
+      });
+    }
+
+    const accountedIds = new Set(result.flatMap((g) => g.channels.map((c) => c.id)));
+    const orphaned = channels.filter((c) => !accountedIds.has(c.id));
+    if (orphaned.length > 0) {
+      result.push({
+        id: 'cat-other',
+        label: 'Kênh khác',
+        channels: orphaned,
+      });
+    }
+
+    if (customCategories.length === 0) {
+      return result.filter((g) => g.channels.length > 0);
+    }
+
+    return result;
   });
 
   /**
@@ -130,8 +189,8 @@ export class ChannelList {
    * - Nếu nhóm mở: hiện tất cả kênh trong nhóm.
    * - Nếu nhóm thu gọn: chỉ hiện duy nhất kênh mà người dùng đang mở (nếu thuộc nhóm này).
    */
-  protected visibleChannelsOf(group: { type: string; channels: ChannelSummary[] }): ChannelSummary[] {
-    const isCollapsed = this.isGroupCollapsed(group.type);
+  protected visibleChannelsOf(group: ChannelGroupViewModel): ChannelSummary[] {
+    const isCollapsed = this.isGroupCollapsed(group.id);
     if (!isCollapsed) {
       return group.channels;
     }
@@ -156,27 +215,41 @@ export class ChannelList {
     return match ? match[1] : null;
   }
 
-
-  protected isGroupCollapsed(type: string): boolean {
-    return !!this.collapsedGroups()[type];
+  protected isGroupCollapsed(groupId: string): boolean {
+    return !!this.collapsedGroups()[groupId];
   }
 
-  protected toggleGroup(type: string): void {
+  protected toggleGroup(groupId: string): void {
     this.collapsedGroups.update((current) => ({
       ...current,
-      [type]: !current[type],
+      [groupId]: !current[groupId],
     }));
   }
 
-  protected openCreateChannelDialog(type: 'text' | 'voice', event?: Event): void {
+  protected openCreateChannelDialog(group?: ChannelGroupViewModel | 'text' | 'voice', event?: Event): void {
     event?.preventDefault();
     event?.stopPropagation();
+
+    let defaultType: 'text' | 'voice' = 'text';
+    let categoryId: string | undefined;
+    let categoryName: string | undefined;
+
+    if (typeof group === 'string') {
+      defaultType = group;
+      categoryId = group === 'voice' ? 'cat-voice' : 'cat-text';
+    } else if (group) {
+      categoryId = group.id;
+      categoryName = group.label;
+      defaultType = group.id === 'cat-voice' ? 'voice' : 'text';
+    }
 
     this.dialog.open(CreateChannelDialog, {
       data: {
         serverId: this.serverId(),
         serverName: this.serverName(),
-        defaultType: type,
+        defaultType,
+        categoryId,
+        categoryName,
       },
       panelClass: 'nexus-dialog-overlay',
       autoFocus: false,
@@ -229,7 +302,7 @@ export class ChannelList {
 
   protected onCategoryContextMenu(
     event: MouseEvent | KeyboardEvent,
-    group: { type: string; label: string; icon: string },
+    group: ChannelGroupViewModel,
   ): void {
     event.preventDefault();
     event.stopPropagation();
@@ -277,8 +350,8 @@ export class ChannelList {
 
   protected collapseAllGroups(): void {
     const allCollapsed: Record<string, boolean> = {};
-    for (const group of GROUPS) {
-      allCollapsed[group.type] = true;
+    for (const group of this.groups()) {
+      allCollapsed[group.id] = true;
     }
     this.collapsedGroups.set(allCollapsed);
   }
@@ -293,7 +366,7 @@ export class ChannelList {
     }
   }
 
-  protected markGroupAsRead(group?: { type: string } | null): void {
+  protected markGroupAsRead(group?: { id?: string; label?: string } | null): void {
     const target = group ?? this.selectedGroup();
     if (!target) return;
     // Integration seam: Đánh dấu đã đọc toàn bộ kênh trong nhóm
@@ -308,11 +381,44 @@ export class ChannelList {
   protected createChannelOfSameType(channel?: ChannelSummary | null): void {
     const target = channel ?? this.selectedChannel();
     const type = target?.type === 'voice' ? 'voice' : 'text';
-    this.openCreateChannelDialog(type);
+    const categoryId = target?.categoryId ?? (type === 'voice' ? 'cat-voice' : 'cat-text');
+    this.openCreateChannelDialog({ id: categoryId, label: type === 'voice' ? 'Kênh thoại' : 'Kênh chữ', channels: [] });
   }
 
   protected onActionSeam(action: string, target?: unknown): void {
     // Integration seam cho các tính năng nâng cao (Ghim, Trùng lặp, Xóa, Tắt âm, Thông báo)
+  }
+
+  /**
+   * Xử lý khi người dùng thả kênh (sắp xếp vị trí hoặc chuyển sang danh mục khác).
+   */
+  protected onChannelDrop(
+    event: CdkDragDrop<ChannelGroupViewModel, ChannelGroupViewModel, ChannelSummary>,
+  ): void {
+    if (!this.canManageChannels()) {
+      return;
+    }
+
+    const channel = event.item.data;
+    if (!channel) return;
+
+    const sourceGroup = event.previousContainer.data;
+    const targetGroup = event.container.data;
+
+    // Nếu cùng danh mục và cùng vị trí thì bỏ qua
+    if (
+      sourceGroup.id === targetGroup.id &&
+      event.previousIndex === event.currentIndex
+    ) {
+      return;
+    }
+
+    this.serversStore.moveChannel(
+      this.serverId(),
+      channel.id,
+      targetGroup.id,
+      event.currentIndex,
+    );
   }
 }
 

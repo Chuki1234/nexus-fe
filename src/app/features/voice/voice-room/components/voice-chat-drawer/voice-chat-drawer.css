@@ -11,3 +11,109 @@ button mat-icon,
   margin: auto !important;
 }
 
+.message-row {
+  position: relative;
+  transition: background-color var(--motion-fast, 0.15s) var(--ease-nexus-out, ease);
+}
+
+.message-row:hover,
+.message-row:focus-within {
+  background-color: var(--color-surface-feature, rgba(255, 255, 255, 0.04));
+}
+
+.message-actions-slot {
+  position: absolute;
+  top: -14px;
+  right: 8px;
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition:
+    opacity var(--motion-fast, 0.15s) var(--ease-nexus-out, ease),
+    transform var(--motion-fast, 0.15s) var(--ease-nexus-out, ease);
+}
+
+.message-row:hover .message-actions-slot,
+.message-row:focus-within .message-actions-slot,
+.message-actions-slot:has(.mat-mdc-menu-trigger[aria-expanded='true']) {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.reaction-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid var(--color-hairline, rgba(255, 255, 255, 0.08));
+  background-color: var(--color-surface-soft, rgba(0, 0, 0, 0.2));
+  color: var(--color-steel, #8da0aa);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--motion-fast, 0.15s) var(--ease-nexus-out, ease);
+}
+
+.reaction-chip:hover {
+  background-color: var(--color-surface-feature, rgba(255, 255, 255, 0.08));
+  border-color: var(--color-hairline-strong, rgba(255, 255, 255, 0.15));
+  color: var(--color-ink, #ffffff);
+}
+
+.reaction-chip--mine {
+  background-color: color-mix(in srgb, var(--color-primary, #00f59b) 14%, var(--color-surface-soft, rgba(0, 0, 0, 0.2)));
+  border-color: color-mix(in srgb, var(--color-primary, #00f59b) 40%, transparent);
+  color: var(--color-primary, #00f59b);
+  font-weight: 600;
+}
+
+.reaction-emoji {
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.reaction-count {
+  font-size: 0.6875rem;
+}
+
+/* Typing Banner */
+.typing-banner {
+  background: var(--color-canvas, #001e2b);
+}
+
+.typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.typing-dots span {
+  width: 4px;
+  height: 4px;
+  background-color: var(--color-primary, #00f59b);
+  border-radius: 50%;
+  animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typingBounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.3;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

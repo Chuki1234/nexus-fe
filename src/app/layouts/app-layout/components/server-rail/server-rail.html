@@ -30,42 +30,31 @@
 
 <ul
   cdkDropListGroup
+  cdkDropList
+  [cdkDropListSortingDisabled]="true"
+  (cdkDropListDropped)="finishServerDrag()"
   class="server-rail-list nexus-scrollbar"
   aria-label="Máy chủ của bạn"
   aria-describedby="server-drag-help"
+  (pointermove)="onRailListPointerMove($event)"
+  (pointerleave)="onRailListPointerLeave()"
 >
   @for (item of railItems(); track item.id; let railIndex = $index) {
-    <li
-      cdkDropList
-      [cdkDropListData]="railSlotId(railIndex)"
-      [cdkDropListSortingDisabled]="true"
-      class="server-drop-slot"
-      [class.server-drop-slot--active]="activeDropSlot() === railSlotId(railIndex)"
-      (cdkDropListEntered)="activateDropSlot(railSlotId(railIndex))"
-      (cdkDropListExited)="deactivateDropSlot(railSlotId(railIndex))"
-      (cdkDropListDropped)="dropOutsideGroupsAt($event, railIndex)"
-      aria-hidden="true"
-    >
-      <span class="server-drop-indicator"></span>
-    </li>
+    <!-- Active Drop Slot Before this item if intent is insert-before -->
+    @if (isSlotBefore(item.id)) {
+      <li class="server-active-drop-slot" aria-hidden="true">
+        <span class="server-drop-indicator"></span>
+      </li>
+    }
 
     <!-- 1. Standalone Server Item -->
     @if (item.kind === 'server') {
       <li class="server-rail-item">
-        <div
-          cdkDropList
-          [cdkDropListData]="item.id"
-          [cdkDropListSortingDisabled]="true"
-          (cdkDropListEntered)="activateGroupingTarget('server', item.id)"
-          (cdkDropListExited)="deactivateGroupingTarget('server', item.id)"
-          (cdkDropListDropped)="dropOnServer($event, item.id)"
-          class="server-drop-target server-tile-wrapper"
-          [class.server-drop-target--group-active]="groupingTargetIsActive('server', item.id)"
-          [attr.data-server-drop-target]="item.id"
-        >
+        <div class="server-tile-wrapper">
           <a
             cdkDrag
             [cdkDragData]="item.id"
+            [cdkDragStartDelay]="{ touch: 200, mouse: 0 }"
             (cdkDragStarted)="startServerDrag(item.id)"
             (cdkDragEnded)="finishServerDrag()"
             [routerLink]="linkFor(item.id)"
@@ -77,6 +66,7 @@
             [attr.data-server-id]="item.id"
             class="server-tile nexus-icon-control"
             [class.server-tile--active]="serverLink.isActive"
+            [class.server-tile--merge-active]="isMergeActive(item.id)"
             [class.server-drag-source]="draggingServerId() === item.id"
           >
             @if (item.server.iconUrl) {
@@ -88,6 +78,18 @@
             } @else {
               {{ initialsOf(item.server.name) }}
             }
+
+            <div *cdkDragPreview class="server-drag-preview-tile">
+              @if (item.server.iconUrl) {
+                <img
+                  [src]="item.server.iconUrl"
+                  alt=""
+                  class="size-full rounded-[inherit] object-cover"
+                />
+              } @else {
+                {{ initialsOf(item.server.name) }}
+              }
+            </div>
           </a>
 
           <span
@@ -96,12 +98,6 @@
             [class.server-pill-indicator--unread]="!serverLink.isActive && item.server.unread"
             aria-hidden="true"
           ></span>
-
-          @if (groupingTargetIsActive('server', item.id)) {
-            <span class="server-merge-preview" aria-hidden="true">
-              {{ initialsOf(draggingServer()?.name ?? '') }}
-            </span>
-          }
 
           @if (item.server.mentionCount > 0) {
             <app-unread-badge
@@ -119,31 +115,22 @@
       <li
         class="server-group-shell"
         [class.server-group-shell--expanded]="item.isOpen"
-        [class.server-group-shell--receiving]="groupIsReceiving(item.id)"
+        [class.server-group-shell--receiving]="isMergeActive(item.id)"
         [attr.data-server-group-id]="item.id"
         [attr.data-group-state]="item.isOpen ? 'expanded' : 'collapsed'"
       >
         <!-- A. Closed Folder View -->
         @if (!item.isOpen) {
-          <div
-            cdkDropList
-            [cdkDropListData]="item.id"
-            [cdkDropListSortingDisabled]="true"
-            (cdkDropListEntered)="activateGroupingTarget('folder', item.id)"
-            (cdkDropListExited)="deactivateGroupingTarget('folder', item.id)"
-            (cdkDropListDropped)="dropOnGroup($event, item.id)"
-            class="server-group-dropzone server-tile-wrapper"
-            [class.server-group-dropzone--group-active]="groupingTargetIsActive('folder', item.id)"
-            [attr.data-group-drop-target]="item.id"
-          >
+          <div class="server-group-dropzone server-tile-wrapper">
             <button
               type="button"
               class="server-group-tile nexus-icon-control"
+              [class.server-tile--merge-active]="isMergeActive(item.id)"
               [attr.aria-expanded]="false"
               [attr.aria-label]="
                 'Nhóm máy chủ ' + item.folder.name + ', ' + item.servers.length + ' máy chủ'
               "
-              [matTooltip]="item.folder.name + ' · ' + item.servers.length + ' máy chủ'"
+              [matTooltip]="groupServerNamesTooltip(item.folder.name, item.servers)"
               matTooltipPosition="right"
               (click)="toggleGroup(item.id)"
             >
@@ -168,12 +155,6 @@
               ></span>
             }
 
-            @if (groupingTargetIsActive('folder', item.id)) {
-              <span class="server-merge-preview" aria-hidden="true">
-                {{ initialsOf(draggingServer()?.name ?? '') }}
-              </span>
-            }
-
             @if (groupMentions(item.servers) > 0) {
               <app-unread-badge
                 class="pointer-events-none absolute -right-1 -bottom-1"
@@ -184,26 +165,15 @@
           </div>
         }
 
-        <!-- B. Open Folder View (Pill shape background) -->
+        <!-- B. Open Folder View -->
         @else {
           <div class="server-folder-expanded">
-            <div
-              cdkDropList
-              [cdkDropListData]="item.id"
-              [cdkDropListSortingDisabled]="true"
-              class="server-group-dropzone"
-              [class.server-group-dropzone--group-active]="
-                groupingTargetIsActive('folder', item.id)
-              "
-              (cdkDropListEntered)="activateGroupingTarget('folder', item.id)"
-              (cdkDropListExited)="deactivateGroupingTarget('folder', item.id)"
-              (cdkDropListDropped)="dropOnGroup($event, item.id)"
-            >
+            <div class="server-group-dropzone">
               <button
                 type="button"
                 (click)="toggleGroup(item.id)"
                 class="server-folder-toggle nexus-icon-control"
-                [matTooltip]="'Thu gọn nhóm ' + item.folder.name"
+                [matTooltip]="groupServerNamesTooltip(item.folder.name, item.servers)"
                 matTooltipPosition="right"
                 [attr.aria-expanded]="true"
               >
@@ -214,43 +184,26 @@
 
             <!-- Member servers inside expanded folder -->
             <ul
+              cdkDropList
+              [cdkDropListSortingDisabled]="true"
+              (cdkDropListDropped)="finishServerDrag()"
               class="server-group-members"
               [attr.aria-label]="item.folder.name"
               data-expanded-group-members
             >
               @for (server of item.servers; track server.id; let memberIndex = $index) {
-                <li
-                  cdkDropList
-                  [cdkDropListData]="groupSlotId(item.id, memberIndex)"
-                  [cdkDropListSortingDisabled]="true"
-                  class="server-drop-slot"
-                  [class.server-drop-slot--active]="
-                    activeDropSlot() === groupSlotId(item.id, memberIndex)
-                  "
-                  (cdkDropListEntered)="activateDropSlot(groupSlotId(item.id, memberIndex))"
-                  (cdkDropListExited)="deactivateDropSlot(groupSlotId(item.id, memberIndex))"
-                  (cdkDropListDropped)="dropIntoGroupAt($event, item.id, memberIndex)"
-                  aria-hidden="true"
-                >
-                  <span class="server-drop-indicator"></span>
-                </li>
+                <!-- Slot Before member inside group -->
+                @if (isSlotBefore(server.id, item.id)) {
+                  <li class="server-active-drop-slot" aria-hidden="true">
+                    <span class="server-drop-indicator"></span>
+                  </li>
+                }
 
-                <li
-                  cdkDropList
-                  [cdkDropListData]="server.id"
-                  [cdkDropListSortingDisabled]="true"
-                  (cdkDropListEntered)="activateGroupingTarget('server', server.id)"
-                  (cdkDropListExited)="deactivateGroupingTarget('server', server.id)"
-                  (cdkDropListDropped)="dropOnServer($event, server.id)"
-                  class="server-drop-target server-tile-wrapper"
-                  [class.server-drop-target--group-active]="
-                    groupingTargetIsActive('server', server.id)
-                  "
-                  [attr.data-server-drop-target]="server.id"
-                >
+                <li class="server-tile-wrapper">
                   <a
                     cdkDrag
                     [cdkDragData]="server.id"
+                    [cdkDragStartDelay]="{ touch: 200, mouse: 0 }"
                     (cdkDragStarted)="startServerDrag(server.id)"
                     (cdkDragEnded)="finishServerDrag()"
                     [routerLink]="linkFor(server.id)"
@@ -262,6 +215,7 @@
                     [attr.data-server-id]="server.id"
                     class="server-tile nexus-icon-control"
                     [class.server-tile--active]="folderServerLink.isActive"
+                    [class.server-tile--merge-active]="isMergeActive(server.id)"
                     [class.server-drag-source]="draggingServerId() === server.id"
                   >
                     @if (server.iconUrl) {
@@ -273,22 +227,19 @@
                     } @else {
                       {{ initialsOf(server.name) }}
                     }
+
+                    <div *cdkDragPreview class="server-drag-preview-tile">
+                      @if (server.iconUrl) {
+                        <img
+                          [src]="server.iconUrl"
+                          alt=""
+                          class="size-full rounded-[inherit] object-cover"
+                        />
+                      } @else {
+                        {{ initialsOf(server.name) }}
+                      }
+                    </div>
                   </a>
-
-                  <span
-                    class="server-pill-indicator"
-                    [class.server-pill-indicator--active]="folderServerLink.isActive"
-                    [class.server-pill-indicator--unread]="
-                      !folderServerLink.isActive && server.unread
-                    "
-                    aria-hidden="true"
-                  ></span>
-
-                  @if (groupingTargetIsActive('server', server.id)) {
-                    <span class="server-merge-preview" aria-hidden="true">
-                      {{ initialsOf(draggingServer()?.name ?? '') }}
-                    </span>
-                  }
 
                   @if (server.mentionCount > 0) {
                     <app-unread-badge
@@ -298,44 +249,40 @@
                     />
                   }
                 </li>
-              }
 
-              <li
-                cdkDropList
-                [cdkDropListData]="groupSlotId(item.id, item.servers.length)"
-                [cdkDropListSortingDisabled]="true"
-                class="server-drop-slot"
-                [class.server-drop-slot--active]="
-                  activeDropSlot() === groupSlotId(item.id, item.servers.length)
-                "
-                (cdkDropListEntered)="activateDropSlot(groupSlotId(item.id, item.servers.length))"
-                (cdkDropListExited)="deactivateDropSlot(groupSlotId(item.id, item.servers.length))"
-                (cdkDropListDropped)="dropIntoGroupAt($event, item.id, item.servers.length)"
-                aria-hidden="true"
-              >
-                <span class="server-drop-indicator"></span>
-              </li>
+                <!-- Slot After member inside group -->
+                @if (isSlotAfter(server.id, item.id)) {
+                  <li class="server-active-drop-slot" aria-hidden="true">
+                    <span class="server-drop-indicator"></span>
+                  </li>
+                }
+              }
             </ul>
           </div>
         }
       </li>
     }
+
+    <!-- Active Drop Slot After this item if intent is insert-after -->
+    @if (isSlotAfter(item.id)) {
+      <li class="server-active-drop-slot" aria-hidden="true">
+        <span class="server-drop-indicator"></span>
+      </li>
+    }
   }
 
-  <li
-    cdkDropList
-    [cdkDropListData]="railSlotId(railItems().length)"
-    [cdkDropListSortingDisabled]="true"
-    class="server-drop-slot"
-    [class.server-drop-slot--active]="activeDropSlot() === railSlotId(railItems().length)"
-    (cdkDropListEntered)="activateDropSlot(railSlotId(railItems().length))"
-    (cdkDropListExited)="deactivateDropSlot(railSlotId(railItems().length))"
-    (cdkDropListDropped)="dropOutsideGroupsAt($event, railItems().length)"
-    aria-hidden="true"
-  >
-    <span class="server-drop-indicator"></span>
-  </li>
+  <!-- Active Drop Slot at the bottom of the rail if intent is detach-to-rail -->
+  @if (isBottomRailSlot()) {
+    <li class="server-active-drop-slot" aria-hidden="true">
+      <span class="server-drop-indicator"></span>
+    </li>
+  }
 </ul>
+
+<!-- Live announcer for accessibility -->
+<div class="sr-only" aria-live="polite" aria-atomic="true">
+  {{ dropAnnouncement() }}
+</div>
 
 <button
   type="button"

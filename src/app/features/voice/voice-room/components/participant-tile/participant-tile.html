@@ -25,7 +25,7 @@
   } @else {
     <!-- Avatar Fallback when camera is OFF -->
     <div class="flex flex-col items-center justify-center gap-3">
-      <app-avatar [name]="participant().name" size="xl" ring="surface" />
+      <app-avatar [name]="participant().name" [src]="participant().avatarUrl || null" size="xl" ring="surface" />
     </div>
   }
 

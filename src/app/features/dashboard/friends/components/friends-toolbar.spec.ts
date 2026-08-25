@@ -9,10 +9,9 @@ import { FriendsToolbar, type FriendsTab, type ThemeMode } from './friends-toolb
     <app-friends-toolbar
       [(tab)]="tab"
       [(theme)]="theme"
+      [showActivityToggle]="true"
       [activityOpen]="activityOpen()"
-      [demoEnabled]="demoEnabled()"
       (toggleActivity)="activityToggled.set(true)"
-      (toggleDemo)="demoEnabled.update((enabled) => !enabled)"
     />
   `,
 })
@@ -21,7 +20,6 @@ class Host {
   readonly theme = signal<ThemeMode>('dark');
   readonly activityOpen = signal(false);
   readonly activityToggled = signal(false);
-  readonly demoEnabled = signal(false);
 }
 
 describe('FriendsToolbar', () => {
@@ -85,26 +83,6 @@ describe('FriendsToolbar', () => {
     expect(fixture.componentInstance.theme()).toBe('light');
     expect(themeButton.getAttribute('aria-pressed')).toBe('true');
     expect(themeButton.classList.contains('nexus-icon-control')).toBe(true);
-  });
-
-  it('nút demo nằm bên trái theme và phản ánh đúng trạng thái ON/OFF', async () => {
-    const fixture = await mount();
-    const demoButton = fixture.nativeElement.querySelector(
-      'button[aria-label="Bật dữ liệu demo"]',
-    ) as HTMLButtonElement;
-
-    expect(demoButton.getAttribute('aria-pressed')).toBe('false');
-    expect(demoButton.classList.contains('nexus-demo-toggle')).toBe(true);
-    expect(demoButton.nextElementSibling?.getAttribute('aria-label')).toBe(
-      'Chuyển sang giao diện sáng',
-    );
-
-    demoButton.click();
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.demoEnabled()).toBe(true);
-    expect(demoButton.getAttribute('aria-pressed')).toBe('true');
-    expect(demoButton.getAttribute('aria-label')).toBe('Tắt dữ liệu demo');
   });
 
   it('nút panel hoạt động báo trạng thái expanded và phát sự kiện', async () => {

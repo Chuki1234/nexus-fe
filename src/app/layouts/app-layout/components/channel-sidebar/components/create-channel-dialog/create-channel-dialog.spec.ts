@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ServersApiService } from '../../../../../../core/api/servers-api.service';
-import { ShellData } from '../../../../../../core/api/shell-data';
+import { ServersStore } from '../../../../../../core/servers/servers.store';
 import {
   CreateChannelDialog,
   CreateChannelDialogData,
@@ -12,7 +12,7 @@ describe('CreateChannelDialog', () => {
   let component: CreateChannelDialog;
   let mockDialogRef: { close: ReturnType<typeof vi.fn> };
   let mockServersApi: { createChannel: ReturnType<typeof vi.fn> };
-  let shellData: ShellData;
+  let serversStore: ServersStore;
 
   const defaultData: CreateChannelDialogData = {
     serverId: 'server-1',
@@ -27,17 +27,16 @@ describe('CreateChannelDialog', () => {
     await TestBed.configureTestingModule({
       imports: [CreateChannelDialog],
       providers: [
-        ShellData,
+        ServersStore,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: ServersApiService, useValue: mockServersApi },
       ],
     }).compileComponents();
 
-
     fixture = TestBed.createComponent(CreateChannelDialog);
     component = fixture.componentInstance;
-    shellData = TestBed.inject(ShellData);
+    serversStore = TestBed.inject(ServersStore);
     fixture.detectChanges();
     return fixture;
   };
@@ -85,7 +84,7 @@ describe('CreateChannelDialog', () => {
     expect(component['isNameValid']()).toBe(true);
   });
 
-  it('tạo kênh thành công gọi serversApi, nạp vào ShellData và đóng dialog', async () => {
+  it('tạo kênh thành công gọi serversApi, nạp vào ServersStore và đóng dialog', async () => {
     await mount();
 
     const mockCreated = {
@@ -118,8 +117,14 @@ describe('CreateChannelDialog', () => {
       'text',
       'Chủ đề quan trọng',
     );
-    expect(shellData.channelsOf('server-1')).toContainEqual(mockCreated);
-    expect(mockDialogRef.close).toHaveBeenCalledWith(mockCreated);
+    expect(serversStore.channelsOf('server-1')).toContainEqual({
+      ...mockCreated,
+      categoryId: 'cat-text',
+    });
+    expect(mockDialogRef.close).toHaveBeenCalledWith({
+      ...mockCreated,
+      categoryId: 'cat-text',
+    });
   });
 
   it('hiển thị thông báo lỗi inline khi API tạo kênh thất bại', async () => {

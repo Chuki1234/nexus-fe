@@ -63,9 +63,8 @@
         #link="routerLinkActive"
         [activated]="link.isActive"
         [attr.aria-current]="link.isActive ? 'page' : null"
-        [lines]="conversation.statusMessage ? 2 : 1"
         [attr.data-conversation-id]="conversation.id"
-        class="conversation-row nexus-nav-item !h-auto !min-h-14 !rounded-lg"
+        class="conversation-row nexus-nav-item !rounded-lg"
       >
         <span
           matListItemIcon
@@ -101,11 +100,6 @@
             <app-unread-badge [count]="conversation.unreadCount" />
           }
         </span>
-        @if (conversation.statusMessage) {
-          <span matListItemLine class="!block min-w-0 truncate pr-1">
-            {{ conversation.statusMessage }}
-          </span>
-        }
       </a>
     } @empty {
       <div class="mx-1 rounded-xl bg-surface-soft px-3 py-5 text-center shadow-glow">

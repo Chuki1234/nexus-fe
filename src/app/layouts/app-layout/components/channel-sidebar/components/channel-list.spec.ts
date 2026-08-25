@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideRouter, Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChannelSummary, ShellData } from '../../../../../core/api/shell-data';
+import { ChannelSummary } from '../../../../../core/servers/server.models';
 import { ServerCapabilitiesService } from '../../../../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../../../../core/servers/servers.store';
 import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
@@ -12,7 +12,6 @@ import { ChannelList } from './channel-list';
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
 
 describe('ChannelList', () => {
-  let shellData: ShellData;
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockCapabilitiesService: {
     capabilitiesMap: ReturnType<typeof signal<Map<string, any>>>;
@@ -23,7 +22,7 @@ describe('ChannelList', () => {
 
   const mount = async (
     serverId: string,
-    enableDemo = false,
+    hasChannels = false,
     caps: any = {
       isOwner: true,
       canInviteMembers: true,
@@ -52,16 +51,13 @@ describe('ChannelList', () => {
       imports: [ChannelList],
       providers: [
         provideRouter([{ path: '**', component: ChannelList }]),
-        ShellData,
         { provide: MatDialog, useValue: mockDialog },
         { provide: ServerCapabilitiesService, useValue: mockCapabilitiesService },
       ],
     }).compileComponents();
 
-    shellData = TestBed.inject(ShellData);
     const serversStore = TestBed.inject(ServersStore);
-    if (enableDemo) {
-      shellData.setDemoEnabled(true);
+    if (hasChannels) {
       serversStore.setChannels(serverId, [
         { id: 'chung', name: 'chung', type: 'text', topic: 'Kênh chung', unread: false, mentionCount: 0 },
         { id: 'nhac', name: 'nhạc', type: 'text', topic: null, unread: true, mentionCount: 0 },
@@ -103,21 +99,21 @@ describe('ChannelList', () => {
       '.channel-group-header button',
     ) as HTMLButtonElement;
     expect(textGroupHeader.getAttribute('aria-expanded')).toBe('true');
-    expect(fixture.nativeElement.querySelector('#channel-group-text')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#channel-group-cat-text')).toBeTruthy();
 
     // Click để thu gọn
     textGroupHeader.click();
     fixture.detectChanges();
 
     expect(textGroupHeader.getAttribute('aria-expanded')).toBe('false');
-    expect(fixture.nativeElement.querySelector('#channel-group-text')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#channel-group-cat-text')).toBeNull();
 
     // Click lại để mở rộng
     textGroupHeader.click();
     fixture.detectChanges();
 
     expect(textGroupHeader.getAttribute('aria-expanded')).toBe('true');
-    expect(fixture.nativeElement.querySelector('#channel-group-text')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#channel-group-cat-text')).toBeTruthy();
   });
 
   it('bấm nút + trên header mở CreateChannelDialog với đúng defaultType', async () => {
@@ -204,13 +200,10 @@ describe('ChannelList', () => {
         provideRouter([
           { path: 'channels/:serverId/:channelId', component: ChannelList },
         ]),
-        ShellData,
         { provide: MatDialog, useValue: mockDialog },
       ],
     }).compileComponents();
 
-    shellData = TestBed.inject(ShellData);
-    shellData.setDemoEnabled(true);
     const serversStore = TestBed.inject(ServersStore);
     serversStore.setChannels('lofi', [
       { id: 'chung', name: 'chung', type: 'text', topic: 'Kênh chung', unread: false, mentionCount: 0 },
@@ -233,9 +226,9 @@ describe('ChannelList', () => {
     textGroupHeader.click();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance['isGroupCollapsed']('text')).toBe(true);
+    expect(fixture.componentInstance['isGroupCollapsed']('cat-text')).toBe(true);
     // Danh sách vẫn còn và chứa đúng 1 kênh đang mở (chung)
-    const textGroupList = fixture.nativeElement.querySelector('#channel-group-text');
+    const textGroupList = fixture.nativeElement.querySelector('#channel-group-cat-text');
     expect(textGroupList).toBeTruthy();
     const rows = textGroupList.querySelectorAll('.channel-row');
     expect(rows.length).toBe(1);
@@ -262,7 +255,7 @@ describe('ChannelList', () => {
 
     expect(preventDefaultSpy).toHaveBeenCalled();
     expect(stopPropagationSpy).toHaveBeenCalled();
-    expect(fixture.componentInstance['selectedGroup']()?.type).toBe('text');
+    expect(fixture.componentInstance['selectedGroup']()?.id).toBe('cat-text');
     expect(fixture.componentInstance['contextMenuPosition']()).toEqual({ x: 150, y: 200 });
   });
 
@@ -293,14 +286,14 @@ describe('ChannelList', () => {
   it('collapseAllGroups thu gọn toàn bộ các nhóm kênh', async () => {
     const fixture = await mount('lofi', true);
 
-    expect(fixture.componentInstance['isGroupCollapsed']('text')).toBe(false);
-    expect(fixture.componentInstance['isGroupCollapsed']('voice')).toBe(false);
+    expect(fixture.componentInstance['isGroupCollapsed']('cat-text')).toBe(false);
+    expect(fixture.componentInstance['isGroupCollapsed']('cat-voice')).toBe(false);
 
     fixture.componentInstance['collapseAllGroups']();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance['isGroupCollapsed']('text')).toBe(true);
-    expect(fixture.componentInstance['isGroupCollapsed']('voice')).toBe(true);
+    expect(fixture.componentInstance['isGroupCollapsed']('cat-text')).toBe(true);
+    expect(fixture.componentInstance['isGroupCollapsed']('cat-voice')).toBe(true);
   });
 
   it('copyChannelLink sao chép liên kết kênh vào clipboard', async () => {
@@ -425,6 +418,45 @@ describe('ChannelList', () => {
 
     const addButtons = fixture.nativeElement.querySelectorAll('.add-channel-btn');
     expect(addButtons.length).toBe(0);
+  });
+
+  it('kênh thoại được tạo trong danh mục Kênh chữ (categoryId: cat-text) sẽ nằm trong Kênh chữ kèm icon volume_up', async () => {
+    const fixture = await mount('lofi', false);
+    const serversStore = TestBed.inject(ServersStore);
+
+    serversStore.setChannels('lofi', [
+      { id: 'c1', name: 'chat-chung', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-text' },
+      { id: 'c2', name: 'Thoại Trong Chữ', type: 'voice', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-text' },
+    ]);
+    fixture.detectChanges();
+
+    const textGroup = fixture.nativeElement.querySelector('#channel-group-cat-text');
+    expect(textGroup).toBeTruthy();
+    expect(textGroup.textContent).toContain('chat-chung');
+    expect(textGroup.textContent).toContain('Thoại Trong Chữ');
+
+    // Kiểm tra icon của kênh thoại trong nhóm text
+    const voiceChannelIcon = textGroup.querySelector('a[href="/channels/lofi/c2"] mat-icon');
+    expect(voiceChannelIcon.textContent.trim()).toBe('volume_up');
+  });
+
+  it('hỗ trợ danh mục tùy chỉnh do người dùng tạo và hiển thị cả text lẫn voice bên trong', async () => {
+    const fixture = await mount('lofi', false);
+    const serversStore = TestBed.inject(ServersStore);
+
+    serversStore.setCategories('lofi', [
+      { id: 'cat-hoc-tap', name: 'HỌC TẬP', isPrivate: false },
+    ]);
+    serversStore.setChannels('lofi', [
+      { id: 'c1', name: 'tai-lieu', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-hoc-tap' },
+      { id: 'c2', name: 'Thảo Luận Nhóm', type: 'voice', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-hoc-tap' },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('HỌC TẬP');
+    const groupEl = fixture.nativeElement.querySelector('#channel-group-cat-hoc-tap');
+    expect(groupEl.textContent).toContain('tai-lieu');
+    expect(groupEl.textContent).toContain('Thảo Luận Nhóm');
   });
 });
 

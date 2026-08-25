@@ -1,4 +1,6 @@
 import { signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -55,6 +57,7 @@ describe('ChannelPage', () => {
           editedAt: null,
           deletedAt: null,
           isForwarded: false,
+          externalMedia: null,
           attachments: [],
           reactions: [{ emoji: '👍', count: 1, reactedByMe: true }],
           createdAt: new Date().toISOString(),
@@ -94,6 +97,8 @@ describe('ChannelPage', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter([{ path: 'c/:serverId/:channelId', component: ChannelPage }]),
         { provide: ServersStore, useValue: serversStore },
         { provide: ChannelChatStore, useValue: channelChatMock },
@@ -185,5 +190,29 @@ describe('ChannelPage', () => {
       harness.routeNativeElement!.querySelector('[data-dashboard-state="reconnecting"]'),
     ).toBeTruthy();
     expect(harness.routeNativeElement!.querySelector('app-message-composer')).toBeTruthy();
+  });
+
+  it('nút Đi tới tin nhắn mới nhất hiển thị khi showScrollDownButton bật và gọi scrollToLatest khi click', async () => {
+    const harness = await mount('itss/do-an');
+    const component = harness.fixture.debugElement.query(
+      (debugEl) => debugEl.componentInstance instanceof ChannelPage,
+    ).componentInstance as ChannelPage;
+
+    // Ban đầu ở đáy: nút không render
+    expect(harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]')).toBeNull();
+
+    // Bật showScrollDownButton & unreadCount = 5
+    component.scrollController.showScrollDownButton.set(true);
+    component.scrollController.unreadCount.set(5);
+    harness.detectChanges();
+
+    const scrollBtn = harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]') as HTMLButtonElement;
+    expect(scrollBtn).toBeTruthy();
+    expect(scrollBtn.getAttribute('aria-label')).toBe('Đi tới 5 tin nhắn mới nhất');
+    expect(scrollBtn.textContent).toContain('5');
+
+    const scrollSpy = vi.spyOn(component.scrollController, 'scrollToLatest');
+    scrollBtn.click();
+    expect(scrollSpy).toHaveBeenCalled();
   });
 });

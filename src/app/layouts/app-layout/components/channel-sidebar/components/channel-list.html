@@ -1,142 +1,157 @@
-@for (group of groups(); track group.type) {
-  <div class="channel-group mt-3 mb-1">
-    <!-- Group Header: Collapsible Toggle + Section Label + Add Channel Button + Context Menu Trigger -->
-    <div
-      (contextmenu)="onCategoryContextMenu($event, group)"
-      class="channel-group-header flex items-center justify-between px-2 py-1 select-none group"
-    >
-      <button
-        type="button"
-        (click)="toggleGroup(group.type)"
-        class="flex items-center gap-1 min-w-0 flex-1 text-left cursor-pointer hover:text-ink text-steel transition-colors"
-        [attr.aria-expanded]="!isGroupCollapsed(group.type)"
-        [attr.aria-controls]="'channel-group-' + group.type"
+<div cdkDropListGroup class="channel-list-drop-group flex flex-col">
+  @for (group of groups(); track group.id) {
+    <div class="channel-group mt-3 mb-1">
+      <!-- Group Header: Collapsible Toggle + Section Label + Add Channel Button + Context Menu Trigger -->
+      <div
+        (contextmenu)="onCategoryContextMenu($event, group)"
+        class="channel-group-header flex items-center justify-between px-2 py-1 select-none group"
       >
-        <mat-icon
-          class="channel-group-chevron !size-4 !text-base transition-transform duration-200"
-          [class.channel-group-chevron--collapsed]="isGroupCollapsed(group.type)"
-        >
-          expand_more
-        </mat-icon>
-        <span class="text-micro-uppercase font-bold tracking-wider truncate">
-          {{ group.label }}
-        </span>
-      </button>
-
-      <!-- Add Channel Button (chỉ render trong DOM khi có quyền canManageChannels) -->
-      @if ((group.type === 'text' || group.type === 'voice') && canManageChannels()) {
         <button
           type="button"
-          (click)="openCreateChannelDialog(group.type, $event)"
-          matTooltip="Tạo kênh"
-          [attr.aria-label]="'Tạo kênh trong ' + group.label"
-          class="add-channel-btn size-5 rounded hover:text-ink text-steel hover:bg-surface-feature/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-1"
+          (click)="toggleGroup(group.id)"
+          class="flex items-center gap-1 min-w-0 flex-1 text-left cursor-pointer hover:text-ink text-steel transition-colors"
+          [attr.aria-expanded]="!isGroupCollapsed(group.id)"
+          [attr.aria-controls]="'channel-group-' + group.id"
         >
-          <mat-icon class="!size-4 !text-base leading-none">add</mat-icon>
-        </button>
-      }
-    </div>
-
-    <!-- Group Channel List (collapsible - retains active channel) -->
-    @if (visibleChannelsOf(group).length > 0) {
-      <mat-nav-list [id]="'channel-group-' + group.type" class="!px-1 !py-0 flex flex-col gap-0.5 mt-0.5">
-        @for (channel of visibleChannelsOf(group); track channel.id) {
-          <a
-            mat-list-item
-            (contextmenu)="onChannelContextMenu($event, channel)"
-            [routerLink]="['/channels', serverId(), channel.id]"
-            routerLinkActive
-            #link="routerLinkActive"
-            [activated]="link.isActive"
-            [attr.aria-current]="link.isActive ? 'page' : null"
-            class="channel-row nexus-nav-item group relative !h-auto !min-h-8.5 !rounded-lg !px-2"
+          <mat-icon
+            class="channel-group-chevron !size-4 !text-base transition-transform duration-200"
+            [class.channel-group-chevron--collapsed]="isGroupCollapsed(group.id)"
           >
-            <mat-icon matListItemIcon aria-hidden="true" class="channel-icon text-steel group-hover:text-ink transition-colors">
-              {{ group.icon }}
-            </mat-icon>
+            expand_more
+          </mat-icon>
+          <span class="text-micro-uppercase font-bold tracking-wider truncate">
+            {{ group.label }}
+          </span>
+        </button>
 
-            <span matListItemTitle class="truncate text-body-sm font-medium text-slate group-hover:text-ink transition-colors" [class.text-ink]="!link.isActive && channel.unread" [class.font-semibold]="link.isActive || channel.unread">
-              {{ channel.name }}
-            </span>
+        <!-- Add Channel Button (chỉ render trong DOM khi có quyền canManageChannels) -->
+        @if (canManageChannels()) {
+          <button
+            type="button"
+            (click)="openCreateChannelDialog(group, $event)"
+            matTooltip="Tạo kênh"
+            [attr.aria-label]="'Tạo kênh trong ' + group.label"
+            class="add-channel-btn size-5 rounded hover:text-ink text-steel hover:bg-surface-feature/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-1"
+          >
+            <mat-icon class="!size-4 !text-base leading-none">add</mat-icon>
+          </button>
+        }
+      </div>
 
-            <!-- Action buttons & unread meta -->
-            <div matListItemMeta class="channel-actions-wrapper flex items-center gap-0.5 shrink-0">
-              <!-- Action buttons on hover/focus -->
-              <div class="channel-actions opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-0.5">
-                <!-- Voice channel: Open Chat Button -->
-                @if (channel.type === 'voice') {
-                  <button
-                    type="button"
-                    (click)="onOpenVoiceChat($event, channel)"
-                    matTooltip="Mở trò chuyện"
-                    [attr.aria-label]="'Mở trò chuyện của kênh thoại ' + channel.name"
-                    class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <mat-icon class="!size-4 !text-base">chat_bubble_outline</mat-icon>
-                  </button>
-                }
+      <!-- Group Channel List (collapsible - retains active channel & supports Drag & Drop) -->
+      @if (visibleChannelsOf(group).length > 0 || !isGroupCollapsed(group.id)) {
+        <mat-nav-list
+          [id]="'channel-group-' + group.id"
+          cdkDropList
+          [cdkDropListData]="group"
+          [cdkDropListDisabled]="!canManageChannels()"
+          (cdkDropListDropped)="onChannelDrop($event)"
+          class="channel-drop-list !px-1 !py-0 flex flex-col gap-0.5 mt-0.5"
+        >
+          @for (channel of visibleChannelsOf(group); track channel.id) {
+            <a
+              mat-list-item
+              cdkDrag
+              [cdkDragData]="channel"
+              [cdkDragDisabled]="!canManageChannels()"
+              (contextmenu)="onChannelContextMenu($event, channel)"
+              [routerLink]="['/channels', serverId(), channel.id]"
+              routerLinkActive
+              #link="routerLinkActive"
+              [activated]="link.isActive"
+              [attr.aria-current]="link.isActive ? 'page' : null"
+              class="channel-row nexus-nav-item group relative !h-auto !min-h-8.5 !rounded-lg !px-2"
+            >
+              <!-- Khoảng trống chèn kênh khi kéo (Drop slot gap indicator) -->
+              <div *cdkDragPlaceholder class="channel-drag-placeholder"></div>
 
-                <!-- Invite Button (chỉ render khi có quyền canInviteMembers) -->
-                @if (canInviteMembers()) {
-                  <button
-                    type="button"
-                    (click)="onInvite($event, channel)"
-                    matTooltip="Tạo lời mời"
-                    [attr.aria-label]="'Tạo lời mời vào kênh ' + channel.name"
-                    class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <mat-icon class="!size-4 !text-base">person_add</mat-icon>
-                  </button>
-                }
+              <mat-icon matListItemIcon aria-hidden="true" class="channel-icon text-steel group-hover:text-ink transition-colors">
+                {{ channel.type === 'voice' ? 'volume_up' : (channel.type === 'forum' ? 'forum' : 'tag') }}
+              </mat-icon>
 
-                <!-- Channel Settings Button (chỉ render khi có quyền canManageChannels) -->
-                @if (canManageChannels()) {
-                  <button
-                    type="button"
-                    (click)="onChannelSettings($event, channel)"
-                    matTooltip="Chỉnh sửa kênh"
-                    [attr.aria-label]="'Chỉnh sửa kênh ' + channel.name"
-                    class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <mat-icon class="!size-4 !text-base">settings</mat-icon>
-                  </button>
-                }
-              </div>
+              <span matListItemTitle class="truncate text-body-sm font-medium text-slate group-hover:text-ink transition-colors" [class.text-ink]="!link.isActive && channel.unread" [class.font-semibold]="link.isActive || channel.unread">
+                {{ channel.name }}
+              </span>
 
-              <!-- Unread Badge -->
-              @if (channel.mentionCount > 0) {
-                <app-unread-badge
-                  [count]="channel.mentionCount"
-                  label="lượt nhắc tên chưa đọc"
-                />
-              }
-            </div>
-          </a>
-
-          <!-- Active Voice Channel Connected Members List (Discord Style) -->
-          @if (channel.type === 'voice' && voiceConnectedChannelId() === channel.id && voiceParticipants().length > 0) {
-            <div class="voice-channel-members pl-6 pr-2 py-1 flex flex-col gap-1">
-              @for (p of voiceParticipants(); track p.identity) {
-                <div class="voice-member-row flex items-center gap-2 rounded-md px-2 py-1 hover:bg-surface-feature/50 text-steel hover:text-ink transition-colors">
-                  <app-avatar [name]="p.name" size="xs" ring="surface" />
-                  <span class="truncate text-micro font-medium flex-1" [class.text-primary]="p.isSpeaking">{{ p.name }}</span>
-                  @if (p.isMuted) {
-                    <mat-icon class="!size-3.5 !text-xs text-danger">mic_off</mat-icon>
+              <!-- Action buttons & unread meta -->
+              <div matListItemMeta class="channel-actions-wrapper flex items-center gap-0.5 shrink-0">
+                <!-- Action buttons on hover/focus -->
+                <div class="channel-actions opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-0.5">
+                  <!-- Voice channel: Open Chat Button -->
+                  @if (channel.type === 'voice') {
+                    <button
+                      type="button"
+                      (click)="onOpenVoiceChat($event, channel)"
+                      matTooltip="Mở trò chuyện"
+                      [attr.aria-label]="'Mở trò chuyện của kênh thoại ' + channel.name"
+                      class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <mat-icon class="!size-4 !text-base">chat_bubble_outline</mat-icon>
+                    </button>
                   }
-                  @if (p.isSpeaking) {
-                    <span class="size-1.5 rounded-full bg-primary animate-pulse"></span>
+
+                  <!-- Invite Button (chỉ render khi có quyền canInviteMembers) -->
+                  @if (canInviteMembers()) {
+                    <button
+                      type="button"
+                      (click)="onInvite($event, channel)"
+                      matTooltip="Tạo lời mời"
+                      [attr.aria-label]="'Tạo lời mời vào kênh ' + channel.name"
+                      class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <mat-icon class="!size-4 !text-base">person_add</mat-icon>
+                    </button>
+                  }
+
+                  <!-- Channel Settings Button (chỉ render khi có quyền canManageChannels) -->
+                  @if (canManageChannels()) {
+                    <button
+                      type="button"
+                      (click)="onChannelSettings($event, channel)"
+                      matTooltip="Chỉnh sửa kênh"
+                      [attr.aria-label]="'Chỉnh sửa kênh ' + channel.name"
+                      class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <mat-icon class="!size-4 !text-base">settings</mat-icon>
+                    </button>
                   }
                 </div>
-              }
-            </div>
+
+                <!-- Unread Badge -->
+                @if (channel.mentionCount > 0) {
+                  <app-unread-badge
+                    [count]="channel.mentionCount"
+                    label="lượt nhắc tên chưa đọc"
+                  />
+                }
+              </div>
+            </a>
+
+            <!-- Active Voice Channel Connected Members List (Discord Style) -->
+            @if (channel.type === 'voice' && voiceConnectedChannelId() === channel.id && voiceParticipants().length > 0) {
+              <div class="voice-channel-members pl-6 pr-2 py-1 flex flex-col gap-1">
+                @for (p of voiceParticipants(); track p.identity) {
+                  <div class="voice-member-row flex items-center gap-2 rounded-md px-2 py-1 hover:bg-surface-feature/50 text-steel hover:text-ink transition-colors">
+                    <app-avatar [name]="p.name" [src]="p.avatarUrl || null" size="xs" ring="surface" />
+                    <span class="truncate text-micro font-medium flex-1" [class.text-primary]="p.isSpeaking">{{ p.name }}</span>
+                    @if (p.isMuted) {
+                      <mat-icon class="!size-3.5 !text-xs text-danger">mic_off</mat-icon>
+                    }
+                    @if (p.isSpeaking) {
+                      <span class="size-1.5 rounded-full bg-primary animate-pulse"></span>
+                    }
+                  </div>
+                }
+              </div>
+            }
           }
-        }
-      </mat-nav-list>
-    }
-  </div>
-} @empty {
-  <p class="px-2 py-4 text-body-sm text-steel">Server này chưa có kênh nào.</p>
-}
+        </mat-nav-list>
+      }
+    </div>
+  } @empty {
+    <p class="px-2 py-4 text-body-sm text-steel">Server này chưa có kênh nào.</p>
+  }
+</div>
 
 <!-- Hidden Context Menu Trigger Anchors -->
 <div
@@ -165,11 +180,11 @@
 
   <!-- Thu gọn danh mục (với checkbox) -->
   @if (selectedGroup(); as group) {
-    <button mat-menu-item type="button" (click)="toggleGroup(group.type)" class="context-menu-item context-menu-item--checkbox">
+    <button mat-menu-item type="button" (click)="toggleGroup(group.id)" class="context-menu-item context-menu-item--checkbox">
       <mat-icon class="context-menu-icon text-steel">unfold_less</mat-icon>
       <span class="context-menu-label text-ink flex-1">Thu gọn danh mục</span>
-      <div class="context-menu-checkbox" [class.context-menu-checkbox--checked]="isGroupCollapsed(group.type)">
-        @if (isGroupCollapsed(group.type)) {
+      <div class="context-menu-checkbox" [class.context-menu-checkbox--checked]="isGroupCollapsed(group.id)">
+        @if (isGroupCollapsed(group.id)) {
           <mat-icon class="!size-3 !text-xs !text-on-primary">check</mat-icon>
         }
       </div>

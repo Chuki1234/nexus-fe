@@ -49,6 +49,7 @@ describe('ActiveChatStore', () => {
       editedAt: null,
       deletedAt: null,
       isForwarded: false,
+      externalMedia: null,
       createdAt: '2026-08-22T10:00:00Z',
     },
     {
@@ -63,6 +64,7 @@ describe('ActiveChatStore', () => {
       editedAt: null,
       deletedAt: null,
       isForwarded: false,
+      externalMedia: null,
       createdAt: '2026-08-22T10:05:00Z',
     },
   ];
@@ -160,6 +162,7 @@ describe('ActiveChatStore', () => {
         editedAt: null,
         deletedAt: null,
         isForwarded: false,
+        externalMedia: null,
         createdAt: '2026-08-22T09:00:00Z',
       };
 
@@ -197,6 +200,7 @@ describe('ActiveChatStore', () => {
         editedAt: null,
         deletedAt: null,
         isForwarded: false,
+        externalMedia: null,
         createdAt: '2026-08-22T10:10:00Z',
       };
 
@@ -766,6 +770,7 @@ describe('ActiveChatStore', () => {
           editedAt: null,
           deletedAt: null,
           isForwarded: false,
+          externalMedia: null,
           attachments: [
             {
               id: 'att-expired',

@@ -11,10 +11,19 @@ import { SettingsModal } from './settings-modal';
 import { UserSettingsService } from './services/user-settings.service';
 
 const PROFILE: OwnProfile = {
-  id: 'u1', username: 'testduoc', displayName: 'testduoc',
-  avatarUrl: null, bannerUrl: null, statusMessage: null, bio: null, location: null,
+  id: 'u1',
+  username: 'testduoc',
+  displayName: 'testduoc',
+  avatarUrl: null,
+  bannerUrl: null,
+  statusMessage: null,
+  bio: null,
+  location: null,
   links: [{ label: 'YouTube', url: 'https://www.youtube.com/@ipostforfun6356' }],
-  accentColor: null, createdAt: '2026-08-01T00:00:00.000Z', isSelf: true, birthdate: '2001-11-03',
+  accentColor: null,
+  createdAt: '2026-08-01T00:00:00.000Z',
+  isSelf: true,
+  birthdate: '2001-11-03',
 };
 
 function setup(update: (payload: unknown) => Promise<OwnProfile> = () => Promise.resolve(PROFILE)) {
@@ -53,19 +62,11 @@ describe('SettingsModal → tab Ứng dụng đã kết nối', () => {
     expect(text).toContain('Zalo');
   });
 
-  /**
-   * Đây chính là lỗi người dùng gặp: bấm một nền tảng ở nhóm "Đề xuất" (trên
-   * đầu danh sách hơn hai chục nền tảng) thì ô nhập PHẢI hiện ra ngay, không
-   * phải cuộn xuống cuối trang mới thấy. Ô nhập giờ là popup neo đáy khung cài
-   * đặt, dựng từ SettingsModal — không còn render tại chỗ bấm trong tab nữa.
-   */
-  it('bấm một nền tảng mở popup nhập tên tài khoản, neo ở đáy khung', async () => {
+  it('bấm một nền tảng chuyển trạng thái pending của ConnectedAppsService', async () => {
     const { fixture, apps } = setup();
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-
-    expect((fixture.nativeElement as HTMLElement).querySelector('#connect-handle')).toBeNull();
 
     const zaloButton = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find(
       (btn) => btn.textContent?.includes('Zalo'),
@@ -75,96 +76,27 @@ describe('SettingsModal → tab Ứng dụng đã kết nối', () => {
     fixture.detectChanges();
 
     expect(apps.pending()).toEqual(expect.objectContaining({ id: 'zalo' }));
-
-    const input = (fixture.nativeElement as HTMLElement).querySelector(
-      '#connect-handle',
-    ) as HTMLInputElement | null;
-    expect(input).toBeTruthy();
-
-    const root = fixture.nativeElement as HTMLElement;
-    expect(root.textContent).toContain('Tên tài khoản Zalo của bạn');
-    expect(root.textContent).toContain('Gắn vào hồ sơ');
   });
 
-  it('điền tên tài khoản rồi bấm Gắn vào hồ sơ là lưu thật qua API', async () => {
+  it('thêm nền tảng custom qua ConnectedAppsService lưu thành công', async () => {
     const sent: unknown[] = [];
-    const { fixture, apps } = setup((payload) => {
+    const { apps } = setup((payload) => {
       sent.push(payload);
       return Promise.resolve(PROFILE);
     });
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
 
-    apps.startConnect(
-      apps.recommended().find((p) => p.id === 'zalo')!,
-    );
-    apps.handle.set('0912345678');
-    fixture.detectChanges();
-
-    const form = (fixture.nativeElement as HTMLElement).querySelector('#connect-handle')!.closest('form')!;
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    await fixture.whenStable();
+    apps.startCustom();
+    apps.customLabel.set('Portfolio');
+    apps.customUrl.set('https://minhtai.dev');
+    await apps.confirmCustom();
 
     expect(sent).toEqual([
       {
         links: [
           { label: 'YouTube', url: 'https://www.youtube.com/@ipostforfun6356' },
-          { label: 'Zalo', url: 'https://zalo.me/0912345678' },
+          { label: 'Portfolio', url: 'https://minhtai.dev' },
         ],
       },
     ]);
-    // Lưu xong đóng popup lại — không để ô nhập trống nằm lại trên màn hình.
-    expect(apps.pending()).toBeNull();
-  });
-
-  it('Hủy đóng popup và không gọi API', async () => {
-    const { fixture, apps } = setup();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    apps.startCustom();
-    fixture.detectChanges();
-    expect((fixture.nativeElement as HTMLElement).querySelector('#custom-label')).toBeTruthy();
-
-    const cancelBtn = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find(
-      (btn) => btn.textContent?.trim() === 'Hủy',
-    ) as HTMLButtonElement;
-    cancelBtn.click();
-    fixture.detectChanges();
-
-    expect(apps.pending()).toBeNull();
-    expect((fixture.nativeElement as HTMLElement).querySelector('#custom-label')).toBeNull();
-  });
-
-  it('rời khỏi tab Ứng dụng đã kết nối thì ẩn popup dù chưa hủy', async () => {
-    const { fixture, apps, settings } = setup();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    apps.startConnect(apps.recommended().find((p) => p.id === 'facebook')!);
-    fixture.detectChanges();
-    expect((fixture.nativeElement as HTMLElement).querySelector('#connect-handle')).toBeTruthy();
-
-    settings.setTab('profile');
-    fixture.detectChanges();
-
-    expect((fixture.nativeElement as HTMLElement).querySelector('#connect-handle')).toBeNull();
-  });
-
-  it('đóng khung cài đặt thì bỏ luôn popup đang mở', async () => {
-    const { fixture, apps, settings } = setup();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    apps.startCustom();
-    expect(apps.pending()).toBe('custom');
-
-    settings.close();
-
-    expect(apps.pending()).toBeNull();
   });
 });

@@ -3,10 +3,13 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { ConversationsApiService } from '../../core/api/conversations-api.service';
+import { DirectCallsApiService } from '../../core/api/direct-calls-api.service';
 import { MessagesApiService } from '../../core/api/messages-api.service';
 import { ServersApiService } from '../../core/api/servers-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
+import { ChatSocketService } from '../../core/realtime/chat-socket.service';
+import { ServersStore } from '../../core/servers/servers.store';
 import { dashboardRoutes } from '../../features/dashboard/dashboard.routes';
 import { FriendsStore } from '../../features/dashboard/friends/services/friends-store';
 
@@ -62,6 +65,7 @@ class ServersApiServiceStub {
       },
     });
   listServers = () => Promise.resolve([]);
+  listPendingInvitations = () => Promise.resolve([]);
 }
 
 class FriendsStoreStub {
@@ -81,8 +85,71 @@ class FriendsStoreStub {
   clearFeedback = () => undefined;
 }
 
+import { Subject } from 'rxjs';
+
+class ChatSocketServiceStub {
+  connect = vi.fn();
+  disconnect = vi.fn();
+  isConnected = signal(true).asReadonly();
+  messageCreated$ = new Subject<any>();
+  messageUpdated$ = new Subject<any>();
+  messageDeleted$ = new Subject<any>();
+  reactionUpdated$ = new Subject<any>();
+  presenceSync$ = new Subject<any>();
+  userPresenceUpdated$ = new Subject<any>();
+  conversationUpdated$ = new Subject<any>();
+  messageRead$ = new Subject<any>();
+  invitationReceived$ = new Subject<any>();
+  invitationUpdated$ = new Subject<any>();
+  channelsInvalidated$ = new Subject<any>();
+  serverDeleted$ = new Subject<any>();
+  serverMemberLeft$ = new Subject<any>();
+  typingUpdated$ = new Subject<any>();
+  channelTypingUpdated$ = new Subject<any>();
+  channelMessageCreated$ = new Subject<any>();
+  channelMessageUpdated$ = new Subject<any>();
+  channelMessageDeleted$ = new Subject<any>();
+  channelReactionUpdated$ = new Subject<any>();
+  joinError$ = new Subject<any>();
+  presenceUpdated$ = new Subject<any>();
+  channelCreated$ = new Subject<any>();
+  capabilitiesUpdated$ = new Subject<any>();
+  channelPinsUpdated$ = new Subject<any>();
+  channelMessageRead$ = new Subject<any>();
+  channelThreadCreated$ = new Subject<any>();
+  channelThreadUpdated$ = new Subject<any>();
+  directCallIncoming$ = new Subject<any>();
+  directCallRinging$ = new Subject<any>();
+  directCallAccepted$ = new Subject<any>();
+  directCallConnected$ = new Subject<any>();
+  directCallDeclined$ = new Subject<any>();
+  directCallCancelled$ = new Subject<any>();
+  directCallEnded$ = new Subject<any>();
+  directCallMissed$ = new Subject<any>();
+  directCallBusy$ = new Subject<any>();
+  directCallStateSync$ = new Subject<any>();
+  joinChannel = vi.fn().mockResolvedValue({ status: 'joined', success: true });
+  leaveChannel = vi.fn().mockResolvedValue(undefined);
+  joinConversation = vi.fn().mockResolvedValue({ status: 'joined', success: true });
+  leaveConversation = vi.fn().mockResolvedValue(undefined);
+  joinServer = vi.fn().mockResolvedValue(undefined);
+  leaveServer = vi.fn().mockResolvedValue(undefined);
+}
+
+class DirectCallsApiServiceStub {
+  startCall = vi.fn().mockResolvedValue({ id: 'call-1', status: 'ringing' });
+  answerCall = vi.fn().mockResolvedValue({ call: { id: 'call-1', status: 'accepted' }, shouldJoinMedia: true });
+  declineCall = vi.fn().mockResolvedValue({ id: 'call-1', status: 'declined' });
+  cancelCall = vi.fn().mockResolvedValue({ id: 'call-1', status: 'cancelled' });
+  endCall = vi.fn().mockResolvedValue({ id: 'call-1', status: 'ended' });
+  getActiveCall = vi.fn().mockResolvedValue({ call: null });
+  getToken = vi.fn().mockResolvedValue({ serverUrl: '', participantToken: '', roomName: '', participantIdentity: '', participantName: '' });
+  getHistory = vi.fn().mockResolvedValue([]);
+}
+
 describe('AppLayout', () => {
   let harness: RouterTestingHarness;
+  let chatSocketStub: ChatSocketServiceStub;
 
   const text = () => harness.routeNativeElement!.ownerDocument.body.textContent ?? '';
   const query = (selector: string) =>
@@ -93,6 +160,8 @@ describe('AppLayout', () => {
   beforeEach(async () => {
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
+    chatSocketStub = new ChatSocketServiceStub();
+
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'channels', children: dashboardRoutes }]),
@@ -102,6 +171,8 @@ describe('AppLayout', () => {
         { provide: FriendsStore, useValue: new FriendsStoreStub() },
         { provide: ConversationsApiService, useValue: new ConversationsApiServiceStub() },
         { provide: MessagesApiService, useValue: new MessagesApiServiceStub() },
+        { provide: ChatSocketService, useValue: chatSocketStub },
+        { provide: DirectCallsApiService, useValue: new DirectCallsApiServiceStub() },
       ],
     });
     harness = await RouterTestingHarness.create();
@@ -168,6 +239,24 @@ describe('AppLayout', () => {
     expect(settings.disabled).toBe(false);
   });
 
+  it('khi tải AppLayout, kết nối chat socket và gán active user trên ServersStore', async () => {
+    await harness.navigateByUrl('/channels/@me');
+    const serversStore = TestBed.inject(ServersStore);
+
+    expect(chatSocketStub.connect).toHaveBeenCalled();
+    expect(serversStore.activeUserId()).toBe('u1');
+  });
+
+  it('điều hướng qua lại giữa các route không tạo nhiều kết nối socket trùng lặp', async () => {
+    await harness.navigateByUrl('/channels/@me');
+    expect(chatSocketStub.connect).toHaveBeenCalledTimes(1);
+
+    await harness.navigateByUrl('/channels/s1/c1');
+    await harness.navigateByUrl('/channels/@me');
+
+    // Socket connection là idempotent và chỉ được gọi khởi tạo khi AppLayout mount
+    expect(chatSocketStub.connect).toHaveBeenCalledTimes(1);
+  });
 
   it('giữ light mode khi chuyển qua kênh và quay lại trang bạn bè', async () => {
     await harness.navigateByUrl('/channels/@me');

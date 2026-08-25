@@ -17,6 +17,7 @@ import {
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
 import { extractErrorMessage } from '../../../core/utils/error.util';
 import { compareMessageOrder } from '../../../core/utils/safe-message-comparator';
+import { GiphyMediaDto } from '../../../../shared/dto/messages.dto';
 
 export interface OptimisticMessage {
   clientNonce: string;
@@ -26,6 +27,7 @@ export interface OptimisticMessage {
   status: 'sending' | 'failed';
   attachments?: AttachmentResponseDto[];
   files?: File[];
+  externalMedia?: GiphyMediaDto | null;
   errorMessage?: string;
   createdAt: string;
 }
@@ -43,6 +45,7 @@ export interface ChatUiMessage {
   editedAt: string | null;
   deletedAt: string | null;
   isForwarded: boolean;
+  externalMedia: GiphyMediaDto | null;
   attachments?: AttachmentResponseDto[];
   reactions?: ReactionSummaryDto[];
   createdAt: string;
@@ -139,6 +142,7 @@ export class ActiveChatStore implements OnDestroy {
 
     const uiPersisted: ChatUiMessage[] = persisted.map((m) => ({
       ...m,
+      externalMedia: m.externalMedia ?? null,
       isForwarded: Boolean(m.isForwarded),
       status: 'persisted',
     }));
@@ -152,6 +156,7 @@ export class ActiveChatStore implements OnDestroy {
       type: 'default',
       content: opt.content,
       isForwarded: false,
+      externalMedia: opt.externalMedia ?? null,
       replyToId: opt.replyToId ?? null,
       clientNonce: opt.clientNonce,
       editedAt: null,
@@ -274,14 +279,14 @@ export class ActiveChatStore implements OnDestroy {
         this._conversationId() === conversationId &&
         this.currentGeneration === generation
       ) {
-        if (joinRes.status === 'joined' || joinRes.success) {
+        if (joinRes?.status === 'joined' || joinRes?.success) {
           this._realtimeStatus.set('joined');
-        } else if (joinRes.status === 'rejected') {
+        } else if (joinRes?.status === 'rejected') {
           this._realtimeStatus.set('rejected');
           this._error.set(
             joinRes.error || 'Không có quyền truy cập cuộc trò chuyện.',
           );
-        } else if (joinRes.status === 'timeout') {
+        } else if (joinRes?.status === 'timeout') {
           this._realtimeStatus.set('timeout');
         } else {
           this._realtimeStatus.set('disconnected');
@@ -476,6 +481,7 @@ export class ActiveChatStore implements OnDestroy {
           replyToId?: string;
           files?: File[];
           attachments?: { file: File; previewUrl: string | null }[];
+          externalMedia?: GiphyMediaDto;
         },
     replyToId?: string,
   ): Promise<void> {
@@ -488,6 +494,7 @@ export class ActiveChatStore implements OnDestroy {
     let passedAttachments:
       | { file: File; previewUrl: string | null }[]
       | undefined;
+    let externalMedia: GiphyMediaDto | undefined;
 
     if (typeof payloadOrContent === 'string') {
       content = payloadOrContent.trim();
@@ -497,9 +504,10 @@ export class ActiveChatStore implements OnDestroy {
       replyId = payloadOrContent.replyToId || replyToId;
       files = payloadOrContent.files;
       passedAttachments = payloadOrContent.attachments;
+      externalMedia = payloadOrContent.externalMedia;
     }
 
-    if (!content && (!files || files.length === 0)) {
+    if (!content && (!files || files.length === 0) && !externalMedia) {
       return;
     }
 
@@ -537,6 +545,7 @@ export class ActiveChatStore implements OnDestroy {
       status: 'sending',
       attachments: optAttachments.length > 0 ? optAttachments : undefined,
       files,
+      externalMedia: externalMedia || null,
       createdAt: new Date().toISOString(),
     };
 
@@ -549,6 +558,7 @@ export class ActiveChatStore implements OnDestroy {
         clientNonce,
         replyToId: replyId,
         files,
+        externalMedia,
       });
 
       // Chỉ cập nhật state nếu cuộc trò chuyện vẫn khớp
@@ -608,6 +618,7 @@ export class ActiveChatStore implements OnDestroy {
         clientNonce: item.clientNonce,
         replyToId: item.replyToId,
         files: item.files,
+        externalMedia: item.externalMedia || undefined,
       });
 
       if (
@@ -1018,6 +1029,7 @@ export class ActiveChatStore implements OnDestroy {
             type: message.type,
             content: message.content,
             isForwarded: message.isForwarded,
+            externalMedia: message.externalMedia ?? null,
             replyToId: message.replyToId,
             clientNonce: message.clientNonce,
             editedAt: message.editedAt,

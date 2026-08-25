@@ -17,8 +17,8 @@
       mat-icon-button
       type="button"
       class="nexus-icon-control"
-      disabled
-      matTooltip="Gọi thoại (chưa làm)"
+      matTooltip="Bắt đầu cuộc gọi thoại"
+      (click)="startAudioCall.emit()"
     >
       <mat-icon>call</mat-icon>
       <span class="sr-only">Bắt đầu cuộc gọi thoại</span>
@@ -27,8 +27,8 @@
       mat-icon-button
       type="button"
       class="nexus-icon-control"
-      disabled
-      matTooltip="Gọi video (chưa làm)"
+      matTooltip="Bắt đầu cuộc gọi video"
+      (click)="startVideoCall.emit()"
     >
       <mat-icon>videocam</mat-icon>
       <span class="sr-only">Bắt đầu cuộc gọi video</span>

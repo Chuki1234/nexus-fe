@@ -18,6 +18,7 @@ import type {
   ReactionUpdatedPayload,
   ServerToClientEvents,
 } from '../../../shared/socket-events';
+import type { DirectCallDto } from '../../../shared/dto/direct-calls.dto';
 import { AuthService } from '../auth/auth.service';
 
 export type ConnectionStatus =
@@ -104,6 +105,18 @@ export class ChatSocketService {
   private readonly serverDeletedSubject = new Subject<{ serverId: string }>();
   private readonly serverMemberLeftSubject = new Subject<{ serverId: string; userId: string }>();
 
+  // Direct Call Signaling Subjects
+  private readonly directCallIncomingSubject = new Subject<DirectCallDto>();
+  private readonly directCallRingingSubject = new Subject<DirectCallDto>();
+  private readonly directCallAcceptedSubject = new Subject<DirectCallDto>();
+  private readonly directCallConnectedSubject = new Subject<{ callId: string; connectedAt: string }>();
+  private readonly directCallDeclinedSubject = new Subject<DirectCallDto>();
+  private readonly directCallCancelledSubject = new Subject<DirectCallDto>();
+  private readonly directCallEndedSubject = new Subject<DirectCallDto>();
+  private readonly directCallMissedSubject = new Subject<DirectCallDto>();
+  private readonly directCallBusySubject = new Subject<{ conversationId: string; calleeId: string }>();
+  private readonly directCallStateSyncSubject = new Subject<DirectCallDto | null>();
+
   readonly messageCreated$: Observable<{ message: MessagePayload }> =
     this.messageCreatedSubject.asObservable();
   readonly messageUpdated$: Observable<{ message: MessagePayload }> =
@@ -172,6 +185,27 @@ export class ChatSocketService {
     lastMessageAt: string;
     unreadDelta: number;
   }> = this.conversationUpdatedSubject.asObservable();
+
+  readonly directCallIncoming$: Observable<DirectCallDto> =
+    this.directCallIncomingSubject.asObservable();
+  readonly directCallRinging$: Observable<DirectCallDto> =
+    this.directCallRingingSubject.asObservable();
+  readonly directCallAccepted$: Observable<DirectCallDto> =
+    this.directCallAcceptedSubject.asObservable();
+  readonly directCallConnected$: Observable<{ callId: string; connectedAt: string }> =
+    this.directCallConnectedSubject.asObservable();
+  readonly directCallDeclined$: Observable<DirectCallDto> =
+    this.directCallDeclinedSubject.asObservable();
+  readonly directCallCancelled$: Observable<DirectCallDto> =
+    this.directCallCancelledSubject.asObservable();
+  readonly directCallEnded$: Observable<DirectCallDto> =
+    this.directCallEndedSubject.asObservable();
+  readonly directCallMissed$: Observable<DirectCallDto> =
+    this.directCallMissedSubject.asObservable();
+  readonly directCallBusy$: Observable<{ conversationId: string; calleeId: string }> =
+    this.directCallBusySubject.asObservable();
+  readonly directCallStateSync$: Observable<DirectCallDto | null> =
+    this.directCallStateSyncSubject.asObservable();
 
   constructor() {}
 
@@ -798,6 +832,38 @@ export class ChatSocketService {
 
     this.socket.on('server:member-left', (payload) => {
       this.serverMemberLeftSubject.next(payload);
+    });
+
+    // Direct Call Signaling
+    this.socket.on('direct-call:incoming', (payload) => {
+      this.directCallIncomingSubject.next(payload);
+    });
+    this.socket.on('direct-call:ringing', (payload) => {
+      this.directCallRingingSubject.next(payload);
+    });
+    this.socket.on('direct-call:accepted', (payload) => {
+      this.directCallAcceptedSubject.next(payload);
+    });
+    this.socket.on('direct-call:connected', (payload) => {
+      this.directCallConnectedSubject.next(payload);
+    });
+    this.socket.on('direct-call:declined', (payload) => {
+      this.directCallDeclinedSubject.next(payload);
+    });
+    this.socket.on('direct-call:cancelled', (payload) => {
+      this.directCallCancelledSubject.next(payload);
+    });
+    this.socket.on('direct-call:ended', (payload) => {
+      this.directCallEndedSubject.next(payload);
+    });
+    this.socket.on('direct-call:missed', (payload) => {
+      this.directCallMissedSubject.next(payload);
+    });
+    this.socket.on('direct-call:busy', (payload) => {
+      this.directCallBusySubject.next(payload);
+    });
+    this.socket.on('direct-call:state-sync', (payload) => {
+      this.directCallStateSyncSubject.next(payload);
     });
   }
 

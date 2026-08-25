@@ -14,16 +14,16 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 
-import { ShellData } from '../../../../core/api/shell-data';
 import { ServerCapabilitiesService } from '../../../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../../../core/servers/servers.store';
 import {
   SettingsTab,
   UserSettingsService,
 } from '../../../../features/settings/services/user-settings.service';
-import { SearchField } from '../../../../shared/ui/search-field/search-field';
+import { CommandCenterService } from '../../services/command-center.service';
 import { UserPanel } from '../user-panel/user-panel';
 import { ChannelList } from './components/channel-list';
+import { CreateCategoryDialog } from './components/create-category-dialog/create-category-dialog';
 import { CreateChannelDialog } from './components/create-channel-dialog/create-channel-dialog';
 import { ConversationList } from './components/conversation-list';
 import { DeleteServerDialog } from './components/delete-server-dialog/delete-server-dialog';
@@ -43,11 +43,6 @@ import { LeaveServerDialog } from './components/leave-server-dialog/leave-server
     MatTooltipModule,
     ChannelList,
     ConversationList,
-    MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
-    MatTooltipModule,
-    SearchField,
     UserPanel,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,6 +54,7 @@ export class ChannelSidebar {
   private readonly serversStore = inject(ServersStore);
   private readonly settingsService = inject(UserSettingsService);
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
+  private readonly commandCenterService = inject(CommandCenterService);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
 
@@ -68,6 +64,10 @@ export class ChannelSidebar {
   protected readonly conversationQuery = signal('');
   protected readonly isMenuOpen = signal(false);
   protected readonly hideMutedChannels = signal(false);
+
+  protected openCommandCenter(): void {
+    this.commandCenterService.open();
+  }
 
   constructor() {
     // Single lifecycle trigger: tự động nạp capabilities khi serverId thay đổi
@@ -195,12 +195,23 @@ export class ChannelSidebar {
     });
   }
 
+  protected openCreateCategoryDialog(): void {
+    const id = this.serverId();
+    if (!id) return;
+
+    this.dialog.open(CreateCategoryDialog, {
+      data: {
+        serverId: id,
+        serverName: this.title(),
+      },
+      panelClass: 'nexus-dialog-overlay',
+      autoFocus: false,
+    });
+  }
+
   protected onServerOption(
     option:
-      | 'boost'
       | 'create-category'
-      | 'create-event'
-      | 'app-directory'
       | 'notifications'
       | 'privacy'
       | 'edit-profile'
@@ -210,6 +221,9 @@ export class ChannelSidebar {
     if (!id) return;
 
     switch (option) {
+      case 'create-category':
+        this.openCreateCategoryDialog();
+        break;
       case 'leave-server':
         this.openLeaveServerDialog();
         break;

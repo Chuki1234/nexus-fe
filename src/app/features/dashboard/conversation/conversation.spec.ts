@@ -1,8 +1,9 @@
 import { signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { ShellData } from '../../../core/api/shell-data';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ConversationsApiService } from '../../../core/api/conversations-api.service';
 import { ActiveChatStore, type ChatUiMessage } from '../services/active-chat.store';
@@ -16,6 +17,7 @@ import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/ligh
 import {
   ConversationPage,
   formatCompactTime,
+  formatMessageTimestamp,
   formatDateDividerLabel,
   formatFullTimestamp,
   getLocalDateKey,
@@ -55,6 +57,7 @@ describe('ConversationPage', () => {
         editedAt: null,
         deletedAt: null,
         isForwarded: false,
+        externalMedia: null,
         createdAt: new Date().toISOString(),
         status: 'persisted',
       },
@@ -113,11 +116,7 @@ describe('ConversationPage', () => {
     };
   });
 
-  const mount = async (id: string, demo = false, uiState: DashboardUiStateName = 'ready') => {
-    const shell = {
-      conversationOf: () => undefined,
-      demoEnabled: signal(demo).asReadonly(),
-    };
+  const mount = async (id: string, uiState: DashboardUiStateName = 'ready') => {
     const blockingState = signal<DashboardBlockingState | null>(
       uiState === 'loading' ||
         uiState === 'error' ||
@@ -132,8 +131,9 @@ describe('ConversationPage', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter([{ path: 'channels/@me/:conversationId', component: ConversationPage }]),
-        { provide: ShellData, useValue: shell },
         { provide: ActiveChatStore, useValue: mockActiveChatStore },
         { provide: ConversationsApiService, useValue: mockConversationsApi },
         { provide: AuthService, useValue: mockAuthService },
@@ -983,14 +983,24 @@ describe('ConversationPage', () => {
         expect(getLocalDateKey(earlyMorning)).toBe('2026-08-24');
       });
 
-      it('formatCompactTime & formatFullTimestamp: Định dạng giờ và fallback an toàn (T10)', () => {
+      it('formatCompactTime & formatFullTimestamp & formatMessageTimestamp: Định dạng giờ và fallback an toàn (T10)', () => {
         const d = new Date(2026, 7, 23, 9, 5, 30);
         expect(formatCompactTime(d)).toBe('09:05');
         expect(formatFullTimestamp(d)).toContain('09:05:30');
 
+        // formatMessageTimestamp: trong ngày hôm nay vs ngày trước đó
+        const nowSameDay = new Date(2026, 7, 23, 15, 0, 0);
+        expect(formatMessageTimestamp(d, nowSameDay)).toBe('09:05');
+
+        const nowNextDay = new Date(2026, 7, 24, 10, 0, 0); // 24/08/2026 (T2)
+        // 23/08/2026 là Chủ Nhật (CN)
+        expect(formatMessageTimestamp(d, nowNextDay)).toBe('CN, 23/08/2026 09:05');
+
         // Fallback khi timestamp invalid
         expect(formatCompactTime(null)).toBe('--:--');
         expect(formatCompactTime('garbage')).toBe('--:--');
+        expect(formatMessageTimestamp(null)).toBe('--:--');
+        expect(formatMessageTimestamp('garbage')).toBe('--:--');
         expect(formatFullTimestamp(null)).toBe('Thời gian không xác định');
         expect(formatFullTimestamp('garbage')).toBe('Thời gian không xác định');
       });
@@ -1401,7 +1411,7 @@ describe('ConversationPage', () => {
         const component = harness.component;
 
         const items = component.streamItems();
-        const unreadItem = items.find((i) => i.kind === 'unread-divider') as any;
+        const unreadItem = items.find((i: any) => i.kind === 'unread-divider') as any;
         expect(unreadItem).toBeTruthy();
         expect(unreadItem?.label).toBe('Tin nhắn mới');
         expect(unreadItem?.key).toBe('unread-divider-110');
@@ -1471,7 +1481,14 @@ describe('ConversationPage', () => {
 
         const component = harness.component;
         // Giả lập user đang cuộn lên xem lịch sử
-        component.isNearBottom.set(false);
+        const el = component.chatHistoryRef()?.nativeElement;
+        if (el) {
+          Object.defineProperty(el, 'scrollHeight', { value: 1000, configurable: true });
+          Object.defineProperty(el, 'clientHeight', { value: 400, configurable: true });
+          el.scrollTop = 100; // distance = 500 > 120
+        }
+        component.scrollController.onScroll();
+        harness.fixture.detectChanges();
 
         const now = new Date();
         // Nhận tin nhắn realtime mới từ Alice
@@ -1498,9 +1515,10 @@ describe('ConversationPage', () => {
         expect(component.newMessagesBelowCount()).toBe(1);
         expect(component.showNewMessagesPill()).toBe(true);
 
-        const pill = harness.routeNativeElement!.querySelector('.floating-new-messages-pill');
+        const pill = harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]');
         expect(pill).toBeTruthy();
-        expect(pill?.textContent).toContain('Có 1 tin nhắn mới bên dưới');
+        expect(pill?.getAttribute('aria-label')).toBe('Đi tới 1 tin nhắn mới nhất');
+        expect(pill?.textContent).toContain('1');
       });
 
       it('C5: Bấm floating pill sẽ cuộn xuống đáy và reset counter về 0', async () => {
@@ -1509,12 +1527,14 @@ describe('ConversationPage', () => {
         harness.fixture.detectChanges();
 
         const component = harness.component;
-        component.isNearBottom.set(false);
+        component.scrollController.isNearBottom.set(false);
+        component.scrollController.unreadCount.set(3);
+        component.scrollController.showScrollDownButton.set(true);
         component.newMessagesBelowCount.set(3);
         component.showNewMessagesPill.set(true);
         harness.fixture.detectChanges();
 
-        const pill = harness.routeNativeElement!.querySelector('.floating-new-messages-pill') as HTMLButtonElement;
+        const pill = harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]') as HTMLButtonElement;
         expect(pill).toBeTruthy();
 
         pill.click();
@@ -1818,21 +1838,255 @@ describe('ConversationPage', () => {
         const component = harness.component;
 
         // Set att-1 đang tải
-        component.downloadingAttachmentIds.update((s) => new Set(s).add('att-1'));
+        component.downloadingAttachmentIds.update((s: ReadonlySet<string>) => new Set(s).add('att-1'));
         expect(component.downloadingAttachmentIds().has('att-1')).toBe(true);
         expect(component.downloadingAttachmentIds().has('att-2')).toBe(false);
 
         // att-2 tải độc lập không bị chặn bởi att-1
-        component.downloadingAttachmentIds.update((s) => new Set(s).add('att-2'));
+        component.downloadingAttachmentIds.update((s: ReadonlySet<string>) => new Set(s).add('att-2'));
         expect(component.downloadingAttachmentIds().has('att-2')).toBe(true);
 
-        component.downloadingAttachmentIds.update((s) => {
+        component.downloadingAttachmentIds.update((s: ReadonlySet<string>) => {
           const next = new Set(s);
           next.delete('att-1');
           return next;
         });
         expect(component.downloadingAttachmentIds().has('att-1')).toBe(false);
         expect(component.downloadingAttachmentIds().has('att-2')).toBe(true);
+      });
+
+      it('E1: Initial history load với 100+ messages kích hoạt handleInitialRender và không tăng pill', async () => {
+        const hundredMsgs = Array.from({ length: 100 }, (_, i) => ({
+          id: `msg-${i + 1}`,
+          conversationId: 'conv-123',
+          authorId: i % 2 === 0 ? 'test-user-id' : 'other-user',
+          author: { id: 'user', username: 'u', displayName: 'U' },
+          type: 'default' as const,
+          content: `Message ${i + 1}`,
+          replyToId: null,
+          clientNonce: `nonce-${i + 1}`,
+          editedAt: null,
+          deletedAt: null,
+          isForwarded: false,
+          createdAt: new Date(Date.now() - (100 - i) * 60000).toISOString(),
+          status: 'persisted' as const,
+        }));
+        messagesSignal.set(hundredMsgs);
+
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+
+        const component = harness.component;
+        expect(component.scrollController.hasScrolledInitial).toBe(true);
+        expect(component.showNewMessagesPill()).toBe(false);
+        expect(component.newMessagesBelowCount()).toBe(0);
+      });
+
+      it('E2: Chuyển đổi qua lại giữa DM A và DM B kích hoạt generation mới cho scroll controller', async () => {
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+
+        const component = harness.component;
+        const initialGen = component.scrollController.generation;
+
+        // Giả lập chuyển sang conv-456
+        component.scrollController.reset('conv-456');
+        expect(component.scrollController.generation).toBeGreaterThan(initialGen);
+        expect(component.scrollController.hasScrolledInitial).toBe(false);
+      });
+
+      it('E3: DM A đang scroll phía trên -> chuyển DM B -> realtime đến ngay sau initial render của B; B vẫn xử lý đúng vị trí ở đáy', async () => {
+        const harness = await mount('conv-A');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+
+        const component = harness.component;
+
+        // Giả lập user đang cuộn lên ở DM A
+        const el = component.chatHistoryRef()?.nativeElement;
+        if (el) {
+          Object.defineProperty(el, 'scrollHeight', { value: 2000, configurable: true });
+          Object.defineProperty(el, 'clientHeight', { value: 400, configurable: true });
+          el.scrollTop = 100; // distance = 1500 > 80
+          component.scrollController.onScroll();
+        }
+        expect(component.scrollController.isUserScrolledUp).toBe(true);
+
+        // Chuyển sang conv-B
+        component.scrollController.reset('conv-B');
+        expect(component.scrollController.isUserScrolledUp).toBe(false);
+
+        // Render initial messages của conv-B
+        const bMsgs = [
+          {
+            id: 'msg-b-1',
+            conversationId: 'conv-B',
+            authorId: 'other-user',
+            author: { id: 'other-user', username: 'bob', displayName: 'Bob' },
+            type: 'default' as const,
+            content: 'Hello in B',
+            replyToId: null,
+            clientNonce: 'nonce-b-1',
+            editedAt: null,
+            deletedAt: null,
+            isForwarded: false,
+            createdAt: new Date().toISOString(),
+            status: 'persisted' as const,
+          },
+        ];
+        messagesSignal.set(bMsgs);
+        if (el) {
+          Object.defineProperty(el, 'scrollHeight', { value: 600, configurable: true });
+          Object.defineProperty(el, 'clientHeight', { value: 400, configurable: true });
+          el.scrollTop = 200; // at bottom (distance = 0)
+        }
+        component.scrollController.handleInitialRender(
+          'conv-B',
+          component.scrollController.generation,
+        );
+        harness.fixture.detectChanges();
+        expect(component.scrollController.hasScrolledInitial).toBe(true);
+
+        // Realtime message đến ngay sau initial render của B
+        messagesSignal.set([
+          ...bMsgs,
+          {
+            id: 'msg-b-2',
+            conversationId: 'conv-B',
+            authorId: 'other-user',
+            author: { id: 'other-user', username: 'bob', displayName: 'Bob' },
+            type: 'default' as const,
+            content: 'Realtime in B',
+            replyToId: null,
+            clientNonce: 'nonce-b-2',
+            editedAt: null,
+            deletedAt: null,
+            isForwarded: false,
+            createdAt: new Date().toISOString(),
+            status: 'persisted' as const,
+          },
+        ]);
+        harness.fixture.detectChanges();
+
+        // Vì B đang ở đáy nên không được tăng pill và không bị dính trạng thái cuộn của A
+        expect(component.showNewMessagesPill()).toBe(false);
+        expect(component.newMessagesBelowCount()).toBe(0);
+      });
+
+      it('E4: Nút Đi tới tin nhắn mới nhất xuất hiện khi showScrollDownButton bật và gọi scrollToLatest khi click', async () => {
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+
+        const component = harness.component;
+
+        // Ban đầu ở đáy: nút không có trong DOM
+        expect(harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]')).toBeNull();
+
+        // Bật showScrollDownButton & unreadCount = 4
+        component.scrollController.showScrollDownButton.set(true);
+        component.scrollController.unreadCount.set(4);
+        harness.fixture.detectChanges();
+
+        const scrollBtn = harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]') as HTMLButtonElement;
+        expect(scrollBtn).toBeTruthy();
+        expect(scrollBtn.getAttribute('aria-label')).toBe('Đi tới 4 tin nhắn mới nhất');
+        expect(scrollBtn.textContent).toContain('4');
+
+        const scrollSpy = vi.spyOn(component, 'scrollToLatest');
+        scrollBtn.click();
+        expect(scrollSpy).toHaveBeenCalled();
+      });
+
+      it('E5: onSendMessage không tạo scroll setTimeout timer và dựa hoàn toàn vào canonical reactive pipeline', async () => {
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+
+        const component = harness.component;
+        const setTimeoutSpy = vi.spyOn(window, 'setTimeout');
+
+        // Gửi tin nhắn
+        component.onSendMessage({
+          content: 'Hello World canonical scroll',
+          files: [],
+        });
+
+        // Không được gọi setTimeout nào cho scroll (timer 60ms đã bị xóa hoàn toàn)
+        const timer60ms = setTimeoutSpy.mock.calls.find((call) => call[1] === 60);
+        expect(timer60ms).toBeUndefined();
+
+        setTimeoutSpy.mockRestore();
+      });
+
+      it('E6: Optimistic self-message kích hoạt đúng 1 lần generation-safe scroll; chuyển DM trước khi callback chạy không scroll target mới', async () => {
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+
+        const component = harness.component;
+        const scrollSpy = vi.spyOn(component.scrollController, 'handleRealtimeAppend');
+
+        // Tạo optimistic self message
+        const now = new Date();
+        messagesSignal.set([
+          ...messagesSignal(),
+          {
+            id: null,
+            conversationId: 'conv-123',
+            authorId: 'my-user-id',
+            author: { id: 'my-user-id', username: 'tai', displayName: 'Tai' },
+            type: 'default' as const,
+            content: 'My optimistic message',
+            replyToId: null,
+            clientNonce: 'nonce-self-1',
+            editedAt: null,
+            deletedAt: null,
+            isForwarded: false,
+            createdAt: now.toISOString(),
+            status: 'optimistic' as const,
+          },
+        ]);
+        harness.fixture.detectChanges();
+
+        // Kiểm tra handleRealtimeAppend được gọi với isMine: true và targetKey/generation hiện tại
+        expect(scrollSpy).toHaveBeenCalledTimes(1);
+        expect(scrollSpy).toHaveBeenCalledWith(
+          'conv-123',
+          component.scrollController.generation,
+          expect.objectContaining({ isMine: true }),
+        );
+
+        // Chuyển sang conversation khác (conv-456)
+        const oldGen = component.scrollController.generation;
+        component.scrollController.reset('conv-456');
+
+        // Callback của conv-123 với oldGen chạy sau đó không được cuộn conv-456
+        const scrollToBottomSpy = vi.spyOn(component.scrollController, 'scrollToBottom');
+        component.scrollController.handleRealtimeAppend('conv-123', oldGen, {
+          isMine: true,
+          wasNearBottom: true,
+        });
+        expect(scrollToBottomSpy).not.toHaveBeenCalled();
+      });
+
+      it('E7: Các timer hợp lệ (toast, debounce mark-as-read) vẫn hoạt động đúng chuẩn', async () => {
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+
+        const component = harness.component;
+
+        // 1. Toast timer
+        component['showToast']('Thông báo thử nghiệm');
+        expect(component.toastMessage()).toBe('Thông báo thử nghiệm');
+
+        // 2. Mark read debounce timer
+        component['scheduleMarkRead']('100');
+        expect(component['latestPendingReadId']).toBe('100');
+        expect(component['markReadTimeout']).not.toBeNull();
       });
     });
   });

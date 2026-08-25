@@ -1,9 +1,8 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import type { ConversationSummary } from '../../../../core/api/shell-data';
+import type { ConversationSummary } from '../../../../core/conversations/conversation.models';
 import { ConversationsApiService } from '../../../../core/api/conversations-api.service';
-import { ShellData } from '../../../../core/api/shell-data';
 import { FriendRow } from './friend-row';
 
 const NGUOI: ConversationSummary = {
@@ -25,7 +24,6 @@ class Host {
 
 describe('FriendRow', () => {
   let mockConversationsApi: { getOrCreateDm: any };
-  let mockShell: { demoEnabled: any };
   let router: Router;
 
   beforeEach(() => {
@@ -38,9 +36,6 @@ describe('FriendRow', () => {
         createdAt: new Date().toISOString(),
       }),
     };
-    mockShell = {
-      demoEnabled: vi.fn().mockReturnValue(false),
-    };
   });
 
   const mount = async () => {
@@ -49,7 +44,6 @@ describe('FriendRow', () => {
       providers: [
         provideRouter([]),
         { provide: ConversationsApiService, useValue: mockConversationsApi },
-        { provide: ShellData, useValue: mockShell },
       ],
     }).compileComponents();
 
@@ -149,20 +143,6 @@ describe('FriendRow', () => {
     // Hoàn thành promise
     resolvePromise!({ id: 'conv-123', type: 'dm' });
     await fixture.whenStable();
-  });
-
-  it('ở chế độ demo, điều hướng trực tiếp theo ID mock mà không gọi API', async () => {
-    mockShell.demoEnabled.mockReturnValue(true);
-    const fixture = await mount();
-    const rowBtn = fixture.nativeElement.querySelector(
-      'button[aria-label="Nhắn tin cho ho_be"]',
-    ) as HTMLButtonElement;
-
-    rowBtn.click();
-    await fixture.whenStable();
-
-    expect(mockConversationsApi.getOrCreateDm).not.toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith(['/channels/@me', 'ho-be']);
   });
 
   it('nút ba chấm mở menu đúng người bạn với đủ nhóm tùy chọn', async () => {

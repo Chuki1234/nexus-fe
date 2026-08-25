@@ -17,10 +17,6 @@ const TABS: { id: FriendsTab; label: string }[] = [
 
 /**
  * Thanh trên cùng trang Bạn bè: tiêu đề, bộ lọc, nút thêm bạn.
- *
- * Bộ lọc dùng nút + `aria-pressed` chứ không phải `MatTabs`: đây là lọc trên
- * cùng một danh sách, không phải chuyển giữa nhiều panel nội dung. Dùng tablist
- * sẽ báo sai ngữ nghĩa cho trình đọc màn hình.
  */
 @Component({
   selector: 'app-friends-toolbar',
@@ -35,10 +31,9 @@ export class FriendsToolbar {
   readonly theme = model.required<ThemeMode>();
   readonly canAddFriend = input<boolean>(false);
   readonly activityOpen = input<boolean>(false);
-  readonly demoEnabled = input<boolean>(false);
+  readonly showActivityToggle = input<boolean>(false);
 
   readonly toggleActivity = output<void>();
-  readonly toggleDemo = output<void>();
 
   protected readonly tabs = TABS;
 

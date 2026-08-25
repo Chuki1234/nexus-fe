@@ -29,6 +29,7 @@ export type VoiceConnectionStatus =
 export interface VoiceParticipantModel {
   identity: string;
   name: string;
+  avatarUrl?: string | null;
   isLocal: boolean;
   isSpeaking: boolean;
   isMuted: boolean;
@@ -196,83 +197,6 @@ export class VoiceRoomService implements OnDestroy {
     }
   }
 
-  private isDemoMode = false;
-  private demoInterval: ReturnType<typeof setInterval> | null = null;
-
-  /**
-   * Tham gia vào Voice Room ở chế độ Thử nghiệm (Demo Mode) khi chưa cấu hình LiveKit credentials.
-   */
-  joinDemoRoom(
-    serverId: string,
-    channelId: string,
-    channelName: string,
-    options?: { audio?: boolean; video?: boolean },
-  ): void {
-    this.cleanup();
-    this.isDemoMode = true;
-    this.currentServerId.set(serverId);
-    this.currentChannelId.set(channelId);
-    this.currentChannelName.set(channelName);
-    this.errorMessage.set(null);
-
-    const displayName =
-      this.profile.current()?.displayName ?? this.profile.current()?.username ?? 'Bạn';
-
-    this.localParticipant.set({
-      identity: 'local-user',
-      name: displayName,
-      isLocal: true,
-      isSpeaking: false,
-      isMuted: !(options?.audio ?? true),
-      isCameraOn: options?.video ?? false,
-      isScreenSharing: false,
-      connectionQuality: 'excellent',
-    });
-
-    this.remoteParticipants.set([
-      {
-        identity: 'demo-mon',
-        name: 'Phan Thế Mon',
-        isLocal: false,
-        isSpeaking: true,
-        isMuted: false,
-        isCameraOn: false,
-        isScreenSharing: false,
-        connectionQuality: 'excellent',
-      },
-      {
-        identity: 'demo-nhan',
-        name: 'Đỗ Trọng Nhân',
-        isLocal: false,
-        isSpeaking: false,
-        isMuted: true,
-        isCameraOn: false,
-        isScreenSharing: false,
-        connectionQuality: 'good',
-      },
-    ]);
-
-    this.connectionStatus.set('connected');
-    this.startDurationTimer();
-
-    // Mô phỏng active speaker luân phiên
-    let tick = 0;
-    this.demoInterval = setInterval(() => {
-      tick++;
-      this.remoteParticipants.update((list) =>
-        list.map((p) => {
-          if (p.identity === 'demo-mon') {
-            return { ...p, isSpeaking: tick % 4 === 0 || tick % 4 === 1 };
-          }
-          if (p.identity === 'demo-nhan') {
-            return { ...p, isSpeaking: tick % 6 === 0 };
-          }
-          return p;
-        }),
-      );
-    }, 1500);
-  }
-
   /**
    * Rời khỏi phòng thoại và tắt sạch mọi tracks (tắt đèn camera & mic).
    */
@@ -290,13 +214,6 @@ export class VoiceRoomService implements OnDestroy {
    * Bật / Tắt Microphone của local user.
    */
   async toggleMicrophone(): Promise<void> {
-    if (this.isDemoMode) {
-      const current = this.localParticipant();
-      if (current) {
-        this.localParticipant.set({ ...current, isMuted: !current.isMuted });
-      }
-      return;
-    }
     if (!this.room) return;
     const isMuted = this.isMicMuted();
     try {
@@ -311,13 +228,6 @@ export class VoiceRoomService implements OnDestroy {
    * Bật / Tắt Camera của local user.
    */
   async toggleCamera(): Promise<void> {
-    if (this.isDemoMode) {
-      const current = this.localParticipant();
-      if (current) {
-        this.localParticipant.set({ ...current, isCameraOn: !current.isCameraOn });
-      }
-      return;
-    }
     if (!this.room) return;
     const isCamOn = this.isCameraOn();
     try {
@@ -332,13 +242,6 @@ export class VoiceRoomService implements OnDestroy {
    * Bật / Tắt Chia sẻ màn hình (Screen Share).
    */
   async toggleScreenShare(): Promise<void> {
-    if (this.isDemoMode) {
-      const current = this.localParticipant();
-      if (current) {
-        this.localParticipant.set({ ...current, isScreenSharing: !current.isScreenSharing });
-      }
-      return;
-    }
     if (!this.room) return;
     const isSharing = this.isScreenSharing();
     try {
@@ -512,12 +415,6 @@ export class VoiceRoomService implements OnDestroy {
 
   private cleanup(): void {
     this.stopDurationTimer();
-
-    if (this.demoInterval) {
-      clearInterval(this.demoInterval);
-      this.demoInterval = null;
-    }
-    this.isDemoMode = false;
 
     if (this.room) {
       try {

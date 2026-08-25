@@ -177,6 +177,31 @@
       }
     </div>
 
+    <!-- Nút GIPHY GIF Picker -->
+    <div class="relative">
+      <button
+        type="button"
+        [disabled]="disabled() || context()?.kind === 'edit'"
+        (click)="toggleGiphyPicker()"
+        class="composer-action gif-toggle-btn"
+        [class.active]="showGiphyPicker()"
+        matTooltip="Chọn ảnh GIF từ GIPHY"
+        aria-label="Chọn GIF từ GIPHY"
+      >
+        <span class="gif-pill-badge">GIF</span>
+        <span class="sr-only">Chọn GIF</span>
+      </button>
+
+      @if (showGiphyPicker()) {
+        <div class="absolute bottom-full right-0 mb-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+          <app-giphy-picker
+            (gifSelected)="onGifSelected($event)"
+            (closePicker)="showGiphyPicker.set(false)"
+          ></app-giphy-picker>
+        </div>
+      }
+    </div>
+
     <!-- Nút Gửi tin nhắn -->
     <button
       mat-icon-button

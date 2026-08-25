@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
+import { GiphyMediaDto } from '../../../shared/dto/messages.dto';
 
 export interface MessageAuthorDto {
   id: string;
@@ -41,6 +42,7 @@ export interface MessageResponseDto {
   editedAt: string | null;
   deletedAt: string | null;
   isForwarded: boolean;
+  externalMedia: GiphyMediaDto | null;
   attachments?: AttachmentResponseDto[];
   reactions?: ReactionSummaryDto[];
   createdAt: string;
@@ -61,6 +63,7 @@ export interface SendMessageDto {
   clientNonce?: string;
   replyToId?: string;
   files?: File[];
+  externalMedia?: GiphyMediaDto;
 }
 
 export interface EditMessageDto {
@@ -155,6 +158,9 @@ export class MessagesApiService {
       }
       if (dto.replyToId) {
         formData.append('replyToId', dto.replyToId);
+      }
+      if (dto.externalMedia) {
+        formData.append('externalMedia', JSON.stringify(dto.externalMedia));
       }
       for (const file of dto.files) {
         formData.append('files', file);
@@ -312,6 +318,9 @@ export class MessagesApiService {
       }
       if (dto.replyToId) {
         formData.append('replyToId', dto.replyToId);
+      }
+      if (dto.externalMedia) {
+        formData.append('externalMedia', JSON.stringify(dto.externalMedia));
       }
       for (const file of dto.files) {
         formData.append('files', file);

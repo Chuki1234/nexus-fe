@@ -166,4 +166,80 @@
   color: var(--color-on-primary, #001e2b) !important;
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * Drag & Drop Channels (Discord Style UX & Animations)
+ * ════════════════════════════════════════════════════════════════════════════ */
+
+/* Cursor khi có quyền kéo thả */
+.channel-row {
+  user-select: none;
+}
+
+.channel-row:not(.cdk-drag-disabled) {
+  cursor: grab;
+}
+
+.channel-row.cdk-drag-dragging {
+  cursor: grabbing !important;
+  opacity: 0.2;
+}
+
+/* Khoảng trống chèn kênh khi kéo (Drop slot gap indicator) */
+.channel-drag-placeholder {
+  min-height: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-surface-feature, #003d4f) 40%, transparent);
+  border: 1.5px dashed var(--color-primary, #00ed64);
+  box-shadow: 0 0 12px rgba(0, 237, 100, 0.25);
+  margin: 2px 0;
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+/* Thẻ nổi khi đang kéo (Drag Preview) */
+::ng-deep .cdk-drag-preview.channel-row {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 34px !important;
+  height: 34px !important;
+  border-radius: 8px !important;
+  padding: 0 8px !important;
+  background: var(--color-surface, #002634) !important;
+  border: 1px solid var(--color-primary, #00ed64) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 237, 100, 0.3) !important;
+  opacity: 0.95 !important;
+  z-index: 9999 !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
+}
+
+::ng-deep .cdk-drag-preview.channel-row .channel-icon {
+  color: var(--color-primary, #00ed64) !important;
+}
+
+::ng-deep .cdk-drag-preview.channel-row span[matlistitemtitle] {
+  color: var(--color-ink, #ffffff) !important;
+  font-weight: 600 !important;
+}
+
+/* Animation dịch chuyển các kênh xung quanh để mở khoảng trống */
+.cdk-drop-list-dragging .channel-row:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Drop list container */
+.channel-drop-list {
+  min-height: 12px;
+  transition: background 150ms ease;
+}
+
+.channel-drop-list.cdk-drop-list-dragging {
+  border-radius: 8px;
+}
+
 

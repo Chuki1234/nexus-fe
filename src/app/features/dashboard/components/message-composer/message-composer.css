@@ -179,6 +179,64 @@
   color: var(--color-steel);
 }
 
+/* Nút GIF nổi bật phong cách Discord/Nexus */
+.gif-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: 2rem;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+  user-select: none;
+}
+
+.gif-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.725rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  background: color-mix(in srgb, var(--color-surface-feature, #003d4f) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #00ed64) 35%, transparent);
+  color: var(--color-primary, #00ed64);
+  box-shadow: 0 0 8px rgba(0, 237, 100, 0.15);
+  transition: all 0.18s ease;
+}
+
+.gif-toggle-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.gif-toggle-btn:hover:not(:disabled) .gif-pill-badge {
+  background: var(--color-primary, #00ed64);
+  color: var(--color-on-primary, #001e2b);
+  border-color: var(--color-primary, #00ed64);
+  box-shadow: 0 0 14px rgba(0, 237, 100, 0.45);
+}
+
+.gif-toggle-btn.active,
+.gif-toggle-btn.active .gif-pill-badge {
+  background: var(--color-primary, #00ed64);
+  color: var(--color-on-primary, #001e2b);
+  border-color: var(--color-primary, #00ed64);
+  box-shadow: 0 0 16px rgba(0, 237, 100, 0.55);
+}
+
+.gif-toggle-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .composer-shell.drag-over {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);

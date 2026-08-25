@@ -5,6 +5,18 @@
     <title>NexusCord</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Content Security Policy (CSP) - Development Policy:
+      - Origins phát triển cục bộ: Backend API & Socket (localhost:3000, localhost:8000, 127.0.0.1:3000, 127.0.0.1:8000).
+      - Supabase Auth/REST/Storage và Realtime WSS được enumerate tường minh.
+      - GIPHY Search API & CDN allowlist được enumerate tường minh.
+      - wss: được giữ để hỗ trợ kết nối LiveKit WebRTC Cloud/Server khi URL máy chủ phòng thoại cấu hình động qua LIVEKIT_URL.
+      - CSP production hardening deferred: Trong môi trường Production, chính sách CSP phải được tạo động và inject qua HTTP Response Header của Reverse Proxy/Nginx/CDN từ biến môi trường (SUPABASE_URL, LIVEKIT_URL, API_URL) nhằm khóa chặt origin LiveKit cụ thể và loại bỏ scheme wildcard wss:.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ubdgjtjxcytwctsbtpjy.supabase.co https://media.giphy.com https://media0.giphy.com https://media1.giphy.com https://media2.giphy.com https://media3.giphy.com https://media4.giphy.com https://i.giphy.com https://giphy.com https://www.giphy.com; media-src 'self' blob: https://ubdgjtjxcytwctsbtpjy.supabase.co https://media.giphy.com https://media0.giphy.com https://media1.giphy.com https://media2.giphy.com https://media3.giphy.com https://media4.giphy.com https://i.giphy.com; connect-src 'self' http://localhost:3000 ws://localhost:3000 http://localhost:8000 ws://localhost:8000 http://127.0.0.1:3000 ws://127.0.0.1:3000 http://127.0.0.1:8000 ws://127.0.0.1:8000 https://ubdgjtjxcytwctsbtpjy.supabase.co wss://ubdgjtjxcytwctsbtpjy.supabase.co https://api.giphy.com wss:; font-src 'self' data:; object-src 'none'; base-uri 'self';"
+    />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <script>
       try {

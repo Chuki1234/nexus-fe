@@ -112,10 +112,10 @@
           mat-flat-button
           type="button"
           class="!rounded-full !bg-primary !px-5 !text-on-primary font-semibold shadow-glow"
-          (click)="joinDemoVoice()"
+          (click)="joinVoice()"
         >
-          <mat-icon aria-hidden="true">play_arrow</mat-icon>
-          Vào phòng thử nghiệm (Demo)
+          <mat-icon aria-hidden="true">refresh</mat-icon>
+          Thử kết nối lại
         </button>
 
         <button
@@ -177,6 +177,7 @@
   @if (isChatOpen()) {
     <app-voice-chat-drawer
       class="w-80 lg:w-96 shrink-0"
+      [serverId]="serverId()"
       [channel]="channel()"
       (closed)="voiceRoom.closeChatDrawer()"
     />

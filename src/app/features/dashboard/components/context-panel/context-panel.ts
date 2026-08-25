@@ -25,6 +25,7 @@ export class ContextPanel {
   readonly title = input.required<string>();
   readonly open = input<boolean>(false);
   readonly pinned = input<boolean>(false);
+  readonly showClose = input<boolean>(true);
 
   readonly closed = output<void>();
 
@@ -120,7 +121,7 @@ export class ContextPanel {
   }
 
   protected closeFromKeyboard(event: Event): void {
-    if (!this.open()) {
+    if (!this.open() || !this.showClose()) {
       return;
     }
 

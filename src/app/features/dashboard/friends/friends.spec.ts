@@ -1,8 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import type { ConversationSummary } from '../../../core/api/shell-data';
-import { ShellData } from '../../../core/api/shell-data';
+import type { ConversationSummary } from '../../../core/conversations/conversation.models';
 import {
   DashboardUiState,
   type DashboardBlockingState,
@@ -32,18 +31,8 @@ describe('FriendsPage', () => {
 
   const mount = async (
     people: ConversationSummary[] = [],
-    shellOverride?: ShellData,
     uiState: DashboardUiStateName = 'ready',
   ) => {
-    const conversations = signal(people).asReadonly();
-    const demoEnabled = signal(false);
-    const shell =
-      shellOverride ??
-      ({
-        conversations,
-        demoEnabled: demoEnabled.asReadonly(),
-        toggleDemoData: () => demoEnabled.update((enabled) => !enabled),
-      } as ShellData);
     const blockingState = signal<DashboardBlockingState | null>(
       uiState === 'loading' ||
         uiState === 'error' ||
@@ -65,9 +54,10 @@ describe('FriendsPage', () => {
       error: signal<string | null>(null).asReadonly(),
       feedback: signal<string | null>(null).asReadonly(),
       load: vi.fn().mockResolvedValue(undefined),
-      sendRequest: vi.fn().mockResolvedValue(true),
-      acceptRequest: vi.fn().mockResolvedValue(undefined),
-      deleteRequest: vi.fn().mockResolvedValue(undefined),
+      sendFriendRequest: vi.fn().mockResolvedValue(true),
+      acceptFriendRequest: vi.fn().mockResolvedValue(undefined),
+      declineFriendRequest: vi.fn().mockResolvedValue(undefined),
+      cancelFriendRequest: vi.fn().mockResolvedValue(undefined),
       removeFriend: vi.fn().mockResolvedValue(undefined),
       clearFeedback: vi.fn(),
     };
@@ -75,7 +65,6 @@ describe('FriendsPage', () => {
       imports: [FriendsPage],
       providers: [
         provideRouter([]),
-        { provide: ShellData, useValue: shell },
         { provide: FriendsStore, useValue: friendStore },
         {
           provide: DashboardUiState,
@@ -118,30 +107,6 @@ describe('FriendsPage', () => {
         .querySelector('app-context-panel aside')
         ?.classList.contains('context-panel--open'),
     ).toBe(true);
-  });
-
-  it('nút demo bật danh sách mẫu và tắt lại về empty-state ngay trong runtime', async () => {
-    const shell = new ShellData();
-    const fixture = await mount([], shell);
-    const demoButton = fixture.nativeElement.querySelector(
-      'button[aria-label="Bật dữ liệu demo"]',
-    ) as HTMLButtonElement;
-
-    expect(fixture.nativeElement.querySelectorAll('app-friend-row').length).toBe(0);
-
-    demoButton.click();
-    fixture.detectChanges();
-
-    expect(demoButton.getAttribute('aria-pressed')).toBe('true');
-    expect(fixture.nativeElement.querySelectorAll('app-friend-row').length).toBe(6);
-    expect(fixture.nativeElement.textContent).toContain('Phan Thế Mon');
-
-    demoButton.click();
-    fixture.detectChanges();
-
-    expect(demoButton.getAttribute('aria-pressed')).toBe('false');
-    expect(fixture.nativeElement.querySelectorAll('app-friend-row').length).toBe(0);
-    expect(fixture.nativeElement.textContent).toContain('Danh sách đang trống');
   });
 
   it('lọc theo tên khi gõ vào ô tìm kiếm', async () => {
@@ -207,29 +172,17 @@ describe('FriendsPage', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 
-  it('nút toolbar mở và đóng activity panel', async () => {
+  it('activity panel luôn mở cố định, có thanh co giãn và không có nút đóng X', async () => {
     const fixture = await mount();
-    const button = fixture.nativeElement.querySelector(
-      'button[aria-label="Ẩn hoạt động bạn bè"], button[aria-label="Hiện hoạt động bạn bè"]',
-    ) as HTMLButtonElement;
 
-    button.click();
-    fixture.detectChanges();
+    const panel = fixture.nativeElement.querySelector('app-context-panel aside') as HTMLElement;
+    expect(panel.classList.contains('context-panel--open')).toBe(true);
 
-    expect(
-      fixture.nativeElement
-        .querySelector('app-context-panel aside')
-        ?.classList.contains('context-panel--open'),
-    ).toBe(false);
+    // Không có nút X đóng
+    expect(fixture.nativeElement.querySelector('.context-panel__close')).toBeNull();
 
-    button.click();
-    fixture.detectChanges();
-
-    expect(
-      fixture.nativeElement
-        .querySelector('app-context-panel aside')
-        ?.classList.contains('context-panel--open'),
-    ).toBe(true);
+    // Có thanh co giãn
+    expect(fixture.nativeElement.querySelector('.pane-resize-handle--member')).toBeTruthy();
   });
 
   it('không dựng hồ sơ nhanh thuộc ownership của trang Profile', async () => {
@@ -242,7 +195,7 @@ describe('FriendsPage', () => {
   });
 
   it('loading thay danh sách bằng skeleton đúng ngữ cảnh', async () => {
-    const fixture = await mount(PEOPLE, undefined, 'loading');
+    const fixture = await mount(PEOPLE, 'loading');
 
     expect(fixture.nativeElement.querySelector('[data-dashboard-state="loading"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[data-skeleton-layout="list"]')).toBeTruthy();
@@ -250,9 +203,20 @@ describe('FriendsPage', () => {
   });
 
   it('offline chỉ thêm banner và vẫn giữ danh sách đang xem', async () => {
-    const fixture = await mount(PEOPLE, undefined, 'offline');
+    const fixture = await mount(PEOPLE, 'offline');
 
     expect(fixture.nativeElement.querySelector('[data-dashboard-state="offline"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelectorAll('app-friend-row')).toHaveLength(2);
+  });
+
+  it('khi chuyển tab thì gọi clearFeedback để không hiển thị lỗi của tab cũ', async () => {
+    const fixture = await mount(PEOPLE);
+    const friendStore = TestBed.inject(FriendsStore);
+
+    // Chuyển sang tab 'add'
+    fixture.componentInstance['tab'].set('add');
+    fixture.detectChanges();
+
+    expect(friendStore.clearFeedback).toHaveBeenCalled();
   });
 });

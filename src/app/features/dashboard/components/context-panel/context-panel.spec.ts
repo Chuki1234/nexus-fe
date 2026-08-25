@@ -10,6 +10,7 @@ import { ContextPanel } from './context-panel';
       title="Hồ sơ nhanh"
       [open]="open()"
       [pinned]="pinned()"
+      [showClose]="showClose()"
       (closed)="onClosed()"
     >
       <p data-testid="projected-content">Nội dung hồ sơ</p>
@@ -19,6 +20,7 @@ import { ContextPanel } from './context-panel';
 class Host {
   readonly open = signal(false);
   readonly pinned = signal(false);
+  readonly showClose = signal(true);
   readonly closed = signal(0);
 
   onClosed(): void {
@@ -109,5 +111,20 @@ describe('ContextPanel', () => {
     handle.dispatchEvent(new MouseEvent('dblclick'));
     fixture.detectChanges();
     expect(handle.getAttribute('aria-valuenow')).toBe('280');
+  });
+
+  it('khi showClose=false thì ẩn nút đóng và backdrop', async () => {
+    const fixture = await mount();
+    fixture.componentInstance.open.set(true);
+    fixture.detectChanges();
+
+    // Default showClose is true
+    expect(fixture.nativeElement.querySelector('.context-panel__close')).toBeTruthy();
+
+    fixture.componentInstance.showClose.set(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.context-panel__close')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.context-panel__backdrop')).toBeNull();
   });
 });

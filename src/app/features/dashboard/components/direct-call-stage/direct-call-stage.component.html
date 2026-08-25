@@ -1,0 +1,64 @@
+@if (store.showStage()) {
+  <main
+    class="direct-call-stage"
+    role="region"
+    aria-label="Khung cuộc gọi trực tiếp"
+  >
+    <!-- 1. Top Header: User Name & Call Status -->
+    <header class="stage-header">
+      <div class="header-user-info">
+        <h1 class="header-name">{{ remoteUser()?.displayName || remoteUser()?.username }}</h1>
+        <div class="header-status">
+          <span class="status-indicator-dot" [ngClass]="store.callState()"></span>
+          <span>{{ statusText() }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. Main Stage Content -->
+    <section class="stage-content">
+      @if (store.isRemoteVideoAvailable()) {
+        <!-- Remote Video View -->
+        <video
+          #remoteVideo
+          class="remote-video"
+          [ngClass]="store.remoteVideoFit()"
+          autoplay
+          playsinline
+        ></video>
+      } @else {
+        <!-- Avatar Fallback View for Audio Call or Remote Camera Off -->
+        <div class="avatar-fallback-wrapper">
+          <div
+            class="avatar-fallback-ring"
+            [class.speaking]="store.isRemoteSpeaking()"
+          >
+            @if (remoteUser()?.avatarUrl) {
+              <img
+                [src]="remoteUser()?.avatarUrl"
+                [alt]="remoteUser()?.displayName || remoteUser()?.username"
+                class="stage-avatar"
+              />
+            } @else {
+              <div class="stage-avatar-placeholder">
+                {{ (remoteUser()?.displayName || remoteUser()?.username || 'U').charAt(0).toUpperCase() }}
+              </div>
+            }
+          </div>
+          <div class="fallback-status-label">
+            {{ store.callState() === 'outgoing_ringing' ? 'Đang gọi bạn bè...' : (store.isRemoteCameraOff() ? 'Camera của đối phương đang tắt' : 'Đang trong cuộc gọi thoại') }}
+          </div>
+        </div>
+      }
+
+      <!-- Draggable Local Self View (Camera Picture-in-Picture) -->
+      <app-draggable-self-view />
+    </section>
+
+    <!-- 3. Bottom Controls Bar -->
+    <app-direct-call-controls />
+
+    <!-- 4. Hidden Remote Audio Element -->
+    <audio #remoteAudio autoplay playsinline class="hidden"></audio>
+  </main>
+}
