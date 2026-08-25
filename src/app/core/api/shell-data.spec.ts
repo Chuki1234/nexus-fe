@@ -31,7 +31,7 @@ describe('ShellData demo mode', () => {
     expect(shell.totalMentions()).toBe(1);
     expect(shell.serverOf('itss')?.name).toBe('ITSS Lab');
     expect(shell.channelOf('itss', 'do-an')?.name).toBe('đồ-án');
-    expect(shell.conversationOf('mon')?.name).toBe('Mai Trần');
+    expect(shell.conversationOf('mon')?.name).toBe('Phan Thế Mon');
   });
 
   it('toggle lần nữa trả toàn bộ shell về dữ liệu live rỗng', () => {

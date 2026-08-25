@@ -1,17 +1,3 @@
-@if (selectedReaction(); as reaction) {
-  <button
-    type="button"
-    class="message-reaction-preview reaction-chip"
-    aria-pressed="true"
-    [attr.aria-label]="'Bỏ cảm xúc ' + reaction + ' khỏi tin nhắn của ' + author()"
-    matTooltip="Bỏ cảm xúc"
-    (click)="toggleReaction(reaction)"
-  >
-    <span aria-hidden="true">{{ reaction }}</span>
-    <span>1</span>
-  </button>
-}
-
 <div class="message-actions" role="toolbar" [attr.aria-label]="'Thao tác tin nhắn của ' + author()">
   <button
     mat-icon-button

@@ -6,72 +6,181 @@
   <h2 class="settings-section-heading" id="account-info-heading">Thông Tin Tài Khoản</h2>
 
   <div class="settings-row-group" aria-labelledby="account-info-heading">
-
-    <!-- Tên đăng nhập -->
+    <!-- Ảnh đại diện & Hồ sơ (Ảnh 1) -->
     <div class="settings-row">
-      <div class="settings-row-label">
-        <span class="settings-row-title">Tên đăng nhập</span>
-        <span class="settings-row-value">{{ username() }}</span>
-      </div>
-      <button
-        type="button"
-        id="btn-edit-username"
-        (click)="goToProfileTab()"
-        class="settings-row-btn"
-      >
-        Chỉnh sửa
-      </button>
-    </div>
-
-    <!-- Email -->
-    <div class="settings-row">
-      <div class="settings-row-label">
-        <span class="settings-row-title">Email</span>
-        <div class="settings-row-value-group">
-          <span class="settings-row-value settings-row-value--mono">
-            {{ showEmail() ? email() : maskedEmail() }}
-          </span>
-          <button
-            type="button"
-            id="btn-toggle-email"
-            (click)="showEmail.set(!showEmail())"
-            class="settings-row-reveal-btn"
-            [attr.aria-label]="showEmail() ? 'Ẩn email' : 'Hiển thị email'"
-          >
-            {{ showEmail() ? 'Ẩn' : 'Hiện thị' }}
-          </button>
+      <div class="flex items-center gap-3.5">
+        <app-avatar
+          [name]="displayName()"
+          [src]="settingsService.editAvatarUrl()"
+          size="md"
+          presence="online"
+          ring="surface"
+        />
+        <div class="settings-row-label">
+          <span class="settings-row-title">Ảnh đại diện &amp; Hồ sơ</span>
+          <span class="settings-row-value">{{ displayName() }}</span>
         </div>
       </div>
-      <button
-        type="button"
-        id="btn-edit-email"
-        (click)="goToProfileTab()"
-        class="settings-row-btn"
+      <label
+        for="account-avatar-file-upload"
+        class="settings-row-btn cursor-pointer inline-flex items-center gap-1.5"
       >
-        Chỉnh sửa
-      </button>
+        <mat-icon class="!w-4 !h-4 !text-[16px]">photo_camera</mat-icon>
+        <span>Đổi avatar</span>
+      </label>
+      <input
+        id="account-avatar-file-upload"
+        type="file"
+        accept="image/png, image/jpeg, image/webp, image/gif"
+        (change)="onAvatarFileSelected($event)"
+        class="hidden"
+      />
     </div>
 
-    <!-- Số Điện Thoại -->
+    <!-- Tên đăng nhập (Ảnh 1: Chỉnh sửa trực tiếp tại chỗ) -->
     <div class="settings-row">
-      <div class="settings-row-label">
-        <span class="settings-row-title">Số Điện Thoại</span>
-        <span class="settings-row-value settings-row-value--muted">
-          @if (showPhone()) {
-            +84 987 654 321
-          } @else {
-            Bạn chưa thêm số điện thoại nào cả.
-          }
-        </span>
+      <div class="settings-row-label flex-1 min-w-0">
+        <span class="settings-row-title">Tên đăng nhập</span>
+        @if (!editingUsername()) {
+          <span class="settings-row-value">{{ username() }}</span>
+        } @else {
+          <div class="flex items-center gap-2 mt-1.5 animate-slide-down">
+            <input
+              type="text"
+              [ngModel]="tempUsername()"
+              (ngModelChange)="tempUsername.set($event)"
+              maxlength="32"
+              class="w-full max-w-xs bg-canvas border border-primary rounded-xl px-3 py-1.5 text-caption font-bold text-ink focus:outline-none shadow-2xs"
+            />
+            <button
+              type="button"
+              (click)="saveUsername()"
+              class="px-3.5 py-1.5 rounded-xl bg-primary text-on-primary font-black text-caption shadow-xs hover:opacity-90 active:scale-98 transition-all cursor-pointer shrink-0"
+            >
+              Lưu
+            </button>
+            <button
+              type="button"
+              (click)="cancelEditUsername()"
+              class="px-2.5 py-1.5 text-caption font-bold text-steel hover:text-ink hover:underline cursor-pointer shrink-0"
+            >
+              Hủy
+            </button>
+          </div>
+        }
       </div>
-      <button
-        type="button"
-        id="btn-add-phone"
-        (click)="showPhone.set(!showPhone())"
-        class="settings-row-btn"
-      >
-        {{ showPhone() ? 'Ẩn số' : 'Thêm' }}
-      </button>
+      @if (!editingUsername()) {
+        <button
+          type="button"
+          id="btn-edit-username"
+          (click)="startEditUsername()"
+          class="settings-row-btn"
+        >
+          Chỉnh sửa
+        </button>
+      }
+    </div>
+
+    <!-- Email (Ảnh 1: Chỉnh sửa trực tiếp tại chỗ) -->
+    <div class="settings-row">
+      <div class="settings-row-label flex-1 min-w-0">
+        <span class="settings-row-title">Email</span>
+        @if (!editingEmail()) {
+          <div class="settings-row-value-group">
+            <span class="settings-row-value settings-row-value--mono">
+              {{ showEmail() ? email() : maskedEmail() }}
+            </span>
+            <button
+              type="button"
+              id="btn-toggle-email"
+              (click)="showEmail.set(!showEmail())"
+              class="settings-row-reveal-btn"
+              [attr.aria-label]="showEmail() ? 'Ẩn email' : 'Hiển thị email'"
+            >
+              {{ showEmail() ? 'Ẩn' : 'Hiện thị' }}
+            </button>
+          </div>
+        } @else {
+          <div class="flex items-center gap-2 mt-1.5 animate-slide-down">
+            <input
+              type="email"
+              [ngModel]="tempEmail()"
+              (ngModelChange)="tempEmail.set($event)"
+              class="w-full max-w-xs bg-canvas border border-primary rounded-xl px-3 py-1.5 text-caption font-medium text-ink focus:outline-none shadow-2xs font-mono"
+            />
+            <button
+              type="button"
+              (click)="saveEmail()"
+              class="px-3.5 py-1.5 rounded-xl bg-primary text-on-primary font-black text-caption shadow-xs hover:opacity-90 active:scale-98 transition-all cursor-pointer shrink-0"
+            >
+              Lưu
+            </button>
+            <button
+              type="button"
+              (click)="cancelEditEmail()"
+              class="px-2.5 py-1.5 text-caption font-bold text-steel hover:text-ink hover:underline cursor-pointer shrink-0"
+            >
+              Hủy
+            </button>
+          </div>
+        }
+      </div>
+      @if (!editingEmail()) {
+        <button
+          type="button"
+          id="btn-edit-email"
+          (click)="startEditEmail()"
+          class="settings-row-btn"
+        >
+          Chỉnh sửa
+        </button>
+      }
+    </div>
+
+    <!-- Số Điện Thoại (Ảnh 1: Thêm/Sửa trực tiếp tại chỗ) -->
+    <div class="settings-row">
+      <div class="settings-row-label flex-1 min-w-0">
+        <span class="settings-row-title">Số Điện Thoại</span>
+        @if (!editingPhone()) {
+          <span class="settings-row-value" [class.settings-row-value--muted]="!phoneNumber()">
+            {{ phoneNumber() || 'Bạn chưa thêm số điện thoại nào cả.' }}
+          </span>
+        } @else {
+          <div class="flex items-center gap-2 mt-1.5 animate-slide-down">
+            <input
+              type="tel"
+              [ngModel]="tempPhone()"
+              (ngModelChange)="tempPhone.set($event)"
+              placeholder="+84 987 654 321"
+              class="w-full max-w-xs bg-canvas border border-primary rounded-xl px-3 py-1.5 text-caption font-medium text-ink focus:outline-none shadow-2xs font-mono"
+            />
+            <button
+              type="button"
+              (click)="savePhone()"
+              class="px-3.5 py-1.5 rounded-xl bg-primary text-on-primary font-black text-caption shadow-xs hover:opacity-90 active:scale-98 transition-all cursor-pointer shrink-0"
+            >
+              Lưu
+            </button>
+            <button
+              type="button"
+              (click)="cancelEditPhone()"
+              class="px-2.5 py-1.5 text-caption font-bold text-steel hover:text-ink hover:underline cursor-pointer shrink-0"
+            >
+              Hủy
+            </button>
+          </div>
+        }
+      </div>
+      @if (!editingPhone()) {
+        <button
+          type="button"
+          id="btn-add-phone"
+          (click)="startEditPhone()"
+          class="settings-row-btn"
+        >
+          {{ phoneNumber() ? 'Chỉnh sửa' : 'Thêm' }}
+        </button>
+      }
     </div>
 
   </div>
@@ -229,6 +338,306 @@
               }
             </div>
           }
+        </div>
+      </div>
+    }
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 2B – XÁC THỰC HAI YẾU TỐ (2FA)
+  ════════════════════════════════════════════ -->
+  <h2 class="settings-section-heading" id="two-factor-heading">Xác Thực Hai Yếu Tố</h2>
+
+  <div class="settings-row-group" aria-labelledby="two-factor-heading">
+
+    <!-- Loading state -->
+    @if (tfa.statusLoading()) {
+      <div class="settings-row">
+        <div class="settings-row-label">
+          <span class="settings-row-title">Đang tải...</span>
+        </div>
+      </div>
+    } @else if (!tfa.status()) {
+      <!-- Error / not loaded -->
+      <div class="settings-row">
+        <div class="settings-row-label">
+          <span class="settings-row-title">Xác Thực Hai Yếu Tố</span>
+          <span class="settings-row-value">Không thể tải trạng thái 2FA.</span>
+        </div>
+        <button type="button" (click)="tfa.loadStatus()" class="settings-row-btn">Thử lại</button>
+      </div>
+
+    } @else if (!tfa.status()!.enabled && wizardStep() === 'idle') {
+      <!-- 2FA chưa bật -->
+      <div class="settings-row">
+        <div class="settings-row-label">
+          <div class="flex items-center gap-2">
+            <span class="settings-row-title">Xác Thực Hai Yếu Tố</span>
+            <span class="settings-badge settings-badge--danger">Chưa bật</span>
+          </div>
+          <span class="settings-row-value">
+            Tăng cường bảo mật tài khoản bằng ứng dụng xác thực (Google Authenticator, Authy...).
+          </span>
+        </div>
+        <button
+          id="btn-enable-2fa"
+          type="button"
+          (click)="startEnable2FA()"
+          [disabled]="tfa.processing()"
+          class="settings-row-btn settings-row-btn--primary"
+        >
+          @if (tfa.processing()) { Đang xử lý... } @else { Bật 2FA }
+        </button>
+      </div>
+
+    } @else if (tfa.status()!.enabled && wizardStep() === 'idle') {
+      <!-- 2FA đã bật -->
+      <div class="settings-row">
+        <div class="settings-row-label">
+          <div class="flex items-center gap-2">
+            <span class="settings-row-title">Xác Thực Hai Yếu Tố</span>
+            <span class="settings-badge settings-badge--success">Đang bật ✓</span>
+          </div>
+          <span class="settings-row-value">
+            Tài khoản được bảo vệ bởi Google Authenticator.
+          </span>
+        </div>
+        <div class="flex gap-2">
+          <button
+            id="btn-regenerate-backup-codes"
+            type="button"
+            (click)="doRegenerateBackupCodes()"
+            [disabled]="tfa.processing()"
+            class="settings-row-btn"
+          >
+            Mã dự phòng
+          </button>
+          <button
+            id="btn-disable-2fa"
+            type="button"
+            (click)="wizardStep.set('confirm-disable')"
+            class="settings-row-btn settings-row-btn--danger"
+          >
+            Tắt 2FA
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Error hiện ngoài wizard (vd: enroll thất bại từ idle) -->
+    @if (tfa.error() && wizardStep() === 'idle') {
+      <div class="settings-row" style="background: var(--color-danger-surface, #fff1f0);">
+        <div class="settings-row-label">
+          <span class="tfa-error">
+            <mat-icon class="!w-4 !h-4 !text-[16px]">error_outline</mat-icon>
+            {{ tfa.error() }}
+          </span>
+        </div>
+        <button type="button" (click)="tfa.error.set(null)" class="settings-inline-form-close" aria-label="Đóng lỗi">
+          <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+        </button>
+      </div>
+    }
+
+    <!-- ── Wizard: confirm disable ─────────────────────────────── -->
+    @if (wizardStep() === 'confirm-disable') {
+      <div class="settings-inline-form animate-slide-up">
+        <div class="tfa-wizard-header">
+          <span class="settings-inline-form-title">Tắt xác thực hai yếu tố?</span>
+          <button type="button" (click)="cancelWizard()" class="settings-inline-form-close" aria-label="Đóng">
+            <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+          </button>
+        </div>
+        <p class="settings-row-value">
+          Tắt 2FA sẽ làm tài khoản kém bảo mật hơn. Bạn có chắc muốn tiếp tục?
+        </p>
+        @if (tfa.error()) {
+          <p class="tfa-error">{{ tfa.error() }}</p>
+        }
+        <div class="settings-inline-form-actions">
+          <button
+            id="btn-confirm-disable-2fa"
+            type="button"
+            (click)="disable2FA()"
+            [disabled]="tfa.processing()"
+            class="settings-btn-danger"
+          >
+            @if (tfa.processing()) { Đang xử lý... } @else { Xác nhận tắt 2FA }
+          </button>
+          <button type="button" (click)="cancelWizard()" class="settings-btn-ghost">Hủy</button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Wizard Step 1: QR Code ─────────────────────────────── -->
+    @if (wizardStep() === 'enroll-qr') {
+      <div class="settings-inline-form animate-slide-up">
+        <div class="tfa-wizard-header">
+          <div>
+            <span class="tfa-step-label">Bước 1 / 3</span>
+            <span class="settings-inline-form-title">Quét mã QR</span>
+          </div>
+          <button type="button" (click)="cancelWizard()" class="settings-inline-form-close" aria-label="Hủy">
+            <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+          </button>
+        </div>
+
+        <p class="settings-row-value">
+          Mở ứng dụng <strong>Google Authenticator</strong> (hoặc Authy, 1Password...) và quét mã QR bên dưới.
+        </p>
+
+        <!-- QR Code -->
+        @if (tfa.enrollData()) {
+          <div class="tfa-qr-wrapper">
+            <img
+              [src]="tfa.enrollData()!.qrCodeUrl"
+              alt="QR Code 2FA"
+              class="tfa-qr-img"
+              width="200"
+              height="200"
+            />
+          </div>
+
+          <!-- Secret text (toggle) -->
+          <div class="tfa-secret-row">
+            <button
+              type="button"
+              id="btn-show-secret"
+              (click)="showSecret.set(!showSecret())"
+              class="tfa-secret-toggle"
+            >
+              <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">{{ showSecret() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              {{ showSecret() ? 'Ẩn khoá bí mật' : 'Không quét được QR? Xem khoá bí mật' }}
+            </button>
+            @if (showSecret()) {
+              <div class="tfa-secret-box">
+                <code class="tfa-secret-text">{{ tfa.enrollData()!.secret }}</code>
+                <p class="tfa-secret-hint">Nhập khoá này vào ứng dụng xác thực nếu không quét được QR.</p>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="settings-inline-form-actions">
+          <button
+            id="btn-proceed-confirm"
+            type="button"
+            (click)="proceedToConfirm()"
+            class="settings-btn-primary"
+          >
+            Tiếp theo
+            <mat-icon class="!w-4 !h-4 !text-[16px]">arrow_forward</mat-icon>
+          </button>
+          <button type="button" (click)="cancelWizard()" class="settings-btn-ghost">Hủy</button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Wizard Step 2: Nhập mã xác nhận ──────────────────── -->
+    @if (wizardStep() === 'enroll-confirm') {
+      <div class="settings-inline-form animate-slide-up">
+        <div class="tfa-wizard-header">
+          <div>
+            <span class="tfa-step-label">Bước 2 / 3</span>
+            <span class="settings-inline-form-title">Xác nhận ứng dụng</span>
+          </div>
+          <button type="button" (click)="cancelWizard()" class="settings-inline-form-close" aria-label="Hủy">
+            <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+          </button>
+        </div>
+
+        <p class="settings-row-value">
+          Nhập mã 6 chữ số đang hiển thị trong ứng dụng xác thực để xác nhận kết nối thành công.
+        </p>
+
+        <div class="settings-field-group">
+          <label class="settings-field-label" for="input-2fa-code">Mã xác thực</label>
+          <input
+            id="input-2fa-code"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            [ngModel]="tfaCode()"
+            (ngModelChange)="tfaCode.set($event.replace(/\D/g, ''))"
+            placeholder="000000"
+            class="tfa-code-input"
+          />
+        </div>
+
+        @if (tfa.error()) {
+          <p class="tfa-error">{{ tfa.error() }}</p>
+        }
+
+        <div class="settings-inline-form-actions">
+          <button
+            id="btn-confirm-2fa-code"
+            type="button"
+            (click)="confirmEnroll()"
+            [disabled]="tfa.processing() || tfaCode().length < 6"
+            class="settings-btn-primary"
+          >
+            @if (tfa.processing()) {
+              <mat-icon class="!w-4 !h-4 !text-[16px] animate-spin">progress_activity</mat-icon>
+              Đang xác nhận...
+            } @else {
+              Kích hoạt 2FA
+            }
+          </button>
+          <button type="button" (click)="wizardStep.set('enroll-qr')" class="settings-btn-ghost">Quay lại</button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Wizard Step 3: Backup Codes ──────────────────────── -->
+    @if (wizardStep() === 'enroll-done') {
+      <div class="settings-inline-form animate-slide-up">
+        <div class="tfa-wizard-header">
+          <div>
+            <span class="tfa-step-label">Bước 3 / 3</span>
+            <span class="settings-inline-form-title">Lưu mã dự phòng</span>
+          </div>
+        </div>
+
+        <div class="tfa-success-banner">
+          <mat-icon class="!w-5 !h-5 !text-[20px] text-brand-green">check_circle</mat-icon>
+          <span>2FA đã được kích hoạt thành công!</span>
+        </div>
+
+        <p class="settings-row-value">
+          Đây là <strong>8 mã dự phòng</strong> dùng khi mất truy cập vào điện thoại.
+          Mỗi mã chỉ dùng được <strong>một lần</strong>. Hãy lưu vào nơi an toàn ngay bây giờ — bạn sẽ không xem lại được.
+        </p>
+
+        @if (tfa.newBackupCodes()) {
+          <div class="tfa-backup-grid" role="list" aria-label="Mã dự phòng">
+            @for (code of tfa.newBackupCodes()!; track code) {
+              <div class="tfa-backup-code" role="listitem">
+                <code>{{ code }}</code>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="settings-inline-form-actions">
+          <button
+            id="btn-download-backup-codes"
+            type="button"
+            (click)="downloadBackupCodes()"
+            class="settings-btn-primary"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">download</mat-icon>
+            Tải về (.txt)
+          </button>
+          <button
+            id="btn-done-2fa"
+            type="button"
+            (click)="doneWizard()"
+            class="settings-btn-ghost"
+          >
+            Đã lưu, Đóng
+          </button>
         </div>
       </div>
     }

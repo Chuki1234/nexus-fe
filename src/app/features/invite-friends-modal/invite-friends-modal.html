@@ -1,0 +1,143 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-4 animate-fade-in"
+  (click)="close.emit()"
+>
+  <div
+    class="card-base max-w-lg w-full space-y-4 animate-slide-up shadow-modal bg-surface border border-hairline text-ink rounded-3xl p-5 ring-1 ring-white/10"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Modal Header (Ảnh 3) -->
+    <div class="flex items-start justify-between border-b border-hairline pb-3">
+      <div>
+        <h3 class="text-heading-4 font-bold text-ink">
+          Mời bạn bè vào {{ serverData().name }}
+        </h3>
+        <p class="text-caption text-steel mt-0.5 flex items-center gap-1">
+          <span>Người nhận sẽ đến</span>
+          <span class="text-primary font-bold"># {{ defaultChannel().name }}</span>
+        </p>
+      </div>
+
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="text-steel hover:text-ink cursor-pointer p-1.5 rounded-xl hover:bg-surface-feature transition-colors"
+      >
+        <mat-icon class="!w-5 !h-5 !text-[20px]">close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Search Input (Ảnh 3) -->
+    <div class="relative">
+      <mat-icon class="absolute left-3.5 top-2.5 text-steel !w-4 !h-4 !text-[18px] pointer-events-none">
+        search
+      </mat-icon>
+      <input
+        type="text"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+        placeholder="Tìm kiếm bạn bè"
+        class="w-full bg-canvas border border-hairline rounded-xl pl-10 pr-4 py-2.5 text-caption text-ink placeholder:text-muted focus:outline-none focus:border-primary transition-colors shadow-2xs font-medium"
+      />
+      @if (searchQuery()) {
+        <button
+          type="button"
+          (click)="searchQuery.set('')"
+          class="absolute right-3 top-2.5 text-steel hover:text-ink cursor-pointer"
+        >
+          <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <!-- Friends List (Scrollable - Ảnh 3) -->
+    <div class="max-h-72 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+      @if (friendsList().length === 0) {
+        <div class="py-8 text-center text-caption text-steel">
+          Không tìm thấy bạn bè nào khớp với tìm kiếm.
+        </div>
+      } @else {
+        @for (friend of friendsList(); track friend.id) {
+          <div class="flex items-center justify-between p-2 rounded-2xl hover:bg-surface-feature/60 transition-colors group">
+            <!-- Friend Avatar & Name -->
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <div class="relative w-10 h-10 rounded-full overflow-hidden shrink-0 bg-surface-feature border border-hairline">
+                <app-avatar
+                  [name]="friend.name"
+                  [src]="friend.avatarUrl ?? null"
+                  [presence]="friend.presence"
+                  size="md"
+                  ring="surface"
+                />
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <span class="block text-body-sm font-bold text-ink truncate leading-tight group-hover:text-primary transition-colors">
+                  {{ friend.name }}
+                </span>
+                <div class="flex items-center gap-1 text-micro text-steel mt-0.5 truncate">
+                  @if (friend.statusMessage) {
+                    <span class="text-success font-medium truncate">{{ friend.statusMessage }}</span>
+                  } @else {
+                    <span class="font-mono text-[11px]">&#64;{{ friend.id }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Invite Button (Ảnh 3) -->
+            <div>
+              @if (isInvited(friend.id)) {
+                <button
+                  type="button"
+                  disabled
+                  class="flex items-center gap-1 px-4 py-1.5 rounded-xl border border-success/40 bg-success/15 text-success text-caption font-bold cursor-not-allowed opacity-90 transition-all"
+                >
+                  <mat-icon class="!w-4 !h-4 !text-[16px]">check</mat-icon>
+                  <span>Đã gửi</span>
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  (click)="inviteFriend(friend)"
+                  class="px-5 py-1.5 rounded-xl border border-hairline bg-surface-feature hover:bg-primary hover:text-white text-ink hover:border-primary text-caption font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                >
+                  Mời
+                </button>
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Bottom Link Copy Section (Ảnh 3) -->
+    <div class="border-t border-hairline pt-3 space-y-2">
+      <span class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
+        HOẶC, GỬI LINK MỜI CHO HỌ
+      </span>
+
+      <div class="flex items-center gap-2">
+        <input
+          type="text"
+          readonly
+          [value]="inviteUrl()"
+          class="flex-1 bg-canvas border border-hairline rounded-xl px-3.5 py-2.5 text-caption font-mono text-ink font-semibold focus:outline-none select-all shadow-2xs"
+        />
+
+        <button
+          type="button"
+          (click)="copyInviteLink()"
+          class="btn-primary !py-2.5 !px-5 !rounded-xl font-bold text-caption shadow-glow transition-all cursor-pointer shrink-0"
+        >
+          {{ isCopied() ? 'Đã sao chép!' : 'Sao chép' }}
+        </button>
+      </div>
+
+      <p class="text-[11px] text-steel">
+        Link mời của bạn sẽ hết hạn sau 30 ngày.
+        <a href="javascript:void(0)" class="text-primary hover:underline font-semibold ml-0.5">Chỉnh sửa link mời.</a>
+      </p>
+    </div>
+  </div>
+</div>

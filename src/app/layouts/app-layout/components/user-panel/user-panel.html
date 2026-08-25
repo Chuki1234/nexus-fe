@@ -46,64 +46,103 @@
 }
 
 <div class="flex items-center justify-between w-full min-w-0">
-<button
-  type="button"
-  [matMenuTriggerFor]="userMenu"
-  class="user-panel__identity nexus-interactive-row"
->
-  <app-avatar [name]="displayName()" size="sm" presence="online" ring="canvas" />
-  <span class="user-panel__identity-copy">
-    <span class="user-panel__name">{{ displayName() }}</span>
-    <span class="user-panel__status">Trực tuyến</span>
-  </span>
-</button>
-
-<mat-menu #userMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal">
-  <button mat-menu-item type="button" (click)="openDeleteAccount()">
-    <mat-icon aria-hidden="true" class="!text-danger">person_remove</mat-icon>
-    <span class="text-danger font-semibold">Xóa tài khoản</span>
-  </button>
-  <button mat-menu-item type="button" (click)="onSignOut()" [disabled]="signingOut()">
-    <mat-icon aria-hidden="true" class="!text-danger">logout</mat-icon>
-    <span class="text-danger font-semibold">{{ signingOut() ? 'Đang đăng xuất…' : 'Đăng xuất' }}</span>
-  </button>
-</mat-menu>
-
-<div class="user-panel__controls" role="group" aria-label="Điều khiển âm thanh và ứng dụng">
-  <button
-    mat-icon-button
-    type="button"
-    class="user-panel__control user-panel__control--mic nexus-icon-control nexus-audio-toggle"
-    [attr.aria-pressed]="micMuted()"
-    [matTooltip]="micMuted() ? 'Bật micrô' : 'Tắt micrô'"
-    (click)="micMuted.set(!micMuted())"
+  <!-- Bấm avatar/tên → sang trang hồ sơ đầy đủ. Rê chuột vào → hiện thẻ hồ sơ nhỏ.
+       [src]: avatar ở đáy là ảnh THẬT, khớp với ảnh vừa đổi trong cài đặt. -->
+  <a
+    [routerLink]="username() ? ['/u', username()] : null"
+    cdkOverlayOrigin
+    #identityTrigger="cdkOverlayOrigin"
+    class="user-panel__identity nexus-interactive-row"
+    (mouseenter)="openCard()"
+    (mouseleave)="scheduleClose()"
+    (focus)="openCard()"
+    (blur)="scheduleClose()"
   >
-    <mat-icon>{{ micMuted() ? 'mic_off' : 'mic' }}</mat-icon>
-    <span class="sr-only">{{ micMuted() ? 'Bật micrô' : 'Tắt micrô' }}</span>
-  </button>
+    <app-avatar
+      [name]="displayName()"
+      [src]="avatarUrl()"
+      size="sm"
+      presence="online"
+      ring="canvas"
+    />
+    <span class="user-panel__identity-copy">
+      <span class="user-panel__name">{{ displayName() }}</span>
+      <span class="user-panel__status">Trực tuyến</span>
+    </span>
+  </a>
 
-  <button
-    mat-icon-button
-    type="button"
-    class="user-panel__control user-panel__control--deafen nexus-icon-control nexus-audio-toggle"
-    [attr.aria-pressed]="deafened()"
-    [matTooltip]="deafened() ? 'Bật loa' : 'Tắt loa'"
-    (click)="deafened.set(!deafened())"
+  <!-- Thẻ hồ sơ nhỏ, nổi đè lên khi hover. Trước đây chỗ này là menu chỉ có
+       Xóa tài khoản / Đăng xuất — bấm vào avatar của chính mình mà chỉ được mời
+       rời đi. Hai lệnh đó đã chuyển vào màn Cài đặt. -->
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="identityTrigger"
+    [cdkConnectedOverlayOpen]="popoverOpen()"
+    [cdkConnectedOverlayPositions]="popoverPositions"
   >
-    <mat-icon>{{ deafened() ? 'headset_off' : 'headset' }}</mat-icon>
-    <span class="sr-only">{{ deafened() ? 'Bật loa' : 'Tắt loa' }}</span>
-  </button>
+    <div (mouseenter)="openCard()" (mouseleave)="scheduleClose()">
+      @if (store.profile(); as person) {
+        <app-profile-popover [profile]="person">
+          <a
+            [routerLink]="['/u', person.username]"
+            class="block w-full rounded-full bg-primary px-3 py-2 text-center text-button-md text-on-primary transition-colors hover:bg-primary-soft"
+          >
+            Xem hồ sơ đầy đủ
+          </a>
+        </app-profile-popover>
+      } @else {
+        <!-- Hồ sơ tải sau khi thẻ đã mở. Khung xám giữ đúng khổ thẻ thật để lúc
+             dữ liệu về không bị giật khung. -->
+        <div
+          role="status"
+          aria-label="Đang tải hồ sơ"
+          class="w-80 overflow-hidden rounded-lg border border-hairline bg-surface shadow-modal"
+        >
+          <div class="h-20 w-full animate-pulse bg-surface-soft"></div>
+          <div class="space-y-3 px-4 pb-4">
+            <div class="-mt-8 size-20 animate-pulse rounded-full bg-surface-soft ring-4 ring-surface"></div>
+            <div class="h-4 w-32 animate-pulse rounded bg-surface-soft"></div>
+            <div class="h-3 w-24 animate-pulse rounded bg-surface-soft"></div>
+          </div>
+        </div>
+      }
+    </div>
+  </ng-template>
 
-  <button
-    mat-icon-button
-    type="button"
-    class="user-panel__control user-panel__control--settings nexus-icon-control"
-    aria-label="Cài đặt"
-    matTooltip="Cài đặt"
-    (click)="openSettings()"
-  >
-    <mat-icon aria-hidden="true">settings</mat-icon>
-  </button>
+  <div class="user-panel__controls" role="group" aria-label="Điều khiển âm thanh và ứng dụng">
+    <button
+      mat-icon-button
+      type="button"
+      class="user-panel__control user-panel__control--mic nexus-icon-control nexus-audio-toggle"
+      [attr.aria-pressed]="micMuted()"
+      [matTooltip]="micMuted() ? 'Bật micrô' : 'Tắt micrô'"
+      (click)="micMuted.set(!micMuted())"
+    >
+      <mat-icon>{{ micMuted() ? 'mic_off' : 'mic' }}</mat-icon>
+      <span class="sr-only">{{ micMuted() ? 'Bật micrô' : 'Tắt micrô' }}</span>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="user-panel__control user-panel__control--deafen nexus-icon-control nexus-audio-toggle"
+      [attr.aria-pressed]="deafened()"
+      [matTooltip]="deafened() ? 'Bật loa' : 'Tắt loa'"
+      (click)="deafened.set(!deafened())"
+    >
+      <mat-icon>{{ deafened() ? 'headset_off' : 'headset' }}</mat-icon>
+      <span class="sr-only">{{ deafened() ? 'Bật loa' : 'Tắt loa' }}</span>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="user-panel__control user-panel__control--settings nexus-icon-control"
+      aria-label="Cài đặt"
+      matTooltip="Cài đặt"
+      (click)="openSettings()"
+    >
+      <mat-icon aria-hidden="true">settings</mat-icon>
+    </button>
+  </div>
 </div>
-</div>
-

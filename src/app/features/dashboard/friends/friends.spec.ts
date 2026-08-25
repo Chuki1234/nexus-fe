@@ -118,7 +118,7 @@ describe('FriendsPage', () => {
     expect(
       fixture.nativeElement
         .querySelector('app-context-panel aside')
-        ?.classList.contains('context-panel--pinned'),
+        ?.classList.contains('context-panel--open'),
     ).toBe(true);
   });
 
@@ -136,7 +136,7 @@ describe('FriendsPage', () => {
 
     expect(demoButton.getAttribute('aria-pressed')).toBe('true');
     expect(fixture.nativeElement.querySelectorAll('app-friend-row').length).toBe(6);
-    expect(fixture.nativeElement.textContent).toContain('Mai Trần');
+    expect(fixture.nativeElement.textContent).toContain('Phan Thế Mon');
 
     demoButton.click();
     fixture.detectChanges();
@@ -209,11 +209,20 @@ describe('FriendsPage', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 
-  it('nút toolbar mở activity panel ở chế độ overlay', async () => {
+  it('nút toolbar mở và đóng activity panel', async () => {
     const fixture = await mount();
     const button = fixture.nativeElement.querySelector(
-      'button[aria-label="Hiện hoạt động bạn bè"]',
+      'button[aria-label="Ẩn hoạt động bạn bè"], button[aria-label="Hiện hoạt động bạn bè"]',
     ) as HTMLButtonElement;
+
+    button.click();
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement
+        .querySelector('app-context-panel aside')
+        ?.classList.contains('context-panel--open'),
+    ).toBe(false);
 
     button.click();
     fixture.detectChanges();

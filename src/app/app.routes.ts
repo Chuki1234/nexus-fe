@@ -23,6 +23,13 @@ export const routes: Routes = [
     loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),
   },
 
+  {
+    path: 'invite/:code',
+    title: 'Lời mời tham gia máy chủ · Nexus',
+    loadComponent: () =>
+      import('./features/invite-landing/invite-landing.page').then((m) => m.InviteLandingPage),
+  },
+
   // Trỏ thẳng tới Dashboard chứ không về '': Angular chỉ áp một lần chuyển hướng
   // mỗi lần khớp route, nên '**' → '' → '/channels/@me' sẽ dừng lại ở '' và cho
   // ra màn hình trắng.

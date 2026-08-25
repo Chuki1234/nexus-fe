@@ -1,13 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { PRESENCE_LABEL, type PresenceStatus } from '../../../../shared/dto/common';
 
-/** Màu theo trạng thái. Xanh brand chỉ dành cho "đang trực tuyến" — đúng luật
- *  "primary chỉ cho CTA và chỉ báo trạng thái sống" trong DESIGN-voltagent.md. */
+/** Màu theo trạng thái.
+ *  - online: mint/green rõ nhưng không neon chói (#22c55e)
+ *  - idle: amber (#f59e0b)
+ *  - dnd: coral/red dịu (#ef4444)
+ *  - offline: slate/gray (#64748b)
+ */
 const FILL: Record<PresenceStatus, string> = {
-  online: 'bg-primary',
-  idle: 'bg-steel',
-  dnd: 'bg-danger',
-  offline: 'bg-hairline-strong',
+  online: 'bg-[#22c55e]',
+  idle: 'bg-[#f59e0b]',
+  dnd: 'bg-[#ef4444]',
+  offline: 'bg-[#64748b]',
 };
 
 const SIZE: Record<'sm' | 'md' | 'lg', string> = {

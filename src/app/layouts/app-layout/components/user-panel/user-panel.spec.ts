@@ -100,8 +100,6 @@ describe('UserPanel', () => {
     ) as HTMLDivElement;
 
     expect(fixture.nativeElement.classList.contains('overflow-hidden')).toBe(true);
-    // mic + deafen + cài đặt. Nút gọi thoại cũng mang class này nhưng chỉ
-    // render khi đang trong cuộc gọi, nên không tính ở đây.
     expect(controls).toHaveLength(3);
     expect(controls.every((control) => control.classList.contains('user-panel__control'))).toBe(
       true,

@@ -1,0 +1,176 @@
+<div class="invite-page-container flex min-h-screen w-full items-center justify-center p-4 bg-surface-base relative overflow-hidden">
+  <!-- Subtle Background Glows -->
+  <div class="glow-orb glow-orb--teal absolute -top-40 -left-40 w-96 h-96 rounded-full bg-teal-500/10 blur-3xl pointer-events-none"></div>
+  <div class="glow-orb glow-orb--mint absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-mint-500/10 blur-3xl pointer-events-none"></div>
+
+  <div class="invite-card relative z-10 w-full max-w-md rounded-2xl bg-surface-raised/95 border border-nexus-subtle/50 p-6 md:p-8 shadow-2xl backdrop-blur-xl transition-all duration-300">
+    
+    <!-- Loading State -->
+    @if (loading()) {
+      <div class="flex flex-col items-center justify-center space-y-4 py-8" role="status" aria-label="Đang tải lời mời...">
+        <div class="h-20 w-20 animate-pulse rounded-2xl bg-surface-overlay"></div>
+        <div class="h-6 w-3/4 animate-pulse rounded-lg bg-surface-overlay"></div>
+        <div class="h-4 w-1/2 animate-pulse rounded-lg bg-surface-overlay"></div>
+        <div class="h-10 w-full animate-pulse rounded-xl bg-surface-overlay mt-4"></div>
+      </div>
+    }
+
+    <!-- Not Found / Invalid State -->
+    @else if (isNotFound()) {
+      <div class="flex flex-col items-center text-center space-y-4 py-4">
+        <div class="w-16 h-16 rounded-full bg-surface-overlay flex items-center justify-center text-ink-muted text-3xl">
+          <svg class="w-8 h-8 text-coral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h1 class="text-h2 font-semibold text-ink">Liên kết không tồn tại</h1>
+        <p class="text-body-sm text-ink-muted leading-relaxed">
+          Liên kết mời này không tồn tại hoặc đã bị quản trị viên thu hồi. Vui lòng yêu cầu liên kết mới từ người gửi.
+        </p>
+        <button
+          type="button"
+          (click)="onGoHome()"
+          class="w-full mt-4 py-2.5 px-4 rounded-xl bg-surface-overlay hover:bg-surface-elevated text-ink font-medium transition-colors cursor-pointer"
+        >
+          Về trang chủ
+        </button>
+      </div>
+    }
+
+    <!-- Expired or Max Used State -->
+    @else if (isExpired() || isMaxUsed()) {
+      <div class="flex flex-col items-center text-center space-y-4 py-4">
+        <div class="w-16 h-16 rounded-full bg-coral-500/10 flex items-center justify-center text-coral-400">
+          <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h1 class="text-h2 font-semibold text-ink">
+          {{ isExpired() ? 'Liên kết đã hết hạn' : 'Liên kết đã đầy lượt dùng' }}
+        </h1>
+        <p class="text-body-sm text-ink-muted leading-relaxed">
+          @if (isExpired()) {
+            Liên kết mời vào máy chủ này đã quá hạn sử dụng. Hãy liên hệ người gửi để nhận liên kết mới.
+          } @else {
+            Liên kết mời đã đạt đến giới hạn số lượng thành viên tối đa có thể tham gia.
+          }
+        </p>
+        <button
+          type="button"
+          (click)="onGoHome()"
+          class="w-full mt-4 py-2.5 px-4 rounded-xl bg-surface-overlay hover:bg-surface-elevated text-ink font-medium transition-colors cursor-pointer"
+        >
+          Về trang chủ
+        </button>
+      </div>
+    }
+
+    <!-- Active Valid Preview -->
+    @else if (preview(); as p) {
+      <div class="flex flex-col items-center text-center space-y-5">
+        
+        <!-- Inviter Banner (nếu có) -->
+        @if (p.inviterDisplayName) {
+          <div class="flex items-center gap-2 text-caption text-ink-muted">
+            @if (p.inviterAvatarUrl) {
+              <img [src]="p.inviterAvatarUrl" alt="" class="w-5 h-5 rounded-full object-cover" />
+            }
+            <span><strong>{{ p.inviterDisplayName }}</strong> đã mời bạn tham gia</span>
+          </div>
+        } @else {
+          <p class="text-caption font-medium tracking-wider uppercase text-mint-400">
+            Lời mời tham gia máy chủ
+          </p>
+        }
+
+        <!-- Server Icon & Initials -->
+        <div class="server-icon-wrap relative">
+          @if (p.serverIconUrl) {
+            <img
+              [src]="p.serverIconUrl"
+              [alt]="p.serverName"
+              class="w-20 h-20 rounded-2xl object-cover border-2 border-mint-500/30 shadow-lg"
+            />
+          } @else {
+            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-700 to-mint-700 flex items-center justify-center text-2xl font-bold text-white shadow-lg border-2 border-mint-500/30">
+              {{ p.serverName.charAt(0).toUpperCase() }}
+            </div>
+          }
+        </div>
+
+        <!-- Server Name & Metadata -->
+        <div class="space-y-1">
+          <h1 class="text-h1 font-bold text-ink tracking-tight">
+            {{ p.serverName }}
+          </h1>
+
+          <div class="flex items-center justify-center gap-3 text-caption text-ink-muted pt-1">
+            <span class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-mint-400 animate-pulse"></span>
+              {{ p.memberCount }} thành viên
+            </span>
+
+            @if (p.channelName) {
+              <span>•</span>
+              <span class="text-ink-secondary">#{{ p.channelName }}</span>
+            }
+          </div>
+        </div>
+
+        <!-- Error Alert (nếu có lỗi join) -->
+        @if (errorMessage()) {
+          <div class="w-full rounded-xl bg-coral-500/10 border border-coral-500/30 p-3 text-body-sm text-coral-400 text-left" role="alert">
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <!-- Action CTA Buttons -->
+        <div class="w-full pt-3">
+          @if (!isAuthenticated()) {
+            <button
+              type="button"
+              (click)="onLoginToJoin()"
+              class="cta-btn cta-btn--primary w-full py-3 px-4 rounded-xl bg-mint-500 hover:bg-mint-400 active:bg-mint-600 text-surface-base font-semibold transition-all shadow-md hover:shadow-mint-500/20 cursor-pointer"
+            >
+              Đăng nhập để tham gia
+            </button>
+            <p class="text-caption text-ink-muted mt-3">
+              Chưa có tài khoản? Bạn có thể đăng ký nhanh qua Google.
+            </p>
+          } @else if (alreadyMember()) {
+            <div class="space-y-3">
+              <div class="w-full py-2 px-3 rounded-lg bg-mint-500/10 border border-mint-500/20 text-mint-400 text-body-sm font-medium">
+                ✓ Bạn đã là thành viên của máy chủ này
+              </div>
+              <button
+                type="button"
+                (click)="onOpenServer()"
+                class="cta-btn cta-btn--primary w-full py-3 px-4 rounded-xl bg-mint-500 hover:bg-mint-400 active:bg-mint-600 text-surface-base font-semibold transition-all shadow-md hover:shadow-mint-500/20 cursor-pointer"
+              >
+                Mở máy chủ
+              </button>
+            </div>
+          } @else {
+            <button
+              type="button"
+              [disabled]="joining()"
+              (click)="onJoinServer()"
+              class="cta-btn cta-btn--primary w-full py-3 px-4 rounded-xl bg-mint-500 hover:bg-mint-400 active:bg-mint-600 disabled:opacity-50 text-surface-base font-semibold transition-all shadow-md hover:shadow-mint-500/20 cursor-pointer flex items-center justify-center gap-2"
+            >
+              @if (joining()) {
+                <svg class="animate-spin h-5 w-5 text-surface-base" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Đang tham gia…</span>
+              } @else {
+                <span>Tham gia máy chủ</span>
+              }
+            </button>
+          }
+        </div>
+
+      </div>
+    }
+  </div>
+</div>

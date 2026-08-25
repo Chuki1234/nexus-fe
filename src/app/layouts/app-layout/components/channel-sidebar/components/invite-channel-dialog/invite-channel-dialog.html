@@ -9,9 +9,11 @@
       <h2 id="invite-title" class="text-heading-5 font-bold text-ink">
         Mời bạn bè vào {{ data.serverName }}
       </h2>
-      <p class="mt-0.5 text-caption text-steel">
-        Người nhận sẽ đến <span class="font-semibold text-slate">#{{ data.channelName }}</span>
-      </p>
+      @if (data.channelName) {
+        <p class="mt-0.5 text-caption text-steel">
+          Người nhận sẽ đến <span class="font-semibold text-slate">#{{ data.channelName }}</span>
+        </p>
+      }
     </div>
 
     <!-- Close Button -->
@@ -24,6 +26,14 @@
       <mat-icon class="!size-5 !text-xl">close</mat-icon>
     </button>
   </header>
+
+  <!-- Error Banner if any -->
+  @if (globalError()) {
+    <div class="mx-5 mb-2 rounded-xl bg-danger/10 border border-danger/30 p-2.5 text-caption text-danger flex items-center gap-2">
+      <mat-icon class="!size-4 !text-base shrink-0">error_outline</mat-icon>
+      <span class="flex-1">{{ globalError() }}</span>
+    </div>
+  }
 
   <!-- Search Input -->
   <div class="px-5 pt-1 pb-3">
@@ -48,71 +58,100 @@
   </div>
 
   <!-- Scrollable Friends List -->
-  <div class="invite-friends-list nexus-scrollbar max-h-60 overflow-y-auto px-5 py-1 flex flex-col gap-1">
-    @for (friend of filteredFriends(); track friend.id) {
-      <div
-        class="friend-invite-row flex items-center justify-between rounded-xl p-2 hover:bg-surface-feature/60 transition-colors"
-      >
-        <div class="flex items-center gap-3 min-w-0">
-          <app-avatar [name]="friend.name" size="sm" presence="online" ring="surface" />
-          <div class="min-w-0">
-            <strong class="block truncate text-body-sm-medium text-ink">{{ friend.name }}</strong>
-            <span class="block truncate text-micro text-steel">{{ friend.username }}</span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          (click)="inviteFriend(friend.id)"
-          [disabled]="friend.invited"
-          class="invite-btn shrink-0 rounded-lg px-4 py-1.5 text-caption font-semibold transition-all cursor-pointer"
-          [class.invite-btn--invited]="friend.invited"
-        >
-          {{ friend.invited ? 'Đã gửi' : 'Mời' }}
-        </button>
+  <div class="invite-friends-list nexus-scrollbar max-h-60 min-h-36 overflow-y-auto px-5 py-1 flex flex-col gap-1">
+    @if (isLoadingFriends()) {
+      <div class="flex flex-col items-center justify-center py-8 gap-2 text-steel">
+        <mat-spinner diameter="24" />
+        <span class="text-caption">Đang tải danh sách bạn bè...</span>
       </div>
-    } @empty {
-      <p class="py-6 text-center text-body-sm text-steel">Không tìm thấy bạn bè nào phù hợp.</p>
+    } @else {
+      @for (friend of filteredFriends(); track friend.userId) {
+        <div
+          class="friend-invite-row flex items-center justify-between rounded-xl p-2 hover:bg-surface-feature/60 transition-colors"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <app-avatar [name]="friend.displayName" [src]="friend.avatarUrl" size="sm" [presence]="friend.status" ring="surface" />
+            <div class="min-w-0">
+              <strong class="block truncate text-body-sm-medium text-ink">{{ friend.displayName }}</strong>
+              <span class="block truncate text-micro text-steel">&#64;{{ friend.username }}</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            (click)="inviteFriend(friend.userId)"
+            [disabled]="getFriendState(friend.userId) === 'sent' || getFriendState(friend.userId) === 'sending'"
+            class="invite-btn shrink-0 rounded-lg px-4 py-1.5 text-caption font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+            [class.invite-btn--invited]="getFriendState(friend.userId) === 'sent'"
+            [class.invite-btn--error]="getFriendState(friend.userId) === 'error'"
+          >
+            @switch (getFriendState(friend.userId)) {
+              @case ('sending') {
+                <mat-spinner diameter="14" class="!inline-block" />
+                <span>Đang gửi</span>
+              }
+              @case ('sent') {
+                <mat-icon class="!size-3.5 !text-sm">check</mat-icon>
+                <span>Đã gửi</span>
+              }
+              @case ('error') {
+                <span>Thử lại</span>
+              }
+              @default {
+                <span>Mời</span>
+              }
+            }
+          </button>
+        </div>
+      } @empty {
+        <p class="py-6 text-center text-body-sm text-steel">Không tìm thấy bạn bè nào phù hợp để mời.</p>
+      }
     }
   </div>
 
   <!-- Bottom Link Section -->
   <footer class="mt-3 border-t border-hairline/60 bg-surface-feature/30 px-5 pt-4 pb-5">
     <label class="block text-micro-uppercase font-bold text-steel">
-      Hoặc, gửi link mời cho họ
+      Hoặc gửi link mời cho họ
     </label>
 
     <div class="mt-2 flex items-center gap-2 rounded-xl bg-canvas border border-hairline p-1 pl-3">
-      <input
-        type="text"
-        readonly
-        [value]="inviteLink()"
-        class="min-w-0 flex-1 bg-transparent text-body-sm text-ink outline-none select-all font-mono"
-      />
-      <button
-        mat-flat-button
-        type="button"
-        (click)="copyLink()"
-        class="!rounded-lg !px-4 font-semibold shrink-0"
-        [class.!bg-primary]="!copied()"
-        [class.!text-on-primary]="!copied()"
-        [class.!bg-emerald-600]="copied()"
-        [class.!text-white]="copied()"
-      >
-        <span class="flex items-center gap-1">
-          @if (copied()) {
-            <mat-icon class="!size-4 !text-base">check</mat-icon>
-            <span>Đã sao chép</span>
-          } @else {
-            <span>Sao chép</span>
-          }
-        </span>
-      </button>
+      @if (isLoadingLink()) {
+        <div class="flex items-center gap-2 py-1 text-steel flex-1">
+          <mat-spinner diameter="16" />
+          <span class="text-caption">Đang tạo mã mời bảo mật...</span>
+        </div>
+      } @else {
+        <input
+          type="text"
+          readonly
+          [value]="inviteLink()"
+          class="min-w-0 flex-1 bg-transparent text-body-sm text-ink outline-none select-all font-mono"
+        />
+        <button
+          mat-flat-button
+          type="button"
+          (click)="copyLink()"
+          class="!rounded-lg !px-4 font-semibold shrink-0"
+          [class.!bg-primary]="!copied()"
+          [class.!text-on-primary]="!copied()"
+          [class.!bg-emerald-600]="copied()"
+          [class.!text-white]="copied()"
+        >
+          <span class="flex items-center gap-1">
+            @if (copied()) {
+              <mat-icon class="!size-4 !text-base">check</mat-icon>
+              <span>Đã sao chép</span>
+            } @else {
+              <span>Sao chép</span>
+            }
+          </span>
+        </button>
+      }
     </div>
 
     <p class="mt-2 text-micro text-stone">
-      Link mời của bạn sẽ hết hạn sau 30 ngày.
-      <button type="button" class="text-primary hover:underline font-medium">Chỉnh sửa link mời.</button>
+      Liên kết mời có tính bảo mật cao và mã hóa 128-bit.
     </p>
   </footer>
 </div>

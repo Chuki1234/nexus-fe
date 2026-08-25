@@ -23,6 +23,7 @@ import {
 } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { ChannelSummary, ShellData } from '../../../../../core/api/shell-data';
+import { ServerCapabilitiesService } from '../../../../../core/servers/server-capabilities.service';
 import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
 import { ChannelSettingsModal } from '../../../../../features/settings/modals/channel-settings-modal/channel-settings-modal';
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
@@ -36,6 +37,8 @@ const GROUPS = [
   { type: 'forum' as const, label: 'Kênh bài đăng', icon: 'forum' },
   { type: 'voice' as const, label: 'Kênh thoại', icon: 'volume_up' },
 ];
+
+import { ServersStore } from '../../../../../core/servers/servers.store';
 
 /** Danh sách kênh của một server — nội dung cột 2 khi đang mở server. */
 @Component({
@@ -60,7 +63,8 @@ export class ChannelList {
   @ViewChild('categoryMenuTrigger') private readonly categoryMenuTrigger?: MatMenuTrigger;
   @ViewChild('channelMenuTrigger') private readonly channelMenuTrigger?: MatMenuTrigger;
 
-  private readonly shell = inject(ShellData);
+  private readonly serversStore = inject(ServersStore);
+  private readonly capabilitiesService = inject(ServerCapabilitiesService);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -71,6 +75,16 @@ export class ChannelList {
   protected readonly voiceConnectedChannelId = this.voiceRoom.currentChannelId;
   protected readonly voiceParticipants = this.voiceRoom.allParticipants;
 
+  /** Quản lý quyền hạn capabilities của server */
+  protected readonly capabilities = computed(() => {
+    const id = this.serverId();
+    if (!id) return null;
+    return this.capabilitiesService.capabilitiesMap().get(id) ?? null;
+  });
+
+  protected readonly canManageChannels = computed(() => this.capabilities()?.canManageChannels ?? false);
+  protected readonly canInviteMembers = computed(() => this.capabilities()?.canInviteMembers ?? false);
+
   /** Quản lý trạng thái thu gọn/mở rộng từng nhóm kênh */
   protected readonly collapsedGroups = signal<Record<string, boolean>>({});
 
@@ -80,7 +94,6 @@ export class ChannelList {
   /** Nhóm hoặc Kênh đang được chọn bởi chuột phải */
   protected readonly selectedGroup = signal<{ type: string; label: string; icon: string } | null>(null);
   protected readonly selectedChannel = signal<ChannelSummary | null>(null);
-
 
   /** Lắng nghe route để xác định kênh đang mở hiện tại */
   private readonly routeChannelId = toSignal(
@@ -100,12 +113,12 @@ export class ChannelList {
   });
 
   protected readonly serverName = computed(
-    () => this.shell.serverOf(this.serverId())?.name ?? 'Máy chủ',
+    () => this.serversStore.serverOf(this.serverId())?.name ?? 'Máy chủ',
   );
 
   /** Bỏ nhóm rỗng để không hiện tiêu đề khi danh sách kênh hoàn toàn rỗng */
   protected readonly groups = computed(() => {
-    const channels = this.shell.channelsOf(this.serverId());
+    const channels = this.serversStore.channelsOf(this.serverId());
     return GROUPS.map((group) => ({
       ...group,
       channels: channels.filter((channel) => channel.type === group.type),

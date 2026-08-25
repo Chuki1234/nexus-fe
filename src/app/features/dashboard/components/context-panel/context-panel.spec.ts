@@ -83,4 +83,31 @@ describe('ContextPanel', () => {
 
     expect(fixture.componentInstance.closed()).toBe(1);
   });
+
+  it('hiển thị thanh kéo chia pane thành viên khi mở và hỗ trợ phím mũi tên', async () => {
+    const fixture = await mount();
+    fixture.componentInstance.open.set(true);
+    fixture.detectChanges();
+
+    const handle = fixture.nativeElement.querySelector('.pane-resize-handle--member') as HTMLElement;
+    expect(handle).toBeTruthy();
+    expect(handle.getAttribute('role')).toBe('separator');
+    expect(handle.getAttribute('aria-orientation')).toBe('vertical');
+    expect(handle.getAttribute('aria-valuenow')).toBe('280');
+
+    // ArrowLeft mở rộng member pane (thêm 8px)
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+    fixture.detectChanges();
+    expect(handle.getAttribute('aria-valuenow')).toBe('288');
+
+    // Shift + ArrowRight thu hẹp 32px
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true }));
+    fixture.detectChanges();
+    expect(handle.getAttribute('aria-valuenow')).toBe('256');
+
+    // Double click reset về 280px
+    handle.dispatchEvent(new MouseEvent('dblclick'));
+    fixture.detectChanges();
+    expect(handle.getAttribute('aria-valuenow')).toBe('280');
+  });
 });

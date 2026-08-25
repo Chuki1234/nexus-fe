@@ -1,0 +1,42 @@
+<div class="fixed bottom-6 right-6 z-[9999] flex flex-col-reverse gap-3 max-w-sm w-full pointer-events-none px-4 sm:px-0">
+  @for (notif of notificationService.notifications(); track notif.id) {
+    <div
+      class="pointer-events-auto w-full rounded-2xl bg-surface border border-hairline shadow-2xl p-3.5 flex items-start gap-3.5 animate-slide-up hover:bg-surface-feature/60 hover:border-primary/50 transition-all cursor-pointer ring-1 ring-white/10 group backdrop-blur-md"
+      (click)="onClickNotification(notif)"
+    >
+      <!-- Avatar -->
+      <div class="relative w-10 h-10 rounded-full overflow-hidden shrink-0 bg-surface-feature border border-hairline shadow-xs">
+        @if (notif.senderAvatarUrl) {
+          <img [src]="notif.senderAvatarUrl" [alt]="notif.senderName" class="w-full h-full object-cover" />
+        } @else {
+          <app-avatar [name]="notif.senderName" size="md" />
+        }
+      </div>
+
+      <!-- Info & Content -->
+      <div class="flex-1 min-w-0 space-y-1">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-body-sm font-extrabold text-ink truncate leading-tight group-hover:text-primary transition-colors">
+            {{ notif.senderName }}
+          </span>
+
+          <button
+            type="button"
+            (click)="dismiss($event, notif.id)"
+            class="text-steel hover:text-ink p-1 rounded-md hover:bg-surface-feature transition-colors cursor-pointer shrink-0 opacity-60 group-hover:opacity-100"
+          >
+            <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">close</mat-icon>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1.5 text-micro text-primary font-bold truncate">
+          <span>{{ notif.contextTag }}</span>
+        </div>
+
+        <p class="text-caption text-steel leading-snug line-clamp-2 break-words">
+          {{ notif.content }}
+        </p>
+      </div>
+    </div>
+  }
+</div>

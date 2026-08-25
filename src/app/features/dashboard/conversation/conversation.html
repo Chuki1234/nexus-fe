@@ -9,168 +9,768 @@
     layout="chat"
     (action)="clearUiState()"
   />
-} @else if (conversation(); as person) {
+} @else if (detailsError()?.type === '404') {
+  <!-- 404 Not Found State -->
+  <div class="flex min-h-0 flex-1 flex-col items-center justify-center p-6 text-center">
+    <mat-icon class="!size-16 !text-6xl text-steel/60">search_off</mat-icon>
+    <h2 class="mt-4 text-heading-3 text-ink">Không tìm thấy cuộc trò chuyện này</h2>
+    <p class="mt-2 max-w-md text-body-md text-slate">
+      {{ detailsError()?.message || 'Cuộc trò chuyện không tồn tại hoặc bạn không có quyền truy cập.' }}
+    </p>
+    <a
+      mat-flat-button
+      routerLink="/channels/@me"
+      class="mt-6 !rounded-lg !bg-brand !text-white hover:!bg-brand-hover"
+    >
+      Quay lại Bạn bè
+    </a>
+  </div>
+} @else if (detailsError()?.type === '403') {
+  <!-- 403 Forbidden State -->
+  <div class="flex min-h-0 flex-1 flex-col items-center justify-center p-6 text-center">
+    <mat-icon class="!size-16 !text-6xl text-amber-500/80">lock</mat-icon>
+    <h2 class="mt-4 text-heading-3 text-ink">Không có quyền truy cập</h2>
+    <p class="mt-2 max-w-md text-body-md text-slate">
+      {{ detailsError()?.message || 'Bạn không phải là thành viên của cuộc trò chuyện này.' }}
+    </p>
+    <a
+      mat-flat-button
+      routerLink="/channels/@me"
+      class="mt-6 !rounded-lg !bg-brand !text-white hover:!bg-brand-hover"
+    >
+      Quay lại Bạn bè
+    </a>
+  </div>
+} @else if (detailsError()?.type === '401') {
+  <!-- 401 Unauthorized State -->
+  <div class="flex min-h-0 flex-1 flex-col items-center justify-center p-6 text-center">
+    <mat-icon class="!size-16 !text-6xl text-red-500">lock_clock</mat-icon>
+    <h2 class="mt-4 text-heading-3 text-ink">Phiên đăng nhập hết hạn</h2>
+    <p class="mt-2 max-w-md text-body-md text-slate">
+      Vui lòng đăng nhập lại để tiếp tục sử dụng.
+    </p>
+    <a
+      mat-flat-button
+      routerLink="/login"
+      class="mt-6 !rounded-lg !bg-brand !text-white hover:!bg-brand-hover"
+    >
+      Đăng nhập lại
+    </a>
+  </div>
+} @else if (hasValidConversation()) {
   <app-chat-toolbar
-    [title]="person.name"
-    [subtitle]="person.statusMessage"
+    [title]="recipientName()"
+    [subtitle]="recipientStatus()"
     leadingIcon="alternate_email"
     [showCallActions]="true"
+    [showDetailsAction]="recipientUsername() !== null"
+    [detailsOpen]="profilePanelOpen()"
     detailsLabel="hồ sơ"
-    (toggleDetails)="toggleProfilePanel()"
+    (toggleDetails)="profilePanelOpen.set(!profilePanelOpen())"
   />
 
-  <div class="flex min-h-0 min-w-0 flex-1">
-    <div class="flex min-h-0 min-w-0 flex-1 flex-col">
-    <!-- P3 sẽ thay khối này bằng danh sách tin nhắn thật (cursor pagination). -->
+  @if (detailsError(); as detErr) {
+    <div class="mx-4 mt-2 flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-2 text-body-sm text-amber-600 dark:text-amber-400">
+      <span class="flex items-center gap-2">
+        <mat-icon class="!size-4 !text-base">warning</mat-icon>
+        <span>{{ detErr.message }}</span>
+      </span>
+      <button
+        type="button"
+        (click)="retryDetails()"
+        class="text-xs font-semibold underline hover:no-underline cursor-pointer"
+      >
+        Thử lại
+      </button>
+    </div>
+  }
+
+  @if (storeError(); as err) {
+    <div class="mx-4 mt-2 flex items-center justify-between rounded-lg bg-red-500/10 px-3 py-2 text-body-sm text-red-500">
+      <span class="flex items-center gap-2">
+        <mat-icon class="!size-4 !text-base">error_outline</mat-icon>
+        <span>{{ err }}</span>
+      </span>
+      <button
+        type="button"
+        (click)="retryMessages()"
+        class="text-xs font-semibold underline hover:no-underline cursor-pointer"
+      >
+        Thử lại
+      </button>
+    </div>
+  }
+
+  <!-- Hàng ngang: [khung chat] + [cột hồ sơ bên phải], giống layout kênh. -->
+  <div class="flex min-h-0 flex-1">
+  <div
+    class="chat-viewport flex min-h-0 min-w-0 flex-1 flex-col relative"
+    data-chat-wallpaper="doodle"
+  >
     <div
-      class="chat-history nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-6"
-      data-chat-wallpaper="doodle"
+      #chatHistory
+      (scroll)="onScroll($event)"
+      class="chat-history nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-4 sm:px-6 py-6"
     >
-      <div class="chat-stage mx-auto flex min-h-full w-full max-w-4xl flex-col justify-start">
+      <div class="chat-stage flex min-h-full w-full flex-col justify-start">
+        @if (paginationError(); as pagErr) {
+          <div class="flex items-center justify-center gap-2 py-2 text-xs text-red-500">
+            <span>{{ pagErr }}</span>
+            <button
+              type="button"
+              (click)="retryPagination()"
+              class="font-semibold underline hover:no-underline cursor-pointer"
+            >
+              Thử lại
+            </button>
+          </div>
+        }
+
+        @if (loadingMore()) {
+          <div class="flex justify-center py-2" aria-label="Đang tải tin nhắn cũ...">
+            <mat-spinner diameter="20" strokeWidth="2" />
+          </div>
+        }
+
         <section class="chat-intro max-w-2xl">
-          <span class="chat-intro__avatar flex w-fit" aria-hidden="true">
-            <app-profile-avatar
-              [username]="person.username"
-              [name]="person.name"
-              [presence]="person.presence"
-              [clickable]="false"
-              size="xl"
-              ring="canvas"
-            />
+          <span class="chat-intro__avatar flex w-fit">
+            @if (recipientUsername(); as uname) {
+              <!-- Bấm avatar người đang chat → mở thẻ hồ sơ đầy đủ. -->
+              <app-profile-avatar
+                [username]="uname"
+                [name]="recipientName()"
+                [presence]="recipientPresence()"
+                size="xl"
+                ring="canvas"
+              />
+            } @else {
+              <app-avatar
+                [name]="recipientName()"
+                [src]="recipientAvatar()"
+                [presence]="recipientPresence()"
+                size="xl"
+                ring="canvas"
+              />
+            }
           </span>
           <p class="mt-5 text-micro-uppercase text-steel">Kết nối trực tiếp</p>
-          <h2 class="mt-1 text-heading-3 text-ink">{{ person.name }}</h2>
+          <h2 class="mt-1 text-heading-3 text-ink">{{ recipientName() }}</h2>
           <p class="mt-2 max-w-prose text-body-md text-slate">
             Đây là phần mở đầu lịch sử tin nhắn trực tiếp của bạn với
-            <strong class="text-ink">{{ person.name }}</strong
-            >.
+            <strong class="text-ink">{{ recipientName() }}</strong>.
           </p>
         </section>
 
-        @if (demoEnabled()) {
-          <ol class="message-list mt-6 grid gap-2.5" aria-label="Tin nhắn trực tiếp demo">
-            <li class="message-row" data-demo-message="dm-1">
-              <app-profile-avatar
-                [username]="person.username"
-                [name]="person.name"
-                [presence]="person.presence"
-                size="md"
-                ring="canvas"
-              />
-              <article class="message-card">
-                <header class="flex flex-wrap items-baseline gap-x-2">
-                  <strong class="text-body-sm-medium text-ink">{{ person.name }}</strong>
-                  <time class="text-micro text-stone">Hôm nay, 19:42</time>
-                </header>
-                <p class="mt-1 text-body-sm text-charcoal">
-                  Mày xem Dashboard mới chưa? Tao thích cách phần server active nối xuống cuộc trò
-                  chuyện.
-                </p>
-                <app-message-actions
-                  messageId="dm-1"
-                  [author]="person.name"
-                  excerpt="Mày xem Dashboard mới chưa? Tao thích cách phần server active nối xuống cuộc trò chuyện."
-                  (action)="composerContext.set($event)"
-                />
-              </article>
-            </li>
+        @if (loadingInitial() || detailsLoading()) {
+          <div class="flex flex-col gap-3 py-8" aria-label="Đang tải tin nhắn...">
+            <div class="flex items-center justify-center py-6">
+              <mat-spinner diameter="32" strokeWidth="3" />
+            </div>
+          </div>
+        } @else if (messages().length > 0) {
+          <!-- Real Messages from ActiveChatStore with Date Dividers & Discord + Nexus Hybrid Grouping -->
+          <ol class="message-list mt-6" aria-label="Danh sách tin nhắn">
+            @for (item of streamItems(); track item.key) {
+              @if (item.kind === 'date-divider') {
+                <li class="chat-date-divider my-4" role="separator" [attr.aria-label]="'Ngày ' + item.label">
+                  <span class="chat-date-divider__line" aria-hidden="true"></span>
+                  <span class="chat-date-divider__badge">{{ item.label }}</span>
+                  <span class="chat-date-divider__line" aria-hidden="true"></span>
+                </li>
+              } @else if (item.kind === 'unread-divider') {
+                <li class="nexus-unread-divider my-4" role="separator" aria-label="Tin nhắn mới">
+                  <span class="nexus-unread-divider__line" aria-hidden="true"></span>
+                  <span class="nexus-unread-divider__badge">{{ item.label }}</span>
+                  <span class="nexus-unread-divider__line" aria-hidden="true"></span>
+                </li>
+              } @else if (item.kind === 'message') {
+                @let msg = item.message;
+                <li
+                  class="message-row group"
+                  [class.message-row--head]="!item.isGrouped"
+                  [class.message-row--grouped]="item.isGrouped"
+                  [class.message-row--mine]="isMine(msg)"
+                  [class.message-row--sending]="msg.status === 'sending'"
+                  [class.message-row--failed]="msg.status === 'failed'"
+                  [class.message-row--text-only]="item.variant === 'text-only'"
+                  [class.message-row--media-only]="item.variant === 'media-only'"
+                  [class.message-row--file-only]="item.variant === 'file-only'"
+                  [class.message-row--text-with-media]="item.variant === 'text-with-media'"
+                  [class.message-row--text-with-file]="item.variant === 'text-with-file'"
+                  [class.message-row--mixed]="item.variant === 'mixed'"
+                  [class.message-row--deleted]="item.variant === 'deleted'"
+                  [class.message-row--highlighted]="highlightedMessageId() === msg.id"
+                  [attr.data-message-id]="msg.id"
+                  [attr.data-author-id]="msg.authorId"
+                  [attr.data-variant]="item.variant"
+                  tabindex="0"
+                >
+                  <!-- Cột Gutter: Avatar cho Head Message, Hover Time cho Grouped Message -->
+                  <div class="message-gutter" aria-hidden="true">
+                    @if (!item.isGrouped) {
+                      @if (msg.author?.username; as authorName) {
+                        <!-- Bấm avatar tác giả → mở thẻ hồ sơ của họ. -->
+                        <app-profile-avatar
+                          [username]="authorName"
+                          [name]="msg.author?.displayName || authorName"
+                          size="md"
+                          ring="canvas"
+                        />
+                      } @else {
+                        <app-avatar
+                          [userId]="msg.authorId"
+                          [name]="msg.author?.displayName || msg.author?.username || 'Người dùng'"
+                          [src]="msg.author?.avatarUrl ?? null"
+                          size="md"
+                          ring="canvas"
+                        />
+                      }
+                    } @else {
+                      <time
+                        class="message-hover-time cursor-default"
+                        [attr.datetime]="msg.createdAt"
+                        [attr.aria-label]="'Gửi lúc ' + item.accessibleTimeFormatted"
+                        [matTooltip]="item.accessibleTimeFormatted"
+                      >
+                        {{ item.hoverTimeFormatted }}
+                      </time>
+                    }
+                  </div>
 
-            <li class="message-row message-row--mine" data-demo-message="dm-2">
-              <!-- Avatar của chính mình lấy từ ProfileStore, để đổi ảnh trong cài đặt là
-                   mọi tin nhắn cũ cũng đổi theo. -->
-              <app-avatar
-                name="Bạn"
-                [src]="myAvatarUrl()"
-                presence="online"
-                size="md"
-                ring="canvas"
-              />
-              <article class="message-card">
-                <div class="message-reply">
-                  <span class="message-reply__avatar" aria-hidden="true">
-                    {{ person.name.slice(0, 1) }}
-                  </span>
-                  <strong>{{ person.name }}</strong>
-                  <span class="truncate">Mày xem Dashboard mới chưa?</span>
-                </div>
-                <header class="mt-1 flex flex-wrap items-baseline gap-x-2">
-                  <strong class="text-body-sm-medium text-ink">Bạn</strong>
-                  <time class="text-micro text-stone">19:44</time>
-                </header>
-                <p class="mt-1 text-body-sm text-charcoal">
-                  Đang xem đây. Bấm Ctrl K tìm kênh nhanh hơn hẳn, mà giao diện vẫn không bị rối.
-                </p>
-                <div class="message-reactions mt-2 flex flex-wrap gap-1.5" aria-label="Cảm xúc">
-                  <span class="reaction-chip">✨ <span>1</span></span>
-                </div>
-                <app-message-actions
-                  messageId="dm-2"
-                  author="Bạn"
-                  excerpt="Đang xem đây. Bấm Ctrl K tìm kênh nhanh hơn hẳn, mà giao diện vẫn không bị rối."
-                  [editable]="true"
-                  (action)="composerContext.set($event)"
-                />
-              </article>
-            </li>
+                <!-- Cột Nội Dung Tin Nhắn -->
+                <article class="message-card min-w-0 flex-1 relative">
+                  <!-- Accessibility context cho trình đọc màn hình đối với tin nhắn nối tiếp -->
+                  @if (item.isGrouped) {
+                    <span class="sr-only">
+                      {{ msg.author?.displayName || msg.author?.username || 'Người dùng' }} lúc {{ item.accessibleTimeFormatted }}:
+                    </span>
+                  }
 
-            <li class="nexus-unread-divider my-3.5" aria-label="Có 1 tin nhắn mới">
-              <span>1 tin nhắn mới</span>
-            </li>
+                  <!-- Trích dẫn phản hồi (Reply Hook) — Clickable to jump to original message -->
+                  @if (msg.replyToId) {
+                    @if (findReplyMessage(msg.replyToId); as replyMsg) {
+                      <div
+                        class="message-reply cursor-pointer"
+                        role="button"
+                        tabindex="0"
+                        (click)="scrollToMessage(msg.replyToId)"
+                        (keydown.enter)="scrollToMessage(msg.replyToId)"
+                        (keydown.space)="$event.preventDefault(); scrollToMessage(msg.replyToId)"
+                        title="Đi tới tin nhắn gốc"
+                        aria-label="Đi tới tin nhắn gốc của {{ replyMsg.author?.displayName || replyMsg.author?.username || 'Người dùng' }}"
+                      >
+                        <mat-icon class="message-reply__icon" aria-hidden="true">reply</mat-icon>
+                        <span class="message-reply__avatar" aria-hidden="true">
+                          {{ (replyMsg.author?.displayName || replyMsg.author?.username || 'U').slice(0, 1) }}
+                        </span>
+                        <strong class="message-reply__author">{{ replyMsg.author?.displayName || replyMsg.author?.username || 'Người dùng' }}</strong>
+                        <span class="message-reply__snippet truncate">{{ getReplySnippet(replyMsg) }}</span>
+                      </div>
+                    } @else {
+                      <div
+                        class="message-reply cursor-pointer"
+                        role="button"
+                        tabindex="0"
+                        (click)="scrollToMessage(msg.replyToId)"
+                        (keydown.enter)="scrollToMessage(msg.replyToId)"
+                        (keydown.space)="$event.preventDefault(); scrollToMessage(msg.replyToId)"
+                        title="Đi tới tin nhắn gốc"
+                        aria-label="Đi tới tin nhắn gốc"
+                      >
+                        <mat-icon class="message-reply__icon" aria-hidden="true">reply</mat-icon>
+                        <span class="text-xs text-steel">Đã trả lời một tin nhắn</span>
+                      </div>
+                    }
+                  }
 
-            <li class="message-row" data-demo-message="dm-3">
-              <app-profile-avatar
-                [username]="person.username"
-                [name]="person.name"
-                [presence]="person.presence"
-                size="md"
-                ring="canvas"
-              />
-              <article class="message-card">
-                <header class="flex flex-wrap items-baseline gap-x-2">
-                  <strong class="text-body-sm-medium text-ink">{{ person.name }}</strong>
-                  <time class="text-micro text-stone">19:47</time>
-                </header>
-                <p class="mt-1 text-body-sm text-charcoal">
-                  Giữ kiểu này đi. Nó có dấu ấn riêng mà không biến thành một đống hiệu ứng.
-                </p>
-                <app-message-actions
-                  messageId="dm-3"
-                  [author]="person.name"
-                  excerpt="Giữ kiểu này đi. Nó có dấu ấn riêng mà không biến thành một đống hiệu ứng."
-                  (action)="composerContext.set($event)"
-                />
-              </article>
-            </li>
+                  <!-- Huy hiệu chuyển tiếp (Forwarded Badge) -->
+                  @if (msg.isForwarded && !msg.deletedAt) {
+                    <div class="message-forwarded-indicator flex items-center gap-1 text-micro text-steel mb-1" title="Tin nhắn được chuyển tiếp">
+                      <mat-icon class="!size-3.5 !text-xs text-steel">forward_to_inbox</mat-icon>
+                      <span class="italic text-[11px]">Đã chuyển tiếp</span>
+                    </div>
+                  }
+
+                  <div class="message-content-cluster relative inline-flex flex-col items-start w-fit max-w-[min(680px,100%)]">
+                    <!-- VARIANT 1: Bị Xóa (Deleted) -->
+                    @if (item.variant === 'deleted') {
+                      @if (!item.isGrouped) {
+                        <header class="message-header flex flex-wrap items-baseline gap-x-2 mb-1">
+                          <strong class="message-author-name text-body-sm-medium text-ink">
+                            {{ msg.author?.displayName || msg.author?.username || 'Người dùng' }}
+                          </strong>
+                          <time
+                            class="message-time text-micro text-stone cursor-default"
+                            [attr.datetime]="msg.createdAt"
+                            [attr.aria-label]="'Gửi lúc ' + item.accessibleTimeFormatted"
+                            [matTooltip]="item.accessibleTimeFormatted"
+                          >
+                            {{ item.timeFormatted }}
+                          </time>
+                        </header>
+                      }
+                      <p class="message-deleted-text text-body-sm italic text-steel flex items-center gap-1.5 py-0.5">
+                        <mat-icon class="!size-4 !text-base">delete_outline</mat-icon>
+                        <span>Tin nhắn này đã bị xóa</span>
+                      </p>
+                    }
+
+                    <!-- VARIANT 2: Text-Only (Chỉ có Text) -->
+                    @else if (item.variant === 'text-only') {
+                      <div class="message-text-surface">
+                        @if (!item.isGrouped) {
+                          <header class="message-header flex flex-wrap items-baseline gap-x-2 mb-1">
+                            <strong class="message-author-name text-body-sm-medium text-ink">
+                              {{ msg.author?.displayName || msg.author?.username || 'Người dùng' }}
+                            </strong>
+                            <time
+                              class="message-time text-micro text-stone cursor-default"
+                              [attr.datetime]="msg.createdAt"
+                              [attr.aria-label]="'Gửi lúc ' + item.accessibleTimeFormatted"
+                              [matTooltip]="item.accessibleTimeFormatted"
+                            >
+                              {{ item.timeFormatted }}
+                            </time>
+                            @if (msg.editedAt) {
+                              <span class="message-edited-badge text-micro text-steel" title="Đã chỉnh sửa">(đã chỉnh sửa)</span>
+                            }
+                          </header>
+                        }
+                        <div class="message-body text-body-sm text-charcoal break-words whitespace-pre-wrap leading-relaxed">
+                          @for (token of item.contentTokens; track token.key) {
+                            @if (token.type === 'link') {
+                              <a
+                                [href]="token.url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="nexus-chat-link text-primary underline hover:text-primary-hover break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
+                                (click)="$event.stopPropagation()"
+                              >{{ token.value }}</a>
+                            } @else {
+                              <span>{{ token.value }}</span>
+                            }
+                          }
+                          @if (item.isGrouped && msg.editedAt) {
+                            <span class="message-edited-badge text-[11px] text-steel ml-1" title="Đã chỉnh sửa">(đã chỉnh sửa)</span>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <!-- VARIANT 3: Media-Only (Chỉ có Ảnh / GIF) -->
+                    @else if (item.variant === 'media-only') {
+                      @if (!item.isGrouped) {
+                        <header class="message-header flex flex-wrap items-baseline gap-x-2 mb-1.5">
+                          <strong class="message-author-name text-body-sm-medium text-ink">
+                            {{ msg.author?.displayName || msg.author?.username || 'Người dùng' }}
+                          </strong>
+                          <time
+                            class="message-time text-micro text-stone cursor-default"
+                            [attr.datetime]="msg.createdAt"
+                            [attr.aria-label]="'Gửi lúc ' + item.accessibleTimeFormatted"
+                            [matTooltip]="item.accessibleTimeFormatted"
+                          >
+                            {{ item.timeFormatted }}
+                          </time>
+                        </header>
+                      }
+                      <div class="message-attachments flex flex-col gap-2 max-w-lg">
+                        @for (att of msg.attachments; track att.id) {
+                          @if (!att.signedUrl || att.isAvailable === false || failedAttachmentIds().has(att.id)) {
+                            <div class="attachment-unavailable-card flex items-center gap-2.5 p-2 px-3 rounded-xl bg-surface-soft border border-hairline max-w-sm">
+                              <mat-icon class="!size-4 !text-base text-amber-500">warning_amber</mat-icon>
+                              <div class="min-w-0 flex-1 truncate">
+                                <p class="text-caption-bold text-ink truncate" [matTooltip]="att.filename">{{ att.filename }}</p>
+                                <span class="text-micro text-steel">Tệp tạm thời không khả dụng</span>
+                              </div>
+                              <button
+                                type="button"
+                                (click)="refreshAttachment(msg.id, att.id)"
+                                class="px-2 py-1 text-micro font-medium rounded-lg bg-surface-feature text-primary underline hover:no-underline cursor-pointer"
+                                title="Tải lại liên kết tệp"
+                              >
+                                Tải lại
+                              </button>
+                            </div>
+                          } @else {
+                            <div class="message-media-wrapper relative group/media inline-block max-w-full">
+                              <img
+                                [src]="att.signedUrl"
+                                [alt]="att.filename"
+                                class="message-media-img cursor-pointer"
+                                (click)="openLightbox(att.signedUrl, att.filename, msg.id, att.id, $event)"
+                                (error)="onAttachmentMediaError(att.id)"
+                                loading="lazy"
+                                tabindex="0"
+                                (keydown.enter)="openLightbox(att.signedUrl, att.filename, msg.id, att.id, $event)"
+                              />
+                              <button
+                                type="button"
+                                class="message-media-download-btn opacity-0 group-hover/media:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 cursor-pointer shadow-md focus-visible:outline-2 focus-visible:outline-white"
+                                (click)="downloadAttachment(msg.id, att.id, att.signedUrl, att.filename, $event)"
+                                [matTooltip]="'Tải xuống ' + att.filename"
+                                [attr.aria-label]="'Tải xuống ảnh ' + att.filename"
+                              >
+                                <mat-icon class="!size-4 !text-base">download</mat-icon>
+                              </button>
+                            </div>
+                          }
+                        }
+                      </div>
+                    }
+
+                    <!-- VARIANT 4: File-Only (Chỉ có Tệp tài liệu) -->
+                    @else if (item.variant === 'file-only') {
+                      @if (!item.isGrouped) {
+                        <header class="message-header flex flex-wrap items-baseline gap-x-2 mb-1.5">
+                          <strong class="message-author-name text-body-sm-medium text-ink">
+                            {{ msg.author?.displayName || msg.author?.username || 'Người dùng' }}
+                          </strong>
+                          <time
+                            class="message-time text-micro text-stone cursor-default"
+                            [attr.datetime]="msg.createdAt"
+                            [attr.aria-label]="'Gửi lúc ' + item.accessibleTimeFormatted"
+                            [matTooltip]="item.accessibleTimeFormatted"
+                          >
+                            {{ item.timeFormatted }}
+                          </time>
+                        </header>
+                      }
+                      <div class="message-attachments flex flex-col gap-2 max-w-lg">
+                        @for (att of msg.attachments; track att.id) {
+                          @if (!att.signedUrl || att.isAvailable === false || failedAttachmentIds().has(att.id)) {
+                            <div class="attachment-unavailable-card flex items-center gap-2.5 p-2 px-3 rounded-xl bg-surface-soft border border-hairline max-w-sm">
+                              <mat-icon class="!size-4 !text-base text-amber-500">warning_amber</mat-icon>
+                              <div class="min-w-0 flex-1 truncate">
+                                <p class="text-caption-bold text-ink truncate" [matTooltip]="att.filename">{{ att.filename }}</p>
+                                <span class="text-micro text-steel">Tệp tạm thời không khả dụng</span>
+                              </div>
+                              <button
+                                type="button"
+                                (click)="refreshAttachment(msg.id, att.id)"
+                                class="px-2 py-1 text-micro font-medium rounded-lg bg-surface-feature text-primary underline hover:no-underline cursor-pointer"
+                                title="Tải lại liên kết tệp"
+                              >
+                                Tải lại
+                              </button>
+                            </div>
+                          } @else {
+                            <div class="message-file-tile group flex items-center gap-3 p-2.5 px-3.5 rounded-xl bg-surface-soft border border-hairline hover:border-primary/40 transition-colors max-w-md w-full">
+                              <div class="message-file-tile__icon-box p-2 rounded-lg bg-surface-feature text-primary group-hover:scale-105 transition-transform flex-shrink-0">
+                                <mat-icon class="!size-5 !text-xl">
+                                  {{ getFileIcon(att.filename) }}
+                                </mat-icon>
+                              </div>
+                              <div class="message-file-tile__meta min-w-0 flex-1">
+                                <p
+                                  class="message-file-tile__name truncate font-medium text-ink group-hover:text-primary transition-colors text-sm"
+                                  [matTooltip]="att.filename"
+                                >
+                                  {{ att.filename }}
+                                </p>
+                                <span class="message-file-tile__size text-xs text-steel">{{ formatFileSize(att.sizeBytes) }}</span>
+                              </div>
+                              <button
+                                type="button"
+                                class="message-file-tile__action p-1.5 rounded-lg text-steel hover:text-primary hover:bg-surface-feature focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer flex-shrink-0"
+                                (click)="downloadAttachment(msg.id, att.id, att.signedUrl, att.filename, $event)"
+                                [matTooltip]="'Tải xuống ' + att.filename"
+                                [attr.aria-label]="'Tải xuống tệp ' + att.filename"
+                                [disabled]="downloadingAttachmentIds().has(att.id)"
+                              >
+                                @if (downloadingAttachmentIds().has(att.id)) {
+                                  <mat-spinner diameter="18" strokeWidth="2" />
+                                } @else {
+                                  <mat-icon class="message-file-tile__download-icon !size-5 !text-xl">
+                                    download
+                                  </mat-icon>
+                                }
+                              </button>
+                            </div>
+                          }
+                        }
+                      </div>
+                    }
+
+                    <!-- VARIANT 5: Mixed (Text + Media hoặc Text + File) -->
+                    @else {
+                      @if (msg.content) {
+                        <div class="message-text-surface">
+                          @if (!item.isGrouped) {
+                            <header class="message-header flex flex-wrap items-baseline gap-x-2 mb-1">
+                              <strong class="message-author-name text-body-sm-medium text-ink">
+                                {{ msg.author?.displayName || msg.author?.username || 'Người dùng' }}
+                              </strong>
+                              <time
+                                class="message-time text-micro text-stone cursor-default"
+                                [attr.datetime]="msg.createdAt"
+                                [attr.aria-label]="'Gửi lúc ' + item.accessibleTimeFormatted"
+                                [matTooltip]="item.accessibleTimeFormatted"
+                              >
+                                {{ item.timeFormatted }}
+                              </time>
+                              @if (msg.editedAt) {
+                                <span class="message-edited-badge text-micro text-steel" title="Đã chỉnh sửa">(đã chỉnh sửa)</span>
+                              }
+                            </header>
+                          }
+                          <div class="message-body text-body-sm text-charcoal break-words whitespace-pre-wrap leading-relaxed">
+                            @for (token of item.contentTokens; track token.key) {
+                              @if (token.type === 'link') {
+                                <a
+                                  [href]="token.url"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  class="nexus-chat-link text-primary underline hover:text-primary-hover break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
+                                  (click)="$event.stopPropagation()"
+                                >{{ token.value }}</a>
+                              } @else {
+                                <span>{{ token.value }}</span>
+                              }
+                            }
+                            @if (item.isGrouped && msg.editedAt) {
+                              <span class="message-edited-badge text-[11px] text-steel ml-1" title="Đã chỉnh sửa">(đã chỉnh sửa)</span>
+                            }
+                          </div>
+                        </div>
+                      } @else if (!item.isGrouped) {
+                        <header class="message-header flex flex-wrap items-baseline gap-x-2 mb-1.5">
+                          <strong class="message-author-name text-body-sm-medium text-ink">
+                            {{ msg.author?.displayName || msg.author?.username || 'Người dùng' }}
+                          </strong>
+                          <time
+                            class="message-time text-micro text-stone cursor-default"
+                            [attr.datetime]="msg.createdAt"
+                            [attr.aria-label]="'Gửi lúc ' + item.accessibleTimeFormatted"
+                            [matTooltip]="item.accessibleTimeFormatted"
+                          >
+                            {{ item.timeFormatted }}
+                          </time>
+                        </header>
+                      }
+
+                      <!-- Danh sách tệp đính kèm độc lập phía dưới text surface -->
+                      @if (msg.attachments && msg.attachments.length > 0) {
+                        <div class="message-attachments mt-2 flex flex-col gap-2 max-w-lg">
+                          @for (att of msg.attachments; track att.id) {
+                            @if (!att.signedUrl || att.isAvailable === false || failedAttachmentIds().has(att.id)) {
+                              <div class="attachment-unavailable-card flex items-center gap-2.5 p-2 px-3 rounded-xl bg-surface-soft border border-hairline max-w-sm">
+                                <mat-icon class="!size-4 !text-base text-amber-500">warning_amber</mat-icon>
+                                <div class="min-w-0 flex-1 truncate">
+                                  <p class="text-caption-bold text-ink truncate" [matTooltip]="att.filename">{{ att.filename }}</p>
+                                  <span class="text-micro text-steel">Tệp tạm thời không khả dụng</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  (click)="refreshAttachment(msg.id, att.id)"
+                                  class="px-2 py-1 text-micro font-medium rounded-lg bg-surface-feature text-primary underline hover:no-underline cursor-pointer"
+                                  title="Tải lại liên kết tệp"
+                                >
+                                  Tải lại
+                                </button>
+                              </div>
+                            } @else if (att.mimeType.startsWith('image/')) {
+                              <div class="message-media-wrapper relative group/media inline-block max-w-full">
+                                <img
+                                  [src]="att.signedUrl"
+                                  [alt]="att.filename"
+                                  class="message-media-img cursor-pointer"
+                                  (click)="openLightbox(att.signedUrl, att.filename, msg.id, att.id, $event)"
+                                  (error)="onAttachmentMediaError(att.id)"
+                                  loading="lazy"
+                                  tabindex="0"
+                                  (keydown.enter)="openLightbox(att.signedUrl, att.filename, msg.id, att.id, $event)"
+                                />
+                                <button
+                                  type="button"
+                                  class="message-media-download-btn opacity-0 group-hover/media:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 cursor-pointer shadow-md focus-visible:outline-2 focus-visible:outline-white"
+                                  (click)="downloadAttachment(msg.id, att.id, att.signedUrl, att.filename, $event)"
+                                  [matTooltip]="'Tải xuống ' + att.filename"
+                                  [attr.aria-label]="'Tải xuống ảnh ' + att.filename"
+                                >
+                                  <mat-icon class="!size-4 !text-base">download</mat-icon>
+                                </button>
+                              </div>
+                            } @else {
+                              <div class="message-file-tile group flex items-center gap-3 p-2.5 px-3.5 rounded-xl bg-surface-soft border border-hairline hover:border-primary/40 transition-colors max-w-md w-full">
+                                <div class="message-file-tile__icon-box p-2 rounded-lg bg-surface-feature text-primary group-hover:scale-105 transition-transform flex-shrink-0">
+                                  <mat-icon class="!size-5 !text-xl">
+                                    {{ getFileIcon(att.filename) }}
+                                  </mat-icon>
+                                </div>
+                                <div class="message-file-tile__meta min-w-0 flex-1">
+                                  <p
+                                    class="message-file-tile__name truncate font-medium text-ink group-hover:text-primary transition-colors text-sm"
+                                    [matTooltip]="att.filename"
+                                  >
+                                    {{ att.filename }}
+                                  </p>
+                                  <span class="message-file-tile__size text-xs text-steel">{{ formatFileSize(att.sizeBytes) }}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  class="message-file-tile__action p-1.5 rounded-lg text-steel hover:text-primary hover:bg-surface-feature focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer flex-shrink-0"
+                                  (click)="downloadAttachment(msg.id, att.id, att.signedUrl, att.filename, $event)"
+                                  [matTooltip]="'Tải xuống ' + att.filename"
+                                  [attr.aria-label]="'Tải xuống tệp ' + att.filename"
+                                  [disabled]="downloadingAttachmentIds().has(att.id)"
+                                >
+                                  @if (downloadingAttachmentIds().has(att.id)) {
+                                    <mat-spinner diameter="18" strokeWidth="2" />
+                                  } @else {
+                                    <mat-icon class="message-file-tile__download-icon !size-5 !text-xl">
+                                      download
+                                    </mat-icon>
+                                  }
+                                </button>
+                              </div>
+                            }
+                          }
+                        </div>
+                      }
+                    }
+
+                    <!-- Biểu tượng cảm xúc (Reactions) -->
+                    @if (msg.reactions && msg.reactions.length > 0 && !msg.deletedAt) {
+                      <div class="message-reactions mt-1.5 flex flex-wrap items-center gap-1.5" role="group" aria-label="Biểu tượng cảm xúc">
+                        @for (r of msg.reactions; track r.emoji) {
+                          <button
+                            type="button"
+                            class="reaction-chip"
+                            [class.reaction-chip--mine]="r.reactedByMe"
+                            [attr.aria-label]="(r.reactedByMe ? 'Bỏ cảm xúc ' : 'Bày tỏ cảm xúc ') + r.emoji + ', ' + r.count + ' người'"
+                            [attr.aria-pressed]="r.reactedByMe"
+                            [matTooltip]="(r.reactedByMe ? 'Bạn đã thả ' : '') + r.emoji + ' (' + r.count + ')'"
+                            (click)="onToggleReaction(msg.id, r.emoji)"
+                          >
+                            <span class="reaction-emoji" aria-hidden="true">{{ r.emoji }}</span>
+                            <span class="reaction-count text-xs font-semibold">{{ r.count }}</span>
+                          </button>
+                        }
+                      </div>
+                    }
+
+                    <!-- Trạng thái gửi / Thất bại -->
+                    @if (msg.status === 'sending') {
+                      <div class="mt-1 flex items-center gap-1.5 text-xs text-steel">
+                        <mat-spinner diameter="12" strokeWidth="2" />
+                        <span>Đang gửi...</span>
+                      </div>
+                    } @else if (msg.status === 'failed') {
+                      <div class="mt-1 flex items-center gap-2 text-xs text-red-500">
+                        <mat-icon class="!size-4 !text-base">error_outline</mat-icon>
+                        <span>{{ msg.errorMessage || 'Gửi thất bại.' }}</span>
+                        @if (msg.clientNonce) {
+                          <button
+                            type="button"
+                            (click)="retryMessage(msg.clientNonce)"
+                            class="font-semibold underline hover:no-underline cursor-pointer"
+                          >
+                            Thử lại
+                          </button>
+                          <button
+                            type="button"
+                            (click)="dismissFailedMessage(msg.clientNonce)"
+                            class="text-steel hover:text-ink cursor-pointer ml-1"
+                          >
+                            Hủy
+                          </button>
+                        }
+                      </div>
+                    }
+
+                    <!-- Floating Action Toolbar Slot (Anchored directly above top-right of message bubble) -->
+                    @if (msg.status === 'persisted' && !msg.deletedAt) {
+                      <div class="message-actions-slot">
+                        <app-message-actions
+                          [messageId]="msg.id"
+                          [author]="msg.author?.displayName || msg.author?.username || 'Người dùng'"
+                          [excerpt]="getMessageExcerpt(msg)"
+                          [editable]="isMine(msg)"
+                          (action)="onMessageAction($event)"
+                          (reaction)="onToggleReaction(msg.id, $event)"
+                        />
+                      </div>
+                    }
+                  </div>
+                </article>
+              </li>
+            }
+          }
           </ol>
         }
       </div>
     </div>
 
-    <app-message-composer
-      [target]="'@' + person.name"
-      [context]="composerContext()"
-      (contextClosed)="composerContext.set(null)"
-    />
+    @if (toastMessage(); as toast) {
+      <div class="conversation-toast-banner flex items-center gap-2 rounded-lg bg-surface/95 border border-nexus-subtle px-3 py-1.5 shadow-lg text-body-sm text-ink backdrop-blur-md absolute top-4 left-1/2 -translate-x-1/2 z-30" role="status" aria-live="polite">
+        <mat-icon class="!size-4 !text-base text-primary-soft">info_outline</mat-icon>
+        <span>{{ toast }}</span>
+      </div>
+    }
+
+    @if (typingText(); as text) {
+      <div class="typing-banner flex items-center gap-2 px-6 py-1 text-xs text-steel">
+        <span class="typing-dots" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+        <span>{{ text }}</span>
+      </div>
+    }
+
+    @if (showNewMessagesPill() || newMessagesBelowCount() > 0) {
+      <button
+        type="button"
+        (click)="scrollToBottom(true)"
+        class="floating-new-messages-pill"
+        [attr.aria-label]="newMessagesBelowCount() > 0 ? ('Có ' + newMessagesBelowCount() + ' tin nhắn mới bên dưới') : 'Cuộn xuống xem tin nhắn mới'"
+      >
+        <mat-icon class="!size-4 !text-base">arrow_downward</mat-icon>
+        <span>
+          @if (newMessagesBelowCount() > 0) {
+            Có {{ newMessagesBelowCount() }} tin nhắn mới bên dưới
+          } @else {
+            Có tin nhắn mới bên dưới
+          }
+        </span>
+      </button>
+    }
+
+    <div #composerWrapper class="composer-container shrink-0">
+      <app-message-composer
+        [target]="'@' + recipientName()"
+        [disabled]="loadingInitial() || storeError() !== null"
+        [context]="composerContext()"
+        (send)="onSendMessage($event)"
+        (typing)="onTyping()"
+        (stoppedTyping)="onStoppedTyping()"
+        (contextClosed)="composerContext.set(null)"
+      />
     </div>
 
-    <!-- Hồ sơ người đang nhắn, cố định bên phải như Discord. Dùng
-         `app-context-panel` giống cột "Thành viên" của kênh, để hai chỗ cùng
-         một cách đóng/mở thay vì mỗi nơi một kiểu.
-
-         `conversation.id` chính là username (xem DEMO_CONVERSATIONS), nên panel
-         tự tra được hồ sơ thật. -->
-    <app-context-panel
-      title="Hồ sơ"
-      [open]="profilePanelOpen()"
-      (closed)="profilePanelOpen.set(false)"
-    >
-      <app-profile-panel
-        [username]="person.username"
-        [fallbackName]="person.name"
-        [fallbackStatus]="person.statusMessage"
+    <!-- Forward Message Modal -->
+    @if (forwardModalMessage(); as fwdMsg) {
+      <app-forward-message-modal
+        [message]="fwdMsg"
+        [currentConversationId]="conversationId()"
+        (close)="closeForwardModal()"
+        (forwardSuccess)="onForwardSuccess($event)"
       />
-    </app-context-panel>
+    }
+  </div>
+
+    <!-- Cột hồ sơ bên phải: bật/tắt bằng nút "hồ sơ" trên thanh tiêu đề. -->
+    @if (recipientUsername(); as uname) {
+      <app-context-panel
+        title="Hồ sơ"
+        [open]="profilePanelOpen()"
+        (closed)="profilePanelOpen.set(false)"
+      >
+        <app-profile-panel [username]="uname" />
+      </app-context-panel>
+    }
   </div>
 } @else {
   <app-empty-state icon="search_off" message="Không tìm thấy cuộc trò chuyện này." />
 }
+

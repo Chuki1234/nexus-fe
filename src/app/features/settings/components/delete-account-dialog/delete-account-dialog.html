@@ -1,0 +1,53 @@
+<section class="delete-account" aria-labelledby="delete-account-title">
+  <div class="delete-account__mark" aria-hidden="true">
+    <mat-icon>person_remove</mat-icon>
+  </div>
+
+  <div class="delete-account__copy">
+    <p class="delete-account__eyebrow">Hành động không thể hoàn tác</p>
+    <h2 id="delete-account-title">Xóa tài khoản {{ data.displayName }}?</h2>
+    <p>
+      Tài khoản, hồ sơ và quyền truy cập của bạn sẽ bị xóa vĩnh viễn khỏi Nexus.
+    </p>
+  </div>
+
+  <div class="delete-account__warning">
+    <mat-icon aria-hidden="true">warning_amber</mat-icon>
+    <span>Sau khi xác nhận, bạn sẽ được đăng xuất ngay và không thể khôi phục tài khoản.</span>
+  </div>
+
+  <label for="delete-account-confirmation">
+    Nhập lại email <strong>{{ data.email }}</strong> để tiếp tục
+  </label>
+  <input
+    id="delete-account-confirmation"
+    type="email"
+    autocomplete="email"
+    spellcheck="false"
+    [formControl]="email"
+    [attr.aria-invalid]="errorMessage() ? 'true' : null"
+    [attr.aria-describedby]="errorMessage() ? 'delete-account-error' : null"
+  />
+
+  @if (errorMessage()) {
+    <p id="delete-account-error" class="delete-account__error" role="alert">
+      {{ errorMessage() }}
+    </p>
+  }
+
+  <div class="delete-account__actions">
+    <button mat-button type="button" [mat-dialog-close]="false" [disabled]="deleting()">
+      Hủy
+    </button>
+    <button
+      mat-flat-button
+      type="button"
+      class="delete-account__submit"
+      [disabled]="!canDelete()"
+      (click)="deleteAccount()"
+    >
+      <mat-icon aria-hidden="true">delete_forever</mat-icon>
+      {{ deleting() ? 'Đang xóa…' : 'Xóa vĩnh viễn' }}
+    </button>
+  </div>
+</section>

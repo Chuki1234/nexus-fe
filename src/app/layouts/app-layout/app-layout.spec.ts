@@ -2,6 +2,8 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { ConversationsApiService } from '../../core/api/conversations-api.service';
+import { MessagesApiService } from '../../core/api/messages-api.service';
 import { ServersApiService } from '../../core/api/servers-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
@@ -11,7 +13,7 @@ import { FriendsStore } from '../../features/dashboard/friends/services/friends-
 class AuthServiceStub {
   whenReady = () => Promise.resolve();
   isAuthenticated = () => true;
-  user = () => ({ id: 'u1', email: 'ban@vidu.com' });
+  user = signal({ id: 'u1', email: 'ban@vidu.com' } as any).asReadonly();
   accessToken = () => 'token';
   signOut = () => Promise.resolve();
 }
@@ -26,6 +28,24 @@ class ProfileServiceStub {
     dateOfBirth: '2000-01-01',
   });
   reset = () => undefined;
+}
+
+class ConversationsApiServiceStub {
+  getOrCreateDm = () => Promise.resolve({ id: 'conv-1', type: 'dm', unreadCount: 0, createdAt: '' });
+  listConversations = () => Promise.resolve([]);
+  getConversation = (id: string) =>
+    id === 'khong-co-that'
+      ? Promise.reject(new Error('Not found'))
+      : Promise.resolve({ id, type: 'dm', unreadCount: 0, createdAt: '' });
+}
+
+class MessagesApiServiceStub {
+  getMessages = () => Promise.resolve({ messages: [], hasMore: false });
+  sendMessage = () => Promise.resolve({ id: '1', content: '' });
+  editMessage = () => Promise.resolve({ id: '1', content: '' });
+  deleteMessage = () => Promise.resolve({ id: '1', deleted: true });
+  getAttachmentSignedUrl = () => Promise.resolve({ signedUrl: '' });
+  markAsRead = () => Promise.resolve({ success: true });
 }
 
 class ServersApiServiceStub {
@@ -80,6 +100,8 @@ describe('AppLayout', () => {
         { provide: ProfileService, useValue: new ProfileServiceStub() },
         { provide: ServersApiService, useValue: new ServersApiServiceStub() },
         { provide: FriendsStore, useValue: new FriendsStoreStub() },
+        { provide: ConversationsApiService, useValue: new ConversationsApiServiceStub() },
+        { provide: MessagesApiService, useValue: new MessagesApiServiceStub() },
       ],
     });
     harness = await RouterTestingHarness.create();
@@ -165,5 +187,30 @@ describe('AppLayout', () => {
     await harness.navigateByUrl('/channels/@me');
     expect(query('button[aria-label="Chuyển sang giao diện tối"]')).toBeTruthy();
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  });
+
+  it('hiển thị thanh kéo chia pane với thuộc tính ARIA và hỗ trợ phím mũi tên', async () => {
+    await harness.navigateByUrl('/channels/@me');
+
+    const handle = query('.pane-resize-handle--nav') as HTMLElement;
+    expect(handle).toBeTruthy();
+    expect(handle.getAttribute('role')).toBe('separator');
+    expect(handle.getAttribute('aria-orientation')).toBe('vertical');
+    expect(handle.getAttribute('aria-valuenow')).toBe('280');
+
+    // Phím ArrowRight tăng độ rộng 8px
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    TestBed.tick();
+    expect(handle.getAttribute('aria-valuenow')).toBe('288');
+
+    // Shift + ArrowLeft giảm độ rộng 32px
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', shiftKey: true }));
+    TestBed.tick();
+    expect(handle.getAttribute('aria-valuenow')).toBe('256');
+
+    // Double click reset về 280px
+    handle.dispatchEvent(new MouseEvent('dblclick'));
+    TestBed.tick();
+    expect(handle.getAttribute('aria-valuenow')).toBe('280');
   });
 });

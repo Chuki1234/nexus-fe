@@ -1,131 +1,288 @@
-<div class="space-y-6">
-  <!-- Header -->
-  <div class="flex items-center justify-between border-b border-hairline pb-4">
-    <div>
-      <h2 class="text-heading-4 font-bold text-ink tracking-tight">Tổng Quan Máy Chủ (Server Overview)</h2>
-      <p class="text-caption text-steel mt-1">
-        Cấu hình thông tin cơ bản, biểu tượng máy chủ, kênh thông báo và các thiết lập toàn hệ thống cho <span class="text-primary font-bold">{{ serverName() }}</span>.
-      </p>
-    </div>
-    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 text-primary border border-primary/30 text-[11px] font-bold uppercase tracking-wider">
-      <mat-icon class="!w-3.5 !h-3.5 !text-[15px]">verified</mat-icon>
-      <span>Quyền Admin Máy Chủ</span>
-    </span>
+<div class="space-y-6 animate-fade-in pb-12">
+  <!-- Header (Khớp nguyên bản theo ảnh screenshot) -->
+  <div class="border-b border-hairline pb-4">
+    <h2 class="text-heading-3 font-bold text-ink tracking-tight">Hồ Sơ Máy Chủ</h2>
+    <p class="text-caption text-steel mt-1 max-w-2xl leading-relaxed">
+      Tùy chỉnh cách máy chủ của bạn xuất hiện trong liên kết mời và, nếu được bật, trong Khám Phá Máy Chủ và tin nhắn Kênh Thông Báo.
+    </p>
   </div>
 
-  <!-- Server Profile Edit Box -->
-  <div class="card-base space-y-6">
-    <div class="flex flex-col sm:flex-row items-start gap-6">
-      <!-- Server Icon Upload Box -->
-      <div class="w-24 h-24 rounded-2xl bg-surface-feature text-primary font-extrabold text-2xl flex items-center justify-center shadow-md relative group cursor-pointer shrink-0 border-2 border-primary/40">
-        <span>{{ initials() }}</span>
-        <div class="absolute inset-0 rounded-2xl bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-micro font-bold text-white p-1 text-center">
-          <mat-icon class="!w-5 !h-5 !text-[20px] mb-1">photo_camera</mat-icon>
-          Tải ảnh mới
-        </div>
-      </div>
-
-      <div class="flex-1 space-y-4 w-full">
-        <div>
-          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="input-srv-name">
-            Tên Máy Chủ
-          </label>
-          <input
-            id="input-srv-name"
-            type="text"
-            [value]="serverName()"
-            (input)="updateName($any($event.target).value)"
-            placeholder="Nhập tên máy chủ"
-            class="input-base"
-          />
-        </div>
-
-        <div>
-          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="input-srv-desc">
-            Mô Tả &amp; Giới Thiệu Máy Chủ
-          </label>
-          <textarea
-            id="input-srv-desc"
-            rows="3"
-            [value]="serverDescription()"
-            (input)="updateDescription($any($event.target).value)"
-            placeholder="Mô tả về chủ đề máy chủ của bạn..."
-            class="w-full bg-canvas border border-hairline-strong rounded-md px-3.5 py-2.5 text-body-sm text-ink focus:outline-none focus:border-primary resize-none transition-colors"
-          ></textarea>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- System Channel & Notifications -->
-  <div class="card-base space-y-4">
-    <h3 class="text-body-md-medium font-bold text-ink flex items-center gap-2">
-      <mat-icon class="text-primary">volume_up</mat-icon>
-      Kênh Hệ Thống &amp; Thông Báo Chào Mừng
-    </h3>
-
-    <div class="space-y-4 divide-y divide-hairline">
-      <div class="pt-1">
-        <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="select-sys-chan">
-          Kênh Gửi Tin Nhắn Chào Mừng Thành Viên Mới
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <!-- ══════════════════════════════════════════════════════════════════════
+         LEFT COLUMN: CẤU HÌNH THÔNG TIN MÁY CHỦ (8 COLS)
+         ══════════════════════════════════════════════════════════════════════ -->
+    <div class="lg:col-span-7 space-y-6">
+      <!-- 1. TÊN MÁY CHỦ -->
+      <div class="space-y-2">
+        <label class="block text-body-sm-medium font-bold text-ink" for="srv-name-input">
+          Tên
         </label>
-        <select
-          id="select-sys-chan"
-          [value]="systemChannel()"
-          (change)="updateSystemChannel($any($event.target).value)"
-          class="input-base cursor-pointer"
-        >
-          @for (chan of availableChannels(); track chan.id) {
-            <option [value]="chan.id"># {{ chan.name }} (Kênh {{ chan.type === 'voice' ? 'thoại' : 'chữ' }})</option>
-          }
-        </select>
-      </div>
-
-      <div class="flex items-center justify-between pt-4">
-        <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Gửi tin nhắn chào mừng tự động</span>
-          <span class="text-caption text-steel">Tự động phát lời chào thân thiện khi có người mới gia nhập máy chủ.</span>
-        </div>
         <input
-          type="checkbox"
-          [checked]="sendWelcomeMessage()"
-          (change)="toggleWelcomeMessage()"
-          class="w-5 h-5 accent-primary cursor-pointer"
+          id="srv-name-input"
+          type="text"
+          [value]="serverName()"
+          (input)="updateName($any($event.target).value)"
+          placeholder="Nhập tên máy chủ..."
+          class="input-base !bg-surface text-ink font-semibold"
         />
       </div>
+
+      <hr class="border-hairline" />
+
+      <!-- 2. BIỂU TƯỢNG MÁY CHỦ -->
+      <div class="space-y-2">
+        <label class="block text-body-sm-medium font-bold text-ink">
+          Biểu tượng
+        </label>
+        <p class="text-caption text-steel">
+          Chúng tôi khuyến nghị sử dụng hình ảnh có kích thước tối thiểu 512x512.
+        </p>
+
+        <div class="flex flex-wrap items-center gap-3 pt-1">
+          <label
+            for="srv-icon-file-input"
+            class="btn-primary !py-2 !px-4 !rounded-xl !text-caption font-bold cursor-pointer shadow-glow flex items-center gap-2"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px]">photo_camera</mat-icon>
+            <span>Thay Đổi Biểu Tượng Máy Chủ</span>
+          </label>
+
+          <input
+            id="srv-icon-file-input"
+            type="file"
+            accept="image/png, image/jpeg, image/webp, image/gif"
+            (change)="onServerIconSelected($event)"
+            class="hidden"
+          />
+
+          @if (serverIcon()) {
+            <button
+              type="button"
+              (click)="removeServerIcon()"
+              class="px-3 py-2 rounded-xl text-caption font-bold text-danger hover:bg-danger-surface border border-danger/30 transition-colors cursor-pointer"
+            >
+              Gỡ ảnh hiện tại
+            </button>
+          }
+        </div>
+
+        <!-- Preset Icons -->
+        <div class="pt-2">
+          <span class="text-micro text-stone block mb-1.5 font-medium">Hoặc chọn biểu tượng có sẵn:</span>
+          <div class="flex items-center gap-2 overflow-x-auto pb-1">
+            @for (preset of serverIconPresets; track preset.url) {
+              <button
+                type="button"
+                (click)="selectPresetIcon(preset.url)"
+                [matTooltip]="preset.label"
+                class="w-9 h-9 rounded-xl border-2 overflow-hidden transition-all transform hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+                [class.border-primary]="serverIcon() === preset.url"
+                [class.ring-2]="serverIcon() === preset.url"
+                [class.ring-primary/50]="serverIcon() === preset.url"
+                [class.border-hairline]="serverIcon() !== preset.url"
+              >
+                <img [src]="preset.url" [alt]="preset.label" class="w-full h-full object-cover bg-surface" />
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <hr class="border-hairline" />
+
+      <!-- 3. BIỂU NGỮ (BANNER GRADIENTS & COLORS - Y HỆT ẢNH) -->
+      <div class="space-y-3">
+        <label class="block text-body-sm-medium font-bold text-ink">
+          Biểu Ngữ
+        </label>
+        <p class="text-caption text-steel">
+          Chọn màu sắc dải banner đại diện xuất hiện trên thẻ giới thiệu và liên kết mời máy chủ.
+        </p>
+
+        <!-- 10 Gradient / Color Tiles -->
+        <div class="grid grid-cols-5 gap-2.5 pt-1">
+          @for (preset of bannerPresets; track preset.label) {
+            <button
+              type="button"
+              (click)="setBannerColor(preset.gradient)"
+              [matTooltip]="preset.label"
+              class="h-12 rounded-xl border-2 transition-all transform hover:scale-105 active:scale-95 cursor-pointer shadow-xs relative overflow-hidden"
+              [style.background]="preset.gradient"
+              [class.border-white]="bannerColor() === preset.gradient"
+              [class.ring-2]="bannerColor() === preset.gradient"
+              [class.ring-primary]="bannerColor() === preset.gradient"
+              [class.border-transparent]="bannerColor() !== preset.gradient"
+            >
+              @if (bannerColor() === preset.gradient) {
+                <div class="absolute inset-0 flex items-center justify-center bg-black/20 text-white">
+                  <mat-icon class="!w-4 !h-4 !text-[16px]">check</mat-icon>
+                </div>
+              }
+            </button>
+          }
+        </div>
+      </div>
+
+      <hr class="border-hairline" />
+
+      <!-- 4. ĐẶC ĐIỂM (TRAITS / TAGS - Y HỆT ẢNH) -->
+      <div class="space-y-3">
+        <label class="block text-body-sm-medium font-bold text-ink">
+          Đặc Điểm
+        </label>
+        <p class="text-caption text-steel">
+          Thêm tối đa 5 đặc điểm để thể hiện sở thích và tính cách của máy chủ.
+        </p>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+          @for (tag of tags(); track $index) {
+            <div class="relative">
+              <input
+                type="text"
+                [value]="tag"
+                (input)="updateTag($index, $any($event.target).value)"
+                placeholder="VD: 🎮 Gaming"
+                class="w-full bg-surface border border-hairline rounded-xl px-3 py-2 text-caption font-semibold text-ink focus:outline-none focus:border-primary transition-colors"
+              />
+            </div>
+          }
+        </div>
+      </div>
+
+      <hr class="border-hairline" />
+
+      <!-- 5. MÔ TẢ MÁY CHỦ -->
+      <div class="space-y-2">
+        <label class="block text-body-sm-medium font-bold text-ink" for="srv-desc-input">
+          Mô Tả &amp; Giới Thiệu Máy Chủ
+        </label>
+        <textarea
+          id="srv-desc-input"
+          rows="3"
+          [value]="serverDescription()"
+          (input)="updateDescription($any($event.target).value)"
+          placeholder="Mô tả về chủ đề máy chủ của bạn..."
+          class="w-full bg-surface border border-hairline rounded-xl px-3.5 py-2.5 text-body-sm text-ink focus:outline-none focus:border-primary resize-none transition-colors"
+        ></textarea>
+      </div>
+
+      <!-- 6. KÊNH HỆ THỐNG & CHÀO MỪNG -->
+      <div class="card-base space-y-4">
+        <h3 class="text-body-sm-medium font-bold text-ink flex items-center gap-2">
+          <mat-icon class="text-primary">volume_up</mat-icon>
+          Kênh Thông Báo Chào Mừng
+        </h3>
+
+        <div class="space-y-3">
+          <div>
+            <select
+              [value]="systemChannel()"
+              (change)="updateSystemChannel($any($event.target).value)"
+              class="input-base cursor-pointer !bg-canvas text-caption font-semibold"
+            >
+              @for (chan of availableChannels(); track chan.id) {
+                <option [value]="chan.id"># {{ chan.name }} (Kênh {{ chan.type === 'voice' ? 'thoại' : 'chữ' }})</option>
+              }
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <div>
+              <span class="block text-caption font-bold text-ink">Gửi tin nhắn chào mừng tự động</span>
+              <span class="text-micro text-steel">Tự động chào đón thành viên mới khi gia nhập máy chủ.</span>
+            </div>
+            <input
+              type="checkbox"
+              [checked]="sendWelcomeMessage()"
+              (change)="toggleWelcomeMessage()"
+              class="w-4 h-4 accent-primary cursor-pointer"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div class="flex items-center gap-3 pt-2">
+        <button
+          type="button"
+          (click)="saveServerOverview()"
+          class="btn-primary !py-2.5 !px-6 !rounded-xl font-bold shadow-glow cursor-pointer"
+        >
+          Lưu Thay Đổi
+        </button>
+        @if (savedNotice()) {
+          <span class="text-caption font-semibold text-success flex items-center gap-1 animate-fade-in">
+            <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+            Đã lưu hồ sơ máy chủ thành công!
+          </span>
+        }
+      </div>
     </div>
 
-    <div class="flex items-center gap-3 pt-4 border-t border-hairline">
-      <button
-        type="button"
-        (click)="saveServerOverview()"
-        class="btn-primary"
-      >
-        Lưu Thay Đổi
-      </button>
-      @if (savedNotice()) {
-        <span class="text-caption font-semibold text-success flex items-center gap-1">
-          <mat-icon class="!w-4 !h-4 !text-[16px]">check</mat-icon>
-          Đã lưu thông tin máy chủ thành công!
-        </span>
-      }
-    </div>
-  </div>
+    <!-- ══════════════════════════════════════════════════════════════════════
+         RIGHT COLUMN: LIVE SERVER CARD PREVIEW (Y HỆT ẢNH DISCORD SCREENSHOT)
+         ══════════════════════════════════════════════════════════════════════ -->
+    <div class="lg:col-span-5 sticky top-4 space-y-3">
+      <span class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider px-1">
+        XEM TRƯỚC HỒ SƠ MÁY CHỦ (LIVE PREVIEW)
+      </span>
 
-  <!-- Danger Zone for Server -->
-  <div class="rounded-xl border border-danger/40 bg-danger-surface p-6 space-y-3">
-    <h3 class="text-body-md-medium font-bold text-danger flex items-center gap-2">
-      <mat-icon class="text-danger">warning</mat-icon>
-      Vùng Nguy Hiểm Máy Chủ
-    </h3>
-    <p class="text-caption text-steel">
-      Xóa vĩnh viễn toàn bộ máy chủ này cùng tất cả kênh thoại, kênh tin nhắn và quyền hạn của thành viên. Hành động này không thể khôi phục.
-    </p>
-    <button
-      type="button"
-      class="btn-danger"
-    >
-      Xóa Máy Chủ Vĩnh Viễn
-    </button>
+      <!-- Preview Card Widget matching Discord Screenshot -->
+      <div class="rounded-3xl border border-hairline bg-surface overflow-hidden shadow-modal">
+        <!-- Banner -->
+        <div class="h-32 w-full transition-all relative" [style.background]="bannerColor()"></div>
+
+        <!-- Card Content with Overlapping Avatar -->
+        <div class="px-5 pb-5 pt-0 relative space-y-3">
+          <!-- Overlapping Server Avatar -->
+          <div class="-mt-10 mb-2">
+            <div class="w-20 h-20 rounded-2xl bg-surface p-1 shadow-card inline-block border-2 border-surface">
+              <div class="w-full h-full rounded-xl bg-surface-feature text-primary font-extrabold text-2xl flex items-center justify-center overflow-hidden border border-hairline">
+                @if (serverIcon()) {
+                  <img [src]="serverIcon()" [alt]="serverName()" class="w-full h-full object-cover" />
+                } @else {
+                  <span>{{ initials() }}</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Server Name & Stats -->
+          <div>
+            <h4 class="text-heading-5 font-bold text-ink tracking-tight">{{ serverName() }}</h4>
+            <div class="flex items-center gap-3 text-[11px] text-steel font-medium mt-1">
+              <span class="flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-success"></span>
+                <span>4 Trực tuyến</span>
+              </span>
+              <span>·</span>
+              <span class="flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-stone"></span>
+                <span>{{ settingsService.serverMembers().length }} thành viên</span>
+              </span>
+            </div>
+            <span class="block text-[11px] text-stone mt-1">
+              Thành lập từ thg 1 2026
+            </span>
+          </div>
+
+          <!-- Server Description -->
+          <p class="text-caption text-steel font-medium leading-relaxed bg-canvas/70 p-3 rounded-xl border border-hairline/60">
+            {{ serverDescription() || 'Chưa có mô tả cho máy chủ này.' }}
+          </p>
+
+          <!-- Traits / Tags Badges -->
+          <div class="flex flex-wrap gap-1.5 pt-1">
+            @for (tag of tags(); track $index) {
+              @if (tag) {
+                <span class="px-2.5 py-1 rounded-lg bg-surface-feature border border-hairline text-[11px] font-semibold text-ink">
+                  {{ tag }}
+                </span>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

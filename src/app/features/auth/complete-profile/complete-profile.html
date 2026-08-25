@@ -1,51 +1,53 @@
 <main class="flex min-h-dvh items-center justify-center bg-canvas px-4 py-12">
-  <div class="w-full max-w-auth-card rounded-md bg-surface p-8 shadow-modal">
+  <div class="w-full max-w-auth-card rounded-3xl bg-surface/90 border border-hairline/80 p-8 md:p-10 shadow-modal ring-1 ring-white/5 animate-fade-in">
     <header class="mb-8 text-center">
-      <p class="text-micro-uppercase text-steel uppercase">Nexus</p>
-      <h1 class="mt-2 text-heading-3 text-ink">Hoàn tất hồ sơ</h1>
-      <p class="mt-2 text-body-md text-slate">Chỉ còn vài thông tin nữa là bạn có thể bắt đầu.</p>
+      <span class="text-[11px] font-mono font-extrabold text-primary uppercase tracking-[0.1em] block mb-1">Bước cuối cùng</span>
+      <h1 class="text-heading-2 font-extrabold text-ink tracking-tight">Hoàn tất hồ sơ</h1>
+      <p class="mt-2 text-body-sm text-slate">Chỉ còn vài thông tin nữa là bạn có thể bắt đầu.</p>
     </header>
 
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="space-y-4">
       @if (errorMessage(); as message) {
         <div
           id="complete-profile-error"
           role="alert"
           tabindex="-1"
-          class="mb-5 rounded-sm border border-danger-border bg-danger-surface px-4 py-3 text-body-sm text-ink"
+          class="rounded-xl border border-danger-border bg-danger-surface px-4 py-3 text-body-sm text-ink flex items-center gap-2.5 animate-slide-up"
         >
-          {{ message }}
+          <mat-icon class="text-danger !w-5 !h-5 !text-[20px]">error_outline</mat-icon>
+          <span>{{ message }}</span>
         </div>
       }
 
-      <div class="mb-5">
-        <label for="displayName" class="mb-2 block text-body-sm-medium text-ink">
-          Tên hiển thị <span class="text-steel">(không bắt buộc)</span>
+      <div>
+        <label for="displayName" class="mb-1.5 block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
+          Tên hiển thị <span class="text-steel font-normal">(không bắt buộc)</span>
         </label>
         <input
           id="displayName"
           type="text"
           formControlName="displayName"
           autocomplete="nickname"
+          placeholder="Ví dụ: Nguyễn Văn A"
           [attr.aria-invalid]="showError('displayName')"
           [attr.aria-describedby]="
             showError('displayName') ? 'displayName-error' : 'displayName-hint'
           "
-          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-steel focus:border-primary aria-invalid:border-danger"
+          class="input-base !rounded-xl"
         />
         @if (showError('displayName')) {
-          <p id="displayName-error" class="mt-2 text-body-sm text-danger">
+          <p id="displayName-error" class="mt-1.5 text-caption text-danger">
             Tên hiển thị tối đa {{ displayNameMaxLength }} ký tự.
           </p>
         } @else {
-          <p id="displayName-hint" class="mt-2 text-caption text-steel">
+          <p id="displayName-hint" class="mt-1 text-micro text-stone">
             Tên người khác nhìn thấy. Để trống thì dùng tên đăng nhập.
           </p>
         }
       </div>
 
-      <div class="mb-5">
-        <label for="username" class="mb-2 block text-body-sm-medium text-ink">
+      <div>
+        <label for="username" class="mb-1.5 block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
           Tên đăng nhập <span aria-hidden="true" class="text-danger">*</span>
           <span class="sr-only">(bắt buộc)</span>
         </label>
@@ -54,12 +56,13 @@
           type="text"
           formControlName="username"
           autocomplete="username"
+          placeholder="tendangnhap"
           [attr.aria-invalid]="showError('username')"
           [attr.aria-describedby]="showError('username') ? 'username-error' : 'username-hint'"
-          class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-steel focus:border-primary aria-invalid:border-danger"
+          class="input-base !rounded-xl font-mono"
         />
         @if (showError('username')) {
-          <p id="username-error" class="mt-2 text-body-sm text-danger">
+          <p id="username-error" class="mt-1.5 text-caption text-danger">
             @if (form.controls.username.hasError('required')) {
               Vui lòng nhập tên đăng nhập.
             } @else {
@@ -67,14 +70,14 @@
             }
           </p>
         } @else {
-          <p id="username-hint" class="mt-2 text-caption text-steel">
+          <p id="username-hint" class="mt-1 text-micro text-stone">
             3–32 ký tự. Chữ hoa sẽ được lưu thành chữ thường.
           </p>
         }
       </div>
 
-      <fieldset formGroupName="birthdate" class="mb-6">
-        <legend class="mb-2 text-body-sm-medium text-ink">
+      <fieldset formGroupName="birthdate" class="pt-1">
+        <legend class="mb-1.5 text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
           Ngày sinh <span aria-hidden="true" class="text-danger">*</span>
           <span class="sr-only">(bắt buộc)</span>
         </legend>
@@ -84,7 +87,7 @@
             aria-label="Ngày"
             [attr.aria-invalid]="showBirthdateError()"
             [attr.aria-describedby]="showBirthdateError() ? 'birthdate-error' : null"
-            class="w-full rounded-sm border border-hairline-strong bg-canvas px-3 py-3 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
+            class="bg-canvas border border-hairline-strong rounded-xl px-3 py-2.5 text-body-sm text-ink focus:border-primary focus:outline-none transition-colors cursor-pointer"
           >
             <option value="" disabled>Ngày</option>
             @for (day of days; track day) {
@@ -96,7 +99,7 @@
             formControlName="month"
             aria-label="Tháng"
             [attr.aria-invalid]="showBirthdateError()"
-            class="w-full rounded-sm border border-hairline-strong bg-canvas px-3 py-3 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
+            class="bg-canvas border border-hairline-strong rounded-xl px-3 py-2.5 text-body-sm text-ink focus:border-primary focus:outline-none transition-colors cursor-pointer"
           >
             <option value="" disabled>Tháng</option>
             @for (month of months; track month) {
@@ -108,7 +111,7 @@
             formControlName="year"
             aria-label="Năm"
             [attr.aria-invalid]="showBirthdateError()"
-            class="w-full rounded-sm border border-hairline-strong bg-canvas px-3 py-3 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
+            class="bg-canvas border border-hairline-strong rounded-xl px-3 py-2.5 text-body-sm text-ink focus:border-primary focus:outline-none transition-colors cursor-pointer"
           >
             <option value="" disabled>Năm</option>
             @for (year of years; track year) {
@@ -117,7 +120,7 @@
           </select>
         </div>
         @if (showBirthdateError()) {
-          <p id="birthdate-error" class="mt-2 text-body-sm text-danger">
+          <p id="birthdate-error" class="mt-1.5 text-caption text-danger">
             @switch (true) {
               @case (form.controls.birthdate.hasError('required')) {
                 Vui lòng chọn đủ ngày, tháng và năm sinh.
@@ -137,9 +140,9 @@
         type="submit"
         [disabled]="submitting()"
         [attr.aria-busy]="submitting()"
-        class="w-full rounded-full bg-primary px-4 py-3 text-button-md text-on-primary hover:bg-primary-soft disabled:cursor-not-allowed disabled:bg-hairline disabled:text-steel"
+        class="btn-primary w-full !py-3.5 !rounded-xl shadow-glow cursor-pointer mt-4"
       >
-        {{ submitting() ? 'Đang lưu…' : 'Hoàn tất' }}
+        {{ submitting() ? 'Đang lưu…' : 'Hoàn tất hồ sơ' }}
       </button>
 
       <p aria-live="polite" class="sr-only">

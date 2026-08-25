@@ -9,12 +9,33 @@
 ></button>
 
 <aside
-  class="context-panel flex h-full min-h-0 flex-col bg-surface"
+  class="context-panel flex h-full min-h-0 flex-col bg-surface relative"
   [class.context-panel--open]="open()"
   [class.context-panel--pinned]="pinned()"
+  [style.width.px]="open() ? layoutService.memberWidth() : null"
+  [style.min-width.px]="open() ? layoutService.memberWidth() : null"
+  [style.max-width.px]="open() ? layoutService.memberWidth() : null"
   [attr.aria-label]="title()"
   role="complementary"
 >
+  <!-- Resizable Divider Handle on the Left edge of Member Panel -->
+  @if (open()) {
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      tabindex="0"
+      aria-label="Thay đổi độ rộng bảng thành viên"
+      [attr.aria-valuemin]="memberMinWidth"
+      [attr.aria-valuemax]="memberMaxWidth"
+      [attr.aria-valuenow]="layoutService.memberWidth()"
+      class="pane-resize-handle pane-resize-handle--member"
+      [class.pane-resize-handle--active]="layoutService.isDraggingMember()"
+      (pointerdown)="startMemberResize($event)"
+      (dblclick)="resetMemberWidth()"
+      (keydown)="handleMemberKeyDown($event)"
+    ></div>
+  }
+
   <header class="context-panel__header flex min-h-14 shrink-0 items-center gap-2 px-4 py-2">
     <h2 class="min-w-0 flex-1 truncate text-heading-5 text-charcoal">{{ title() }}</h2>
 

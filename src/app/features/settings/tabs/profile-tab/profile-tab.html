@@ -1,279 +1,438 @@
-<div class="space-y-8 animate-fade-in">
-  <!-- Header -->
-  <div class="border-b border-hairline pb-4">
-    <span class="block text-[11px] font-mono font-extrabold text-primary uppercase tracking-[0.1em] mb-1">
-      Hồ sơ cá nhân
-    </span>
-    <h2 class="text-heading-3 font-extrabold text-ink tracking-tight">Hồ Sơ &amp; Nhận Diện</h2>
-    <p class="text-caption text-steel mt-1 max-w-xl">
-      Tùy biến diện mạo, avatar, tiểu sử và banner của bạn trên toàn bộ nền tảng NexusCord.
-    </p>
-  </div>
-
-  <!-- Profile Segmented Switcher (Main Profile vs Server Profiles) -->
-  <div class="inline-flex items-center p-1 bg-surface border border-hairline rounded-full shadow-2xs">
-    <button
-      type="button"
-      (click)="activeProfileSection.set('main')"
-      class="px-5 py-1.5 rounded-full text-caption font-bold transition-all cursor-pointer"
-      [class.bg-primary]="activeProfileSection() === 'main'"
-      [class.text-on-primary]="activeProfileSection() === 'main'"
-      [class.shadow-xs]="activeProfileSection() === 'main'"
-      [class.text-steel]="activeProfileSection() !== 'main'"
-      [class.hover:text-ink]="activeProfileSection() !== 'main'"
-    >
-      Hồ Sơ Chính
-    </button>
-
-    <button
-      type="button"
-      (click)="activeProfileSection.set('server')"
-      class="px-5 py-1.5 rounded-full text-caption font-bold transition-all cursor-pointer"
-      [class.bg-primary]="activeProfileSection() === 'server'"
-      [class.text-on-primary]="activeProfileSection() === 'server'"
-      [class.shadow-xs]="activeProfileSection() === 'server'"
-      [class.text-steel]="activeProfileSection() !== 'server'"
-      [class.hover:text-ink]="activeProfileSection() !== 'server'"
-    >
-      Hồ Sơ Theo Máy Chủ
-    </button>
-  </div>
-
-  @if (activeProfileSection() === 'server') {
-    <div class="p-4 rounded-2xl bg-surface border border-hairline shadow-card flex items-center justify-between gap-4 animate-slide-up">
-      <div>
-        <span class="block text-body-sm-medium font-bold text-ink">Chọn máy chủ muốn tùy biến</span>
-        <span class="text-caption text-steel">Đặt tên hiển thị và avatar riêng cho từng server cụ thể</span>
-      </div>
-      <select
-        [ngModel]="selectedServerId()"
-        (ngModelChange)="selectedServerId.set($event)"
-        class="bg-canvas border border-hairline-strong rounded-xl px-4 py-2 text-body-sm font-semibold text-ink focus:outline-none focus:border-primary transition-colors cursor-pointer"
+<div class="space-y-4 animate-fade-in select-none">
+  <!-- Profile Segmented Switcher (Hồ Sơ Chính vs Hồ Sơ Theo Máy Chủ) -->
+  <div class="flex items-center justify-between pb-3 border-b border-hairline/60 gap-4">
+    <div class="inline-flex items-center p-1 bg-surface border border-hairline rounded-full shadow-2xs">
+      <button
+        type="button"
+        (click)="activeProfileSection.set('main')"
+        class="px-4 py-1 rounded-full text-caption font-bold transition-all cursor-pointer"
+        [class.bg-primary]="activeProfileSection() === 'main'"
+        [class.text-on-primary]="activeProfileSection() === 'main'"
+        [class.shadow-xs]="activeProfileSection() === 'main'"
+        [class.text-steel]="activeProfileSection() !== 'main'"
+        [class.hover:text-ink]="activeProfileSection() !== 'main'"
       >
-        @for (s of serverList; track s.id) {
-          <option [value]="s.id">{{ s.name }}</option>
-        }
-      </select>
+        Hồ Sơ Chính
+      </button>
+
+      <button
+        type="button"
+        (click)="activeProfileSection.set('server')"
+        class="px-4 py-1 rounded-full text-caption font-bold transition-all cursor-pointer"
+        [class.bg-primary]="activeProfileSection() === 'server'"
+        [class.text-on-primary]="activeProfileSection() === 'server'"
+        [class.shadow-xs]="activeProfileSection() === 'server'"
+        [class.text-steel]="activeProfileSection() !== 'server'"
+        [class.hover:text-ink]="activeProfileSection() !== 'server'"
+      >
+        Hồ Sơ Theo Máy Chủ
+      </button>
     </div>
-  }
 
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-    <!-- Left Column: Form Controls (7 cols) -->
-    <div class="lg:col-span-7 space-y-6">
-      <!-- Ảnh đại diện & ảnh bìa — gửi thẳng lên API hồ sơ, không chờ nút Lưu. -->
-      <div class="card-base">
-        <app-profile-images />
+    @if (activeProfileSection() === 'server') {
+      <div class="flex items-center gap-2 animate-slide-up">
+        <span class="text-micro font-extrabold text-stone uppercase">Máy chủ:</span>
+        <select
+          [ngModel]="selectedServerId()"
+          (ngModelChange)="selectedServerId.set($event)"
+          class="bg-canvas border border-hairline rounded-xl px-3 py-1 text-caption font-bold text-ink focus:outline-none focus:border-primary transition-colors cursor-pointer shadow-2xs"
+        >
+          @for (s of serverList; track s.id) {
+            <option [value]="s.id">{{ s.name }}</option>
+          }
+        </select>
       </div>
+    }
+  </div>
 
-      <div class="card-base space-y-5">
-        <!-- Display Name Input -->
-        <div>
-          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="profile-display-name">
-            TÊN HIỂN THỊ
-          </label>
-          <input
-            id="profile-display-name"
-            type="text"
-            [ngModel]="settingsService.editDisplayName()"
-            (ngModelChange)="settingsService.editDisplayName.set($event)"
-            maxlength="32"
-            placeholder="Nhập tên hiển thị của bạn"
-            class="input-base !rounded-xl"
-          />
-          <div class="flex justify-between text-micro text-stone mt-1.5 px-1">
-            <span>Tên này hiển thị trong phòng chat và danh sách bạn bè.</span>
-            <span class="font-mono">{{ settingsService.editDisplayName().length }}/32</span>
+  <!-- ══ 3-COLUMN MAIN LAYOUT (Chuẩn Ảnh 3: Thiết lập | Thẻ hồ sơ | Hoạt động Trò chơi) ══ -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+    <!-- ══ CỘT 1: THIẾT LẬP HỒ SƠ (Left 4 cols) ══ -->
+    <div class="lg:col-span-4 space-y-3">
+      <!-- 1. Avatar Customizer -->
+      <div class="p-3.5 rounded-2xl bg-surface border border-hairline shadow-2xs space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
+            ẢNH ĐẠI DIỆN
+          </span>
+          @if (settingsService.editAvatarUrl()) {
+            <button
+              type="button"
+              (click)="removeAvatar()"
+              class="text-micro text-danger hover:underline font-bold cursor-pointer"
+            >
+              Gỡ avatar
+            </button>
+          }
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="relative w-11 h-11 rounded-full overflow-hidden bg-surface-feature border border-hairline shadow-xs shrink-0">
+            @if (settingsService.editAvatarUrl()) {
+              <img [src]="settingsService.editAvatarUrl()" alt="Avatar" class="w-full h-full object-cover" />
+            } @else {
+              <app-avatar [name]="settingsService.editDisplayName() || 'Nexus'" size="md" />
+            }
           </div>
-        </div>
 
-        <!-- Pronouns Input -->
-        <div>
-          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="profile-pronouns">
-            ĐẠI TỪ XƯNG HÔ
-          </label>
-          <input
-            id="profile-pronouns"
-            type="text"
-            [ngModel]="settingsService.editPronouns()"
-            (ngModelChange)="settingsService.editPronouns.set($event)"
-            maxlength="24"
-            placeholder="Ví dụ: anh ấy / he/him"
-            class="input-base !rounded-xl"
-          />
-        </div>
-
-        <!-- Custom Status Input -->
-        <div>
-          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="profile-custom-status">
-            TRẠNG THÁI TÙY CHỈNH
-          </label>
-          <div class="relative flex items-center">
-            <mat-icon class="absolute left-3.5 !w-4.5 !h-4.5 !text-[18px] text-steel pointer-events-none">
-              chat_bubble_outline
-            </mat-icon>
+          <div class="flex-1 min-w-0 space-y-1">
+            <label
+              for="profile-tab-avatar-file"
+              class="py-1 px-3 rounded-xl bg-primary hover:opacity-90 active:scale-98 text-on-primary text-[11px] font-bold cursor-pointer shadow-xs inline-flex items-center gap-1.5 transition-all"
+            >
+              <mat-icon class="!w-3.5 !h-3.5 !text-[15px]">upload</mat-icon>
+              <span>Tải ảnh từ máy</span>
+            </label>
             <input
-              id="profile-custom-status"
-              type="text"
-              [ngModel]="settingsService.editCustomStatus()"
-              (ngModelChange)="settingsService.editCustomStatus.set($event)"
-              maxlength="60"
-              placeholder="Bạn đang nghĩ gì thế?"
-              class="input-base !rounded-xl !pl-11"
+              id="profile-tab-avatar-file"
+              type="file"
+              accept="image/*"
+              (change)="onAvatarFileSelected($event)"
+              class="hidden"
             />
           </div>
         </div>
 
-        <!-- About Me / Bio Input -->
-        <div>
-          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="profile-bio">
-            TIỂU SỬ / GIỚI THIỆU BẢN THÂN
-          </label>
-          <textarea
-            id="profile-bio"
-            rows="4"
-            [ngModel]="settingsService.editBio()"
-            (ngModelChange)="settingsService.editBio.set($event)"
-            maxlength="190"
-            placeholder="Chia sẻ một chút về bản thân, sở thích hay công việc của bạn..."
-            class="w-full rounded-xl bg-canvas border border-hairline-strong p-3.5 text-body-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none transition-colors resize-none"
-          ></textarea>
-          <div class="flex justify-between text-micro text-stone mt-1.5 px-1">
-            <span>Hỗ trợ định dạng văn bản giới thiệu.</span>
-            <span class="font-mono">{{ settingsService.editBio().length }}/190</span>
-          </div>
+        <!-- Avatar Presets -->
+        <div class="pt-2 border-t border-hairline/60 flex items-center gap-2 overflow-x-auto pb-0.5 custom-scrollbar">
+          @for (preset of avatarPresets; track preset.url) {
+            <button
+              type="button"
+              (click)="selectAvatarPreset(preset.url)"
+              [matTooltip]="preset.label"
+              class="w-6.5 h-6.5 rounded-full border-2 overflow-hidden transition-transform hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+              [class.border-primary]="settingsService.editAvatarUrl() === preset.url"
+              [class.ring-2]="settingsService.editAvatarUrl() === preset.url"
+              [class.ring-primary/40]="settingsService.editAvatarUrl() === preset.url"
+              [class.border-hairline]="settingsService.editAvatarUrl() !== preset.url"
+            >
+              <img [src]="preset.url" [alt]="preset.label" class="w-full h-full object-cover bg-surface" />
+            </button>
+          }
         </div>
       </div>
 
-      <!-- Banner Color Palette Customizer -->
-      <div class="card-base space-y-3">
+      <!-- 2. Display Name & Pronouns -->
+      <div class="p-3.5 rounded-2xl bg-surface border border-hairline shadow-2xs space-y-2.5">
+        <div>
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="p-display-name">
+            TÊN HIỂN THỊ
+          </label>
+          <input
+            id="p-display-name"
+            type="text"
+            [ngModel]="settingsService.editDisplayName()"
+            (ngModelChange)="settingsService.editDisplayName.set($event)"
+            maxlength="32"
+            placeholder="Nhập tên hiển thị..."
+            class="w-full bg-canvas border border-hairline rounded-xl px-3 py-1.5 text-caption font-bold text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
+          />
+        </div>
+
+        <div>
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="p-pronouns">
+            DANH XƯNG / PRONOUNS
+          </label>
+          <input
+            id="p-pronouns"
+            type="text"
+            [ngModel]="settingsService.editPronouns()"
+            (ngModelChange)="settingsService.editPronouns.set($event)"
+            maxlength="24"
+            placeholder="Ví dụ: he/him"
+            class="w-full bg-canvas border border-hairline rounded-xl px-3 py-1.5 text-caption font-medium text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
+          />
+        </div>
+
+        <div>
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="p-status">
+            TRẠNG THÁI TÙY CHỈNH
+          </label>
+          <input
+            id="p-status"
+            type="text"
+            [ngModel]="settingsService.editCustomStatus()"
+            (ngModelChange)="settingsService.editCustomStatus.set($event)"
+            maxlength="60"
+            placeholder="Bạn đang nghĩ gì thế?..."
+            class="w-full bg-canvas border border-hairline rounded-xl px-3 py-1.5 text-caption font-medium text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
+          />
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider" for="p-bio">
+              GIỚI THIỆU BẢN THÂN
+            </label>
+            <span class="text-[10px] font-mono text-steel">{{ settingsService.editBio().length }}/190</span>
+          </div>
+          <textarea
+            id="p-bio"
+            rows="2"
+            [ngModel]="settingsService.editBio()"
+            (ngModelChange)="settingsService.editBio.set($event)"
+            maxlength="190"
+            placeholder="Giới thiệu bản thân..."
+            class="w-full bg-canvas border border-hairline rounded-xl p-2.5 text-caption text-ink font-medium focus:outline-none focus:border-primary transition-colors resize-none shadow-2xs"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- 3. Banner Color Palette -->
+      <div class="p-3.5 rounded-2xl bg-surface border border-hairline shadow-2xs space-y-2">
         <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
           MÀU BANNER CHỦ ĐẠO
         </label>
-        <div class="flex flex-wrap gap-3 items-center">
+        <div class="flex flex-wrap gap-2 items-center">
           @for (preset of colorPresets; track preset.hex) {
             <button
               type="button"
               (click)="selectBannerColor(preset.hex)"
               [matTooltip]="preset.label"
-              class="w-8 h-8 rounded-full border-2 transition-all transform hover:scale-110 active:scale-95 flex items-center justify-center shadow-sm cursor-pointer"
+              class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
               [style.backgroundColor]="preset.hex"
               [class.border-primary]="settingsService.editBannerColor() === preset.hex"
               [class.ring-2]="settingsService.editBannerColor() === preset.hex"
-              [class.ring-primary/50]="settingsService.editBannerColor() === preset.hex"
-              [class.border-white/20]="settingsService.editBannerColor() !== preset.hex"
+              [class.ring-primary/40]="settingsService.editBannerColor() === preset.hex"
+              [class.border-transparent]="settingsService.editBannerColor() !== preset.hex"
             >
               @if (settingsService.editBannerColor() === preset.hex) {
-                <mat-icon class="!w-4 !h-4 !text-[16px] text-white drop-shadow">check</mat-icon>
+                <mat-icon class="!w-3 !h-3 !text-[12px] text-white drop-shadow">check</mat-icon>
               }
             </button>
           }
 
-          <!-- Custom Hex Picker -->
-          <div class="flex items-center gap-2 ml-2 pl-2 border-l border-hairline">
-            <input
-              type="color"
-              [ngModel]="settingsService.editBannerColor()"
-              (ngModelChange)="settingsService.editBannerColor.set($event)"
-              class="w-8 h-8 rounded-full border border-hairline bg-transparent cursor-pointer"
-            />
-            <span class="text-caption font-mono font-bold text-steel uppercase">{{ settingsService.editBannerColor() }}</span>
+          <input
+            type="color"
+            [ngModel]="settingsService.editBannerColor()"
+            (ngModelChange)="settingsService.editBannerColor.set($event)"
+            class="w-6 h-6 rounded-full border border-hairline bg-transparent cursor-pointer ml-1"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CỘT 2: THẺ HỒ SƠ XEM TRƯỚC THỜI GIAN THỰC (Center 4 cols) ══ -->
+    <div class="lg:col-span-4 space-y-2">
+      <div class="flex items-center justify-between px-1">
+        <span class="text-micro font-extrabold text-stone uppercase tracking-wider">
+          XEM TRƯỚC THẺ HỒ SƠ
+        </span>
+        <span class="text-[10px] text-primary font-bold">Thời gian thực</span>
+      </div>
+
+      <!-- Discord Profile Card Preview -->
+      <div class="w-full rounded-2xl overflow-hidden bg-surface border border-hairline shadow-card text-ink select-none animate-slide-up">
+        <!-- Banner Header -->
+        <div
+          class="h-20 w-full transition-colors duration-300 relative"
+          [style.backgroundColor]="settingsService.editBannerColor()"
+        >
+          <div class="absolute inset-0 bg-black/10"></div>
+          <div class="absolute top-2.5 right-2.5 flex items-center gap-1 bg-black/35 backdrop-blur-xs border border-white/10 rounded-full px-2 py-0.5 shadow-2xs">
+            <mat-icon class="!w-3 !h-3 !text-[13px] text-primary" matTooltip="Nexus Member">bolt</mat-icon>
+            <mat-icon class="!w-3 !h-3 !text-[13px] text-primary" matTooltip="Verified">verified_user</mat-icon>
+            <mat-icon class="!w-3 !h-3 !text-[13px] text-amber-400" matTooltip="Supporter">diamond</mat-icon>
+          </div>
+        </div>
+
+        <!-- Avatar & Info -->
+        <div class="px-3.5 pb-3.5 pt-0 relative">
+          <div class="flex items-end justify-between -mt-8 mb-2">
+            <div class="relative w-15 h-15 rounded-full bg-surface p-1 shadow-card ring-2 ring-surface">
+              @if (settingsService.editAvatarUrl()) {
+                <img [src]="settingsService.editAvatarUrl()" alt="Avatar" class="w-full h-full rounded-full object-cover bg-surface-feature" />
+              } @else {
+                <app-avatar [name]="settingsService.editDisplayName() || 'Nexus'" size="lg" />
+              }
+              <span class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-success border-2 border-surface flex items-center justify-center"></span>
+            </div>
+
+            @if (settingsService.editCustomStatus()) {
+              <div class="bg-surface-feature/90 backdrop-blur-xs border border-hairline rounded-xl px-2 py-0.5 text-[10px] text-ink shadow-2xs max-w-[130px] truncate mb-1">
+                💬 {{ settingsService.editCustomStatus() }}
+              </div>
+            }
+          </div>
+
+          <div class="rounded-xl bg-canvas p-3 border border-hairline space-y-2 shadow-2xs">
+            <div>
+              <h4 class="text-body-sm font-extrabold text-ink truncate leading-tight">
+                {{ settingsService.editDisplayName() || 'Tên hiển thị' }}
+              </h4>
+              <div class="flex items-center gap-1.5 text-[11px] text-steel mt-0.5">
+                <span class="font-mono">&#64;{{ settingsService.editUsername() || 'username' }}</span>
+                @if (settingsService.editPronouns()) {
+                  <span>•</span>
+                  <span class="text-micro font-bold bg-surface-feature px-1.5 py-0.2 rounded text-primary border border-hairline">
+                    {{ settingsService.editPronouns() }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <div class="pt-1.5 border-t border-hairline">
+              <span class="block text-[9px] font-extrabold uppercase tracking-wider text-stone mb-0.5">VỀ TÔI</span>
+              <p class="text-[11px] text-ink/80 leading-snug whitespace-pre-line break-words font-medium">
+                {{ settingsService.editBio() || 'Chưa có thông tin giới thiệu.' }}
+              </p>
+            </div>
+
+            <div class="pt-1.5 border-t border-hairline flex items-center justify-between text-[10px] text-steel">
+              <span>Thành viên từ</span>
+              <span class="font-bold text-ink">Tháng 8, 2026</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Right Column: Live Interactive Profile Card Preview (5 cols) -->
-    <div class="lg:col-span-5">
-      <div class="sticky top-6">
-        <div class="flex items-center justify-between mb-2 px-1">
-          <span class="text-[11px] font-mono font-extrabold text-stone uppercase tracking-wider">
-            Xem trước thẻ hồ sơ
-          </span>
-          <span class="text-micro text-primary font-bold">Thời gian thực</span>
+    <!-- ══ CỘT 3: HOẠT ĐỘNG TRÒ CHƠI & WIDGETS (Right 4 cols - Ảnh 3) ══ -->
+    <div class="lg:col-span-4 p-3.5 rounded-2xl bg-surface border border-hairline shadow-2xs space-y-3.5 select-none">
+      <!-- Tab Bar: Bảng | Hoạt động | Danh Sách (Ảnh 3) -->
+      <div class="flex items-center justify-between border-b border-hairline pb-2">
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            (click)="activeTab.set('board')"
+            class="text-[11.5px] font-extrabold transition-colors cursor-pointer"
+            [class.text-primary]="activeTab() === 'board'"
+            [class.text-steel]="activeTab() !== 'board'"
+          >
+            Bảng
+          </button>
+          <button
+            type="button"
+            (click)="activeTab.set('activity')"
+            class="text-[11.5px] font-extrabold transition-colors cursor-pointer"
+            [class.text-primary]="activeTab() === 'activity'"
+            [class.text-steel]="activeTab() !== 'activity'"
+          >
+            Hoạt động
+          </button>
+          <button
+            type="button"
+            (click)="activeTab.set('wishlist')"
+            class="text-[11.5px] font-extrabold transition-colors cursor-pointer"
+            [class.text-primary]="activeTab() === 'wishlist'"
+            [class.text-steel]="activeTab() !== 'wishlist'"
+          >
+            Danh Sách
+          </button>
         </div>
 
-        <!-- Card Container (Floating 3D Aesthetic) -->
-        <div class="overflow-hidden rounded-3xl border border-hairline/80 bg-surface shadow-modal max-w-[340px] mx-auto lg:mx-0 ring-1 ring-white/5 transition-all">
-          <!-- Card Banner Header — có ảnh bìa thật thì hiện ảnh, chưa có mới
-               rơi về màu chủ đạo đang chọn. -->
-          <div
-            class="h-32 w-full transition-colors duration-300 relative overflow-hidden"
-            [style.backgroundColor]="settingsService.editBannerColor()"
-          >
-            @if (store.profile()?.bannerUrl; as banner) {
-              <img [src]="banner" alt="" decoding="async" class="size-full object-cover" />
-            }
-            <div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent"></div>
-            <div class="absolute top-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-2.5 py-1 shadow-xs">
-              <mat-icon class="!w-3.5 !h-3.5 !text-[15px] text-primary" matTooltip="Người dùng Nexus">bolt</mat-icon>
-              <mat-icon class="!w-3.5 !h-3.5 !text-[15px] text-primary" matTooltip="Xác minh sớm">verified_user</mat-icon>
-              <mat-icon class="!w-3.5 !h-3.5 !text-[15px] text-gold" matTooltip="Sáng lập viên">diamond</mat-icon>
-            </div>
-          </div>
+        <button
+          type="button"
+          class="px-2 py-0.5 rounded-lg border border-hairline bg-canvas hover:bg-surface-feature text-[10.5px] font-bold text-ink transition-colors cursor-pointer shadow-2xs"
+        >
+          + Widget
+        </button>
+      </div>
 
-          <!-- Avatar & Body Content -->
-          <div class="relative px-5 pb-6 pt-0">
-            <div class="flex justify-between items-end -mt-12 mb-3.5">
-              <div class="rounded-full ring-4 ring-surface bg-surface shadow-md">
-                <app-avatar
-                  [name]="settingsService.editDisplayName() || 'Nexus'"
-                  [src]="store.profile()?.avatarUrl ?? null"
-                  size="xl"
-                  presence="online"
-                  ring="surface"
+      <!-- 1. Trò Chơi Luân Phiên (Ảnh 3) -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="block text-caption font-extrabold text-ink leading-tight">Trò Chơi Luân Phiên</span>
+            <span class="text-[10px] text-steel">Thêm tối đa 5 trò chơi</span>
+          </div>
+          <button
+            type="button"
+            class="w-5 h-5 rounded-md border border-hairline bg-canvas text-steel hover:text-ink flex items-center justify-center cursor-pointer shadow-2xs"
+          >
+            <mat-icon class="!w-3 !h-3 !text-[13px]">add</mat-icon>
+          </button>
+        </div>
+
+        <!-- Game Cards Stack -->
+        <div class="space-y-2">
+          @for (game of currentGames(); track game.title; let gIdx = $index) {
+            <div class="group relative flex items-center gap-2.5 p-2 rounded-xl border border-hairline bg-canvas hover:bg-surface-feature/40 transition-colors shadow-2xs">
+              <div class="w-10 h-14 rounded-lg overflow-hidden bg-surface-feature shrink-0 border border-hairline shadow-xs">
+                <img
+                  [src]="game.image"
+                  [alt]="game.title"
+                  (error)="onImageError($event, game.title)"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
-            </div>
 
-            <!-- Profile Info Box -->
-            <div class="rounded-2xl bg-canvas p-4 border border-hairline space-y-3.5 shadow-2xs">
-              <div>
-                <h4 class="text-body-md font-bold text-ink truncate">
-                  {{ settingsService.editDisplayName() || 'Tên hiển thị' }}
-                </h4>
-                <div class="flex items-center gap-2 text-caption text-steel mt-0.5">
-                  <span class="font-mono">&#64;{{ settingsService.editUsername() || 'username' }}</span>
-                  @if (settingsService.editPronouns()) {
-                    <span>•</span>
-                    <span class="text-micro font-semibold bg-surface-feature px-2 py-0.5 rounded-full text-primary border border-hairline">
-                      {{ settingsService.editPronouns() }}
+              <div class="flex-1 min-w-0 space-y-1">
+                <span class="block text-caption font-extrabold text-ink truncate leading-tight">
+                  {{ game.title }}
+                </span>
+
+                <div class="flex flex-wrap items-center gap-1">
+                  @for (tag of game.tags; track tag; let tIdx = $index) {
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md border border-hairline bg-surface text-[9.5px] font-bold text-steel shadow-2xs">
+                      <span>{{ tag }}</span>
+                      <button
+                        type="button"
+                        (click)="removeRotatingTag(gIdx, tIdx)"
+                        class="hover:text-danger cursor-pointer"
+                      >
+                        ✕
+                      </button>
                     </span>
                   }
+                  <button
+                    type="button"
+                    class="px-1.5 py-0.2 rounded-md border border-hairline border-dashed text-[9.5px] font-bold text-steel hover:text-primary hover:border-primary cursor-pointer transition-colors"
+                  >
+                    + Tag
+                  </button>
                 </div>
               </div>
 
-              <!-- Custom Status Bubble -->
-              @if (settingsService.editCustomStatus()) {
-                <div class="flex items-center gap-2 text-caption font-medium text-ink bg-surface rounded-xl px-3 py-2 border border-hairline shadow-2xs">
-                  <mat-icon class="!w-4 !h-4 !text-[16px] text-steel shrink-0">chat_bubble_outline</mat-icon>
-                  <span class="truncate">{{ settingsService.editCustomStatus() }}</span>
-                </div>
-              }
-
-              <!-- Divider -->
-              <div class="border-t border-hairline"></div>
-
-              <!-- About Me Content -->
-              <div>
-                <span class="block text-[10px] font-mono font-extrabold text-stone uppercase tracking-wider mb-1">
-                  Về tôi
-                </span>
-                <p class="text-caption text-slate leading-relaxed break-words whitespace-pre-wrap">
-                  {{ settingsService.editBio() || 'Chưa có thông tin giới thiệu.' }}
-                </p>
-              </div>
-
-              <!-- Member Since -->
-              <div>
-                <span class="block text-[10px] font-mono font-extrabold text-stone uppercase tracking-wider mb-1">
-                  Thành viên Nexus từ
-                </span>
-                <p class="text-caption text-steel font-medium">
-                  Tháng 8, 2026
-                </p>
-              </div>
+              <button
+                type="button"
+                (click)="removeRotatingGame(gIdx)"
+                class="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-black/60 text-white/80 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                <mat-icon class="!w-2.5 !h-2.5 !text-[10px]">close</mat-icon>
+              </button>
             </div>
+          }
+        </div>
+      </div>
+
+      <!-- 2. Trò Chơi Tôi Thích (Ảnh 3 - Lưới Poster Đẹp 4 Cột, Không Chữ Đè) -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="block text-caption font-extrabold text-ink leading-tight">Trò Chơi Tôi Thích</span>
+            <span class="text-[10px] text-steel">Thêm tối đa 20 trò chơi</span>
           </div>
+          <button
+            type="button"
+            class="w-5 h-5 rounded-md border border-hairline bg-canvas text-steel hover:text-ink flex items-center justify-center cursor-pointer shadow-2xs"
+          >
+            <mat-icon class="!w-3 !h-3 !text-[13px]">add</mat-icon>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-4 gap-1.5">
+          @for (game of favoriteGames(); track game.title; let fIdx = $index) {
+            <div
+              class="group relative aspect-[3/4] rounded-lg overflow-hidden border border-hairline bg-surface-feature shadow-xs cursor-pointer"
+              [title]="game.title"
+            >
+              <img
+                [src]="game.image"
+                [alt]="game.title"
+                (error)="onImageError($event, game.title)"
+                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              />
+
+              <button
+                type="button"
+                (click)="removeFavoriteGame(fIdx)"
+                class="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/70 text-white/90 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-sm"
+              >
+                <mat-icon class="!w-2.5 !h-2.5 !text-[10px]">close</mat-icon>
+              </button>
+            </div>
+          }
         </div>
       </div>
     </div>

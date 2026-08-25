@@ -1,9 +1,12 @@
+import { signal } from '@angular/core';
 import { ComponentRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideRouter, Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChannelSummary, ShellData } from '../../../../../core/api/shell-data';
+import { ServerCapabilitiesService } from '../../../../../core/servers/server-capabilities.service';
+import { ServersStore } from '../../../../../core/servers/servers.store';
 import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
 import { ChannelList } from './channel-list';
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
@@ -11,9 +14,39 @@ import { CreateChannelDialog } from './create-channel-dialog/create-channel-dial
 describe('ChannelList', () => {
   let shellData: ShellData;
   let mockDialog: { open: ReturnType<typeof vi.fn> };
+  let mockCapabilitiesService: {
+    capabilitiesMap: ReturnType<typeof signal<Map<string, any>>>;
+    load: ReturnType<typeof vi.fn>;
+    refresh: ReturnType<typeof vi.fn>;
+    clear: ReturnType<typeof vi.fn>;
+  };
 
-  const mount = async (serverId: string, enableDemo = false) => {
+  const mount = async (
+    serverId: string,
+    enableDemo = false,
+    caps: any = {
+      isOwner: true,
+      canInviteMembers: true,
+      canManageServer: true,
+      canManageChannels: true,
+      canManageRoles: true,
+    },
+  ) => {
     mockDialog = { open: vi.fn() };
+    mockCapabilitiesService = {
+      capabilitiesMap: signal(
+        new Map([
+          [serverId, caps],
+          [
+            'lofi',
+            caps,
+          ],
+        ]),
+      ),
+      load: vi.fn().mockResolvedValue(caps),
+      refresh: vi.fn(),
+      clear: vi.fn(),
+    };
 
     await TestBed.configureTestingModule({
       imports: [ChannelList],
@@ -21,12 +54,19 @@ describe('ChannelList', () => {
         provideRouter([{ path: '**', component: ChannelList }]),
         ShellData,
         { provide: MatDialog, useValue: mockDialog },
+        { provide: ServerCapabilitiesService, useValue: mockCapabilitiesService },
       ],
     }).compileComponents();
 
     shellData = TestBed.inject(ShellData);
+    const serversStore = TestBed.inject(ServersStore);
     if (enableDemo) {
       shellData.setDemoEnabled(true);
+      serversStore.setChannels(serverId, [
+        { id: 'chung', name: 'chung', type: 'text', topic: 'Kênh chung', unread: false, mentionCount: 0 },
+        { id: 'nhac', name: 'nhạc', type: 'text', topic: null, unread: true, mentionCount: 0 },
+        { id: 'phong-hop', name: 'Phòng họp', type: 'voice', topic: null, unread: false, mentionCount: 0 },
+      ]);
     }
 
     const fixture = TestBed.createComponent(ChannelList);
@@ -171,6 +211,12 @@ describe('ChannelList', () => {
 
     shellData = TestBed.inject(ShellData);
     shellData.setDemoEnabled(true);
+    const serversStore = TestBed.inject(ServersStore);
+    serversStore.setChannels('lofi', [
+      { id: 'chung', name: 'chung', type: 'text', topic: 'Kênh chung', unread: false, mentionCount: 0 },
+      { id: 'nhac', name: 'nhạc', type: 'text', topic: null, unread: true, mentionCount: 0 },
+      { id: 'phong-hop', name: 'Phòng họp', type: 'voice', topic: null, unread: false, mentionCount: 0 },
+    ]);
 
     const fixture = TestBed.createComponent(ChannelList);
     (fixture.componentRef as ComponentRef<ChannelList>).setInput('serverId', 'lofi');
@@ -366,6 +412,19 @@ describe('ChannelList', () => {
     fixture.componentInstance['onOpenVoiceChat'](mockEvent, channel);
 
     expect(openChatSpy).toHaveBeenCalled();
+  });
+
+  it('ẩn hoàn toàn nút + tạo kênh khi user không có quyền canManageChannels', async () => {
+    const fixture = await mount('lofi', true, {
+      isOwner: false,
+      canInviteMembers: true,
+      canManageServer: false,
+      canManageChannels: false,
+      canManageRoles: false,
+    });
+
+    const addButtons = fixture.nativeElement.querySelectorAll('.add-channel-btn');
+    expect(addButtons.length).toBe(0);
   });
 });
 

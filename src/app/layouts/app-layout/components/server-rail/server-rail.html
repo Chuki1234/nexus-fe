@@ -557,7 +557,7 @@
     <footer
       class="command-center__footer flex items-center gap-2 px-5 py-3 text-caption text-steel"
     >
-      <mat-icon aria-hidden="true" class="!text-lg">search</mat-icon>
+      <mat-icon aria-hidden="true" class="!text-lg">search_activity</mat-icon>
       <span
         >Điều hướng nhanh theo tiền tố: * Máy chủ, @ Tin nhắn, # Kênh chữ, ! Kênh thoại. Tìm nội
         dung tin nhắn thuộc thanh công cụ chat.</span
@@ -777,7 +777,7 @@
         </button>
       </div>
 
-      <form (ngSubmit)="submitCreateServer()" class="mt-4 w-full">
+      <form id="createServerForm" (ngSubmit)="submitCreateServer()" class="mt-4 w-full">
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>Tên máy chủ</mat-label>
           <input
@@ -789,7 +789,7 @@
           />
           @if (serverNameControl.hasError('required') && serverNameControl.touched) {
             <mat-error>Tên máy chủ không được để trống</mat-error>
-          } @else if (serverNameControl.hasError('minlength') && serverNameControl.touched) {
+          } @else if ((serverNameControl.hasError('minlength') || serverNameControl.hasError('trimmedMinLength')) && serverNameControl.touched) {
             <mat-error>Tên máy chủ phải có ít nhất 2 ký tự</mat-error>
           }
         </mat-form-field>
@@ -873,7 +873,8 @@
         </button>
         <button
           mat-flat-button
-          type="button"
+          type="submit"
+          form="createServerForm"
           [disabled]="serverNameControl.invalid || isSubmitting()"
           (click)="submitCreateServer()"
         >

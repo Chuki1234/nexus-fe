@@ -36,9 +36,11 @@ import { DeveloperTab } from './tabs/developer-tab/developer-tab';
 import { ServerOverviewTab } from './tabs/server-overview-tab/server-overview-tab';
 import { ServerRolesTab } from './tabs/server-roles-tab/server-roles-tab';
 import { ServerMembersTab } from './tabs/server-members-tab/server-members-tab';
+import { ServerInvitesTab } from './tabs/server-invites-tab/server-invites-tab';
+import { ServerAccessTab } from './tabs/server-access-tab/server-access-tab';
 import { ServerSafetyTab } from './tabs/server-safety-tab/server-safety-tab';
 import { ServerAuditLogTab } from './tabs/server-audit-log-tab/server-audit-log-tab';
-import { ProfileStore } from '../profile/profile-store';
+import { ColorStudioModal } from './components/color-studio-modal/color-studio-modal';
 
 export interface NavItem {
   id: SettingsTab;
@@ -78,8 +80,11 @@ export interface NavCategory {
     ServerOverviewTab,
     ServerRolesTab,
     ServerMembersTab,
+    ServerInvitesTab,
+    ServerAccessTab,
     ServerSafetyTab,
     ServerAuditLogTab,
+    ColorStudioModal,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './settings-modal.html',
@@ -118,10 +123,10 @@ export class SettingsModal {
           subItems: [
             { label: 'Thông Tin Tài Khoản', actionId: 'account-info-heading' },
             { label: 'Mật Khẩu & Bảo Mật', actionId: 'security-heading' },
+            { label: 'Xác Thực Hai Yếu Tố', actionId: 'two-factor-heading' },
             { label: 'Trạng thái tài khoản', actionId: 'account-status-heading' },
           ],
         },
-        { id: 'profile', label: 'Hồ Sơ Người Dùng', icon: 'badge' },
         {
           id: 'privacy',
           label: 'Dữ Liệu & Bảo Mật',
@@ -175,26 +180,28 @@ export class SettingsModal {
     {
       title: 'MÁY CHỦ (SERVER)',
       items: [
-        { id: 'server-overview', label: 'Tổng Quan Máy Chủ', icon: 'dns' },
+        { id: 'server-overview', label: 'Hồ Sơ Máy Chủ', icon: 'badge' },
+      ],
+    },
+    {
+      title: 'MỌI NGƯỜI',
+      items: [
+        { id: 'server-members', label: 'Thành Viên', icon: 'people' },
         {
           id: 'server-roles',
-          label: 'Vai Trò & Phân Quyền (Roles)',
+          label: 'Vai Trò',
           icon: 'admin_panel_settings',
           badge: 'ADMIN',
         },
+        { id: 'server-invites', label: 'Lời Mời', icon: 'link' },
+        { id: 'server-access', label: 'Truy Cập', icon: 'door_sliding' },
       ],
     },
     {
       title: 'QUẢN TRỊ & BẢO MẬT',
       items: [
-        { id: 'server-safety', label: 'Bảo Mật & Phê Duyệt Thành Viên', icon: 'gavel' },
+        { id: 'server-safety', label: 'Bảo Mật & Phê Duyệt', icon: 'gavel' },
         { id: 'server-audit-log', label: 'Nhật Ký Kiểm Toán', icon: 'receipt_long' },
-      ],
-    },
-    {
-      title: 'QUẢN LÝ THÀNH VIÊN',
-      items: [
-        { id: 'server-members', label: 'Thành Viên & Ban/Kick', icon: 'people' },
       ],
     },
   ];

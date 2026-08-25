@@ -3,24 +3,24 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   IMAGE_ACCEPT_ATTRIBUTE,
-  ProfilesApiService,
   validateImageFile,
   type ProfileImageKind,
 } from '../../../../core/api/profiles-api.service';
-import { formatApiError } from '../../../../core/api/servers-api.service';
-import { bannerColorFor, profileDisplayName, type OwnProfile } from '../../../../../shared';
+import { bannerColorFor, profileDisplayName } from '../../../../../shared';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import { ProfilePendingImages } from '../../pending-images';
 import { ProfileStore } from '../../profile-store';
 
 /**
  * Đổi ảnh đại diện và ảnh bìa.
  *
- * Ảnh đi đường riêng, KHÔNG chờ nút Lưu chung của biểu mẫu: gộp chung thì mỗi
- * lần sửa một ô chữ lại phải tải lại cả tấm ảnh. Đổi xong là thấy ngay, đúng
- * kiểu người dùng mong đợi ở một thứ trực quan như ảnh.
+ * Ảnh chọn xong KHÔNG tải lên ngay mà xếp vào `ProfilePendingImages`, giống hệt
+ * ô chữ và màu bìa: thanh "bạn có thay đổi chưa được lưu" hiện lên, bấm Lưu mới
+ * gửi đi, bấm Đặt lại là bỏ. Tải lên ngay như trước khiến trong cùng một màn
+ * hình có hai luật khác nhau và người dùng không biết mình đã lưu hay chưa.
  *
  * Đọc/ghi qua `ProfileStore` để mọi nơi khác đang hiện avatar (thanh dưới đáy,
- * thẻ hồ sơ) cùng cập nhật theo, thay vì mỗi chỗ giữ một bản riêng.
+ * thẻ hồ sơ) cùng cập nhật theo sau khi lưu, thay vì mỗi chỗ giữ một bản riêng.
  */
 @Component({
   selector: 'app-profile-images',
@@ -30,13 +30,27 @@ import { ProfileStore } from '../../profile-store';
   styleUrl: './profile-images.css',
 })
 export class ProfileImages {
-  private readonly api = inject(ProfilesApiService);
   protected readonly store = inject(ProfileStore);
+  protected readonly staged = inject(ProfilePendingImages);
 
   protected readonly accept = IMAGE_ACCEPT_ATTRIBUTE;
-  /** Loại ảnh đang có request chạy dở, để khoá đúng khối đó chứ không khoá cả hai. */
-  protected readonly busy = signal<ProfileImageKind | null>(null);
-  protected readonly errorMessage = signal<string | null>(null);
+  /** Lỗi tại chỗ (file sai định dạng/quá nặng) — lỗi khi lưu nằm ở `staged`. */
+  protected readonly pickError = signal<string | null>(null);
+
+  protected readonly errorMessage = computed(
+    () => this.pickError() ?? this.staged.errorMessage(),
+  );
+
+  /** Ảnh sẽ hiện: ưu tiên ảnh đang chờ, chưa chọn gì thì lấy ảnh đã lưu. */
+  protected readonly avatarPreview = this.staged.effectiveAvatarUrl;
+  protected readonly bannerPreview = this.staged.effectiveBannerUrl;
+
+  protected readonly avatarChanged = computed(
+    () => this.staged.previewFor('avatar') !== undefined,
+  );
+  protected readonly bannerChanged = computed(
+    () => this.staged.previewFor('banner') !== undefined,
+  );
 
   protected readonly name = computed(() => {
     const profile = this.store.profile();
@@ -53,43 +67,27 @@ export class ProfileImages {
    * Xoá `input.value` sau khi đọc file: không xoá thì chọn LẠI đúng file vừa
    * lỗi sẽ không bắn `change`, và người dùng bấm mãi mà tưởng ứng dụng treo.
    */
-  protected async onPick(kind: ProfileImageKind, event: Event): Promise<void> {
+  protected onPick(kind: ProfileImageKind, event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
 
-    if (!file || this.busy()) {
+    if (!file || this.staged.saving()) {
       return;
     }
 
     const invalid = validateImageFile(file);
     if (invalid) {
-      this.errorMessage.set(invalid);
+      this.pickError.set(invalid);
       return;
     }
 
-    await this.run(kind, () => this.api.uploadImage(kind, file));
+    this.pickError.set(null);
+    this.staged.stage(kind, file);
   }
 
-  protected async onRemove(kind: ProfileImageKind): Promise<void> {
-    await this.run(kind, () => this.api.removeImage(kind));
-  }
-
-  private async run(
-    kind: ProfileImageKind,
-    action: () => Promise<OwnProfile>,
-  ): Promise<void> {
-    if (this.busy()) {
-      return;
-    }
-    this.errorMessage.set(null);
-    this.busy.set(kind);
-    try {
-      this.store.set(await action());
-    } catch (error) {
-      this.errorMessage.set(formatApiError(error));
-    } finally {
-      this.busy.set(null);
-    }
+  protected onRemove(kind: ProfileImageKind): void {
+    this.pickError.set(null);
+    this.staged.stageRemoval(kind);
   }
 }

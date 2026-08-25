@@ -1,11 +1,14 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
   inject,
+  OnDestroy,
   OnInit,
-  signal,
+  viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,19 +19,30 @@ import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/ro
 import { filter, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ServersApiService } from '../../core/api/servers-api.service';
-import { ShellData } from '../../core/api/shell-data';
+import { ServersStore } from '../../core/servers/servers.store';
+import { ServerRealtimeCoordinator } from '../../core/servers/server-realtime-coordinator.service';
 import { ThemeService } from '../../core/theme/theme.service';
+import { ToastService } from '../../core/toast/toast.service';
+import { SettingsModal } from '../../features/settings/settings-modal';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
 import { SettingsModal } from '../../features/settings/settings-modal';
+
+import {
+  DashboardLayoutService,
+  NAV_DEFAULT_WIDTH,
+  NAV_MAX_WIDTH,
+  NAV_MIN_WIDTH,
+  SERVER_RAIL_WIDTH,
+} from './services/dashboard-layout.service';
 
 /**
  * Khung Dashboard — nơi ba trang còn lại (Profile, Setting, và các trang chat)
  * render vào.
  *
- * Bố cục bốn cột: dải server · danh sách kênh · nội dung · thẻ hồ sơ.
- * Hai cột trái gộp chung vào một drawer, nên ở màn hẹp chúng cùng trượt ra —
- * tách riêng sẽ tốn hai lần vuốt để tới được nội dung.
+ * Trên Desktop (!isCompact): Bố cục Flex pane tự nhiên, cho phép resize Navigation Sidebar
+ * mà không bao giờ bị overlay hoặc lệch content margin.
+ * Trên Mobile / Tablet (isCompact): Sử dụng Angular Material MatSidenav với mode="over" và backdrop.
  */
 @Component({
   selector: 'app-dashboard-shell',
@@ -46,18 +60,140 @@ import { SettingsModal } from '../../features/settings/settings-modal';
   styleUrl: './app-layout.css',
   templateUrl: './app-layout.html',
 })
-export class AppLayout implements OnInit {
+export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   private readonly breakpoints = inject(BreakpointObserver);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
   private readonly serversApi = inject(ServersApiService);
-  private readonly shell = inject(ShellData);
+  private readonly serversStore = inject(ServersStore);
+  private readonly coordinator = inject(ServerRealtimeCoordinator);
+  protected readonly layoutService = inject(DashboardLayoutService);
   protected readonly theme = inject(ThemeService).mode;
+  protected readonly toastService = inject(ToastService);
+
+  protected readonly navMinWidth = NAV_MIN_WIDTH;
+  protected readonly navMaxWidth = NAV_MAX_WIDTH;
+  protected readonly serverRailWidth = SERVER_RAIL_WIDTH;
+
+  readonly shellContainer = viewChild<ElementRef<HTMLElement>>('dashboardShell');
+  private resizeObserver: ResizeObserver | null = null;
   private isHydrating = false;
 
-  async ngOnInit(): Promise<void> {
-    await this.hydrateServers();
+  /**
+   * Dưới `lg` (1024px) hoặc khi container không đủ không gian chứa main minimum 560px
+   * thì hai cột trái thu vào drawer.
+   */
+  private readonly compact = toSignal(
+    this.breakpoints
+      .observe([Breakpoints.XSmall, Breakpoints.Small, Breakpoints.Medium])
+      .pipe(map((state) => state.matches)),
+    { initialValue: false },
+  );
+
+  protected readonly isCompact = computed(
+    () => this.compact() || this.layoutService.shouldForceCompact(),
+  );
+
+  ngOnInit(): void {
+    void this.hydrateServers();
+  }
+
+  ngAfterViewInit(): void {
+    const el = this.shellContainer()?.nativeElement;
+    if (el && typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const width = Math.round(entry.contentRect.width);
+          if (width > 0) {
+            this.layoutService.updateContainerWidth(width);
+          }
+        }
+      });
+      this.resizeObserver.observe(el);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+  }
+
+  startNavResize(event: PointerEvent): void {
+    if (this.isCompact()) return;
+    event.preventDefault();
+
+    const target = event.currentTarget as HTMLElement;
+    if (target && typeof target.setPointerCapture === 'function') {
+      try {
+        target.setPointerCapture(event.pointerId);
+      } catch {}
+    }
+
+    this.layoutService.isDraggingNav.set(true);
+    const startX = event.clientX;
+    const startWidth = this.layoutService.navWidth();
+
+    if (typeof document !== 'undefined') {
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+    }
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const delta = moveEvent.clientX - startX;
+      this.layoutService.setNavWidth(startWidth + delta);
+    };
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      if (target && typeof target.releasePointerCapture === 'function') {
+        try {
+          target.releasePointerCapture(upEvent.pointerId);
+        } catch {}
+      }
+
+      this.layoutService.isDraggingNav.set(false);
+      if (typeof document !== 'undefined') {
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+      }
+
+      target.removeEventListener('pointermove', onPointerMove);
+      target.removeEventListener('pointerup', onPointerUp);
+      target.removeEventListener('pointercancel', onPointerUp);
+      this.layoutService.savePreferences();
+    };
+
+    target.addEventListener('pointermove', onPointerMove);
+    target.addEventListener('pointerup', onPointerUp);
+    target.addEventListener('pointercancel', onPointerUp);
+  }
+
+  resetNavWidth(): void {
+    this.layoutService.resetNavWidth();
+  }
+
+  handleNavKeyDown(event: KeyboardEvent): void {
+    const step = event.shiftKey ? 32 : 8;
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      this.layoutService.adjustNavWidth(-step);
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      this.layoutService.adjustNavWidth(step);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      this.layoutService.setNavWidth(NAV_MIN_WIDTH);
+      this.layoutService.savePreferences();
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      this.layoutService.setNavWidth(this.layoutService.effectiveMaxNavWidth());
+      this.layoutService.savePreferences();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.resetNavWidth();
+    }
   }
 
   private async hydrateServers(): Promise<void> {
@@ -70,10 +206,7 @@ export class AppLayout implements OnInit {
       if (!this.auth.isAuthenticated()) {
         return;
       }
-      const servers = await this.serversApi.listServers();
-      if (servers.length > 0) {
-        this.shell.hydrateServers(servers);
-      }
+      await this.coordinator.hydrateAndJoinAll();
     } catch {
       // Giữ live state rỗng nếu không kết nối được
     } finally {
@@ -82,23 +215,7 @@ export class AppLayout implements OnInit {
   }
 
   /**
-   * Dưới `lg` (1024px) thì hai cột trái thu vào drawer — đúng breakpoint Desktop
-   * trong DESIGN-voltagent.md.
-   */
-  private readonly compact = toSignal(
-    this.breakpoints
-      .observe([Breakpoints.XSmall, Breakpoints.Small, Breakpoints.Medium])
-      .pipe(map((state) => state.matches)),
-    { initialValue: false },
-  );
-
-  protected readonly isCompact = computed(() => this.compact());
-
-  /**
    * `serverId` của route con đang mở, hoặc null khi đang ở khu tin nhắn trực tiếp.
-   *
-   * Shell nằm ngoài router-outlet nên không có params của route con — phải lần
-   * xuống cây route để lấy.
    */
   private readonly currentServerId = toSignal(
     this.router.events.pipe(
@@ -110,13 +227,6 @@ export class AppLayout implements OnInit {
 
   protected readonly serverId = computed(() => this.currentServerId());
 
-  /**
-   * Lần xuống cây route tìm param `serverId`.
-   *
-   * `snapshot` phải kiểm tra tồn tại: shell được dựng trong pha activation, tức
-   * TRƯỚC `NavigationEnd`, nên lúc gọi lần đầu route con đã có mặt nhưng snapshot
-   * của nó chưa được gán. Bỏ dấu `?` ở đây là ném lỗi và chặn đứng điều hướng.
-   */
   private readServerId(): string | null {
     let route: ActivatedRoute | null = this.route;
     while (route) {

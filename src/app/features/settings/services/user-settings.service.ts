@@ -21,6 +21,8 @@ export type SettingsTab =
   | 'server-overview'
   | 'server-roles'
   | 'server-members'
+  | 'server-invites'
+  | 'server-access'
   | 'server-safety'
   | 'server-audit-log';
 
@@ -44,8 +46,11 @@ export interface ServerMemberItem {
   id: string;
   username: string;
   displayName: string;
+  avatarUrl?: string | null;
   roles: string[];
   joinedAt: string;
+  nexusJoinedAt?: string;
+  joinMethod?: string;
   isOwner?: boolean;
 }
 
@@ -74,11 +79,58 @@ export interface AuditLogItem {
   icon: string;
 }
 
+export interface ServerCustomProfile {
+  nickname: string;
+  avatarUrl: string | null;
+  pronouns: string;
+  bio: string;
+  themePrimaryColor: string;
+  themeAccentColor: string;
+  customStatus?: string;
+}
+
+export interface ServerInviteItem {
+  id: string;
+  code: string;
+  creatorName: string;
+  creatorAvatar?: string | null;
+  channelName: string;
+  uses: number;
+  maxUses?: number | null;
+  expiresAt: string;
+  createdAt: string;
+  roleName?: string;
+  isPaused?: boolean;
+}
+
+export interface ServerNotificationSettings {
+  isMuted: boolean;
+  notificationLevel: 'all' | 'mentions' | 'nothing';
+  suppressEveryoneHere: boolean;
+  suppressRoleMentions: boolean;
+  hideHighlights: boolean;
+  muteNewEvents: boolean;
+  mobilePushNotifications: boolean;
+}
+
+export interface ServerAccessSettings {
+  joinMode: 'invite-only' | 'apply' | 'discoverable';
+  ageRestricted: boolean;
+  rulesAgreement: boolean;
+  rulesList: string[];
+  requireEmailVerification?: boolean;
+  minAccountAgeHours?: number;
+  defaultChannelId?: string;
+}
+
 export interface ServerSettingsData {
   id: string;
   name: string;
   description: string;
   initials: string;
+  iconUrl?: string | null;
+  bannerColor?: string;
+  tags?: string[];
   systemChannelId: string;
   sendWelcomeMessage: boolean;
   adminUsernames: string[];
@@ -88,6 +140,9 @@ export interface ServerSettingsData {
   joinRequests: JoinRequestItem[];
   bannedUsers: BannedUserItem[];
   auditLogs: AuditLogItem[];
+  channelAccess?: Record<string, string[]>;
+  invites?: ServerInviteItem[];
+  accessSettings?: ServerAccessSettings;
 }
 
 export interface ConnectedAccount {
@@ -324,6 +379,9 @@ export class UserSettingsService {
   }
 
   readonly isOpen = signal<boolean>(false);
+  readonly isUserProfileModalOpen = signal<boolean>(false);
+  readonly isColorStudioOpen = signal<boolean>(false);
+  readonly userPresence = signal<'online' | 'idle' | 'dnd' | 'offline'>('online');
   readonly currentTab = signal<SettingsTab>('voice-video');
   readonly searchQuery = signal<string>('');
   readonly preferences = signal<AppPreferences>(this.loadPreferences());
@@ -332,6 +390,22 @@ export class UserSettingsService {
   readonly settingsMode = signal<'user' | 'server'>('user');
   readonly currentMemberRole = signal<string>('role-everyone');
   readonly currentServerId = signal<string>('itss');
+
+  closeModal(): void {
+    this.close();
+  }
+
+  openUserProfileModal(): void {
+    this.isUserProfileModalOpen.set(true);
+  }
+
+  closeUserProfileModal(): void {
+    this.isUserProfileModalOpen.set(false);
+  }
+
+  updatePresence(status: 'online' | 'idle' | 'dnd' | 'offline'): void {
+    this.userPresence.set(status);
+  }
 
   // Per-server storage map
   readonly serverDataMap = signal<Record<string, ServerSettingsData>>({
@@ -342,14 +416,14 @@ export class UserSettingsService {
       initials: 'ITSS',
       systemChannelId: 'do-an',
       sendWelcomeMessage: true,
-      adminUsernames: ['admin_nexus', 'yangngyn'],
+      adminUsernames: ['nexusadmin', 'admin', 'admin_nexus'],
       moderatorUsernames: ['alex_gamer'],
       roles: [
         {
           id: 'role-admin',
           name: 'Quản Trị Viên (Admin)',
           color: '#e91e63',
-          membersCount: 2,
+          membersCount: 1,
           permissions: {
             administrator: true,
             manageServer: true,
@@ -363,7 +437,7 @@ export class UserSettingsService {
           id: 'role-mod',
           name: 'Điều Hành Viên (Moderator)',
           color: '#206694',
-          membersCount: 5,
+          membersCount: 1,
           permissions: {
             administrator: false,
             manageServer: false,
@@ -377,7 +451,7 @@ export class UserSettingsService {
           id: 'role-vip',
           name: 'Thành Viên VIP',
           color: '#f1c40f',
-          membersCount: 12,
+          membersCount: 1,
           permissions: {
             administrator: false,
             manageServer: false,
@@ -391,7 +465,7 @@ export class UserSettingsService {
           id: 'role-everyone',
           name: '@everyone',
           color: '#99aab5',
-          membersCount: 128,
+          membersCount: 4,
           isDefault: true,
           permissions: {
             administrator: false,
@@ -406,32 +480,64 @@ export class UserSettingsService {
       members: [
         {
           id: 'm1',
-          username: 'yangngyn',
-          displayName: 'Nghiện Khó Phai',
+          username: 'nexusadmin#0001',
+          displayName: 'Nexus Administrator',
           roles: ['role-admin'],
-          joinedAt: '12/01/2026',
+          joinedAt: '1 tháng trước',
+          nexusJoinedAt: '8 năm trước',
+          joinMethod: 'Chủ sáng lập',
+          avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=NexusPrime',
           isOwner: true,
         },
         {
           id: 'm2',
-          username: 'alex_gamer',
+          username: 'alex_gamer#2145',
           displayName: 'Alex Pro Player',
           roles: ['role-mod'],
-          joinedAt: '15/01/2026',
+          joinedAt: '1 tháng trước',
+          nexusJoinedAt: '5 năm trước',
+          joinMethod: 'S5gVR9DUU',
+          avatarUrl: 'https://api.dicebear.com/7.x/adventurer/svg?seed=AlexGamer',
         },
         {
           id: 'm3',
-          username: 'chill_streamer',
-          displayName: 'Streamer Viip',
+          username: 'uazalo_19065#8821',
+          displayName: 'Uazalo',
           roles: ['role-vip'],
-          joinedAt: '01/02/2026',
+          joinedAt: '4 tháng trước',
+          nexusJoinedAt: '4 tháng trước',
+          joinMethod: '274wMzeX',
+          avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Uazalo',
         },
         {
           id: 'm4',
-          username: 'newbie_member',
+          username: 'yanggg6254#3020',
+          displayName: 'Nghiện Khó Phai',
+          roles: ['role-vip'],
+          joinedAt: '1 năm trước',
+          nexusJoinedAt: '3 năm trước',
+          joinMethod: 'Không xác định',
+          avatarUrl: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=NghienKhoPhai',
+        },
+        {
+          id: 'm5',
+          username: 'jockie_music#8158',
+          displayName: 'Jockie Music',
+          roles: ['role-vip'],
+          joinedAt: '6 tháng trước',
+          nexusJoinedAt: '2 năm trước',
+          joinMethod: 'Bot Tích Hợp',
+          avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Jockie',
+        },
+        {
+          id: 'm6',
+          username: 'newbie_dev#9921',
           displayName: 'Thành Viên Mới',
           roles: [],
           joinedAt: 'Hôm nay',
+          nexusJoinedAt: '1 tháng trước',
+          joinMethod: 'itss-invite',
+          avatarUrl: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Newbie',
         },
       ],
       joinRequests: [
@@ -492,6 +598,67 @@ export class UserSettingsService {
           icon: 'block',
         },
       ],
+      iconUrl: null,
+      bannerColor: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+      tags: ['🎮 Gaming', '💻 Công nghệ', '🎓 Học tập', '💬 Giao lưu', '🚀 Sáng tạo'],
+      channelAccess: {
+        'do-an': ['role-admin', 'role-mod', 'role-vip', 'role-everyone'],
+        'tai-lieu': ['role-admin', 'role-mod', 'role-vip', 'role-everyone'],
+        'standup': ['role-admin', 'role-mod', 'role-vip', 'role-everyone'],
+        'ban-quan-tri': ['role-admin', 'role-mod'],
+        'vip-lounge': ['role-admin', 'role-vip'],
+      },
+      invites: [
+        {
+          id: 'inv-1',
+          code: 'FZqeb9Ya3',
+          creatorName: 'Nghiện Khó Phai',
+          creatorAvatar: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=NghienKhoPhai',
+          channelName: 'Sảnh',
+          uses: 0,
+          maxUses: null,
+          expiresAt: '29:23:20:47',
+          createdAt: 'Vừa xong',
+          roleName: 'Thành Viên',
+        },
+        {
+          id: 'inv-2',
+          code: 'S5gVR9DUU',
+          creatorName: 'Nexus Administrator',
+          creatorAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=NexusPrime',
+          channelName: 'do-an',
+          uses: 12,
+          maxUses: 50,
+          expiresAt: 'Vô thời hạn',
+          createdAt: '1 tháng trước',
+          roleName: 'Quản Trị Viên (Admin)',
+        },
+        {
+          id: 'inv-3',
+          code: 'itss-lab',
+          creatorName: 'Alex Pro Player',
+          creatorAvatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=AlexGamer',
+          channelName: 'tai-lieu',
+          uses: 4,
+          maxUses: 20,
+          expiresAt: '6:14:32:10',
+          createdAt: '1 tuần trước',
+          roleName: 'Điều Hành Viên (Moderator)',
+        },
+      ],
+      accessSettings: {
+        joinMode: 'invite-only',
+        ageRestricted: false,
+        rulesAgreement: true,
+        rulesList: [
+          '1. Hãy tôn trọng các thành viên khác và luôn giữ thái độ hòa nhã, lịch sự.',
+          '2. Không gửi tin nhắn rác, spam, hoặc phát tán liên kết độc hại, quảng cáo trái phép.',
+          '3. Giữ thảo luận đúng chủ đề của từng kênh và tuân thủ nguyên tắc cộng đồng.',
+        ],
+        requireEmailVerification: true,
+        minAccountAgeHours: 24,
+        defaultChannelId: 'do-an',
+      },
     },
     xp: {
       id: 'xp',
@@ -685,6 +852,70 @@ export class UserSettingsService {
     },
   });
 
+  readonly serverNotificationSettingsMap = signal<Record<string, ServerNotificationSettings>>({
+    itss: {
+      isMuted: false,
+      notificationLevel: 'all',
+      suppressEveryoneHere: false,
+      suppressRoleMentions: false,
+      hideHighlights: false,
+      muteNewEvents: false,
+      mobilePushNotifications: true,
+    },
+    xp: {
+      isMuted: false,
+      notificationLevel: 'mentions',
+      suppressEveryoneHere: true,
+      suppressRoleMentions: false,
+      hideHighlights: false,
+      muteNewEvents: false,
+      mobilePushNotifications: true,
+    },
+    lofi: {
+      isMuted: false,
+      notificationLevel: 'all',
+      suppressEveryoneHere: false,
+      suppressRoleMentions: false,
+      hideHighlights: false,
+      muteNewEvents: false,
+      mobilePushNotifications: true,
+    },
+    peak: {
+      isMuted: false,
+      notificationLevel: 'all',
+      suppressEveryoneHere: false,
+      suppressRoleMentions: false,
+      hideHighlights: false,
+      muteNewEvents: false,
+      mobilePushNotifications: true,
+    },
+  });
+
+  updateServerNotificationSetting<K extends keyof ServerNotificationSettings>(
+    serverId: string,
+    key: K,
+    value: ServerNotificationSettings[K],
+  ): void {
+    this.serverNotificationSettingsMap.update((map) => {
+      const current = map[serverId] ?? {
+        isMuted: false,
+        notificationLevel: 'all',
+        suppressEveryoneHere: false,
+        suppressRoleMentions: false,
+        hideHighlights: false,
+        muteNewEvents: false,
+        mobilePushNotifications: true,
+      };
+      return {
+        ...map,
+        [serverId]: {
+          ...current,
+          [key]: value,
+        },
+      };
+    });
+  }
+
   readonly currentServerData = computed<ServerSettingsData>(() => {
     const sId = this.currentServerId();
     return this.serverDataMap()[sId] ?? this.serverDataMap()['itss'];
@@ -767,6 +998,18 @@ export class UserSettingsService {
     const server = this.serverDataMap()[sId];
     if (!server) return false;
 
+    // Check role first
+    if (this.currentMemberRole() === 'role-admin') return true;
+    if (this.currentMemberRole() === 'role-mod') {
+      return (
+        tab === 'server-members' ||
+        tab === 'server-invites' ||
+        tab === 'server-access' ||
+        tab === 'server-safety' ||
+        tab === 'server-audit-log'
+      );
+    }
+
     const username = this.getEffectiveUsername();
     if (username) {
       const isAdmin = server.adminUsernames.some((u: string) => u.toLowerCase() === username);
@@ -774,19 +1017,25 @@ export class UserSettingsService {
 
       const isMod = server.moderatorUsernames.some((u: string) => u.toLowerCase() === username);
       if (isMod) {
-        return tab === 'server-members' || tab === 'server-safety' || tab === 'server-audit-log';
+        return (
+          tab === 'server-members' ||
+          tab === 'server-invites' ||
+          tab === 'server-access' ||
+          tab === 'server-safety' ||
+          tab === 'server-audit-log'
+        );
       }
       return false;
     }
 
-    return false;
+    return true;
   }
 
   setCurrentMemberRole(roleId: string): void {
     this.currentMemberRole.set(roleId);
   }
 
-  updateCurrentServerOverview(updates: Partial<{ name: string; description: string; systemChannelId: string; sendWelcomeMessage: boolean }>): void {
+  updateCurrentServerOverview(updates: Partial<ServerSettingsData>): void {
     const sId = this.currentServerId();
     this.serverDataMap.update((map) => {
       const current = map[sId];
@@ -809,6 +1058,7 @@ export class UserSettingsService {
   readonly editBannerColor = signal<string>('#003d4f');
   readonly editCustomStatus = signal<string>('Sẵn sàng kết nối');
   readonly editProfileTag = signal<string>('0001');
+  readonly editAvatarUrl = signal<string | null>(null);
 
   // Baseline snapshots to detect unsaved changes
   private baselineDisplayName = '';
@@ -818,6 +1068,7 @@ export class UserSettingsService {
   private baselineBannerColor = '#003d4f';
   private baselineCustomStatus = 'Sẵn sàng kết nối';
   private baselineProfileTag = '0001';
+  private baselineAvatarUrl: string | null = null;
 
   readonly isSaving = signal<boolean>(false);
   readonly saveSuccessNotice = signal<boolean>(false);
@@ -946,6 +1197,7 @@ export class UserSettingsService {
         this.initProfileDraft(
           p.displayName ?? p.username ?? '',
           p.username ?? '',
+          p.avatarUrl ?? null,
         );
         const uname = (p.username || '').toLowerCase();
         const sId = this.currentServerId();
@@ -1002,7 +1254,16 @@ export class UserSettingsService {
   close(): void {
     this.stopMicTest();
     this.isTestingVideo.set(false);
+    this.isColorStudioOpen.set(false);
     this.isOpen.set(false);
+  }
+
+  openColorStudio(): void {
+    this.isColorStudioOpen.set(true);
+  }
+
+  closeColorStudio(): void {
+    this.isColorStudioOpen.set(false);
   }
 
   openServerSettings(tab: SettingsTab = 'server-overview', serverId = 'itss'): void {
@@ -1159,28 +1420,56 @@ export class UserSettingsService {
     });
   }
 
-  kickServerMember(id: string): void {
-    const sId = this.currentServerId();
+  addAuditLog(action: string, target: string, icon = 'receipt_long', serverId?: string): void {
+    const sId = serverId ?? this.currentServerId();
+    const newLog: AuditLogItem = {
+      id: `a-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      action,
+      executor: 'Nexus Administrator',
+      target,
+      timestamp: 'Vừa xong',
+      icon,
+    };
     this.serverDataMap.update((map) => {
-      const current = map[sId];
-      if (!current) return map;
+      const cur = map[sId];
+      if (!cur) return map;
       return {
         ...map,
         [sId]: {
-          ...current,
-          members: current.members.filter((m: ServerMemberItem) => m.id !== id || m.isOwner),
+          ...cur,
+          auditLogs: [newLog, ...(cur.auditLogs || [])],
         },
       };
     });
   }
 
-  banServerMember(id: string, reason: string): void {
+  kickServerMember(id: string): void {
+    const sId = this.currentServerId();
+    this.serverDataMap.update((map) => {
+      const current = map[sId];
+      if (!current) return map;
+      const targetMember = current.members.find((m: ServerMemberItem) => m.id === id);
+      if (targetMember) {
+        setTimeout(() => this.addAuditLog('Kick thành viên khỏi máy chủ', `${targetMember.displayName} (@${targetMember.username})`, 'person_remove', sId), 0);
+      }
+      return {
+        ...map,
+        [sId]: {
+          ...current,
+          members: current.members.filter((m: ServerMemberItem) => m.id !== id && !m.isOwner),
+        },
+      };
+    });
+  }
+
+  banServerMember(id: string, reason = ''): void {
     const sId = this.currentServerId();
     this.serverDataMap.update((map) => {
       const current = map[sId];
       if (!current) return map;
       const member = current.members.find((m: ServerMemberItem) => m.id === id);
       if (!member || member.isOwner) return map;
+      setTimeout(() => this.addAuditLog('Cấm (Ban) thành viên', `${member.displayName} (@${member.username}) - ${reason || 'Vi phạm'}`, 'gavel', sId), 0);
       return {
         ...map,
         [sId]: {
@@ -1206,11 +1495,36 @@ export class UserSettingsService {
     this.serverDataMap.update((map) => {
       const current = map[sId];
       if (!current) return map;
+      const bannedUser = (current.bannedUsers || []).find((b: BannedUserItem) => b.id === id);
+      if (!bannedUser) return map;
+
+      const restoredMember: ServerMemberItem = {
+        id: `m-${Date.now()}`,
+        username: bannedUser.username,
+        displayName: bannedUser.displayName,
+        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(bannedUser.username)}`,
+        roles: [],
+        joinedAt: 'Vừa xong (Unbanned)',
+        nexusJoinedAt: '1 năm trước',
+        joinMethod: 'Được Unban',
+      };
+
+      const newAuditLog: AuditLogItem = {
+        id: `a-${Date.now()}`,
+        action: 'Bỏ cấm (Unban) thành viên',
+        executor: 'Nexus Administrator',
+        target: `${bannedUser.displayName} (@${bannedUser.username})`,
+        timestamp: 'Vừa xong',
+        icon: 'lock_open',
+      };
+
       return {
         ...map,
         [sId]: {
           ...current,
+          members: [restoredMember, ...current.members],
           bannedUsers: (current.bannedUsers || []).filter((b: BannedUserItem) => b.id !== id),
+          auditLogs: [newAuditLog, ...(current.auditLogs || [])],
         },
       };
     });
@@ -1222,6 +1536,12 @@ export class UserSettingsService {
       const current = map[sId];
       if (!current) return map;
       let diff = 0;
+      const targetMember = current.members.find((m: ServerMemberItem) => m.id === memberId);
+      const targetRole = current.roles.find((r: ServerRoleItem) => r.id === roleId);
+      const willHave = targetMember ? !targetMember.roles.includes(roleId) : false;
+      if (targetMember && targetRole) {
+        setTimeout(() => this.addAuditLog(willHave ? 'Gán vai trò thành viên' : 'Gỡ vai trò thành viên', `${targetRole.name} cho ${targetMember.displayName}`, 'admin_panel_settings', sId), 0);
+      }
       const updatedMembers = current.members.map((m: ServerMemberItem) => {
         if (m.id !== memberId) return m;
         const hasRole = m.roles.includes(roleId);
@@ -1243,6 +1563,185 @@ export class UserSettingsService {
         },
       };
     });
+  }
+
+  addServerInvite(
+    code: string,
+    channelName: string = 'Sảnh',
+    maxUses: number | null = null,
+    expiresAt: string = '7 ngày',
+    roleName: string = 'Thành Viên',
+  ): void {
+    const sId = this.currentServerId();
+    setTimeout(() => this.addAuditLog('Tạo liên kết mời mới', `Mã: ${code.trim()} (#${channelName})`, 'person_add', sId), 0);
+    this.serverDataMap.update((map) => {
+      const current = map[sId];
+      if (!current) return map;
+      const newInv: ServerInviteItem = {
+        id: `inv-${Date.now()}`,
+        code: code.trim(),
+        creatorName: 'Nexus Administrator',
+        creatorAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=NexusPrime',
+        channelName,
+        uses: 0,
+        maxUses,
+        expiresAt,
+        createdAt: 'Vừa xong',
+        roleName,
+      };
+      return {
+        ...map,
+        [sId]: {
+          ...current,
+          invites: [newInv, ...(current.invites || [])],
+        },
+      };
+    });
+  }
+
+  deleteServerInvite(id: string): void {
+    const sId = this.currentServerId();
+    this.serverDataMap.update((map) => {
+      const current = map[sId];
+      if (!current) return map;
+      return {
+        ...map,
+        [sId]: {
+          ...current,
+          invites: (current.invites || []).filter((inv: ServerInviteItem) => inv.id !== id),
+        },
+      };
+    });
+  }
+
+  togglePauseInvites(): void {
+    const sId = this.currentServerId();
+    this.serverDataMap.update((map) => {
+      const current = map[sId];
+      if (!current) return map;
+      const allPaused = (current.invites || []).every((i) => i.isPaused);
+      return {
+        ...map,
+        [sId]: {
+          ...current,
+          invites: (current.invites || []).map((i) => ({ ...i, isPaused: !allPaused })),
+        },
+      };
+    });
+  }
+
+  updateServerAccessSettings(settings: Partial<ServerAccessSettings>): void {
+    const sId = this.currentServerId();
+    this.serverDataMap.update((map) => {
+      const current = map[sId];
+      if (!current) return map;
+      return {
+        ...map,
+        [sId]: {
+          ...current,
+          accessSettings: {
+            ...(current.accessSettings || {
+              joinMode: 'invite-only',
+              ageRestricted: false,
+              rulesAgreement: true,
+              rulesList: [],
+            }),
+            ...settings,
+          },
+        },
+      };
+    });
+  }
+
+  addServerRule(ruleText: string): void {
+    const sId = this.currentServerId();
+    this.serverDataMap.update((map) => {
+      const current = map[sId];
+      if (!current) return map;
+      const currentRules = current.accessSettings?.rulesList || [];
+      return {
+        ...map,
+        [sId]: {
+          ...current,
+          accessSettings: {
+            ...(current.accessSettings || {
+              joinMode: 'invite-only',
+              ageRestricted: false,
+              rulesAgreement: true,
+              rulesList: [],
+            }),
+            rulesList: [...currentRules, ruleText],
+          },
+        },
+      };
+    });
+  }
+
+  deleteServerRule(index: number): void {
+    const sId = this.currentServerId();
+    this.serverDataMap.update((map) => {
+      const current = map[sId];
+      if (!current) return map;
+      const currentRules = current.accessSettings?.rulesList || [];
+      return {
+        ...map,
+        [sId]: {
+          ...current,
+          accessSettings: {
+            ...(current.accessSettings || {
+              joinMode: 'invite-only',
+              ageRestricted: false,
+              rulesAgreement: true,
+              rulesList: [],
+            }),
+            rulesList: currentRules.filter((_, i) => i !== index),
+          },
+        },
+      };
+    });
+  }
+
+
+
+  setChannelAllowedRoles(channelId: string, roleIds: string[]): void {
+    const sId = this.currentServerId();
+    this.serverDataMap.update((map) => {
+      const current = map[sId];
+      if (!current) return map;
+      return {
+        ...map,
+        [sId]: {
+          ...current,
+          channelAccess: {
+            ...(current.channelAccess || {}),
+            [channelId]: roleIds,
+          },
+        },
+      };
+    });
+  }
+
+  isChannelVisible(serverId: string, channelId: string): boolean {
+    const server = this.serverDataMap()[serverId];
+    if (!server) return true;
+
+    // Admin and Server Owner always see everything
+    if (this.currentMemberRole() === 'role-admin' || this.isServerAdmin()) {
+      return true;
+    }
+
+    const accessMap = server.channelAccess;
+    if (!accessMap || !accessMap[channelId]) {
+      return true; // default public
+    }
+
+    const allowedRoles = accessMap[channelId];
+    if (allowedRoles.includes('role-everyone')) {
+      return true;
+    }
+
+    const userRole = this.currentMemberRole();
+    return allowedRoles.includes(userRole);
   }
 
   setTab(tab: SettingsTab): void {
@@ -1314,7 +1813,8 @@ export class UserSettingsService {
       this.editBio() !== this.baselineBio ||
       this.editPronouns() !== this.baselinePronouns ||
       this.editBannerColor() !== this.baselineBannerColor ||
-      this.editCustomStatus() !== this.baselineCustomStatus
+      this.editCustomStatus() !== this.baselineCustomStatus ||
+      this.editAvatarUrl() !== this.baselineAvatarUrl
     );
   }
 
@@ -1325,12 +1825,22 @@ export class UserSettingsService {
     this.editPronouns.set(this.baselinePronouns);
     this.editBannerColor.set(this.baselineBannerColor);
     this.editCustomStatus.set(this.baselineCustomStatus);
+    this.editAvatarUrl.set(this.baselineAvatarUrl);
   }
 
   async saveChanges(): Promise<void> {
     this.isSaving.set(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      try {
+        await this.profileService.updateProfile({
+          displayName: this.editDisplayName(),
+          avatarUrl: this.editAvatarUrl(),
+          bannerColor: this.editBannerColor(),
+          customStatus: this.editCustomStatus(),
+        });
+      } catch (err) {
+        console.warn('Could not sync profile to backend:', err);
+      }
 
       this.baselineDisplayName = this.editDisplayName();
       this.baselineUsername = this.editUsername();
@@ -1338,6 +1848,7 @@ export class UserSettingsService {
       this.baselinePronouns = this.editPronouns();
       this.baselineBannerColor = this.editBannerColor();
       this.baselineCustomStatus = this.editCustomStatus();
+      this.baselineAvatarUrl = this.editAvatarUrl();
 
       this.saveSuccessNotice.set(true);
       setTimeout(() => {
@@ -1348,7 +1859,7 @@ export class UserSettingsService {
     }
   }
 
-  private initProfileDraft(displayName: string, username: string): void {
+  initProfileDraft(displayName: string, username: string, avatarUrl: string | null = null): void {
     this.baselineDisplayName = displayName || 'Nghiện Khó Phai';
     this.baselineUsername = username || 'nghienkhophai';
     this.baselineBio = 'Lập trình viên & đam mê xây dựng cộng đồng Nexus ✨';
@@ -1356,6 +1867,7 @@ export class UserSettingsService {
     this.baselineBannerColor = '#003d4f';
     this.baselineCustomStatus = 'Sẵn sàng kết nối';
     this.baselineProfileTag = '0001';
+    this.baselineAvatarUrl = avatarUrl;
 
     this.editDisplayName.set(this.baselineDisplayName);
     this.editUsername.set(this.baselineUsername);
@@ -1364,6 +1876,7 @@ export class UserSettingsService {
     this.editBannerColor.set(this.baselineBannerColor);
     this.editCustomStatus.set(this.baselineCustomStatus);
     this.editProfileTag.set(this.baselineProfileTag);
+    this.editAvatarUrl.set(this.baselineAvatarUrl);
   }
 
   private loadPreferences(): AppPreferences {

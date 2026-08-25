@@ -32,13 +32,21 @@ describe('StatusDot', () => {
     expect(fixture.nativeElement.textContent).toContain('Ngoại tuyến');
   });
 
-  it('chỉ trạng thái trực tuyến dùng màu nhấn của brand', async () => {
-    // DESIGN-voltagent.md: xanh chỉ dành cho CTA và chỉ báo trạng thái sống.
+  it('áp dụng đúng mã màu cho từng trạng thái hiện diện', async () => {
     const fixture = await mount();
-    expect(fixture.nativeElement.querySelector('span').className).toContain('bg-primary');
+    // online: emerald/mint (#22c55e)
+    expect(fixture.nativeElement.querySelector('span').className).toContain('bg-[#22c55e]');
 
     fixture.componentInstance.presence.set('idle');
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('span').className).not.toContain('bg-primary');
+    expect(fixture.nativeElement.querySelector('span').className).toContain('bg-[#f59e0b]');
+
+    fixture.componentInstance.presence.set('dnd');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('span').className).toContain('bg-[#ef4444]');
+
+    fixture.componentInstance.presence.set('offline');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('span').className).toContain('bg-[#64748b]');
   });
 });

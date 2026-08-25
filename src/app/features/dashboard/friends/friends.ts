@@ -9,6 +9,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ShellData } from '../../../core/api/shell-data';
+import { PresenceService } from '../../../core/presence/presence.service';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { SearchField } from '../../../shared/ui/search-field/search-field';
@@ -60,12 +61,13 @@ export class FriendsPage implements OnInit {
   private readonly themeService = inject(ThemeService);
   private readonly uiState = inject(DashboardUiState);
   private readonly friendsStore = inject(FriendsStore);
+  private readonly presenceService = inject(PresenceService);
 
   protected readonly tab = signal<FriendsTab>('all');
   protected readonly query = signal('');
   protected readonly theme = this.themeService.mode;
   protected readonly demoEnabled = this.shell.demoEnabled;
-  protected readonly contextView = signal<FriendsContextView | null>(null);
+  protected readonly contextView = signal<FriendsContextView | null>('activity');
   protected readonly blockingState = this.uiState.blockingState;
   protected readonly connectionState = this.uiState.connectionState;
   protected readonly friendsLoading = this.friendsStore.loading;
@@ -83,7 +85,12 @@ export class FriendsPage implements OnInit {
   );
 
   protected readonly onlineFriends = computed(() =>
-    this.allFriends().filter((person) => person.presence !== 'offline'),
+    this.allFriends().filter((person) => {
+      const presence = this.demoEnabled()
+        ? person.presence
+        : this.presenceService.getPresence(person.id)();
+      return presence !== 'offline';
+    }),
   );
 
   protected readonly visible = computed(() => {

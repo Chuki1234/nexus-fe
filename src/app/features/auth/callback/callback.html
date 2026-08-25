@@ -1,3 +1,33 @@
 <main class="flex min-h-dvh items-center justify-center bg-canvas px-4 py-12">
-  <p role="status" aria-live="polite" class="text-body-md text-slate">{{ status() }}</p>
+  <section
+    class="nexus-boot !relative !inset-auto !bg-transparent !p-0"
+    role="status"
+    aria-live="polite"
+    [attr.aria-label]="status()"
+  >
+    <div class="nexus-boot__content">
+      <div class="nexus-boot__mark" aria-hidden="true">
+        <span class="nexus-boot__orbits">
+          <span class="nexus-boot__orbit nexus-boot__orbit--one">
+            <span class="nexus-boot__node nexus-boot__node--one"></span>
+            <span class="nexus-boot__node nexus-boot__node--two"></span>
+          </span>
+          <span class="nexus-boot__orbit nexus-boot__orbit--two">
+            <span class="nexus-boot__node nexus-boot__node--three"></span>
+            <span class="nexus-boot__node nexus-boot__node--four"></span>
+          </span>
+        </span>
+        <span class="nexus-boot__monogram">N</span>
+      </div>
+
+      <div class="nexus-boot__copy">
+        <strong>NexusCord</strong>
+        <span>{{ status() }}</span>
+      </div>
+
+      <span class="nexus-boot__progress" aria-hidden="true">
+        <span></span>
+      </span>
+    </div>
+  </section>
 </main>

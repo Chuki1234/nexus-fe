@@ -1,0 +1,145 @@
+<div class="server-invitations-view flex flex-col h-full w-full bg-surface-base overflow-hidden">
+  
+  <!-- Header Bar -->
+  <header class="flex items-center justify-between px-6 py-4 border-b border-nexus-subtle/40 bg-surface/50 backdrop-blur-md shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-mint-500/10 flex items-center justify-center text-mint-400">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-h2 font-bold text-ink flex items-center gap-2">
+          Lời mời máy chủ
+          @if (store.pendingCount() > 0) {
+            <span class="inline-flex items-center justify-center px-2 py-0.5 text-caption font-semibold rounded-full bg-mint-500/20 text-mint-400">
+              {{ store.pendingCount() }}
+            </span>
+          }
+        </h1>
+        <p class="text-caption text-ink-muted">
+          Xem và quản lý các lời mời tham gia máy chủ do bạn bè trực tiếp gửi cho bạn.
+        </p>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      (click)="store.hydrateInvitations()"
+      [disabled]="store.isLoading()"
+      class="p-2 rounded-lg hover:bg-surface-elevated text-ink-muted hover:text-ink transition-colors cursor-pointer"
+      title="Làm mới danh sách"
+      aria-label="Làm mới danh sách lời mời"
+    >
+      <svg class="w-5 h-5" [class.animate-spin]="store.isLoading()" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+    </button>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 overflow-y-auto p-6 space-y-4">
+    
+    <!-- Loading State -->
+    @if (store.isLoading() && store.pendingCount() === 0) {
+      <div class="space-y-3" role="status" aria-label="Đang nạp lời mời...">
+        <div class="h-20 rounded-xl bg-surface-raised animate-pulse"></div>
+        <div class="h-20 rounded-xl bg-surface-raised animate-pulse"></div>
+        <div class="h-20 rounded-xl bg-surface-raised animate-pulse"></div>
+      </div>
+    }
+
+    <!-- Empty State -->
+    @else if (store.pendingCount() === 0) {
+      <div class="flex flex-col items-center justify-center h-full text-center py-16 px-4 space-y-4">
+        <div class="w-20 h-20 rounded-full bg-surface-raised/80 flex items-center justify-center text-ink-muted">
+          <svg class="w-10 h-10 text-mint-500/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+        </div>
+        <h2 class="text-h3 font-semibold text-ink">Bạn chưa có lời mời máy chủ nào</h2>
+        <p class="text-body-sm text-ink-muted max-w-sm">
+          Khi có người gửi lời mời trực tiếp cho bạn vào một máy chủ, thẻ lời mời sẽ xuất hiện tại đây để bạn chấp nhận hoặc từ chối.
+        </p>
+      </div>
+    }
+
+    <!-- Invitations List -->
+    @else {
+      <div class="grid grid-cols-1 gap-3 max-w-3xl">
+        @for (inv of store.pendingInvitations(); track inv.id) {
+          <div class="invitation-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-surface-raised border border-nexus-subtle/50 border-l-4 border-l-mint-500 shadow-sm hover:shadow-md transition-all">
+            
+            <!-- Left: Server & Inviter Info -->
+            <div class="flex items-center gap-3.5 min-w-0">
+              
+              <!-- Server Icon -->
+              <div class="shrink-0">
+                @if (inv.serverIconUrl) {
+                  <img
+                    [src]="inv.serverIconUrl"
+                    [alt]="inv.serverName"
+                    class="w-12 h-12 rounded-xl object-cover border border-mint-500/20 shadow-sm"
+                  />
+                } @else {
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-700 to-mint-700 flex items-center justify-center text-lg font-bold text-white shadow-sm border border-mint-500/20">
+                    {{ inv.serverName.charAt(0).toUpperCase() }}
+                  </div>
+                }
+              </div>
+
+              <!-- Details -->
+              <div class="min-w-0 space-y-0.5">
+                <h3 class="text-body font-semibold text-ink truncate">
+                  {{ inv.serverName }}
+                </h3>
+                <p class="text-caption text-ink-muted truncate">
+                  Người mời: <span class="text-ink font-medium">{{ inv.inviterDisplayName }}</span>
+                  <span class="text-ink-subtle">(@{{ inv.inviterUsername }})</span>
+                </p>
+                <p class="text-caption text-mint-400 font-medium">
+                  {{ formatExpiresAt(inv.expiresAt) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Right: Action Buttons -->
+            <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              
+              <!-- Decline Button -->
+              <button
+                type="button"
+                [disabled]="isProcessing(inv.id)"
+                (click)="onDecline(inv)"
+                class="px-3.5 py-2 rounded-lg border border-nexus-subtle hover:bg-surface-elevated active:bg-surface-overlay text-ink-muted hover:text-coral-400 text-body-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Từ chối
+              </button>
+
+              <!-- Accept Button -->
+              <button
+                type="button"
+                [disabled]="isProcessing(inv.id)"
+                (click)="onAccept(inv)"
+                class="px-4 py-2 rounded-lg bg-mint-500 hover:bg-mint-400 active:bg-mint-600 text-surface-base text-body-sm font-semibold transition-all shadow-sm hover:shadow-mint-500/20 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                @if (isProcessing(inv.id)) {
+                  <svg class="animate-spin h-4 w-4 text-surface-base" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Đang xử lý…</span>
+                } @else {
+                  <span>Chấp nhận</span>
+                }
+              </button>
+
+            </div>
+
+          </div>
+        }
+      </div>
+    }
+
+  </main>
+</div>

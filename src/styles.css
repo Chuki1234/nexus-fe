@@ -47,6 +47,11 @@
   --color-surface-soft: #082b38; /* phân vùng nhạt hơn */
   --color-surface-feature: #003d4f; /* bề mặt featured/hover */
 
+  /* ---- Doodle Wallpaper Tokens (Dark default) ---- */
+  --color-doodle-tint: #00ed64;
+  --opacity-doodle: 0.055;
+  --size-doodle-tile: 320px;
+
   /* ---- Đường viền ----
      hairline cho viền trang trí; hairline-strong (3:1+) cho thành phần tương tác
      (input, nút, ô chọn) theo WCAG 1.4.11. */
@@ -232,101 +237,6 @@
 }
 
 /* ===========================================================================
-   NGUYÊN LIỆU CHUNG CỦA MÀN CÀI ĐẶT
-
-   `card-base`, `btn-primary`, `btn-secondary`, `input-base` được các tab
-   settings dùng tổng cộng gần 40 lần nhưng chưa từng được định nghĩa ở đâu —
-   Tailwind không biết chúng nên biên dịch ra rỗng. Hậu quả: mọi thẻ và hộp
-   thoại trong settings hiện ra KHÔNG có nền, chữ nổi lơ lửng chồng lên nội dung
-   phía sau (thấy rõ nhất ở hộp thoại "Kết nối với YouTube").
-
-   Định nghĩa lại đúng theo token của design system, không hardcode màu.
-   ========================================================================== */
-@layer components {
-  .card-base {
-    border: 1px solid var(--color-hairline);
-    /* Card 12px theo ghi chú cho team ở cuối file. */
-    border-radius: var(--radius-lg);
-    /* Nền ĐỤC, không dùng alpha: thẻ này còn nằm trong hộp thoại nổi trên nền
-       đã bị làm mờ — nền trong suốt là nhìn xuyên thấu xuống lớp dưới. */
-    background-color: var(--color-surface);
-    padding: 1.25rem;
-    color: var(--color-ink);
-  }
-
-  .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    /* Nút LUÔN pill. */
-    border-radius: var(--radius-full);
-    background-color: var(--color-primary);
-    padding: 0.5rem 1.25rem;
-    color: var(--color-on-primary);
-    font-size: var(--text-button-md);
-    font-weight: var(--text-button-md--font-weight);
-    line-height: var(--text-button-md--line-height);
-    cursor: pointer;
-    transition: background-color var(--motion-fast) var(--ease-nexus-out);
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    background-color: var(--color-primary-soft);
-  }
-
-  .btn-primary:disabled {
-    background-color: var(--color-muted);
-    cursor: not-allowed;
-  }
-
-  .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    border: 1px solid var(--color-hairline-strong);
-    border-radius: var(--radius-full);
-    background-color: transparent;
-    padding: 0.5rem 1.25rem;
-    color: var(--color-ink);
-    font-size: var(--text-button-md);
-    font-weight: var(--text-button-md--font-weight);
-    line-height: var(--text-button-md--line-height);
-    cursor: pointer;
-    transition:
-      border-color var(--motion-fast) var(--ease-nexus-out),
-      color var(--motion-fast) var(--ease-nexus-out);
-  }
-
-  .btn-secondary:hover:not(:disabled) {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-  }
-
-  .input-base {
-    width: 100%;
-    /* hairline-strong: ô nhập là thứ bấm được nên viền phải đạt 3:1 (WCAG 1.4.11). */
-    border: 1px solid var(--color-hairline-strong);
-    border-radius: var(--radius-md);
-    background-color: var(--color-canvas);
-    padding: 0.625rem 0.875rem;
-    color: var(--color-ink);
-    font-size: var(--text-body-sm);
-    line-height: var(--text-body-sm--line-height);
-    transition: border-color var(--motion-fast) var(--ease-nexus-out);
-  }
-
-  .input-base::placeholder {
-    color: var(--color-muted);
-  }
-
-  .input-base:focus {
-    border-color: var(--color-primary);
-  }
-}
-
-/* ===========================================================================
    LIGHT MODE — Starbucks warm ceramic
    Chỉ đổi token màu/elevation; typography, spacing và geometry giữ nguyên.
    Dashboard đặt `data-theme` trên <html>, vì vậy app shell và Material cùng đổi
@@ -351,6 +261,11 @@ html[data-theme='light'] {
   --color-surface: #f7f5f0;
   --color-surface-soft: #edebe9;
   --color-surface-feature: #eaf5f0;
+
+  /* ---- Doodle Wallpaper Tokens (Light mode) ---- */
+  --color-doodle-tint: #006241;
+  --opacity-doodle: 0.075;
+  --size-doodle-tile: 320px;
 
   --color-hairline: #ddd8ce;
   --color-hairline-soft: #e8e3d9;
@@ -1026,129 +941,6 @@ app-dashboard-shell
    geometry mà không nhân đôi component CSS hoặc ảnh hưởng trang member khác.
    ========================================================================== */
 
-:is(app-channel-page, app-conversation-page) .message-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: 2.5rem minmax(0, 1fr);
-  gap: 0.75rem;
-  align-items: start;
-  animation: nexus-message-enter 360ms var(--ease-nexus-out) both;
-}
-
-:is(app-channel-page, app-conversation-page) .message-row:nth-child(2) {
-  animation-delay: 60ms;
-}
-
-:is(app-channel-page, app-conversation-page) .message-row:nth-child(4) {
-  animation-delay: 120ms;
-}
-
-:is(app-channel-page, app-conversation-page) .message-row app-avatar {
-  position: relative;
-  z-index: 2;
-}
-
-:is(app-channel-page, app-conversation-page) .message-card {
-  position: relative;
-  min-width: 0;
-  border-radius: var(--radius-lg);
-  background: var(--nexus-surface-card);
-  border: 1px solid var(--nexus-border-subtle);
-  padding: 0.75rem 1rem;
-  box-shadow: var(--nexus-shadow-card);
-  transition:
-    background-color var(--motion-fast) var(--ease-nexus-out),
-    border-color var(--motion-fast) var(--ease-nexus-out),
-    box-shadow var(--motion-base) var(--ease-nexus-out),
-    transform var(--motion-fast) var(--ease-nexus-out);
-}
-
-:is(app-channel-page, app-conversation-page) .message-row:hover .message-card,
-:is(app-channel-page, app-conversation-page) .message-row:has(:focus-visible) .message-card {
-  background: var(--nexus-surface-hover);
-  border-color: color-mix(in srgb, var(--color-primary) 38%, var(--nexus-border-subtle));
-  box-shadow:
-    3px 0 0 color-mix(in srgb, var(--color-primary) 72%, transparent) inset,
-    var(--nexus-shadow-hover);
-  transform: translateX(2px);
-}
-
-:is(app-channel-page, app-conversation-page) .message-row--compact {
-  margin-top: -0.125rem;
-}
-
-:is(app-channel-page, app-conversation-page) .message-row__compact-time {
-  align-self: center;
-  text-align: right;
-  opacity: 0;
-  transition: opacity var(--motion-fast) var(--ease-nexus-out);
-}
-
-:is(app-channel-page, app-conversation-page)
-  .message-row--compact:hover
-  .message-row__compact-time {
-  opacity: 1;
-}
-
-:is(app-channel-page, app-conversation-page) .message-actions {
-  position: absolute;
-  z-index: 2;
-  top: -1.125rem;
-  right: 0.75rem;
-  display: flex;
-  overflow: hidden;
-  border: 1px solid var(--color-hairline-strong);
-  border-radius: var(--radius-full);
-  background: var(--nexus-surface-card);
-  padding: 0.125rem;
-  box-shadow: var(--shadow-card);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(4px);
-  transition:
-    opacity var(--motion-fast) var(--ease-nexus-out),
-    transform var(--motion-fast) var(--ease-nexus-out);
-}
-
-:is(app-channel-page, app-conversation-page) .message-row:hover .message-actions,
-:is(app-channel-page, app-conversation-page) .message-row:has(:focus-visible) .message-actions {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-:is(app-channel-page, app-conversation-page) .message-actions button {
-  display: grid;
-  width: 2rem;
-  height: 2rem;
-  place-items: center;
-  border: 0;
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--color-steel);
-
-  --mat-icon-button-state-layer-size: 2rem;
-  --mat-icon-button-touch-target-display: none;
-}
-
-:is(app-channel-page, app-conversation-page) .message-actions button:disabled {
-  cursor: default;
-  opacity: 1;
-}
-
-:is(app-channel-page, app-conversation-page) .message-actions mat-icon {
-  width: 1.125rem;
-  height: 1.125rem;
-  font-size: 1.125rem;
-}
-
-:is(app-channel-page, app-conversation-page)
-  .message-actions
-  button:not(:disabled):is(:hover, :focus-visible, [aria-expanded='true']) {
-  background: var(--color-surface-feature);
-  color: var(--color-primary-soft);
-}
-
 /* MatMenu render qua CDK overlay ngoài Dashboard route, nên panel cần class scope
    riêng thay vì selector theo app-channel-page/app-conversation-page. */
 .nexus-message-reaction-menu .mat-mdc-menu-content {
@@ -1718,36 +1510,12 @@ app-server-rail .server-ungroup-zone--active {
 }
 
 @media (max-width: 39.999rem) {
-  :is(app-channel-page, app-conversation-page) .message-row {
-    grid-template-columns: 2.25rem minmax(0, 1fr);
-    gap: 0.5rem;
-  }
-
-  :is(app-channel-page, app-conversation-page) .message-card {
-    padding-inline: 0.75rem;
-  }
-
-  :is(app-channel-page, app-conversation-page) .message-actions {
-    position: static;
-    width: fit-content;
-    margin-top: 0.5rem;
-    opacity: 1;
-    pointer-events: auto;
-    transform: none;
-  }
-
   .nexus-add-server-dialog .command-result__kind {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :is(app-channel-page, app-conversation-page) .message-row {
-    animation: none;
-  }
-
-  :is(app-channel-page, app-conversation-page)
-    :is(.message-card, .message-actions, .message-row__compact-time),
   .nexus-add-server-dialog
     :is(.command-center__search, .command-result, .command-result__arrow, .command-chip) {
     transition: none;
@@ -2029,10 +1797,137 @@ app-server-rail .server-ungroup-zone--active {
   .nexus-boot {
     transition: opacity 1ms linear;
   }
+}
 
-  .nexus-boot__progress {
-    display: none;
+/* ===========================================================================
+   NEXUS FULLSCREEN LIGHTBOX OVERLAY
+   ========================================================================== */
+.nexus-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 1.5rem;
+  animation: lightboxFadeIn 200ms var(--ease-nexus-out) both;
+}
+
+.nexus-lightbox-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 92vw;
+  max-height: 88vh;
+  outline: none;
+}
+
+.nexus-lightbox-img {
+  max-width: 90vw;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.75);
+  user-select: none;
+  animation: lightboxZoomIn 220ms var(--ease-nexus-out) both;
+}
+
+.nexus-lightbox-toolbar {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 100000;
+}
+
+.nexus-lightbox-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background-color: rgba(0, 30, 43, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-nexus-out), transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.nexus-lightbox-btn:hover {
+  background-color: rgba(0, 30, 43, 0.95);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.05);
+}
+
+.nexus-lightbox-caption {
+  margin-top: 0.75rem;
+  font-size: var(--text-caption);
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 80vw;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes lightboxFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes lightboxZoomIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-lightbox-backdrop,
+  .nexus-lightbox-img,
+  .nexus-lightbox-cdk-backdrop,
+  .nexus-lightbox-cdk-panel {
+    animation: none !important;
+    transition: none !important;
   }
+}
+
+/* ==========================================================================
+   FULLSCREEN CDK LIGHTBOX GALLERY OVERLAY STYLES
+   ========================================================================== */
+.nexus-lightbox-cdk-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;
+  background: rgba(3, 10, 15, 0.94) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  animation: lightboxFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.nexus-lightbox-cdk-panel {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  z-index: 10001 !important;
+  pointer-events: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  outline: none !important;
+  animation: lightboxFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* ==========================================================================

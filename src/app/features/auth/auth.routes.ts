@@ -36,4 +36,14 @@ export const authRoutes: Routes = [
     loadComponent: () =>
       import('./complete-profile/complete-profile').then((m) => m.CompleteProfilePage),
   },
+  // Không gắn guestGuard: user ở trạng thái AAL1 (đã qua mật khẩu nhưng chưa
+  // hoàn tất 2FA). guestGuard sẽ đá về '/' trước khi họ nhập TOTP code.
+  {
+    path: '2fa',
+    title: 'Xác thực hai yếu tố · Nexus',
+    loadComponent: () =>
+      import('./two-factor-challenge/two-factor-challenge').then(
+        (m) => m.TwoFactorChallengePage,
+      ),
+  },
 ];

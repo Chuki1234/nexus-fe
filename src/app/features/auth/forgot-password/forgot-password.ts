@@ -33,9 +33,11 @@ type Step = 'email' | 'code' | 'password';
  * Không gắn `guestGuard` cho trang này (xem auth.routes): xác thực mã xong là đã
  * có phiên tạm, guard sẽ đá người dùng ra ngay trước khi họ kịp đặt mật khẩu mới.
  */
+import { MatIconModule } from '@angular/material/icon';
+
 @Component({
   selector: 'app-forgot-password-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule],
   templateUrl: './forgot-password.html',
   styleUrl: './forgot-password.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

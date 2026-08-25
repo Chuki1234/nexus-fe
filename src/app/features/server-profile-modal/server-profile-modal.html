@@ -1,0 +1,469 @@
+<div
+  class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/65 backdrop-blur-md p-3 sm:p-5 animate-fade-in"
+  (click)="close.emit()"
+>
+  <!-- Main 3-Column Modal Container (Gọn gàng, vừa vặn, fit 100% với màn hình) -->
+  <div
+    class="relative w-full max-w-5xl h-[84vh] max-h-[710px] bg-surface rounded-3xl border border-hairline shadow-modal flex flex-col overflow-hidden animate-scale-in text-ink ring-1 ring-white/10"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Hidden file input for uploading custom avatar (Ảnh 4) -->
+    <input
+      #avatarFileInput
+      type="file"
+      accept="image/*"
+      class="hidden"
+      (click)="$event.stopPropagation()"
+      (change)="onAvatarFileSelected($event)"
+    />
+
+    <!-- Modal Top Header Bar -->
+    <div class="h-14 border-b border-hairline bg-surface px-6 flex items-center justify-between shrink-0 select-none">
+      <div class="flex items-center gap-2.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-primary shadow-xs"></span>
+        <h2 class="text-body-sm font-extrabold text-ink tracking-wide">
+          HỒ SƠ MÁY CHỦ — {{ serverName().toUpperCase() }}
+        </h2>
+      </div>
+
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="w-8 h-8 rounded-full text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+      >
+        <mat-icon class="!w-4 !h-4 !text-[18px]">close</mat-icon>
+      </button>
+    </div>
+
+    <!-- 3-Column Body Grid -->
+    <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+      <!-- ══ COLUMN 1: THIẾT LẬP HỒ SƠ (Left 4 cols - Đã bỏ Nitro, Thêm Upload Ảnh) ══ -->
+      <div class="lg:col-span-4 border-r border-hairline bg-surface/40 p-4.5 overflow-y-auto custom-scrollbar space-y-4 select-none">
+        <!-- Server Switcher Badge -->
+        <div class="flex items-center justify-between p-2.5 rounded-2xl bg-canvas border border-hairline shadow-2xs">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-7 h-7 rounded-xl bg-primary/20 text-primary font-black flex items-center justify-center text-caption shrink-0">
+              {{ serverName().slice(0, 1).toUpperCase() }}
+            </div>
+            <span class="font-extrabold text-body-sm text-ink truncate">{{ serverName() }}</span>
+          </div>
+          <mat-icon class="text-steel !w-4 !h-4">unfold_more</mat-icon>
+        </div>
+
+        <!-- BẢNG TÊN / BIỆT DANH -->
+        <div class="space-y-1">
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider" for="prof-nick">
+            BIỆT DANH TRONG MÁY CHỦ
+          </label>
+          <input
+            id="prof-nick"
+            type="text"
+            [value]="nickname()"
+            (input)="nickname.set($any($event.target).value)"
+            placeholder="Nhập biệt danh..."
+            class="w-full bg-canvas border border-hairline rounded-xl px-3 py-2 text-caption text-ink font-bold focus:outline-none focus:border-primary transition-colors shadow-2xs"
+          />
+        </div>
+
+        <!-- ẢNH ĐẠI DIỆN & TRANG TRÍ (Ảnh 4 - Hỗ trợ Tải ảnh lên từ máy) -->
+        <div class="space-y-1.5">
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
+            ẢNH ĐẠI DIỆN MÁY CHỦ
+          </label>
+          <div class="flex items-center gap-3">
+            <div class="relative w-12 h-12 rounded-full overflow-hidden bg-surface-feature border border-hairline shadow-xs shrink-0">
+              <img [src]="avatarUrl()" alt="Avatar" class="w-full h-full object-cover" />
+            </div>
+            <div class="flex-1 flex items-center gap-2">
+              <button
+                type="button"
+                (click)="$event.preventDefault(); $event.stopPropagation(); avatarFileInput.click()"
+                class="flex-1 h-9 px-3 rounded-xl border border-hairline bg-canvas hover:bg-surface-feature text-caption font-bold text-ink transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-98"
+              >
+                <mat-icon class="!w-4 !h-4 !text-[16px] text-primary">upload_file</mat-icon>
+                <span>Tải ảnh lên</span>
+              </button>
+              <button
+                type="button"
+                (click)="$event.preventDefault(); $event.stopPropagation(); changeAvatarPreset()"
+                class="w-9 h-9 shrink-0 rounded-xl border border-hairline bg-canvas hover:bg-surface-feature text-steel hover:text-ink transition-colors cursor-pointer flex items-center justify-center shadow-2xs active:scale-98"
+                title="Đổi avatar ngẫu nhiên"
+              >
+                <mat-icon class="!w-4 !h-4 !text-[16px]">shuffle</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- DANH XƯNG (PRONOUNS) -->
+        <div class="space-y-1">
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider" for="prof-pronouns">
+            DANH XƯNG / PRONOUNS
+          </label>
+          <input
+            id="prof-pronouns"
+            type="text"
+            [value]="pronouns()"
+            (input)="pronouns.set($any($event.target).value)"
+            placeholder="he/him, they/them..."
+            class="w-full bg-canvas border border-hairline rounded-xl px-3 py-2 text-caption text-ink font-bold focus:outline-none focus:border-primary transition-colors shadow-2xs"
+          />
+        </div>
+
+        <!-- MÀU CHỦ ĐỀ MÁY CHỦ -->
+        <div class="space-y-1.5">
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
+            MÀU CHỦ ĐỀ MÁY CHỦ
+          </label>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="setPrimaryColor('#a13b56')"
+              class="w-7 h-7 rounded-full shadow-xs border-2 transition-transform hover:scale-110 cursor-pointer"
+              [class.border-primary]="themePrimaryColor() === '#a13b56'"
+              [class.border-transparent]="themePrimaryColor() !== '#a13b56'"
+              style="background-color: #a13b56;"
+            ></button>
+            <button
+              type="button"
+              (click)="setPrimaryColor('#4f46e5')"
+              class="w-7 h-7 rounded-full shadow-xs border-2 transition-transform hover:scale-110 cursor-pointer"
+              [class.border-primary]="themePrimaryColor() === '#4f46e5'"
+              [class.border-transparent]="themePrimaryColor() !== '#4f46e5'"
+              style="background-color: #4f46e5;"
+            ></button>
+            <button
+              type="button"
+              (click)="setPrimaryColor('#059669')"
+              class="w-7 h-7 rounded-full shadow-xs border-2 transition-transform hover:scale-110 cursor-pointer"
+              [class.border-primary]="themePrimaryColor() === '#059669'"
+              [class.border-transparent]="themePrimaryColor() !== '#059669'"
+              style="background-color: #059669;"
+            ></button>
+            <button
+              type="button"
+              (click)="setPrimaryColor('#d97706')"
+              class="w-7 h-7 rounded-full shadow-xs border-2 transition-transform hover:scale-110 cursor-pointer"
+              [class.border-primary]="themePrimaryColor() === '#d97706'"
+              [class.border-transparent]="themePrimaryColor() !== '#d97706'"
+              style="background-color: #d97706;"
+            ></button>
+            <button
+              type="button"
+              (click)="setPrimaryColor('#0284c7')"
+              class="w-7 h-7 rounded-full shadow-xs border-2 transition-transform hover:scale-110 cursor-pointer"
+              [class.border-primary]="themePrimaryColor() === '#0284c7'"
+              [class.border-transparent]="themePrimaryColor() !== '#0284c7'"
+              style="background-color: #0284c7;"
+            ></button>
+          </div>
+        </div>
+
+        <!-- GIỚI THIỆU BẢN THÂN (BIO) -->
+        <div class="space-y-1">
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider" for="prof-bio">
+            GIỚI THIỆU BẢN THÂN (ABOUT ME)
+          </label>
+          <textarea
+            id="prof-bio"
+            rows="2"
+            [value]="bio()"
+            (input)="bio.set($any($event.target).value)"
+            class="w-full bg-canvas border border-hairline rounded-xl p-2.5 text-caption text-ink font-medium focus:outline-none focus:border-primary transition-colors resize-none shadow-2xs"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- ══ COLUMN 2: LIVE DISCORD PROFILE CARD PREVIEW (Middle 4 cols - Fit gọn gàng) ══ -->
+      <div class="lg:col-span-4 border-r border-hairline bg-canvas/40 p-4 overflow-y-auto custom-scrollbar flex flex-col items-center justify-start">
+        <span class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-2.5 self-start">
+          XEM TRƯỚC HỒ SƠ
+        </span>
+
+        <!-- Discord Profile Card (Tương thích 100% với MỌI Theme Sáng/Tối) -->
+        <div class="w-full max-w-[290px] rounded-2xl overflow-hidden bg-surface border border-hairline shadow-card text-ink select-none animate-slide-up">
+          <!-- Top Banner Color -->
+          <div
+            class="h-20 w-full transition-colors duration-300 relative"
+            [style.backgroundColor]="themePrimaryColor()"
+          >
+            <div class="absolute inset-0 bg-black/10"></div>
+          </div>
+
+          <!-- Avatar & Status Section -->
+          <div class="px-3.5 pb-3.5 pt-0 relative">
+            <div class="flex items-end justify-between -mt-9 mb-2">
+              <!-- Avatar with moon status badge -->
+              <div class="relative w-16 h-16 rounded-full bg-surface p-1 shadow-card ring-2 ring-surface">
+                <img [src]="avatarUrl()" alt="Avatar" class="w-full h-full rounded-full object-cover bg-surface-feature" />
+                <span class="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-[#f0b232] border-2 border-surface flex items-center justify-center text-[8.5px]">
+                  🌙
+                </span>
+              </div>
+
+              <!-- Custom status bubble -->
+              <div class="bg-surface-feature/90 backdrop-blur-xs border border-hairline rounded-xl px-2 py-0.5 text-[10.5px] text-ink shadow-2xs max-w-[135px] truncate mb-1">
+                💬 {{ customStatus() }}
+              </div>
+            </div>
+
+            <!-- Profile Name & Handle -->
+            <div class="space-y-0.5">
+              <h3 class="text-body-sm font-black text-ink leading-tight tracking-tight">
+                {{ nickname() }}
+              </h3>
+              <p class="text-[11px] text-steel font-mono">
+                &#64;{{ nickname().toLowerCase().replace(' ', '_') }}
+                @if (pronouns()) {
+                  <span class="text-stone ml-0.5">({{ pronouns() }})</span>
+                }
+              </p>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="grid grid-cols-2 gap-1.5 my-2">
+              <button type="button" class="py-1 px-2 rounded-lg bg-surface-feature hover:bg-surface-feature/80 text-[11px] font-bold text-ink border border-hairline transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-2xs">
+                <mat-icon class="!w-3.5 !h-3.5 !text-[13px] text-primary">diamond</mat-icon>
+                <span>Nhận Nitro</span>
+              </button>
+              <button type="button" class="py-1 px-2 rounded-lg bg-surface-feature hover:bg-surface-feature/80 text-[11px] font-bold text-ink border border-hairline transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-2xs">
+                <mat-icon class="!w-3.5 !h-3.5 !text-[13px]">storefront</mat-icon>
+                <span>Cửa hàng</span>
+              </button>
+            </div>
+
+            <!-- Bio -->
+            <div class="py-1.5 border-t border-hairline">
+              <span class="block text-[9px] font-extrabold uppercase tracking-wider text-stone mb-0.5">GIỚI THIỆU</span>
+              <p class="text-ink/85 leading-snug whitespace-pre-line font-medium text-[11px]">
+                {{ bio() }}
+              </p>
+            </div>
+
+            <!-- Dates & Roles -->
+            <div class="py-1.5 border-t border-hairline space-y-1">
+              <div class="flex items-center gap-2 text-[10px] text-steel font-medium">
+                <span>🗓️ 16 thg 1, 2023</span>
+                <span>•</span>
+                <span>🏰 29 thg 7, 2026</span>
+              </div>
+
+              <div class="flex flex-wrap gap-1 pt-0.5">
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-surface-feature text-[9.5px] font-bold text-ink border border-hairline">
+                  <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                  <span>Beta Tester</span>
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-surface-feature text-[9.5px] font-bold text-ink border border-hairline">
+                  <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
+                  <span>Thành viên</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Connected Accounts (Steam) -->
+            <div class="pt-1.5 border-t border-hairline">
+              <div class="flex items-center justify-between p-1.5 rounded-lg bg-surface-feature/70 border border-hairline">
+                <div class="flex items-center gap-1.5">
+                  <mat-icon class="!w-3.5 !h-3.5 !text-[14px] text-primary">sports_esports</mat-icon>
+                  <div>
+                    <span class="block text-[10.5px] font-bold text-ink leading-none">yangnguyen30206</span>
+                    <span class="text-[8.5px] text-steel">Thành viên từ 2024</span>
+                  </div>
+                </div>
+                <mat-icon class="!w-3.5 !h-3.5 !text-[13px] text-steel">open_in_new</mat-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ COLUMN 3: WIDGETS & GAMING ACTIVITY (Right 4 cols - Sạch sẽ không chữ đè) ══ -->
+      <div class="lg:col-span-4 bg-surface p-4.5 overflow-y-auto custom-scrollbar space-y-4 select-none">
+        <!-- Tab Bar: Bảng | Hoạt động | Danh sách mong muốn -->
+        <div class="flex items-center justify-between border-b border-hairline pb-2">
+          <div class="flex items-center gap-2.5">
+            <button
+              type="button"
+              (click)="activeTab.set('board')"
+              class="text-caption font-extrabold transition-colors cursor-pointer"
+              [class.text-primary]="activeTab() === 'board'"
+              [class.text-steel]="activeTab() !== 'board'"
+            >
+              Bảng
+            </button>
+            <button
+              type="button"
+              (click)="activeTab.set('activity')"
+              class="text-caption font-extrabold transition-colors cursor-pointer"
+              [class.text-primary]="activeTab() === 'activity'"
+              [class.text-steel]="activeTab() !== 'activity'"
+            >
+              Hoạt động
+            </button>
+            <button
+              type="button"
+              (click)="activeTab.set('wishlist')"
+              class="text-caption font-extrabold transition-colors cursor-pointer"
+              [class.text-primary]="activeTab() === 'wishlist'"
+              [class.text-steel]="activeTab() !== 'wishlist'"
+            >
+              Danh Sách
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="px-2 py-0.5 rounded-lg border border-hairline bg-canvas hover:bg-surface-feature text-[11px] font-bold text-ink transition-colors cursor-pointer shadow-2xs"
+          >
+            + Widget
+          </button>
+        </div>
+
+        <!-- ══ Section 1: Trò Chơi Luân Phiên ══ -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="block text-caption font-extrabold text-ink leading-tight">Trò Chơi Luân Phiên</span>
+              <span class="text-[10.5px] text-steel">Thêm tối đa 5 trò chơi</span>
+            </div>
+            <button
+              type="button"
+              class="w-5 h-5 rounded-md border border-hairline bg-canvas text-steel hover:text-ink flex items-center justify-center cursor-pointer shadow-2xs"
+            >
+              <mat-icon class="!w-3 !h-3 !text-[13px]">add</mat-icon>
+            </button>
+          </div>
+
+          <!-- Vertical Stack of Game Cards -->
+          <div class="space-y-2">
+            @for (game of currentGames(); track game.title; let gIdx = $index) {
+              <div class="group relative flex items-center gap-3 p-2 rounded-2xl border border-hairline bg-canvas hover:bg-surface-feature/40 transition-colors shadow-2xs">
+                <!-- Vertical Poster Cover -->
+                <div class="w-12 h-16 rounded-xl overflow-hidden bg-surface-feature shrink-0 border border-hairline shadow-xs">
+                  <img
+                    [src]="game.image"
+                    [alt]="game.title"
+                    (error)="onImageError($event, game.title)"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+
+                <!-- Info & Tags -->
+                <div class="flex-1 min-w-0 space-y-1.5">
+                  <span class="block text-body-sm font-extrabold text-ink truncate leading-tight">
+                    {{ game.title }}
+                  </span>
+
+                  <!-- Tag Chips -->
+                  <div class="flex flex-wrap items-center gap-1">
+                    @for (tag of game.tags; track tag; let tIdx = $index) {
+                      <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md border border-hairline bg-surface text-[10px] font-bold text-steel shadow-2xs">
+                        <span>{{ tag }}</span>
+                        <button
+                          type="button"
+                          (click)="removeRotatingTag(gIdx, tIdx)"
+                          class="hover:text-danger cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    }
+
+                    <button
+                      type="button"
+                      class="px-1.5 py-0.2 rounded-md border border-hairline border-dashed text-[10px] font-bold text-steel hover:text-primary hover:border-primary cursor-pointer transition-colors"
+                    >
+                      + Tag
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Delete Game Button -->
+                <button
+                  type="button"
+                  (click)="removeRotatingGame(gIdx)"
+                  class="absolute top-1.5 right-1.5 w-4.5 h-4.5 rounded-full bg-black/60 text-white/80 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  <mat-icon class="!w-2.5 !h-2.5 !text-[11px]">close</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- ══ Section 2: Trò Chơi Tôi Thích (Ảnh 3 - Ảnh Poster Đẹp, Không Chữ Đè Phía Dưới) ══ -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="block text-caption font-extrabold text-ink leading-tight">Trò Chơi Tôi Thích</span>
+              <span class="text-[10.5px] text-steel">Thêm tối đa 20 trò chơi</span>
+            </div>
+            <button
+              type="button"
+              class="w-5 h-5 rounded-md border border-hairline bg-canvas text-steel hover:text-ink flex items-center justify-center cursor-pointer shadow-2xs"
+            >
+              <mat-icon class="!w-3 !h-3 !text-[13px]">add</mat-icon>
+            </button>
+          </div>
+
+          <!-- 4-Column Clean Poster Grid (Không chữ đè phía dưới) -->
+          <div class="grid grid-cols-4 gap-2">
+            @for (game of favoriteGames(); track game.title; let fIdx = $index) {
+              <div
+                class="group relative aspect-[3/4] rounded-xl overflow-hidden border border-hairline bg-surface-feature shadow-xs cursor-pointer"
+                [title]="game.title"
+              >
+                <!-- Cover Image -->
+                <img
+                  [src]="game.image"
+                  [alt]="game.title"
+                  (error)="onImageError($event, game.title)"
+                  class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                />
+
+                <!-- Quick Remove Button on Hover -->
+                <button
+                  type="button"
+                  (click)="removeFavoriteGame(fIdx)"
+                  class="absolute top-1 right-1 w-4.5 h-4.5 rounded-full bg-black/70 text-white/90 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-sm"
+                >
+                  <mat-icon class="!w-2.5 !h-2.5 !text-[10px]">close</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="h-13 border-t border-hairline bg-surface px-5 flex items-center justify-between shrink-0">
+      <span class="text-micro text-steel">
+        Tất cả thay đổi hồ sơ này chỉ áp dụng riêng cho <strong>{{ serverName() }}</strong>.
+      </span>
+
+      <div class="flex items-center gap-2.5">
+        <button
+          type="button"
+          (click)="close.emit()"
+          class="px-3.5 py-1.5 rounded-xl text-caption font-bold text-steel hover:text-ink hover:underline cursor-pointer"
+        >
+          Hủy
+        </button>
+
+        <button
+          type="button"
+          (click)="saveProfile()"
+          class="btn-primary !py-1.5 !px-5 !rounded-xl text-caption font-bold shadow-glow flex items-center gap-1.5 cursor-pointer"
+        >
+          @if (isSaved()) {
+            <mat-icon class="!w-4 !h-4 !text-[16px]">check</mat-icon>
+            <span>Đã lưu!</span>
+          } @else {
+            <span>Lưu thay đổi</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

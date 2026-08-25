@@ -9,13 +9,29 @@ import {
 } from '@angular/core';
 import { CdkDrag, type CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormControl,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+
+export function trimmedMinLength(min: number) {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const val = typeof control.value === 'string' ? control.value.trim() : '';
+    if (!val || val.length < min) {
+      return { trimmedMinLength: { requiredLength: min, actualLength: val.length } };
+    }
+    return null;
+  };
+}
 import {
   CANONICAL_SERVER_TEMPLATES,
   type ChannelTemplateSeed,
@@ -84,6 +100,9 @@ export type RailItem =
 
 type GroupingTargetKind = 'folder' | 'server';
 
+import { ServerCapabilitiesService } from '../../../../core/servers/server-capabilities.service';
+import { ServersStore } from '../../../../core/servers/servers.store';
+
 /**
  * Cột 1 — dải icon server dọc mép trái chuẩn Discord.
  * Tái thiết kế toàn diện theo đặc tả Drag & Drop và Folder System.
@@ -117,12 +136,14 @@ type GroupingTargetKind = 'folder' | 'server';
 })
 export class ServerRail {
   private readonly shell = inject(ShellData);
+  private readonly serversStore = inject(ServersStore);
+  private readonly capabilitiesService = inject(ServerCapabilitiesService);
   private readonly dialog = inject(MatDialog);
   private readonly serversApi = inject(ServersApiService);
   private readonly router = inject(Router);
   private readonly commandDialog = viewChild.required<TemplateRef<unknown>>('commandDialog');
 
-  protected readonly servers = this.shell.servers;
+  protected readonly servers = this.serversStore.servers;
   protected readonly serverGroups = this.shell.serverGroups;
   protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
 
@@ -217,7 +238,7 @@ export class ServerRail {
 
   protected readonly serverNameControl = new FormControl('', {
     nonNullable: true,
-    validators: [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
+    validators: [Validators.required, trimmedMinLength(2), Validators.maxLength(100)],
   });
   protected readonly isSubmitting = signal(false);
   protected readonly createErrorMessage = signal<string | null>(null);
@@ -566,7 +587,10 @@ export class ServerRail {
     try {
       const template = this.selectedTemplate();
       const result = await this.serversApi.createServer(serverName, template.id);
+      this.serversStore.upsertServerWithChannels(result.server, result.channels);
       this.shell.upsertServerWithChannels(result.server, result.channels);
+      // Nạp và refresh canonical capability ngay lập tức cho creator (không cần F5)
+      void this.capabilitiesService.refresh(result.server.id);
       if (this.shell.demoEnabled()) {
         this.shell.setDemoEnabled(false);
       }
@@ -751,16 +775,11 @@ export class ServerRail {
   }
 
   private normalizeSearch(value: string): string {
-    return (
-      value
-        .trim()
-        .toLocaleLowerCase('vi')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        // `\u0111` l\u00e0 ch\u1eef c\u00e1i ri\u00eang (U+0111), NFD kh\u00f4ng t\u00e1ch ra `d` + d\u1ea5u \u0111\u01b0\u1ee3c \u2014
-        // thi\u1ebfu d\u00f2ng n\u00e0y th\u00ec g\u00f5 "do an" kh\u00f4ng ra server "\u0110\u1ed3 \u00e1n".
-        .replace(/\u0111/g, 'd')
-    );
+    return value
+      .trim()
+      .toLocaleLowerCase('vi')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
   }
 
   private commandScore(item: CommandResult, query: string): number {

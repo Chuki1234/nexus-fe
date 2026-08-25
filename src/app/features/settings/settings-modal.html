@@ -6,12 +6,12 @@
   >
     <!-- Floating Pop-up Box Container (Glassmorphic + Specular Border) -->
     <div
-      class="relative w-full max-w-6xl h-[94vh] max-h-[880px] bg-surface rounded-3xl border border-hairline shadow-modal flex overflow-hidden animate-settings-fade-in ring-1 ring-white/10"
+      class="relative w-full max-w-7xl h-[95vh] max-h-[920px] bg-surface rounded-3xl border border-hairline shadow-modal flex overflow-hidden animate-settings-fade-in ring-1 ring-white/10"
       (click)="$event.stopPropagation()"
     >
       <!-- LEFT SIDEBAR (Navigation & Profile Header) -->
       <aside
-        class="w-64 md:w-72 bg-surface-soft border-r border-hairline flex flex-col shrink-0 overflow-y-auto custom-scrollbar select-none hidden md:flex"
+        class="w-60 md:w-64 bg-surface-soft border-r border-hairline flex flex-col shrink-0 overflow-y-auto custom-scrollbar select-none hidden md:flex"
         [class.!flex]="mobileSidebarOpen()"
       >
         <!-- User Profile Card in Sidebar Header -->
@@ -19,7 +19,7 @@
           <div class="flex items-center gap-3">
             <app-avatar
               [name]="displayName()"
-              [src]="myAvatarUrl()"
+              [src]="settingsService.editAvatarUrl()"
               size="md"
               presence="online"
               ring="surface"
@@ -63,18 +63,18 @@
           </div>
         </div>
 
-        <!-- Navigation Menu Categories -->
-        <nav class="flex-1 px-2.5 py-2 space-y-4">
-          @for (cat of filteredCategories(); track cat.title) {
-            <div>
-              @if (cat.title) {
-                <span class="block px-3 py-1.5 text-[10px] font-extrabold font-mono text-stone tracking-[0.08em] uppercase">
-                  {{ cat.title }}
-                </span>
+        <!-- Settings Navigation List -->
+        <nav class="flex-1 px-2.5 py-1 space-y-4">
+          @for (category of filteredCategories(); track category.title) {
+            <div class="space-y-0.5">
+              @if (category.title) {
+                <div class="px-3 py-1.5 text-micro-uppercase font-extrabold text-stone tracking-wider uppercase select-none">
+                  {{ category.title }}
+                </div>
               }
 
               <div class="space-y-0.5">
-                @for (item of cat.items; track item.id) {
+                @for (item of category.items; track item.id) {
                   <div>
                     <button
                       type="button"
@@ -143,35 +143,36 @@
         </div>
       </aside>
 
-      <!-- RIGHT CONTENT PANE -->
-      <main class="flex-1 flex flex-col min-w-0 bg-canvas relative overflow-hidden">
-        <!-- Top Toolbar Header -->
-        <header class="h-14 px-6 md:px-8 border-b border-hairline flex items-center justify-between shrink-0 bg-surface/60 backdrop-blur-sm">
-          <!-- Mobile Sidebar Toggle -->
-          <button
-            type="button"
-            (click)="mobileSidebarOpen.set(!mobileSidebarOpen())"
-            class="md:hidden text-steel hover:text-ink p-1.5 rounded-lg border border-hairline cursor-pointer mr-2"
-          >
-            <mat-icon class="!w-5 !h-5">menu</mat-icon>
-          </button>
+      <!-- RIGHT MAIN CONTENT PANE -->
+      <main class="flex-1 flex flex-col min-w-0 bg-canvas/70 overflow-hidden relative">
+        <!-- Top App Bar / Breadcrumb / ESC Close Button -->
+        <header class="h-14 border-b border-hairline px-6 md:px-8 flex items-center justify-between shrink-0 bg-surface/80 backdrop-blur-md z-20">
+          <div class="flex items-center gap-3 min-w-0">
+            <!-- Mobile Menu Toggle Button -->
+            <button
+              type="button"
+              (click)="mobileSidebarOpen.set(!mobileSidebarOpen())"
+              class="md:hidden w-8 h-8 rounded-lg border border-hairline flex items-center justify-center text-steel hover:text-ink cursor-pointer"
+              title="Mở menu cài đặt"
+            >
+              <mat-icon class="!w-5 !h-5 !text-[20px]">menu</mat-icon>
+            </button>
 
-          <!-- Current Tab Title in Breadcrumb -->
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="text-caption font-semibold text-steel truncate">
-              {{ settingsService.settingsMode() === 'server' ? 'Cài đặt Máy chủ' : 'Cài đặt người dùng' }}
-            </span>
-            <span class="text-caption text-stone">/</span>
-            <span class="text-body-sm font-bold text-ink truncate capitalize">
-              {{ currentTabLabel() }}
-            </span>
+            <!-- Breadcrumb Path -->
+            <div class="flex items-center gap-2 text-caption font-semibold truncate select-none">
+              <span class="text-steel">
+                {{ settingsService.settingsMode() === 'server' ? 'Cài đặt Máy chủ' : 'Cài đặt Người dùng' }}
+              </span>
+              <span class="text-stone">/</span>
+              <span class="text-ink font-bold">{{ currentTabLabel() }}</span>
+            </div>
           </div>
 
-          <!-- Close Modal Button (Keycap ESC Indicator) -->
+          <!-- ESC Close Badge Button -->
           <button
             type="button"
             (click)="close()"
-            class="flex items-center gap-1.5 px-3 py-1 rounded-full border border-hairline-strong hover:border-primary text-steel hover:text-primary hover:bg-surface-feature transition-all group cursor-pointer shadow-2xs shrink-0"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-hairline bg-surface hover:bg-surface-feature text-steel hover:text-ink transition-all shadow-xs cursor-pointer group"
             title="Đóng (Esc)"
           >
             <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
@@ -180,8 +181,8 @@
         </header>
 
         <!-- Scrollable Tab Content Container -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10">
-          <div class="max-w-3xl mx-auto pb-20 animate-fade-in">
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-7">
+          <div class="w-full max-w-full pb-20 animate-fade-in">
             @if (!settingsService.hasPermissionForTab(settingsService.currentTab())) {
               <div class="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[360px] space-y-4">
                 <div class="w-16 h-16 rounded-full bg-danger/15 text-danger flex items-center justify-center border border-danger/30 shadow-xs">
@@ -252,11 +253,17 @@
                 @case ('server-overview') {
                   <app-server-overview-tab />
                 }
+                @case ('server-members') {
+                  <app-server-members-tab />
+                }
                 @case ('server-roles') {
                   <app-server-roles-tab />
                 }
-                @case ('server-members') {
-                  <app-server-members-tab />
+                @case ('server-invites') {
+                  <app-server-invites-tab />
+                }
+                @case ('server-access') {
+                  <app-server-access-tab />
                 }
                 @case ('server-safety') {
                   <app-server-safety-tab />
@@ -317,5 +324,10 @@
         }
       </main>
     </div>
+
+    <!-- ══ COLOR STUDIO FULLSCREEN OVERLAY MODAL (DIM & BLUR ENTIRE SCREEN) ══ -->
+    @if (settingsService.isColorStudioOpen()) {
+      <app-color-studio-modal />
+    }
   </div>
 }

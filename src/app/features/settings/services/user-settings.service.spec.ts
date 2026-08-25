@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { UserSettingsService } from './user-settings.service';
 import { ProfileService } from '../../../core/profile/profile.service';
+import { ProfilePendingImages } from '../../profile/pending-images';
 
 describe('UserSettingsService', () => {
   let service: UserSettingsService;
@@ -61,6 +62,35 @@ describe('UserSettingsService', () => {
     service.resetChanges();
     expect(service.hasUnsavedChanges()).toBe(false);
     expect(service.editDisplayName()).not.toBe('Tên Mới Được Sửa');
+  });
+
+  it('ảnh hồ sơ chọn dở cũng tính là thay đổi chưa lưu', () => {
+    const staged = TestBed.inject(ProfilePendingImages);
+    URL.createObjectURL ??= () => 'blob:test';
+    URL.revokeObjectURL ??= () => undefined;
+
+    service.open('profile');
+    expect(service.hasUnsavedChanges()).toBe(false);
+
+    staged.stage('avatar', new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }));
+    expect(service.hasUnsavedChanges()).toBe(true);
+
+    service.resetChanges();
+    expect(staged.hasPending()).toBe(false);
+    expect(service.hasUnsavedChanges()).toBe(false);
+  });
+
+  it('đóng cài đặt bỏ luôn ảnh chọn dở', () => {
+    const staged = TestBed.inject(ProfilePendingImages);
+    URL.createObjectURL ??= () => 'blob:test';
+    URL.revokeObjectURL ??= () => undefined;
+
+    service.open('profile');
+    staged.stageRemoval('banner');
+    expect(service.hasUnsavedChanges()).toBe(true);
+
+    service.close();
+    expect(staged.hasPending()).toBe(false);
   });
 
   it('tính toán đúng phân quyền server theo vai trò', () => {

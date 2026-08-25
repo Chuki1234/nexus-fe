@@ -4,18 +4,16 @@ import type { Session, User } from '@supabase/supabase-js';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SupabaseService } from '../supabase/supabase.service';
+import type {
+  LoginMfaRequired,
+  LoginResponse,
+  LoginResult,
+} from '../../../shared/dto/auth';
 
 export interface SignInCredentials {
   /** Email hoặc tên đăng nhập — backend tự phân biệt. */
   identifier: string;
   password: string;
-}
-
-/** Thân phản hồi của POST /api/auth/login. */
-interface LoginSession {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number | null;
 }
 
 /** Single source of truth for who is signed in. */
@@ -80,19 +78,79 @@ export class AuthService {
    * đọc bảng `profiles`, mà frontend không được phép đọc bảng. Backend trả token,
    * ở đây nạp vào Supabase client để phần còn lại của app dùng phiên như thường.
    *
+   * Nếu user bật 2FA, trả `LoginMfaRequired` — caller phải điều hướng sang /auth/2fa.
+   *
    * Ném `HttpErrorResponse` — người gọi dùng `toLoginErrorMessage` để hiển thị.
    */
-  async signIn({ identifier, password }: SignInCredentials): Promise<Session> {
-    const session = await firstValueFrom(
-      this.http.post<LoginSession>(`${environment.apiUrl}/auth/login`, {
+  async signIn({ identifier, password }: SignInCredentials): Promise<Session | LoginMfaRequired> {
+    const result = await firstValueFrom(
+      this.http.post<LoginResult>(`${environment.apiUrl}/auth/login`, {
         identifier,
         password,
       }),
     );
 
+    // 2FA required — trả thông tin MFA để caller điều hướng
+    if (result.requiresMfa) {
+      return result;
+    }
+
+    const { data, error } = await this.supabase.client.auth.setSession({
+      access_token: result.accessToken,
+      refresh_token: result.refreshToken,
+    });
+    if (error || !data.session) {
+      throw error ?? new Error('Không nạp được phiên đăng nhập.');
+    }
+
+    this.currentSession.set(data.session);
+    return data.session;
+  }
+
+  /**
+   * Hoàn tất bước 2 của đăng nhập khi 2FA bật.
+   * Nhận token AAL1, challengeId và TOTP code (hoặc backup code).
+   * Sau khi verify thành công, nạp session AAL2 vào Supabase client.
+   */
+  async verifyMfaChallenge(
+    accessToken: string,
+    challengeId: string,
+    code: string,
+  ): Promise<Session> {
+    const session = await firstValueFrom(
+      this.http.post<LoginResponse>(`${environment.apiUrl}/auth/2fa/verify-login`, {
+        accessToken,
+        challengeId,
+        code,
+      }),
+    );
+
     const { data, error } = await this.supabase.client.auth.setSession({
       access_token: session.accessToken,
-      refresh_token: session.refreshToken,
+      refresh_token: session.refreshToken || session.accessToken,
+    });
+    if (error || !data.session) {
+      throw error ?? new Error('Không nạp được phiên đăng nhập.');
+    }
+
+    this.currentSession.set(data.session);
+    return data.session;
+  }
+
+  /**
+   * Đăng nhập nhanh bằng Google Authenticator (mã 6 chữ số hoặc mã dự phòng).
+   */
+  async fastLoginTotp(identifier: string, code: string): Promise<Session> {
+    const session = await firstValueFrom(
+      this.http.post<LoginResponse>(`${environment.apiUrl}/auth/2fa/fast-login`, {
+        identifier,
+        code,
+      }),
+    );
+
+    const { data, error } = await this.supabase.client.auth.setSession({
+      access_token: session.accessToken,
+      refresh_token: session.refreshToken || session.accessToken,
     });
     if (error || !data.session) {
       throw error ?? new Error('Không nạp được phiên đăng nhập.');

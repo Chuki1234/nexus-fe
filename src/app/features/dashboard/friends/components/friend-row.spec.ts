@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import type { ConversationSummary } from '../../../../core/api/shell-data';
+import { ConversationsApiService } from '../../../../core/api/conversations-api.service';
+import { ShellData } from '../../../../core/api/shell-data';
 import { FriendRow } from './friend-row';
 
 const NGUOI: ConversationSummary = {
@@ -23,33 +25,145 @@ class Host {
 }
 
 describe('FriendRow', () => {
+  let mockConversationsApi: { getOrCreateDm: any };
+  let mockShell: { demoEnabled: any };
+  let router: Router;
+
+  beforeEach(() => {
+    mockConversationsApi = {
+      getOrCreateDm: vi.fn().mockResolvedValue({
+        id: 'conv-123',
+        type: 'dm',
+        recipient: { id: 'ho-be', name: 'ho_be' },
+        unreadCount: 0,
+        createdAt: new Date().toISOString(),
+      }),
+    };
+    mockShell = {
+      demoEnabled: vi.fn().mockReturnValue(false),
+    };
+  });
+
   const mount = async () => {
     await TestBed.configureTestingModule({
       imports: [Host],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        { provide: ConversationsApiService, useValue: mockConversationsApi },
+        { provide: ShellData, useValue: mockShell },
+      ],
     }).compileComponents();
+
+    router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
     const fixture = TestBed.createComponent(Host);
     fixture.detectChanges();
     return fixture;
   };
 
-  it('cả hàng là một link tới cuộc trò chuyện', async () => {
+  it('cả hàng là vùng bấm mở cuộc trò chuyện DM thật', async () => {
     const fixture = await mount();
-    const link = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+    const rowBtn = fixture.nativeElement.querySelector(
+      'button[aria-label="Nhắn tin cho ho_be"]',
+    ) as HTMLButtonElement;
 
-    // Vùng bấm phải là cả hàng, không chỉ mỗi cái tên.
-    expect(link.getAttribute('href')).toBe('/channels/@me/ho-be');
-    expect(link.textContent).toContain('ho_be');
+    expect(rowBtn).toBeTruthy();
+    expect(rowBtn.textContent).toContain('ho_be');
+
+    rowBtn.click();
+    await fixture.whenStable();
+
+    expect(mockConversationsApi.getOrCreateDm).toHaveBeenCalledWith('ho-be');
+    expect(router.navigate).toHaveBeenCalledWith(['/channels/@me', 'conv-123']);
   });
 
-  it('có action nhắn tin với nhãn truy cập được', async () => {
+  it('click icon chat cũng mở cuộc trò chuyện DM thật', async () => {
     const fixture = await mount();
-    const action = fixture.nativeElement.querySelector(
-      'a[aria-label="Nhắn tin cho ho_be"]',
-    ) as HTMLAnchorElement;
+    const actionBtns = fixture.nativeElement.querySelectorAll(
+      'button[aria-label="Nhắn tin cho ho_be"]',
+    );
+    const chatIconBtn = actionBtns[1] as HTMLButtonElement; // button icon chat bên phải
 
-    expect(action.getAttribute('href')).toBe('/channels/@me/ho-be');
-    expect(action.classList.contains('nexus-icon-control')).toBe(true);
+    expect(chatIconBtn).toBeTruthy();
+
+    chatIconBtn.click();
+    await fixture.whenStable();
+
+    expect(mockConversationsApi.getOrCreateDm).toHaveBeenCalledWith('ho-be');
+    expect(router.navigate).toHaveBeenCalledWith(['/channels/@me', 'conv-123']);
+  });
+
+  it('hiển thị thông báo lỗi và nút Thử lại khi gọi getOrCreateDm thất bại', async () => {
+    mockConversationsApi.getOrCreateDm = vi
+      .fn()
+      .mockRejectedValue(new Error('Lỗi kết nối máy chủ'));
+
+    const fixture = await mount();
+    const rowBtn = fixture.nativeElement.querySelector(
+      'button[aria-label="Nhắn tin cho ho_be"]',
+    ) as HTMLButtonElement;
+
+    rowBtn.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const alert = fixture.nativeElement.querySelector('[role="alert"]');
+    expect(alert).toBeTruthy();
+    expect(alert.textContent).toContain('Lỗi kết nối máy chủ');
+    expect(alert.textContent).toContain('Thử lại');
+
+    // Bấm Thử lại sau khi API phục hồi
+    mockConversationsApi.getOrCreateDm.mockResolvedValueOnce({
+      id: 'conv-retry-ok',
+      type: 'dm',
+    });
+
+    const retryBtn = alert.querySelector('button') as HTMLButtonElement;
+    retryBtn.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/channels/@me', 'conv-retry-ok']);
+  });
+
+  it('chống double-click không gọi API lặp nhiều lần', async () => {
+    let resolvePromise: (value: any) => void;
+    mockConversationsApi.getOrCreateDm = vi.fn().mockReturnValue(
+      new Promise((res) => {
+        resolvePromise = res;
+      }),
+    );
+
+    const fixture = await mount();
+    const rowBtn = fixture.nativeElement.querySelector(
+      'button[aria-label="Nhắn tin cho ho_be"]',
+    ) as HTMLButtonElement;
+
+    // Click 2 lần liên tiếp
+    rowBtn.click();
+    rowBtn.click();
+
+    expect(mockConversationsApi.getOrCreateDm).toHaveBeenCalledTimes(1);
+
+    // Hoàn thành promise
+    resolvePromise!({ id: 'conv-123', type: 'dm' });
+    await fixture.whenStable();
+  });
+
+  it('ở chế độ demo, điều hướng trực tiếp theo ID mock mà không gọi API', async () => {
+    mockShell.demoEnabled.mockReturnValue(true);
+    const fixture = await mount();
+    const rowBtn = fixture.nativeElement.querySelector(
+      'button[aria-label="Nhắn tin cho ho_be"]',
+    ) as HTMLButtonElement;
+
+    rowBtn.click();
+    await fixture.whenStable();
+
+    expect(mockConversationsApi.getOrCreateDm).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/channels/@me', 'ho-be']);
   });
 
   it('nút ba chấm mở menu đúng người bạn với đủ nhóm tùy chọn', async () => {
@@ -63,7 +177,9 @@ describe('FriendRow', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const menu = document.body.querySelector('.nexus-friend-options-menu') as HTMLElement;
+    const menu = document.body.querySelector(
+      '.nexus-friend-options-menu',
+    ) as HTMLElement;
     expect(menu).toBeTruthy();
     expect(menu.textContent).toContain('ho_be');
     expect(menu.textContent).toContain('Bản xem trước · chờ kết nối');
@@ -83,27 +199,17 @@ describe('FriendRow', () => {
     await fixture.whenStable();
 
     const actions = Array.from(
-      document.body.querySelectorAll('.nexus-friend-options-menu button[mat-menu-item]'),
+      document.body.querySelectorAll(
+        '.nexus-friend-options-menu button[mat-menu-item]',
+      ),
     ) as HTMLButtonElement[];
     expect(actions).toHaveLength(6);
     expect(actions.filter((action) => action.disabled)).toHaveLength(5);
     expect(
-      actions.find((action) => action.textContent?.includes('Xóa khỏi danh sách bạn'))
-        ?.disabled,
+      actions.find((action) =>
+        action.textContent?.includes('Xóa khỏi danh sách bạn'),
+      )?.disabled,
     ).toBe(false);
-  });
-
-  it('avatar nằm trong link DM và không dựng action hồ sơ của team khác', async () => {
-    const fixture = await mount();
-    const profileAction = fixture.nativeElement.querySelector(
-      'button[aria-label="Xem hồ sơ nhanh của ho_be"]',
-    );
-    const dmLink = fixture.nativeElement.querySelector(
-      'a[href="/channels/@me/ho-be"]:not([aria-label])',
-    ) as HTMLAnchorElement;
-
-    expect(profileAction).toBeNull();
-    expect(dmLink.querySelector('app-avatar')).toBeTruthy();
   });
 
   it('hàng bạn bè dùng state hover/focus tương phản chung', async () => {
@@ -113,15 +219,47 @@ describe('FriendRow', () => {
     expect(row.classList.contains('nexus-interactive-row')).toBe(true);
   });
 
-  /**
-   * Chỉ đọc riêng dòng phụ đề.
-   *
-   * Không dùng `textContent` của cả hàng: chấm trạng thái trong avatar cũng có
-   * nhãn "Không làm phiền" dành cho trình đọc màn hình, nên so khớp cả hàng sẽ
-   * luôn thấy nó và test mất ý nghĩa.
-   */
   const phuDe = (fixture: { nativeElement: HTMLElement }) =>
     fixture.nativeElement.querySelector('.text-caption')?.textContent?.trim();
+
+  it('navigation thất bại hiển thị thông báo lỗi và dọn spinner', async () => {
+    const fixture = await mount();
+    vi.spyOn(router, 'navigate').mockResolvedValue(false);
+    const row = fixture.debugElement.children[0].componentInstance as FriendRow;
+
+    await row.onOpenDm();
+    fixture.detectChanges();
+
+    const alert = fixture.nativeElement.querySelector('[role="alert"]');
+    expect(alert).toBeTruthy();
+    expect(alert.textContent).toContain('Không thể chuyển đến cuộc trò chuyện.');
+    expect(row.openingDm()).toBe(false);
+  });
+
+  it('bấm nút x đóng thông báo lỗi', async () => {
+    mockConversationsApi.getOrCreateDm.mockRejectedValueOnce(
+      new Error('Mạng không ổn định'),
+    );
+    const fixture = await mount();
+    const rowBtn = fixture.nativeElement.querySelector(
+      'button[aria-label="Nhắn tin cho ho_be"]',
+    ) as HTMLButtonElement;
+
+    rowBtn.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const closeBtn = fixture.nativeElement.querySelector(
+      'button[aria-label="Đóng thông báo lỗi"]',
+    ) as HTMLButtonElement;
+    expect(closeBtn).toBeTruthy();
+
+    closeBtn.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+  });
 
   it('ưu tiên câu trạng thái người dùng tự đặt', async () => {
     const fixture = await mount();

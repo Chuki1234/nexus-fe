@@ -21,6 +21,12 @@
   cursor: default;
 }
 
+.invite-btn--error {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger, #ef4444);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
 .invite-dialog button,
 .invite-dialog mat-icon {
   display: inline-flex !important;

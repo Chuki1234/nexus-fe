@@ -1,0 +1,271 @@
+<div class="space-y-6 animate-fade-in relative pb-12 max-w-4xl">
+  <!-- Title (Y hệt ảnh 2) -->
+  <div>
+    <h2 class="text-heading-3 font-bold text-ink tracking-tight">Lời mời</h2>
+  </div>
+
+  <!-- Top Action Bar (Y hệt ảnh 2) -->
+  <div class="flex items-center justify-between gap-4 pt-1">
+    <span class="text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">
+      LIÊN KẾT MỜI ĐANG HOẠT ĐỘNG
+    </span>
+
+    <div class="flex items-center gap-3">
+      <!-- Mời Bạn Bè Button (Ảnh 3) -->
+      <button
+        type="button"
+        (click)="showInviteFriendsModal.set(true)"
+        class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-caption font-bold border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all cursor-pointer shadow-xs"
+      >
+        <mat-icon class="!w-4 !h-4 !text-[16px]">person_add</mat-icon>
+        <span>Mời Bạn Bè</span>
+      </button>
+
+      <!-- Tạm Dừng Lời Mời Button -->
+      <button
+        type="button"
+        (click)="togglePauseAllInvites()"
+        class="px-4 py-2 rounded-xl text-caption font-bold border border-hairline bg-surface-feature/50 text-steel hover:text-ink hover:border-stone transition-colors cursor-pointer"
+      >
+        Tạm Dừng Lời Mời
+      </button>
+
+      <!-- Tạo liên kết mới Button -->
+      <button
+        type="button"
+        (click)="showCreateModal.set(true)"
+        class="btn-primary !py-2 !px-4 !rounded-xl text-caption font-bold shadow-glow cursor-pointer"
+      >
+        Tạo liên kết mới
+      </button>
+    </div>
+  </div>
+
+  <!-- Invites Table (Y hệt ảnh 2) -->
+  <div class="rounded-2xl border border-hairline bg-surface overflow-hidden shadow-card">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse min-w-[680px]">
+        <thead>
+          <tr class="border-b border-hairline bg-surface-feature/60 text-[11px] font-mono font-extrabold text-stone uppercase tracking-wider select-none">
+            <th class="py-3.5 px-4 min-w-[200px]">Người mời</th>
+            <th class="py-3.5 px-3 min-w-[140px]">Mã Mời</th>
+            <th class="py-3.5 px-3 min-w-[100px]">Lần dùng</th>
+            <th class="py-3.5 px-3 min-w-[140px]">Thời hạn</th>
+            <th class="py-3.5 px-3 min-w-[120px]">Vai trò</th>
+            <th class="py-3.5 px-4 text-right w-12"></th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-hairline">
+          @if (invites().length === 0) {
+            <tr>
+              <td colspan="6" class="py-12 text-center text-caption text-steel">
+                Chưa có liên kết mời nào đang hoạt động.
+              </td>
+            </tr>
+          } @else {
+            @for (inv of invites(); track inv.id) {
+              <tr class="hover:bg-surface-feature/30 transition-colors group">
+                <!-- Người mời (Avatar + Tên + Kênh đích 'Sảnh') -->
+                <td class="py-3.5 px-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full overflow-hidden border border-hairline bg-surface-feature shrink-0">
+                      @if (inv.creatorAvatar) {
+                        <img [src]="inv.creatorAvatar" [alt]="inv.creatorName" class="w-full h-full object-cover" />
+                      } @else {
+                        <div class="w-full h-full flex items-center justify-center text-[10px] font-bold text-primary">
+                          {{ inv.creatorName[0] }}
+                        </div>
+                      }
+                    </div>
+                    <div>
+                      <span class="block text-caption font-bold text-ink truncate">{{ inv.creatorName }}</span>
+                      <span class="block text-[11px] text-stone font-medium"># {{ inv.channelName || 'Sảnh' }}</span>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Mã Mời (Click to copy) -->
+                <td class="py-3.5 px-3">
+                  <button
+                    type="button"
+                    (click)="copyInvite(inv.code)"
+                    matTooltip="Nhấp để sao chép liên kết"
+                    class="font-mono text-body-sm font-semibold text-ink hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer group/code"
+                  >
+                    <span>{{ inv.code }}</span>
+                    <mat-icon class="!w-3.5 !h-3.5 !text-[14px] text-stone group-hover/code:text-primary opacity-0 group-hover/code:opacity-100 transition-opacity">
+                      content_copy
+                    </mat-icon>
+                  </button>
+                </td>
+
+                <!-- Lần dùng -->
+                <td class="py-3.5 px-3 text-caption font-semibold text-ink">
+                  {{ inv.uses }}
+                  @if (inv.maxUses) {
+                    <span class="text-stone text-[11px]"> / {{ inv.maxUses }}</span>
+                  }
+                </td>
+
+                <!-- Thời hạn (Countdown e.g. 29:23:20:47) -->
+                <td class="py-3.5 px-3 font-mono text-caption font-medium text-steel">
+                  {{ inv.expiresAt }}
+                </td>
+
+                <!-- Vai trò -->
+                <td class="py-3.5 px-3">
+                  @if (inv.roleName) {
+                    <span class="inline-flex items-center gap-1 text-caption text-ink font-medium">
+                      <span class="w-2 h-2 rounded-full bg-primary shrink-0"></span>
+                      <span>{{ inv.roleName }}</span>
+                    </span>
+                  } @else {
+                    <span class="text-caption text-stone">—</span>
+                  }
+                </td>
+
+                <!-- Delete / Revoke Action -->
+                <td class="py-3.5 px-4 text-right">
+                  <button
+                    type="button"
+                    (click)="deleteInvite(inv.id)"
+                    matTooltip="Thu hồi liên kết mời"
+                    class="w-7 h-7 rounded-lg text-steel hover:text-danger hover:bg-danger-surface flex items-center justify-center cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create Invite Modal Dialog -->
+  @if (showCreateModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
+      <div class="card-base max-w-md w-full space-y-4 animate-slide-up shadow-modal" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between">
+          <span class="text-heading-5 font-bold text-ink">Tạo liên kết mới</span>
+          <button type="button" (click)="showCreateModal.set(false)" class="text-steel hover:text-ink cursor-pointer">
+            <mat-icon class="!w-4 !h-4">close</mat-icon>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Kênh đích -->
+          <div>
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="select-inv-chan">
+              Gửi người dùng tới kênh
+            </label>
+            <select
+              id="select-inv-chan"
+              [value]="targetChannel()"
+              (change)="targetChannel.set($any($event.target).value)"
+              class="input-base !bg-canvas cursor-pointer font-semibold text-caption"
+            >
+              <option value="Sảnh"># Sảnh (Kênh chính)</option>
+              @for (chan of availableChannels(); track chan.id) {
+                <option [value]="chan.name"># {{ chan.name }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Mã Tùy Chọn -->
+          <div>
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="input-inv-code">
+              Mã Mời Tùy Chỉnh (Tùy chọn)
+            </label>
+            <div class="flex items-center gap-2">
+              <span class="text-caption font-mono font-bold text-steel">https://nexus.gg/</span>
+              <input
+                id="input-inv-code"
+                type="text"
+                [value]="customCode()"
+                (input)="customCode.set($any($event.target).value)"
+                placeholder="FZqeb9Ya3"
+                class="input-base !font-mono font-bold !bg-canvas flex-1"
+              />
+            </div>
+          </div>
+
+          <!-- Thời hạn -->
+          <div>
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="select-inv-exp">
+              Hết hạn sau
+            </label>
+            <select
+              id="select-inv-exp"
+              [value]="expiration()"
+              (change)="expiration.set($any($event.target).value)"
+              class="input-base !bg-canvas cursor-pointer font-semibold text-caption"
+            >
+              <option value="00:30:00">30 phút</option>
+              <option value="1:00:00:00">1 ngày</option>
+              <option value="7:00:00:00">7 ngày</option>
+              <option value="29:23:59:59">30 ngày</option>
+              <option value="Vô thời hạn">Vô thời hạn</option>
+            </select>
+          </div>
+
+          <!-- Số lượt dùng tối đa -->
+          <div>
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="select-inv-uses">
+              Số lượt sử dụng tối đa
+            </label>
+            <select
+              id="select-inv-uses"
+              [value]="maxUses() ?? 'unlimited'"
+              (change)="maxUses.set($any($event.target).value === 'unlimited' ? null : +$any($event.target).value)"
+              class="input-base !bg-canvas cursor-pointer font-semibold text-caption"
+            >
+              <option value="unlimited">Không giới hạn</option>
+              <option value="1">1 lượt</option>
+              <option value="5">5 lượt</option>
+              <option value="10">10 lượt</option>
+              <option value="25">25 lượt</option>
+              <option value="50">50 lượt</option>
+              <option value="100">100 lượt</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            (click)="showCreateModal.set(false)"
+            class="px-4 py-2 text-caption font-semibold text-steel hover:text-ink hover:underline cursor-pointer"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            (click)="createInvite()"
+            class="btn-primary !py-2 !px-5 !rounded-xl font-bold shadow-glow cursor-pointer"
+          >
+            Tạo liên kết
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Toast -->
+  @if (toastMessage()) {
+    <div class="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-full bg-primary text-on-primary shadow-modal font-bold text-caption flex items-center gap-2 animate-slide-down">
+      <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+      <span>{{ toastMessage() }}</span>
+    </div>
+  }
+
+  <!-- Invite Friends Modal (Ảnh 3) -->
+  @if (showInviteFriendsModal()) {
+    <app-invite-friends-modal
+      [serverId]="settingsService.currentServerId()"
+      (close)="showInviteFriendsModal.set(false)"
+    />
+  }
+</div>

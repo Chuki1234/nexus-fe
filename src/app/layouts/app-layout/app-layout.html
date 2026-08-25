@@ -1,43 +1,111 @@
-<mat-sidenav-container
-  class="dashboard-shell h-full"
-  [hasBackdrop]="isCompact()"
+<div
+  #dashboardShell
+  class="dashboard-shell h-full w-full"
+  [class.dashboard-shell--dragging]="layoutService.isDraggingNav() || layoutService.isDraggingMember()"
   [attr.data-theme]="theme()"
+  [style.--navigation-pane-width.px]="layoutService.navWidth()"
+  [style.--member-pane-width.px]="layoutService.memberWidth()"
+  [style.--server-rail-width.px]="serverRailWidth"
 >
-  <mat-sidenav
-    #drawer
-    [mode]="isCompact() ? 'over' : 'side'"
-    [opened]="!isCompact()"
-    class="dashboard-nav-drawer !border-0"
-  >
-    <div class="dashboard-nav-shell flex h-full w-full gap-2 overflow-hidden p-2 pr-0">
+  @if (!isCompact()) {
+    <!-- Desktop Mode: Normal-Flow Flex Panes (No MatSidenav Side Overrides) -->
+    <div class="dashboard-desktop-nav-shell dashboard-nav-shell flex h-full shrink-0 gap-2 p-2 pr-0 relative overflow-hidden">
       <app-server-rail />
-      <app-channel-sidebar [serverId]="serverId()" />
+      <app-channel-sidebar
+        [serverId]="serverId()"
+        [style.width.px]="layoutService.navWidth()"
+      />
+
+      <!-- Resizable Divider Handle on the right edge of Navigation Pane -->
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        tabindex="0"
+        aria-label="Thay đổi độ rộng thanh điều hướng"
+        [attr.aria-valuemin]="navMinWidth"
+        [attr.aria-valuemax]="layoutService.effectiveMaxNavWidth()"
+        [attr.aria-valuenow]="layoutService.navWidth()"
+        class="pane-resize-handle pane-resize-handle--nav"
+        [class.pane-resize-handle--active]="layoutService.isDraggingNav()"
+        (pointerdown)="startNavResize($event)"
+        (dblclick)="resetNavWidth()"
+        (keydown)="handleNavKeyDown($event)"
+      ></div>
     </div>
-  </mat-sidenav>
 
-  <mat-sidenav-content class="dashboard-content h-full min-h-0 p-2">
-    @if (isCompact()) {
-      <button
-        mat-icon-button
-        type="button"
-        (click)="drawer.toggle()"
-        matTooltip="Mở danh sách kênh"
-        class="nexus-icon-control absolute top-3 left-3 z-10 bg-surface shadow-card"
+    <!-- Desktop Main Workspace Area (Normal-Flow Sibling) -->
+    <div class="dashboard-content flex-1 min-w-0 min-h-0 h-full p-2">
+      <main
+        class="dashboard-workspace flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl"
       >
-        <mat-icon>menu</mat-icon>
-        <span class="sr-only">Mở danh sách kênh</span>
-      </button>
-    }
-    <main
-      class="dashboard-workspace flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl"
-    >
-      <router-outlet />
-    </main>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+        <router-outlet />
+      </main>
+    </div>
+  } @else {
+    <!-- Tablet / Mobile Mode: Native Angular Material MatSidenav Overlay with Backdrop -->
+    <mat-sidenav-container class="dashboard-mobile-container h-full w-full" [hasBackdrop]="true">
+      <mat-sidenav
+        #drawer
+        mode="over"
+        class="dashboard-nav-drawer !border-0"
+      >
+        <div class="dashboard-nav-shell flex h-full w-full gap-2 overflow-hidden p-2 relative">
+          <app-server-rail />
+          <app-channel-sidebar [serverId]="serverId()" />
+        </div>
+      </mat-sidenav>
 
-<!-- Đặt ngoài mat-sidenav-container: modal dùng position:fixed để phủ toàn màn
-     hình, đặt bên trong dễ dính vào ngữ cảnh xếp lớp/scroll của sidenav.
-     Component tự ẩn/hiện theo settingsService.isOpen() nên mount thẳng, không
-     cần bọc @if. Thiếu dòng này thì nút Cài đặt bấm vào không ra gì. -->
-<app-settings-modal />
+      <mat-sidenav-content class="dashboard-content h-full min-h-0 p-2">
+        <button
+          mat-icon-button
+          type="button"
+          (click)="drawer.toggle()"
+          matTooltip="Mở danh sách kênh"
+          class="nexus-icon-control absolute top-3 left-3 z-10 bg-surface shadow-card"
+        >
+          <mat-icon>menu</mat-icon>
+          <span class="sr-only">Mở danh sách kênh</span>
+        </button>
+        <main
+          class="dashboard-workspace flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl"
+        >
+          <router-outlet />
+        </main>
+      </mat-sidenav-content>
+    </mat-sidenav-container>
+  }
+
+  <!-- Global Toast Notification Banner -->
+  @if (toastService.currentToast(); as toast) {
+    <div
+      class="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-surface-raised/95 border border-nexus-subtle shadow-2xl backdrop-blur-xl text-body-sm text-ink animate-fade-in"
+      role="status"
+      aria-live="polite"
+    >
+      <span>{{ toast.message }}</span>
+      @if (toast.action) {
+        <button
+          type="button"
+          (click)="toast.onAction?.(); toastService.dismiss()"
+          class="px-2.5 py-1 rounded-lg bg-mint-500 hover:bg-mint-400 text-surface-base font-semibold text-caption transition-colors cursor-pointer"
+        >
+          {{ toast.action }}
+        </button>
+      }
+      <button
+        type="button"
+        (click)="toastService.dismiss()"
+        class="p-1 rounded-md text-ink-muted hover:text-ink transition-colors cursor-pointer"
+        aria-label="Đóng thông báo"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  }
+
+  <!-- User/Server Settings modal (Setting của Giang). Tự ẩn/hiện qua
+       settingsService.isOpen() nên mount thẳng, không cần bọc @if. -->
+  <app-settings-modal />
+</div>

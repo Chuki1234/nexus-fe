@@ -54,6 +54,31 @@ export interface ConversationSummary {
   statusMessage: string | null;
   presence: PresenceStatus;
   unread: boolean;
+  avatarUrl?: string | null;
+}
+
+/** Thẻ lời mời máy chủ gửi kèm trong DM (feature invite-friends của Giang). */
+export interface ServerInviteCardData {
+  serverId: string;
+  serverName: string;
+  serverIconUrl: string | null;
+  serverBannerColor?: string;
+  onlineCount: number;
+  membersCount: number;
+  createdDate: string;
+  inviteCode: string;
+  targetChannelId?: string;
+}
+
+export interface DirectMessageItem {
+  id: string;
+  conversationId: string;
+  senderName: string;
+  senderAvatarUrl?: string | null;
+  content: string;
+  timestamp: string;
+  isSelf: boolean;
+  inviteCard?: ServerInviteCardData;
 }
 
 const DEMO_SERVERS: ServerSummary[] = [
@@ -129,16 +154,10 @@ const DEMO_CHANNELS_BY_SERVER: Record<string, ChannelSummary[]> = {
   ],
 };
 
-/**
- * `username` chỉ điền khi tài khoản đó CÓ THẬT trong database (chạy
- * `npm run seed` bên nexus-be). Điền bừa một username không tồn tại thì cột hồ
- * sơ bên phải lại quay về cảnh chờ mãi không ra gì.
- */
 const DEMO_CONVERSATIONS: ConversationSummary[] = [
   {
     id: 'mon',
-    name: 'Mai Trần',
-    username: 'maitran',
+    name: 'Phan Thế Mon',
     statusMessage: null,
     presence: 'online',
     unread: false,
@@ -146,33 +165,24 @@ const DEMO_CONVERSATIONS: ConversationSummary[] = [
   {
     id: 'ho-be',
     name: 'ho_be',
-    username: null,
     statusMessage: 'shut the fckup',
     presence: 'dnd',
     unread: true,
   },
   {
     id: 'minh-tai',
-    name: 'Hoàng Lê',
-    username: 'hoangle',
+    name: 'NguyenMinhTai',
     statusMessage: null,
     presence: 'online',
     unread: false,
   },
+  { id: 'binh', name: "bình'", statusMessage: null, presence: 'idle', unread: false },
+  { id: 'cyrus', name: 'Cyrus', statusMessage: null, presence: 'offline', unread: false },
   {
-    id: 'binh',
-    name: "bình'",
-    username: null,
-    statusMessage: null,
-    presence: 'idle',
-    unread: false,
-  },
-  {
-    id: 'cyrus',
-    name: 'Đức Phạm',
-    username: 'ducpham',
-    statusMessage: null,
-    presence: 'offline',
+    id: 'lofi-bot',
+    name: 'Lofi',
+    statusMessage: 'Đang phát nhạc',
+    presence: 'online',
     unread: false,
   },
   {
@@ -225,6 +235,37 @@ export class ShellData {
 
   setDemoEnabled(enabled: boolean): void {
     this.demoMode.set(enabled);
+  }
+
+  /** DM demo tại chỗ cho feature invite-friends (Giang). Không phải DM realtime thật. */
+  readonly directMessagesMap = signal<Record<string, DirectMessageItem[]>>({});
+
+  directMessagesOf(conversationId: string): DirectMessageItem[] {
+    return this.directMessagesMap()[conversationId] ?? [];
+  }
+
+  sendDirectMessage(
+    conversationId: string,
+    content: string,
+    inviteCard?: ServerInviteCardData,
+  ): DirectMessageItem {
+    const newMsg: DirectMessageItem = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      conversationId,
+      senderName: 'Nexus Administrator',
+      senderAvatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=nexusadmin',
+      content,
+      timestamp: 'Vừa xong',
+      isSelf: true,
+      inviteCard,
+    };
+
+    this.directMessagesMap.update((map) => {
+      const list = map[conversationId] ?? [];
+      return { ...map, [conversationId]: [...list, newMsg] };
+    });
+
+    return newMsg;
   }
 
   toggleDemoData(): void {

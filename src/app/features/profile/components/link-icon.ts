@@ -7,6 +7,8 @@
  * đúng vừa dính chuyện bản quyền nhãn hiệu.
  */
 
+import { platformForUrl } from '../connected-apps';
+
 const DOMAIN_ICONS: Record<string, string> = {
   'github.com': 'code',
   'gitlab.com': 'code',
@@ -29,6 +31,14 @@ const DOMAIN_ICONS: Record<string, string> = {
  * hồ sơ — chưa chắc đã là URL hợp lệ.
  */
 export function linkIconFor(url: string): string {
+  // Nền tảng trong danh mục tự khai icon của nó — tra ở đó TRƯỚC, không chép lại
+  // vào bảng dưới. Hai bảng song song là chuyện sớm muộn cũng lệch: tab cài đặt
+  // vẽ một icon, thẻ hồ sơ vẽ một icon khác cho cùng một liên kết.
+  const platform = platformForUrl(url);
+  if (platform) {
+    return platform.icon;
+  }
+
   try {
     const host = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
     return DOMAIN_ICONS[host] ?? 'link';

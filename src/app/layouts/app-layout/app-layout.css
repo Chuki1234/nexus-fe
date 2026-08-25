@@ -5,15 +5,37 @@
   overflow: hidden;
 }
 
-/* Shell dùng các lớp surface phân tầng: Canvas nền ngoài, Rail/Sidebar surface, Workspace canvas */
-:host {
-  --mat-sidenav-container-divider-color: transparent;
-  --mat-sidenav-container-background-color: var(--color-canvas);
-  --mat-sidenav-content-background-color: var(--color-canvas);
+/* Base Dashboard Shell */
+.dashboard-shell {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-canvas);
+  position: relative;
 }
 
+.dashboard-mobile-container {
+  background-color: var(--color-canvas);
+}
+
+/* Disable user selection during active drag for zero latency */
+.dashboard-shell--dragging * {
+  user-select: none !important;
+}
+
+.dashboard-desktop-nav-shell {
+  box-sizing: border-box;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  overflow: visible;
+}
+
+/* Mobile Drawer */
 .dashboard-nav-drawer {
-  width: min(23.5rem, calc(100vw - 0.5rem));
+  width: auto;
   max-width: 100%;
   overflow: hidden;
   background: var(--color-canvas);
@@ -23,11 +45,50 @@
 .dashboard-nav-shell {
   box-sizing: border-box;
   min-width: 0;
+  position: relative;
 }
 
-/* Material khai báo `.mat-drawer-content { display: block; overflow: auto }`.
-   Selector component này chủ động lấy lại flex contract để route con giãn đến đáy
-   và từng vùng con tự quản lý scroll thay vì cả workspace cùng cuộn. */
+/* Dashboard Pane Resize Handle */
+.pane-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 30;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pane-resize-handle--nav {
+  right: -4px;
+}
+
+.pane-resize-handle::after {
+  content: '';
+  width: 2px;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  transition: background-color var(--motion-fast) var(--ease-nexus-out);
+}
+
+.pane-resize-handle:hover::after,
+.pane-resize-handle:focus-visible::after,
+.pane-resize-handle--active::after {
+  background-color: var(--color-primary-soft, #00ed64);
+}
+
+:host-context(html[data-theme='light']) .pane-resize-handle:hover::after,
+:host-context(html[data-theme='light']) .pane-resize-handle:focus-visible::after,
+:host-context(html[data-theme='light']) .pane-resize-handle--active::after {
+  background-color: var(--color-primary, #006241);
+}
+
 .dashboard-content {
   display: flex;
   box-sizing: border-box;
@@ -50,20 +111,3 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-glow);
 }
-
-@media (max-width: 47.999rem) {
-  .dashboard-nav-drawer {
-    width: min(23.5rem, 100vw);
-  }
-
-  .dashboard-content {
-    padding: 0;
-  }
-
-  .dashboard-workspace {
-    border-radius: 0;
-    border: 0;
-    box-shadow: none;
-  }
-}
-

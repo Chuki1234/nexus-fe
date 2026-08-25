@@ -179,19 +179,104 @@
   color: var(--color-steel);
 }
 
+.composer-shell.drag-over {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+.composer-textarea {
+  min-height: 24px;
+  max-height: 160px;
+  line-height: 1.4;
+  overflow-y: auto;
+}
+
+.composer-textarea::-webkit-scrollbar {
+  width: 4px;
+}
+
+.composer-textarea::-webkit-scrollbar-thumb {
+  background: var(--color-surface-feature);
+  border-radius: 4px;
+}
+
+.composer-preview-tray {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.preview-item {
+  transition: transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.preview-item:hover {
+  transform: translateY(-1px);
+}
+
+.composer-emoji-palette {
+  border: 1px solid var(--nexus-border-subtle);
+  background: var(--color-surface);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+}
+
+.emoji-tab-btn.active-tab {
+  background: var(--color-surface-feature);
+  color: var(--color-primary-soft);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-surface-feature);
+  border-radius: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-steel);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .composer-hint {
   text-wrap: pretty;
 }
 
-@media (max-width: 39.999rem) {
+@media (max-width: 39.999rem), (pointer: coarse) {
   :host {
-    padding-inline: 0.75rem;
-    padding-bottom: 0.75rem;
+    padding-inline: 0.5rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .composer-action,
+  .composer-context__close,
+  .remove-file-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .composer-shell {
+  .composer-shell,
+  .composer-preview-tray,
+  .preview-item {
     transition: none;
+    animation: none;
   }
 }

@@ -1,0 +1,189 @@
+<div
+  class="nexus-lightbox-container flex flex-col w-full h-full text-ink overflow-hidden"
+  cdkTrapFocus
+  cdkTrapFocusAutoCapture
+>
+  <!-- TOP TOOLBAR -->
+  <header
+    class="nexus-lightbox-toolbar flex items-center justify-between px-6 py-4 bg-canvas/80 backdrop-blur-md border-b border-hairline/40 shrink-0 z-20"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="flex items-center gap-3 min-w-0 pr-4">
+      @if (activeItem(); as active) {
+        <div class="min-w-0 flex flex-col">
+          <div class="flex items-center gap-2 min-w-0">
+            <span
+              class="nexus-lightbox-filename truncate font-medium text-body-sm text-ink max-w-[320px] md:max-w-[500px]"
+              [title]="active.filename"
+            >
+              {{ active.filename }}
+            </span>
+            @if (active.sizeBytes) {
+              <span class="text-caption text-steel shrink-0">
+                ({{ formatFileSize(active.sizeBytes) }})
+              </span>
+            }
+          </div>
+          @if (!isSingle()) {
+            <span class="text-micro text-steel tracking-wide font-mono mt-0.5">
+              {{ counterLabel() }}
+            </span>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="flex items-center gap-2 shrink-0">
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control !size-10 text-ink hover:text-primary hover:!bg-surface-feature/80"
+        (click)="onDownloadClick($event)"
+        [disabled]="isDownloading() || !activeItem()"
+        matTooltip="Tải xuống tệp gốc"
+        aria-label="Tải xuống tệp gốc"
+      >
+        @if (isDownloading()) {
+          <mat-spinner diameter="20" strokeWidth="2" class="!inline-block" />
+        } @else {
+          <mat-icon class="!size-5 !text-xl">download</mat-icon>
+        }
+      </button>
+
+      <button
+        #closeButton
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control !size-10 text-ink hover:text-danger hover:!bg-danger/10"
+        (click)="onClose()"
+        matTooltip="Đóng (Escape)"
+        aria-label="Đóng (Escape)"
+      >
+        <mat-icon class="!size-5 !text-xl">close</mat-icon>
+      </button>
+    </div>
+  </header>
+
+  <!-- CENTER MEDIA VIEWPORT & STAGE -->
+  <main
+    class="nexus-lightbox-stage relative flex-1 flex items-center justify-center min-h-0 w-full p-4 md:p-8 cursor-zoom-out"
+    (click)="onBackdropClick($event)"
+  >
+    <!-- Left Prev Navigation Button -->
+    @if (!isSingle()) {
+      <button
+        type="button"
+        class="nexus-lightbox-nav-btn nexus-lightbox-nav-btn--prev absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center size-11 md:size-12 rounded-full bg-canvas/80 border border-hairline/60 text-ink hover:text-primary hover:bg-surface hover:border-primary/50 disabled:opacity-30 disabled:pointer-events-none transition-all shadow-glow"
+        (click)="$event.stopPropagation(); onPrev()"
+        [disabled]="!hasPrev()"
+        aria-label="Xem ảnh trước (Mũi tên trái)"
+        matTooltip="Ảnh trước (←)"
+      >
+        <mat-icon class="!size-6 !text-2xl">chevron_left</mat-icon>
+      </button>
+    }
+
+    <!-- Center Active Image / Error Card -->
+    <div
+      class="nexus-lightbox-viewport relative flex items-center justify-center max-w-full max-h-full cursor-default"
+      (click)="$event.stopPropagation()"
+    >
+      @if (activeItem(); as active) {
+        @if (!isFailed()) {
+          <img
+            #mainImage
+            [src]="active.url"
+            [alt]="active.filename"
+            (error)="onImageError()"
+            class="nexus-lightbox-main-img max-w-full max-h-[calc(100vh-190px)] object-contain rounded-lg shadow-2xl transition-transform duration-200"
+          />
+
+          @if (isRetrying()) {
+            <div
+              class="absolute inset-0 flex flex-col items-center justify-center bg-canvas/60 rounded-lg backdrop-blur-xs z-10"
+            >
+              <mat-spinner diameter="36" strokeWidth="3" class="mb-2" />
+              <span class="text-caption text-steel">Đang làm mới liên kết ảnh...</span>
+            </div>
+          }
+        } @else {
+          <!-- Failed / Deleted Media Fallback Card -->
+          <div
+            class="nexus-lightbox-failed-card flex flex-col items-center justify-center p-8 rounded-xl bg-surface border border-hairline max-w-md text-center shadow-xl"
+          >
+            <mat-icon class="!size-12 !text-5xl text-steel mb-3">broken_image</mat-icon>
+            <h3 class="text-body-sm-medium text-ink mb-1">Không thể tải hình ảnh</h3>
+            <p class="text-caption text-slate mb-4">
+              Tệp ảnh này không còn khả dụng hoặc liên kết đã hết hạn.
+            </p>
+            <button
+              mat-stroked-button
+              type="button"
+              class="rounded-full text-caption"
+              (click)="onImageError()"
+            >
+              <mat-icon class="!size-4 !text-base mr-1">refresh</mat-icon>
+              Thử tải lại
+            </button>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Right Next Navigation Button -->
+    @if (!isSingle()) {
+      <button
+        type="button"
+        class="nexus-lightbox-nav-btn nexus-lightbox-nav-btn--next absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center size-11 md:size-12 rounded-full bg-canvas/80 border border-hairline/60 text-ink hover:text-primary hover:bg-surface hover:border-primary/50 disabled:opacity-30 disabled:pointer-events-none transition-all shadow-glow"
+        (click)="$event.stopPropagation(); onNext()"
+        [disabled]="!hasNext()"
+        aria-label="Xem ảnh kế tiếp (Mũi tên phải)"
+        matTooltip="Ảnh kế tiếp (→)"
+      >
+        <mat-icon class="!size-6 !text-2xl">chevron_right</mat-icon>
+      </button>
+    }
+  </main>
+
+  <!-- BOTTOM THUMBNAIL STRIP -->
+  @if (!isSingle()) {
+    <footer
+      class="nexus-lightbox-strip-container flex items-center justify-center px-4 py-3 bg-canvas/90 backdrop-blur-md border-t border-hairline/40 shrink-0 z-20"
+      (click)="$event.stopPropagation()"
+    >
+      <div
+        #thumbnailStrip
+        class="nexus-lightbox-thumbnail-strip flex items-center gap-2.5 overflow-x-auto max-w-full py-1 px-4 scrollbar-none"
+        role="tablist"
+        aria-label="Danh sách ảnh trong cuộc trò chuyện"
+      >
+        @for (item of items(); track item.messageId + '-' + item.attachmentId; let idx = $index) {
+          <button
+            type="button"
+            class="nexus-lightbox-thumb-btn relative flex-shrink-0 size-14 rounded-lg overflow-hidden border-2 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            [class.border-primary]="idx === activeIndex()"
+            [class.ring-2]="idx === activeIndex()"
+            [class.ring-primary]="idx === activeIndex()"
+            [class.scale-105]="idx === activeIndex()"
+            [class.border-transparent]="idx !== activeIndex()"
+            [class.opacity-60]="idx !== activeIndex()"
+            [class.hover:opacity-100]="idx !== activeIndex()"
+            (click)="selectIndex(idx)"
+            [attr.data-thumb-index]="idx"
+            role="tab"
+            [attr.aria-selected]="idx === activeIndex()"
+            [attr.aria-label]="'Chọn ảnh ' + (idx + 1) + ': ' + item.filename"
+            [matTooltip]="item.filename"
+          >
+            <img
+              [src]="item.url"
+              [alt]="item.filename"
+              loading="lazy"
+              class="w-full h-full object-cover pointer-events-none"
+            />
+          </button>
+        }
+      </div>
+    </footer>
+  }
+</div>

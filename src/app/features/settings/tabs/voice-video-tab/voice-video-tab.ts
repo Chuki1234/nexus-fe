@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnDestroy,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -6,15 +13,18 @@ import { UserSettingsService, AppPreferences } from '../../services/user-setting
 
 @Component({
   selector: 'app-voice-video-tab',
+  standalone: true,
   imports: [FormsModule, MatIconModule, MatSlideToggleModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './voice-video-tab.html',
   styleUrl: './voice-video-tab.css',
 })
-export class VoiceVideoTab {
+export class VoiceVideoTab implements OnDestroy {
   protected readonly settingsService = inject(UserSettingsService);
 
   protected readonly totalBars = 50;
+  protected readonly isRecordingPttKey = signal<boolean>(false);
+  private keydownListener: ((e: KeyboardEvent) => void) | null = null;
 
   // Active green bars computed from live mic level (0-100)
   protected readonly activeBars = computed(() => {
@@ -41,6 +51,52 @@ export class VoiceVideoTab {
     { id: 'cyberpunk', label: 'Nexus Cyberpunk', icon: 'nightlife' },
     { id: 'cozy-room', label: 'Phòng Studio ấm', icon: 'weekend' },
   ];
+
+  ngOnDestroy(): void {
+    this.stopPttKeyRecording();
+  }
+
+  protected startPttKeyRecording(): void {
+    if (this.isRecordingPttKey()) {
+      this.stopPttKeyRecording();
+      return;
+    }
+    this.isRecordingPttKey.set(true);
+
+    this.keydownListener = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.key === 'Escape') {
+        this.stopPttKeyRecording();
+        return;
+      }
+
+      let keyName = e.key;
+      if (e.code === 'Space') keyName = 'Space';
+      else if (e.code === 'CapsLock') keyName = 'Caps Lock';
+      else if (e.code.startsWith('Key')) keyName = e.code.replace('Key', '');
+      else if (e.code.startsWith('Digit')) keyName = e.code.replace('Digit', '');
+      else if (e.key === 'Control') keyName = 'Ctrl';
+      else if (e.key === 'Alt') keyName = 'Alt';
+      else if (e.key === 'Shift') keyName = 'Shift';
+      else if (e.key === 'Meta') keyName = 'Win / Cmd';
+      else if (e.key.length === 1) keyName = e.key.toUpperCase();
+
+      this.settingsService.updatePreference('pushToTalkKey', keyName);
+      this.stopPttKeyRecording();
+    };
+
+    window.addEventListener('keydown', this.keydownListener, { capture: true });
+  }
+
+  protected stopPttKeyRecording(): void {
+    this.isRecordingPttKey.set(false);
+    if (this.keydownListener) {
+      window.removeEventListener('keydown', this.keydownListener, { capture: true });
+      this.keydownListener = null;
+    }
+  }
 
   protected setInputVolume(vol: number): void {
     this.settingsService.updatePreference('inputVolume', Number(vol));

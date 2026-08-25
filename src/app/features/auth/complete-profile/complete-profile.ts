@@ -5,6 +5,7 @@ import {
   ProfileService,
   toCompleteProfileErrorMessage,
 } from '../../../core/profile/profile.service';
+import { getAndClearReturnUrl } from '../../../core/auth/auth-redirect.util';
 import { birthdateValidator, EARLIEST_BIRTH_YEAR, toIsoDate } from '../models/birthdate';
 import { DISPLAY_NAME_MAX_LENGTH, USERNAME_PATTERN } from '../models/register';
 
@@ -13,9 +14,11 @@ import { DISPLAY_NAME_MAX_LENGTH, USERNAME_PATTERN } from '../models/register';
  * mà OAuth không cung cấp. `completeProfileGuard` đảm bảo chỉ người đã đăng nhập
  * và chưa có hồ sơ mới vào được đây.
  */
+import { MatIconModule } from '@angular/material/icon';
+
 @Component({
   selector: 'app-complete-profile-page',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, MatIconModule],
   templateUrl: './complete-profile.html',
   styleUrl: './complete-profile.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -84,7 +87,8 @@ export class CompleteProfilePage {
         displayName: trimmedDisplayName || undefined,
         dateOfBirth: isoBirthdate,
       });
-      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+      const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
+      const returnUrl = getAndClearReturnUrl(rawParam);
       await this.router.navigateByUrl(returnUrl);
     } catch (error) {
       this.submitting.set(false);
