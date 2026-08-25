@@ -336,6 +336,27 @@
   }
 }
 
+/* ---------- Linh vật Nexi ló cạnh cửa sổ chat ---------- */
+.hero__stage {
+  position: relative;
+}
+.hero__mascot {
+  position: absolute;
+  inline-size: 152px;
+  inset-inline-start: -48px;
+  inset-block-end: -36px;
+  z-index: 3;
+  filter: drop-shadow(0 10px 20px color-mix(in srgb, var(--color-canvas-dark) 55%, transparent));
+}
+
+@media (max-width: 520px) {
+  .hero__mascot {
+    inline-size: 104px;
+    inset-inline-start: -12px;
+    inset-block-end: -22px;
+  }
+}
+
 /* Tôn trọng người tắt hiệu ứng — hiện mọi tin nhắn ngay, không chuyển động. */
 @media (prefers-reduced-motion: reduce) {
   .mock,

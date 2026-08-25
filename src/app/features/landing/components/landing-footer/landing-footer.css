@@ -72,6 +72,21 @@
   color: var(--color-ink);
 }
 
+/* Tắc kè ngồi trên wordmark */
+.footer__sign {
+  position: relative;
+}
+.footer__mascot {
+  position: absolute;
+  z-index: 2;
+  inline-size: 96px;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -62%);
+  pointer-events: none;
+  filter: drop-shadow(0 10px 16px color-mix(in srgb, var(--color-canvas-dark) 60%, transparent));
+}
+
 /* Wordmark khổng lồ — tràn chiều ngang, cắt gọn hai mép. */
 .footer__wordmark {
   font-size: clamp(96px, 21vw, 320px);

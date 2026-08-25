@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { LandingMascot } from '../landing-mascot/landing-mascot';
 
 interface AnchorLink {
   readonly label: string;
@@ -17,7 +18,7 @@ interface RouteLink {
  */
 @Component({
   selector: 'app-landing-footer',
-  imports: [RouterLink],
+  imports: [RouterLink, LandingMascot],
   templateUrl: './landing-footer.html',
   styleUrl: './landing-footer.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

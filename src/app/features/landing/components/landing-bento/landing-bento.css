@@ -1,10 +1,13 @@
 :host {
   display: block;
+  /* Dải surface tách khối — tạo nhịp/tầng lớp giữa các mảng nền tối. */
+  background-color: color-mix(in srgb, var(--color-surface) 70%, var(--color-canvas));
+  border-block: 1px solid var(--color-hairline-soft);
 }
 .bento {
   max-inline-size: var(--container-band);
   margin-inline: auto;
-  padding: 72px 24px;
+  padding: 88px 24px;
 }
 .bento__head {
   text-align: center;

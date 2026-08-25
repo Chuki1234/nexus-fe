@@ -29,8 +29,11 @@
     </nav>
   </div>
 
-  <!-- Wordmark khổng lồ, tràn chiều ngang — chữ ký footer kiểu Discord. -->
-  <div class="footer__wordmark" aria-hidden="true">Nexus</div>
+  <!-- Wordmark khổng lồ + tắc kè ló đầu ngồi trên chữ — chữ ký footer. -->
+  <div class="footer__sign">
+    <app-landing-mascot class="footer__mascot" [waving]="true" />
+    <div class="footer__wordmark" aria-hidden="true">Nexus</div>
+  </div>
 
   <div class="footer__base">
     <span>© {{ year }} Nexus · Dự án học tập</span>

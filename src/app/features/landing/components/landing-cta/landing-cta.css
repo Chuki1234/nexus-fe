@@ -29,6 +29,40 @@
   );
   pointer-events: none;
 }
+/* Bộ ba tắc kè + đường tín hiệu nối chúng (mạng lưới) */
+.cta__crew {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 22px;
+  margin-block-end: 28px;
+}
+.cta__crew::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 54%;
+  inset-inline: 24%;
+  block-size: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-brand-green) 0 6px,
+    transparent 6px 13px
+  );
+  opacity: 0.45;
+  z-index: -1;
+}
+.cta__mascot {
+  position: relative;
+  inline-size: 68px;
+  filter: drop-shadow(0 8px 14px color-mix(in srgb, var(--color-canvas-dark) 55%, transparent));
+}
+.cta__mascot--lead {
+  inline-size: 88px;
+  margin-block-end: 8px;
+}
+
 .cta__title {
   position: relative;
   margin: 0;

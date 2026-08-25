@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { LandingMascot } from '../landing-mascot/landing-mascot';
 
 interface MockMessage {
   readonly author: string;
@@ -11,7 +12,7 @@ interface MockMessage {
 
 @Component({
   selector: 'app-landing-hero',
-  imports: [RouterLink],
+  imports: [RouterLink, LandingMascot],
   templateUrl: './landing-hero.html',
   styleUrl: './landing-hero.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
