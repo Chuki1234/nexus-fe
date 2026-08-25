@@ -39,14 +39,24 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
         <!-- Top bar overlay on hover -->
         <div class="card-overlay">
           <div class="corner-label">Bạn</div>
-          <button
-            type="button"
-            class="mirror-toggle-btn"
-            (click)="onToggleMirror($event)"
-            title="Lật gương camera"
-          >
-            <span class="material-icons text-xs">flip</span>
-          </button>
+          <div class="overlay-actions">
+            <button
+              type="button"
+              class="overlay-btn"
+              (click)="onCycleCorner($event)"
+              title="Đổi vị trí góc màn hình"
+            >
+              <span class="material-icons text-xs">open_with</span>
+            </button>
+            <button
+              type="button"
+              class="overlay-btn"
+              (click)="onToggleMirror($event)"
+              title="Lật gương camera"
+            >
+              <span class="material-icons text-xs">flip</span>
+            </button>
+          </div>
         </div>
 
         @if (store.isAudioMuted()) {
@@ -73,14 +83,15 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
         z-index: 50;
         transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
         user-select: none;
+        touch-action: none;
       }
 
       .self-view-card.dragging {
         cursor: grabbing;
-        transition: none;
+        transition: none !important;
         box-shadow:
           0 24px 50px rgba(0, 0, 0, 0.85),
-          0 0 0 2px rgba(99, 102, 241, 0.6);
+          0 0 0 2px rgba(99, 102, 241, 0.8);
       }
 
       .self-view-card.top-left {
@@ -120,7 +131,7 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
         opacity: 0;
         transition: opacity 0.2s ease;
       }
@@ -135,7 +146,13 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
         color: #ffffff;
       }
 
-      .mirror-toggle-btn {
+      .overlay-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .overlay-btn {
         background: rgba(255, 255, 255, 0.2);
         border: none;
         border-radius: 4px;
@@ -145,9 +162,10 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: background 0.15s ease;
       }
 
-      .mirror-toggle-btn:hover {
+      .overlay-btn:hover {
         background: rgba(255, 255, 255, 0.35);
       }
 
@@ -175,14 +193,17 @@ export class DraggableSelfViewComponent implements AfterViewInit, OnDestroy {
   @ViewChild('localVideo') localVideoRef?: ElementRef<HTMLVideoElement>;
 
   readonly isDragging = signal<boolean>(false);
+  readonly currentOffsetX = signal<number>(0);
+  readonly currentOffsetY = signal<number>(0);
+
   private dragStartX = 0;
   private dragStartY = 0;
-  private currentOffsetX = 0;
-  private currentOffsetY = 0;
+  private cardInitialLeft = 0;
+  private cardInitialTop = 0;
 
   readonly customTransform = computed(() => {
     if (this.isDragging()) {
-      return `translate(${this.currentOffsetX}px, ${this.currentOffsetY}px)`;
+      return `translate3d(${this.currentOffsetX()}px, ${this.currentOffsetY()}px, 0)`;
     }
     return '';
   });
@@ -202,6 +223,18 @@ export class DraggableSelfViewComponent implements AfterViewInit, OnDestroy {
     this.store.toggleSelfViewMirror();
   }
 
+  onCycleCorner(e: MouseEvent): void {
+    e.stopPropagation();
+    const current = this.store.selfViewCorner();
+    const cycle: Record<SelfViewCorner, SelfViewCorner> = {
+      'bottom-right': 'bottom-left',
+      'bottom-left': 'top-left',
+      'top-left': 'top-right',
+      'top-right': 'bottom-right',
+    };
+    this.store.setSelfViewCorner(cycle[current] || 'bottom-right');
+  }
+
   onMouseDown(e: MouseEvent): void {
     if ((e.target as HTMLElement).closest('button')) return;
     this.startDrag(e.clientX, e.clientY);
@@ -215,26 +248,31 @@ export class DraggableSelfViewComponent implements AfterViewInit, OnDestroy {
   }
 
   private startDrag(clientX: number, clientY: number): void {
+    if (this.cardRef?.nativeElement) {
+      const rect = this.cardRef.nativeElement.getBoundingClientRect();
+      this.cardInitialLeft = rect.left;
+      this.cardInitialTop = rect.top;
+    }
     this.isDragging.set(true);
     this.dragStartX = clientX;
     this.dragStartY = clientY;
-    this.currentOffsetX = 0;
-    this.currentOffsetY = 0;
+    this.currentOffsetX.set(0);
+    this.currentOffsetY.set(0);
   }
 
   @HostListener('window:mousemove', ['$event'])
   onMouseMove(e: MouseEvent): void {
     if (this.isDragging()) {
-      this.currentOffsetX = e.clientX - this.dragStartX;
-      this.currentOffsetY = e.clientY - this.dragStartY;
+      this.currentOffsetX.set(e.clientX - this.dragStartX);
+      this.currentOffsetY.set(e.clientY - this.dragStartY);
     }
   }
 
   @HostListener('window:touchmove', ['$event'])
   onTouchMove(e: TouchEvent): void {
     if (this.isDragging() && e.touches.length === 1) {
-      this.currentOffsetX = e.touches[0].clientX - this.dragStartX;
-      this.currentOffsetY = e.touches[0].clientY - this.dragStartY;
+      this.currentOffsetX.set(e.touches[0].clientX - this.dragStartX);
+      this.currentOffsetY.set(e.touches[0].clientY - this.dragStartY);
     }
   }
 
@@ -245,9 +283,14 @@ export class DraggableSelfViewComponent implements AfterViewInit, OnDestroy {
     this.isDragging.set(false);
 
     if (this.cardRef?.nativeElement) {
-      const rect = this.cardRef.nativeElement.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
+      const cardWidth = this.cardRef.nativeElement.offsetWidth || 220;
+      const cardHeight = this.cardRef.nativeElement.offsetHeight || 124;
+
+      const currentLeft = this.cardInitialLeft + this.currentOffsetX();
+      const currentTop = this.cardInitialTop + this.currentOffsetY();
+
+      const centerX = currentLeft + cardWidth / 2;
+      const centerY = currentTop + cardHeight / 2;
 
       const screenWidth = window.innerWidth;
       const screenHeight = window.innerHeight;
@@ -264,7 +307,7 @@ export class DraggableSelfViewComponent implements AfterViewInit, OnDestroy {
       this.store.setSelfViewCorner(corner);
     }
 
-    this.currentOffsetX = 0;
-    this.currentOffsetY = 0;
+    this.currentOffsetX.set(0);
+    this.currentOffsetY.set(0);
   }
 }

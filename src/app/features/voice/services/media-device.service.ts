@@ -32,6 +32,7 @@ export class MediaDeviceService implements OnDestroy {
 
   constructor() {
     if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+      void this.enumerateDevices();
       navigator.mediaDevices.ondevicechange = () => {
         void this.enumerateDevices();
       };

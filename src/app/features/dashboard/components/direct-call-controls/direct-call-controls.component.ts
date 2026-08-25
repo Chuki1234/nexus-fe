@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DirectCallStore } from '../../../../core/calls/direct-call.store';
 import { DirectCallCoordinatorService } from '../../../../core/calls/direct-call-coordinator.service';
@@ -148,7 +148,20 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
         }
       </div>
 
-      <!-- 4. Video Fit Mode Toggle (Cover / Contain) -->
+      <!-- 4. Fullscreen Window Toggle -->
+      <button
+        type="button"
+        class="standalone-btn"
+        [class.active]="isFullscreen()"
+        (click)="toggleFullscreen()"
+        [title]="isFullscreen() ? 'Thu nhỏ cửa sổ (Esc)' : 'Toàn màn hình'"
+      >
+        <span class="material-icons btn-icon">
+          {{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}
+        </span>
+      </button>
+
+      <!-- 5. Video Fit Mode Toggle (Cover / Contain) -->
       @if (store.isRemoteVideoAvailable()) {
         <button
           type="button"
@@ -157,12 +170,12 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
           [title]="store.remoteVideoFit() === 'cover' ? 'Xem vừa khung (Contain)' : 'Xem lấp đầy (Cover)'"
         >
           <span class="material-icons btn-icon">
-            {{ store.remoteVideoFit() === 'cover' ? 'fit_screen' : 'fullscreen' }}
+            {{ store.remoteVideoFit() === 'cover' ? 'fit_screen' : 'crop_free' }}
           </span>
         </button>
       }
 
-      <!-- 5. Duration Display (Only when connected) -->
+      <!-- 6. Duration Display (Only when connected) -->
       @if (store.isConnected() && store.activeCall()?.connectedAt) {
         <div class="duration-display">
           <div class="live-pulse-dot"></div>
@@ -170,7 +183,7 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
         </div>
       }
 
-      <!-- 6. End Call Button -->
+      <!-- 7. End Call Button -->
       <button
         type="button"
         class="end-call-btn"
@@ -513,6 +526,31 @@ export class DirectCallControlsComponent {
   readonly showMicMenu = signal<boolean>(false);
   readonly showCamMenu = signal<boolean>(false);
   readonly showSpeakerMenu = signal<boolean>(false);
+  readonly isFullscreen = signal<boolean>(false);
+
+  constructor() {
+    if (typeof this.deviceService?.enumerateDevices === 'function') {
+      void this.deviceService.enumerateDevices();
+    }
+  }
+
+  @HostListener('document:fullscreenchange')
+  onFullscreenChange(): void {
+    this.isFullscreen.set(!!document.fullscreenElement);
+  }
+
+  toggleFullscreen(): void {
+    const stage = (document.querySelector('.direct-call-stage') as HTMLElement) || document.documentElement;
+    if (!document.fullscreenElement) {
+      if (stage.requestFullscreen) {
+        stage.requestFullscreen().catch(() => {});
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  }
 
   readonly formattedDuration = computed(() => {
     const total = this.store.callDurationSeconds();
@@ -530,18 +568,21 @@ export class DirectCallControlsComponent {
   }
 
   toggleMicMenu(): void {
+    void this.deviceService.enumerateDevices();
     this.showMicMenu.update((v) => !v);
     this.showCamMenu.set(false);
     this.showSpeakerMenu.set(false);
   }
 
   toggleCamMenu(): void {
+    void this.deviceService.enumerateDevices();
     this.showCamMenu.update((v) => !v);
     this.showMicMenu.set(false);
     this.showSpeakerMenu.set(false);
   }
 
   toggleSpeakerMenu(): void {
+    void this.deviceService.enumerateDevices();
     this.showSpeakerMenu.update((v) => !v);
     this.showMicMenu.set(false);
     this.showCamMenu.set(false);

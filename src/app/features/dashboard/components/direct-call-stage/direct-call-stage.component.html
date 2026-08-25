@@ -33,16 +33,17 @@
 
     <!-- 2. Main Stage Content -->
     <section class="stage-content">
-      @if (store.isRemoteVideoAvailable()) {
-        <!-- Remote Video View -->
-        <video
-          #remoteVideo
-          class="remote-video"
-          [ngClass]="store.remoteVideoFit()"
-          autoplay
-          playsinline
-        ></video>
-      } @else {
+      <!-- Remote Video View (Always attached) -->
+      <video
+        #remoteVideo
+        class="remote-video"
+        [class.hidden]="!store.isRemoteVideoAvailable()"
+        [ngClass]="store.remoteVideoFit()"
+        autoplay
+        playsinline
+      ></video>
+
+      @if (!store.isRemoteVideoAvailable()) {
         <!-- Avatar Fallback View for Audio Call or Remote Camera Off -->
         <div class="avatar-fallback-wrapper">
           <div class="avatar-sonar-container">

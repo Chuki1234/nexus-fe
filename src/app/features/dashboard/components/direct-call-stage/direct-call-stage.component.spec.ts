@@ -55,6 +55,7 @@ describe('DirectCallStageComponent', () => {
       audioInputs: signal([]),
       videoInputs: signal([]),
       audioOutputs: signal([]),
+      enumerateDevices: vi.fn().mockResolvedValue(undefined),
     };
 
     await TestBed.configureTestingModule({

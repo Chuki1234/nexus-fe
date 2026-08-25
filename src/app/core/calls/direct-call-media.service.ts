@@ -184,7 +184,12 @@ export class DirectCallMediaService {
           this.store.setRemoteAudioAvailable(true);
           if (this.remoteAudioEl) {
             track.attach(this.remoteAudioEl);
+          } else {
+            const attachedEl = track.attach();
+            attachedEl.className = 'hidden';
+            document.body.appendChild(attachedEl);
           }
+          void room.startAudio().catch(() => {});
         }
       },
     );
