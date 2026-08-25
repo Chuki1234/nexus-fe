@@ -120,6 +120,13 @@ export class DirectCallStore {
     this.callState.set('preflighting');
   }
 
+  setAccepted(call: DirectCallDto) {
+    this.activeCall.set(call);
+    this.initialMode.set(call.initialMode);
+    this.callState.set('connecting');
+    this.error.set(null);
+  }
+
   setConnecting() {
     this.callState.set('connecting');
   }

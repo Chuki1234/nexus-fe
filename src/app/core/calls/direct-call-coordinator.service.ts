@@ -33,6 +33,7 @@ export class DirectCallCoordinatorService implements OnDestroy {
 
   private sessionArbiterChannel: BroadcastChannel | null = null;
   private isRingtoneLeader = false;
+  private isConnectingLiveKit = false;
   private audioCtx: AudioContext | null = null;
   private ringtoneInterval: any = null;
   private broadcastChannel: BroadcastChannel | null = null;
@@ -298,10 +299,11 @@ export class DirectCallCoordinatorService implements OnDestroy {
 
   private handleCallAccepted(call: DirectCallDto): void {
     this.stopRingtone();
+    this.store.setAccepted(call);
 
     // Nếu tab này là media owner (Caller hoặc Callee thắng) -> Xin token và connect LiveKit
     if (this.store.isMediaOwner() && this.store.activeCall()?.id === call.id) {
-      this.connectLiveKitSession(call.id);
+      void this.connectLiveKitSession(call.id);
     } else {
       // Tab phụ: chỉ quan sát
       if (this.store.showIncomingOverlay()) {
@@ -311,6 +313,10 @@ export class DirectCallCoordinatorService implements OnDestroy {
   }
 
   private async connectLiveKitSession(callId: string): Promise<void> {
+    if (this.isConnectingLiveKit || this.store.callState() === 'connected') {
+      return;
+    }
+    this.isConnectingLiveKit = true;
     this.store.setConnecting();
     try {
       const tokenRes = await this.api.getToken(callId, {
@@ -322,7 +328,9 @@ export class DirectCallCoordinatorService implements OnDestroy {
     } catch (err: any) {
       console.error('Kết nối LiveKit Direct Call thất bại:', err);
       this.store.setError('Không thể kết nối vào phòng gọi LiveKit.');
-      this.endCall('failed');
+      void this.endCall('failed');
+    } finally {
+      this.isConnectingLiveKit = false;
     }
   }
 
@@ -439,7 +447,7 @@ export class DirectCallCoordinatorService implements OnDestroy {
       });
 
       if (res.shouldJoinMedia) {
-        this.store.setOutgoingCall(res.call, true);
+        this.store.setAccepted(res.call);
         await this.connectLiveKitSession(call.id);
       } else {
         // Tab khác đã nhận
