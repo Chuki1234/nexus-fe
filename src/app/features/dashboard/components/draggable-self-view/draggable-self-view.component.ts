@@ -61,24 +61,26 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
     `
       .self-view-card {
         position: absolute;
-        width: clamp(160px, 18vw, 260px);
+        width: clamp(180px, 20vw, 280px);
         aspect-ratio: 16 / 9;
-        background: #0f111a;
-        border-radius: 12px;
+        background: #0d101a;
+        border-radius: 16px;
         overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-        border: 2px solid rgba(255, 255, 255, 0.15);
+        box-shadow:
+          0 16px 40px rgba(0, 0, 0, 0.65),
+          0 0 0 1px rgba(255, 255, 255, 0.12);
         cursor: grab;
         z-index: 50;
-        transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
         user-select: none;
       }
 
       .self-view-card.dragging {
         cursor: grabbing;
         transition: none;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
-        border-color: rgba(0, 237, 100, 0.5);
+        box-shadow:
+          0 24px 50px rgba(0, 0, 0, 0.85),
+          0 0 0 2px rgba(99, 102, 241, 0.6);
       }
 
       .self-view-card.top-left {

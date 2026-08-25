@@ -15,112 +15,135 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
       role="toolbar"
       aria-label="Thanh điều khiển cuộc gọi"
     >
-      <!-- 1. Microphone Toggle & Device Menu -->
-      <div class="control-group">
+      <!-- 1. Microphone Toggle & Device Menu (Unified Split Capsule) -->
+      <div class="split-capsule" [class.muted]="store.isAudioMuted()" [class.active]="!store.isAudioMuted()">
         <button
           type="button"
-          class="control-btn"
-          [ngClass]="{ active: !store.isAudioMuted(), muted: store.isAudioMuted() }"
+          class="capsule-main-btn"
           (click)="onToggleAudio()"
           [title]="store.isAudioMuted() ? 'Bật Micro' : 'Tắt Micro'"
         >
-          <span class="material-icons">
+          <span class="material-icons btn-icon">
             {{ store.isAudioMuted() ? 'mic_off' : 'mic' }}
           </span>
         </button>
+        <div class="capsule-divider"></div>
         <button
           type="button"
-          class="dropdown-arrow-btn"
+          class="capsule-chevron-btn"
+          [class.open]="showMicMenu()"
           (click)="toggleMicMenu()"
           title="Chọn Microphone"
         >
-          <span class="material-icons text-xs">arrow_drop_up</span>
+          <span class="material-icons chevron-icon">expand_less</span>
         </button>
 
         @if (showMicMenu()) {
           <div class="device-popover" (mouseleave)="showMicMenu.set(false)">
-            <div class="popover-title">Chọn Micro</div>
-            @for (device of deviceService.audioInputs(); track device.deviceId) {
-              <button
-                type="button"
-                class="device-item"
-                [class.selected]="store.selectedMicId() === device.deviceId"
-                (click)="onSelectMic(device.deviceId)"
-              >
-                <span class="material-icons text-sm">mic</span>
-                <span class="device-label">{{ device.label || 'Microphone ' + ($index + 1) }}</span>
-              </button>
-            }
+            <div class="popover-header">
+              <span class="material-icons popover-header-icon">mic</span>
+              <span>Chọn Microphone</span>
+            </div>
+            <div class="popover-list">
+              @for (device of deviceService.audioInputs(); track device.deviceId) {
+                <button
+                  type="button"
+                  class="device-item"
+                  [class.selected]="store.selectedMicId() === device.deviceId"
+                  (click)="onSelectMic(device.deviceId)"
+                >
+                  <span class="material-icons check-icon">
+                    {{ store.selectedMicId() === device.deviceId ? 'check' : 'radio_button_unchecked' }}
+                  </span>
+                  <span class="device-label">{{ device.label || 'Microphone ' + ($index + 1) }}</span>
+                </button>
+              }
+            </div>
           </div>
         }
       </div>
 
-      <!-- 2. Camera Toggle & Device Menu -->
-      <div class="control-group">
+      <!-- 2. Camera Toggle & Device Menu (Unified Split Capsule) -->
+      <div class="split-capsule" [class.muted]="store.isVideoMuted()" [class.active]="!store.isVideoMuted()">
         <button
           type="button"
-          class="control-btn"
-          [ngClass]="{ active: !store.isVideoMuted(), muted: store.isVideoMuted() }"
+          class="capsule-main-btn"
           (click)="onToggleVideo()"
           [title]="store.isVideoMuted() ? 'Bật Camera' : 'Tắt Camera'"
         >
-          <span class="material-icons">
+          <span class="material-icons btn-icon">
             {{ store.isVideoMuted() ? 'videocam_off' : 'videocam' }}
           </span>
         </button>
+        <div class="capsule-divider"></div>
         <button
           type="button"
-          class="dropdown-arrow-btn"
+          class="capsule-chevron-btn"
+          [class.open]="showCamMenu()"
           (click)="toggleCamMenu()"
           title="Chọn Camera"
         >
-          <span class="material-icons text-xs">arrow_drop_up</span>
+          <span class="material-icons chevron-icon">expand_less</span>
         </button>
 
         @if (showCamMenu()) {
           <div class="device-popover" (mouseleave)="showCamMenu.set(false)">
-            <div class="popover-title">Chọn Camera</div>
-            @for (device of deviceService.videoInputs(); track device.deviceId) {
-              <button
-                type="button"
-                class="device-item"
-                [class.selected]="store.selectedCameraId() === device.deviceId"
-                (click)="onSelectCam(device.deviceId)"
-              >
-                <span class="material-icons text-sm">videocam</span>
-                <span class="device-label">{{ device.label || 'Camera ' + ($index + 1) }}</span>
-              </button>
-            }
+            <div class="popover-header">
+              <span class="material-icons popover-header-icon">videocam</span>
+              <span>Chọn Camera</span>
+            </div>
+            <div class="popover-list">
+              @for (device of deviceService.videoInputs(); track device.deviceId) {
+                <button
+                  type="button"
+                  class="device-item"
+                  [class.selected]="store.selectedCameraId() === device.deviceId"
+                  (click)="onSelectCam(device.deviceId)"
+                >
+                  <span class="material-icons check-icon">
+                    {{ store.selectedCameraId() === device.deviceId ? 'check' : 'radio_button_unchecked' }}
+                  </span>
+                  <span class="device-label">{{ device.label || 'Camera ' + ($index + 1) }}</span>
+                </button>
+              }
+            </div>
           </div>
         }
       </div>
 
       <!-- 3. Speaker Select Menu -->
-      <div class="control-group">
+      <div class="standalone-group">
         <button
           type="button"
-          class="control-btn"
-          [ngClass]="{ active: !store.isSpeakerMuted() }"
+          class="standalone-btn"
+          [class.active]="showSpeakerMenu()"
           (click)="toggleSpeakerMenu()"
           title="Chọn thiết bị Loa"
         >
-          <span class="material-icons">volume_up</span>
+          <span class="material-icons btn-icon">volume_up</span>
         </button>
 
         @if (showSpeakerMenu()) {
           <div class="device-popover" (mouseleave)="showSpeakerMenu.set(false)">
-            <div class="popover-title">Chọn Loa / Tai nghe</div>
-            @for (device of deviceService.audioOutputs(); track device.deviceId) {
-              <button
-                type="button"
-                class="device-item"
-                [class.selected]="store.selectedSpeakerId() === device.deviceId"
-                (click)="onSelectSpeaker(device.deviceId)"
-              >
-                <span class="material-icons text-sm">volume_up</span>
-                <span class="device-label">{{ device.label || 'Loa ' + ($index + 1) }}</span>
-              </button>
-            }
+            <div class="popover-header">
+              <span class="material-icons popover-header-icon">volume_up</span>
+              <span>Chọn Loa / Tai nghe</span>
+            </div>
+            <div class="popover-list">
+              @for (device of deviceService.audioOutputs(); track device.deviceId) {
+                <button
+                  type="button"
+                  class="device-item"
+                  [class.selected]="store.selectedSpeakerId() === device.deviceId"
+                  (click)="onSelectSpeaker(device.deviceId)"
+                >
+                  <span class="material-icons check-icon">
+                    {{ store.selectedSpeakerId() === device.deviceId ? 'check' : 'radio_button_unchecked' }}
+                  </span>
+                  <span class="device-label">{{ device.label || 'Loa ' + ($index + 1) }}</span>
+                </button>
+              }
+            </div>
           </div>
         }
       </div>
@@ -129,11 +152,11 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
       @if (store.isRemoteVideoAvailable()) {
         <button
           type="button"
-          class="control-btn"
+          class="standalone-btn"
           (click)="store.toggleRemoteVideoFit()"
-          [title]="store.remoteVideoFit() === 'cover' ? 'Chuyển sang Xem vừa khung (Contain)' : 'Chuyển sang Lấp đầy (Cover)'"
+          [title]="store.remoteVideoFit() === 'cover' ? 'Xem vừa khung (Contain)' : 'Xem lấp đầy (Cover)'"
         >
-          <span class="material-icons">
+          <span class="material-icons btn-icon">
             {{ store.remoteVideoFit() === 'cover' ? 'fit_screen' : 'fullscreen' }}
           </span>
         </button>
@@ -142,8 +165,8 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
       <!-- 5. Duration Display (Only when connected) -->
       @if (store.isConnected() && store.activeCall()?.connectedAt) {
         <div class="duration-display">
-          <div class="live-dot"></div>
-          <span>{{ formattedDuration() }}</span>
+          <div class="live-pulse-dot"></div>
+          <span class="duration-text">{{ formattedDuration() }}</span>
         </div>
       }
 
@@ -154,7 +177,7 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
         (click)="onEndCall()"
         title="Kết thúc cuộc gọi"
       >
-        <span class="material-icons">call_end</span>
+        <span class="material-icons end-icon">call_end</span>
       </button>
     </nav>
   `,
@@ -162,100 +185,208 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
     `
       .call-controls-bar {
         position: absolute;
-        bottom: 24px;
+        bottom: 28px;
         left: 50%;
         transform: translateX(-50%);
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem 1.25rem;
-        background: rgba(18, 20, 29, 0.88);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 9999px;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        gap: 0.625rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(15, 18, 28, 0.82);
+        backdrop-filter: blur(28px) saturate(180%);
+        -webkit-backdrop-filter: blur(28px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 28px;
+        box-shadow:
+          0 20px 50px rgba(0, 0, 0, 0.65),
+          0 0 0 1px rgba(255, 255, 255, 0.04),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
         z-index: 100;
         user-select: none;
       }
 
-      .control-group {
+      /* Split Capsule Buttons for Mic / Camera */
+      .split-capsule {
         position: relative;
-        display: flex;
+        display: inline-flex;
         align-items: center;
+        height: 44px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 22px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      .control-btn {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
+      .split-capsule:hover {
+        background: rgba(255, 255, 255, 0.13);
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+
+      .split-capsule.active {
+        background: rgba(255, 255, 255, 0.08);
+        color: #f3f4f6;
+      }
+
+      .split-capsule.muted {
+        background: rgba(239, 68, 68, 0.18);
+        border-color: rgba(239, 68, 68, 0.35);
+        color: #f87171;
+      }
+
+      .split-capsule.muted:hover {
+        background: rgba(239, 68, 68, 0.28);
+        border-color: rgba(239, 68, 68, 0.5);
+      }
+
+      .capsule-main-btn {
+        height: 100%;
+        padding: 0 0.75rem 0 0.875rem;
+        background: transparent;
         border: none;
+        color: inherit;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+        border-radius: 22px 0 0 22px;
+        transition: opacity 0.15s ease;
+      }
+
+      .capsule-main-btn:hover {
+        opacity: 0.85;
+      }
+
+      .capsule-divider {
+        width: 1px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.12);
+        flex-shrink: 0;
+      }
+
+      .split-capsule.muted .capsule-divider {
+        background: rgba(239, 68, 68, 0.3);
+      }
+
+      .capsule-chevron-btn {
+        height: 100%;
+        padding: 0 0.5rem 0 0.375rem;
+        background: transparent;
+        border: none;
+        color: inherit;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border-radius: 0 22px 22px 0;
+        transition: all 0.2s ease;
+        opacity: 0.7;
+      }
+
+      .capsule-chevron-btn:hover,
+      .capsule-chevron-btn.open {
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .chevron-icon {
+        font-size: 18px;
+        transition: transform 0.2s ease;
+      }
+
+      .capsule-chevron-btn.open .chevron-icon {
+        transform: rotate(180deg);
+      }
+
+      /* Standalone Round Buttons (Speaker, Fit screen) */
+      .standalone-group {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .standalone-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.08);
         color: #f3f4f6;
         cursor: pointer;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      .control-btn:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: scale(1.05);
-      }
-
-      .control-btn.active {
+      .standalone-btn:hover,
+      .standalone-btn.active {
         background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.2);
         color: #ffffff;
+        transform: translateY(-1px);
       }
 
-      .control-btn.muted {
-        background: rgba(255, 68, 85, 0.25);
-        color: #ff4455;
+      .btn-icon {
+        font-size: 20px;
       }
 
-      .dropdown-arrow-btn {
-        width: 18px;
-        height: 28px;
-        background: rgba(255, 255, 255, 0.08);
-        border: none;
-        border-radius: 0 9999px 9999px 0;
-        margin-left: -6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #9ca3af;
-        cursor: pointer;
-        transition: all 0.15s ease;
-      }
-
-      .dropdown-arrow-btn:hover {
-        background: rgba(255, 255, 255, 0.2);
-        color: #ffffff;
-      }
-
+      /* Device Selector Popover (Dark Glassmorphism) */
       .device-popover {
         position: absolute;
         bottom: 56px;
         left: 50%;
         transform: translateX(-50%);
-        background: #181b28;
+        background: rgba(20, 24, 38, 0.96);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
         border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 12px;
-        padding: 0.5rem;
-        min-width: 220px;
+        border-radius: 14px;
+        padding: 0.625rem;
+        min-width: 240px;
         max-width: 320px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+        box-shadow:
+          0 16px 40px rgba(0, 0, 0, 0.7),
+          0 0 0 1px rgba(255, 255, 255, 0.06);
         z-index: 120;
+        animation: popover-fade 0.15s ease-out;
       }
 
-      .popover-title {
+      @keyframes popover-fade {
+        from {
+          opacity: 0;
+          transform: translate(-50%, 6px);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+      }
+
+      .popover-header {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
         font-size: 0.75rem;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
+        letter-spacing: 0.05em;
         color: #9ca3af;
-        padding: 0.25rem 0.5rem;
-        margin-bottom: 0.25rem;
+        padding: 0.25rem 0.5rem 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        margin-bottom: 0.375rem;
+      }
+
+      .popover-header-icon {
+        font-size: 14px;
+        color: #818cf8;
+      }
+
+      .popover-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+        max-height: 200px;
+        overflow-y: auto;
       }
 
       .device-item {
@@ -263,24 +394,32 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.5rem;
+        padding: 0.5rem 0.625rem;
         background: transparent;
         border: none;
-        border-radius: 6px;
-        color: #e5e7eb;
+        border-radius: 8px;
+        color: #d1d5db;
         font-size: 0.8125rem;
         cursor: pointer;
         text-align: left;
-        transition: background 0.15s ease;
+        transition: all 0.15s ease;
       }
 
       .device-item:hover {
         background: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
       }
 
       .device-item.selected {
-        background: rgba(0, 237, 100, 0.15);
-        color: #00ed64;
+        background: rgba(99, 102, 241, 0.2);
+        color: #818cf8;
+        font-weight: 600;
+      }
+
+      .check-icon {
+        font-size: 16px;
+        color: inherit;
+        flex-shrink: 0;
       }
 
       .device-label {
@@ -289,49 +428,78 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
         text-overflow: ellipsis;
       }
 
+      /* Call Duration Indicator */
       .duration-display {
         display: flex;
         align-items: center;
-        gap: 0.375rem;
-        padding: 0.375rem 0.75rem;
+        gap: 0.5rem;
+        padding: 0.375rem 0.875rem;
         background: rgba(255, 255, 255, 0.06);
-        border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 20px;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #d1d5db;
+        color: #e5e7eb;
         font-variant-numeric: tabular-nums;
       }
 
-      .live-dot {
+      .live-pulse-dot {
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: #00ed64;
-        box-shadow: 0 0 8px #00ed64;
+        background: #10b981;
+        box-shadow: 0 0 10px #10b981;
+        animation: dot-pulse 1.8s infinite;
       }
 
+      @keyframes dot-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.3);
+          opacity: 0.7;
+        }
+      }
+
+      .duration-text {
+        letter-spacing: 0.02em;
+      }
+
+      /* End Call Button (Bold Glowing Crimson) */
       .end-call-btn {
-        width: 44px;
+        width: 48px;
         height: 44px;
-        border-radius: 50%;
+        border-radius: 22px;
         border: none;
-        background: #ff4455;
+        background: #ef4444;
         color: #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        box-shadow: 0 4px 14px rgba(255, 68, 85, 0.4);
+        box-shadow:
+          0 4px 16px rgba(239, 68, 68, 0.45),
+          0 0 0 1px rgba(255, 255, 255, 0.2) inset;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .end-call-btn:hover {
-        background: #ff2238;
-        transform: scale(1.08);
+        background: #dc2626;
+        box-shadow:
+          0 6px 22px rgba(239, 68, 68, 0.65),
+          0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+        transform: translateY(-1px) scale(1.05);
       }
 
       .end-call-btn:active {
-        transform: scale(0.95);
+        transform: scale(0.96);
+      }
+
+      .end-icon {
+        font-size: 22px;
       }
     `,
   ],

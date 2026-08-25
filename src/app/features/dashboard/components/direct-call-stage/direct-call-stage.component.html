@@ -4,13 +4,29 @@
     role="region"
     aria-label="Khung cuộc gọi trực tiếp"
   >
+    <!-- Background Ambient Glow Canvas -->
+    <div class="stage-ambient-glow" [ngClass]="store.callState()"></div>
+
     <!-- 1. Top Header: User Name & Call Status -->
     <header class="stage-header">
-      <div class="header-user-info">
-        <h1 class="header-name">{{ remoteUser()?.displayName || remoteUser()?.username }}</h1>
-        <div class="header-status">
-          <span class="status-indicator-dot" [ngClass]="store.callState()"></span>
-          <span>{{ statusText() }}</span>
+      <div class="header-glass-card">
+        @if (remoteUser()?.avatarUrl) {
+          <img
+            [src]="remoteUser()?.avatarUrl"
+            [alt]="remoteUser()?.displayName || remoteUser()?.username"
+            class="header-avatar"
+          />
+        } @else {
+          <div class="header-avatar-placeholder">
+            {{ (remoteUser()?.displayName || remoteUser()?.username || 'U').charAt(0).toUpperCase() }}
+          </div>
+        }
+        <div class="header-meta">
+          <h1 class="header-name">{{ remoteUser()?.displayName || remoteUser()?.username }}</h1>
+          <div class="header-status">
+            <span class="status-indicator-dot" [ngClass]="store.callState()"></span>
+            <span class="status-text">{{ statusText() }}</span>
+          </div>
         </div>
       </div>
     </header>
@@ -29,24 +45,48 @@
       } @else {
         <!-- Avatar Fallback View for Audio Call or Remote Camera Off -->
         <div class="avatar-fallback-wrapper">
-          <div
-            class="avatar-fallback-ring"
-            [class.speaking]="store.isRemoteSpeaking()"
-          >
-            @if (remoteUser()?.avatarUrl) {
-              <img
-                [src]="remoteUser()?.avatarUrl"
-                [alt]="remoteUser()?.displayName || remoteUser()?.username"
-                class="stage-avatar"
-              />
-            } @else {
-              <div class="stage-avatar-placeholder">
-                {{ (remoteUser()?.displayName || remoteUser()?.username || 'U').charAt(0).toUpperCase() }}
-              </div>
+          <div class="avatar-sonar-container">
+            @if (store.callState() === 'outgoing_ringing' || store.callState() === 'connecting' || store.isRemoteSpeaking()) {
+              <div class="sonar-ring ring-1"></div>
+              <div class="sonar-ring ring-2"></div>
+              <div class="sonar-ring ring-3"></div>
             }
+            <div
+              class="avatar-fallback-ring"
+              [class.speaking]="store.isRemoteSpeaking()"
+              [class.ringing]="store.callState() === 'outgoing_ringing'"
+            >
+              @if (remoteUser()?.avatarUrl) {
+                <img
+                  [src]="remoteUser()?.avatarUrl"
+                  [alt]="remoteUser()?.displayName || remoteUser()?.username"
+                  class="stage-avatar"
+                />
+              } @else {
+                <div class="stage-avatar-placeholder">
+                  {{ (remoteUser()?.displayName || remoteUser()?.username || 'U').charAt(0).toUpperCase() }}
+                </div>
+              }
+            </div>
           </div>
-          <div class="fallback-status-label">
-            {{ store.callState() === 'outgoing_ringing' ? 'Đang gọi bạn bè...' : (store.isRemoteCameraOff() ? 'Camera của đối phương đang tắt' : 'Đang trong cuộc gọi thoại') }}
+
+          <div class="fallback-info-block">
+            <h2 class="fallback-user-name">{{ remoteUser()?.displayName || remoteUser()?.username }}</h2>
+            <div class="fallback-status-badge" [ngClass]="store.callState()">
+              @if (store.callState() === 'outgoing_ringing') {
+                <span class="calling-pulse"></span>
+                <span>Đang đổ chuông...</span>
+              } @else if (store.callState() === 'connecting') {
+                <span class="calling-pulse"></span>
+                <span>Đang kết nối LiveKit...</span>
+              } @else if (store.isRemoteCameraOff()) {
+                <span class="material-icons text-xs">videocam_off</span>
+                <span>Camera của đối phương đang tắt</span>
+              } @else {
+                <span class="material-icons text-xs">mic</span>
+                <span>Cuộc gọi thoại</span>
+              }
+            </div>
           </div>
         </div>
       }

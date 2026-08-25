@@ -24,20 +24,15 @@
         <span class="material-icons mode-icon">
           {{ initialMode() === 'video' ? 'videocam' : 'call' }}
         </span>
-        <span>
+        <span class="mode-text">
           {{ initialMode() === 'video' ? 'Cuộc gọi video đến...' : 'Cuộc gọi thoại đến...' }}
         </span>
       </div>
     </div>
 
-    <!-- Right: Countdown & Actions -->
+    <!-- Right: Action Buttons -->
     <div class="action-buttons">
-      <!-- 45s Circular Countdown Badge -->
-      <div class="countdown-badge" title="Thời gian chờ còn lại">
-        {{ remainingSeconds() }}s
-      </div>
-
-      <!-- Decline Button (Coral) -->
+      <!-- Decline Button (Crimson) -->
       <button
         #declineBtn
         type="button"
@@ -49,7 +44,7 @@
         <span class="material-icons">call_end</span>
       </button>
 
-      <!-- Accept Button (Mint Green) -->
+      <!-- Accept Button (Emerald) -->
       <button
         #acceptBtn
         type="button"
