@@ -26,8 +26,17 @@ export class DirectCallStageComponent implements AfterViewInit, OnDestroy {
   readonly coordinator = inject(DirectCallCoordinatorService);
   readonly mediaService = inject(DirectCallMediaService);
 
-  @ViewChild('remoteVideo') remoteVideoRef?: ElementRef<HTMLVideoElement>;
-  @ViewChild('remoteAudio') remoteAudioRef?: ElementRef<HTMLAudioElement>;
+  @ViewChild('remoteVideo') set remoteVideoElement(ref: ElementRef<HTMLVideoElement> | undefined) {
+    if (ref?.nativeElement) {
+      this.mediaService.attachRemoteVideo(ref.nativeElement);
+    }
+  }
+
+  @ViewChild('remoteAudio') set remoteAudioElement(ref: ElementRef<HTMLAudioElement> | undefined) {
+    if (ref?.nativeElement) {
+      this.mediaService.attachRemoteAudio(ref.nativeElement);
+    }
+  }
 
   readonly remoteUser = computed(() => this.store.remoteParticipant());
 
@@ -52,12 +61,7 @@ export class DirectCallStageComponent implements AfterViewInit, OnDestroy {
   });
 
   ngAfterViewInit(): void {
-    if (this.remoteVideoRef?.nativeElement) {
-      this.mediaService.attachRemoteVideo(this.remoteVideoRef.nativeElement);
-    }
-    if (this.remoteAudioRef?.nativeElement) {
-      this.mediaService.attachRemoteAudio(this.remoteAudioRef.nativeElement);
-    }
+    // Initial bindings handled via setters
   }
 
   ngOnDestroy(): void {

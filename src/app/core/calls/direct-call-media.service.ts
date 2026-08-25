@@ -11,6 +11,7 @@ import {
   Room,
   RoomEvent,
   Track,
+  TrackPublication,
   createLocalAudioTrack,
   createLocalVideoTrack,
 } from 'livekit-client';
@@ -167,6 +168,28 @@ export class DirectCallMediaService {
 
     // Xuất bản local tracks
     await this.publishLocalTracks();
+
+    // Gắn các tracks đã tồn tại nếu đối phương đã vào phòng trước
+    for (const p of room.remoteParticipants.values()) {
+      for (const pub of p.trackPublications.values()) {
+        if (pub.track && !pub.isMuted) {
+          if (pub.track.kind === Track.Kind.Video) {
+            this.remoteVideoTrack = pub.track as RemoteVideoTrack;
+            this.store.setRemoteVideoAvailable(true);
+            if (this.remoteVideoEl) {
+              pub.track.attach(this.remoteVideoEl);
+              this.remoteVideoEl.play().catch(() => {});
+            }
+          } else if (pub.track.kind === Track.Kind.Audio) {
+            this.remoteAudioTrack = pub.track as RemoteAudioTrack;
+            this.store.setRemoteAudioAvailable(true);
+            if (this.remoteAudioEl) {
+              pub.track.attach(this.remoteAudioEl);
+            }
+          }
+        }
+      }
+    }
   }
 
   private setupRoomEvents(room: Room): void {
@@ -175,9 +198,10 @@ export class DirectCallMediaService {
       (track: RemoteTrack, pub: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (track.kind === Track.Kind.Video) {
           this.remoteVideoTrack = track as RemoteVideoTrack;
-          this.store.setRemoteVideoAvailable(true);
+          this.store.setRemoteVideoAvailable(!pub.isMuted);
           if (this.remoteVideoEl) {
             track.attach(this.remoteVideoEl);
+            this.remoteVideoEl.play().catch(() => {});
           }
         } else if (track.kind === Track.Kind.Audio) {
           this.remoteAudioTrack = track as RemoteAudioTrack;
@@ -212,6 +236,36 @@ export class DirectCallMediaService {
         }
       },
     );
+
+    room.on(RoomEvent.TrackMuted, (pub: TrackPublication) => {
+      if (pub.kind === Track.Kind.Video) {
+        this.store.setRemoteVideoAvailable(false);
+      } else if (pub.kind === Track.Kind.Audio) {
+        this.store.setRemoteAudioAvailable(false);
+      }
+    });
+
+    room.on(RoomEvent.TrackUnmuted, (pub: TrackPublication) => {
+      if (pub.kind === Track.Kind.Video) {
+        if (pub.track) {
+          this.remoteVideoTrack = pub.track as RemoteVideoTrack;
+          this.store.setRemoteVideoAvailable(true);
+          if (this.remoteVideoEl) {
+            pub.track.attach(this.remoteVideoEl);
+            this.remoteVideoEl.play().catch(() => {});
+          }
+        }
+      } else if (pub.kind === Track.Kind.Audio) {
+        if (pub.track) {
+          this.remoteAudioTrack = pub.track as RemoteAudioTrack;
+          this.store.setRemoteAudioAvailable(true);
+          if (this.remoteAudioEl) {
+            pub.track.attach(this.remoteAudioEl);
+          }
+          void room.startAudio().catch(() => {});
+        }
+      }
+    });
 
     room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
       const myId = room.localParticipant.identity;
@@ -309,6 +363,7 @@ export class DirectCallMediaService {
         await this.localVideoTrack.unmute();
         if (this.localVideoEl) {
           this.localVideoTrack.attach(this.localVideoEl);
+          this.localVideoEl.play().catch(() => {});
         }
       } else {
         try {
@@ -320,6 +375,7 @@ export class DirectCallMediaService {
           await this.room.localParticipant.publishTrack(this.localVideoTrack);
           if (this.localVideoEl) {
             this.localVideoTrack.attach(this.localVideoEl);
+            this.localVideoEl.play().catch(() => {});
           }
         } catch (err: any) {
           console.warn('Lỗi bật camera:', err);
@@ -357,6 +413,7 @@ export class DirectCallMediaService {
     this.localVideoEl = element;
     if (this.localVideoTrack) {
       this.localVideoTrack.attach(element);
+      element.play().catch(() => {});
     } else if (this.localPreviewStream) {
       element.srcObject = this.localPreviewStream;
       element.play().catch(() => {});
@@ -367,6 +424,7 @@ export class DirectCallMediaService {
     this.remoteVideoEl = element;
     if (this.remoteVideoTrack) {
       this.remoteVideoTrack.attach(element);
+      element.play().catch(() => {});
     }
   }
 

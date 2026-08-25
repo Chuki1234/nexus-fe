@@ -190,7 +190,11 @@ export class DraggableSelfViewComponent implements AfterViewInit, OnDestroy {
   readonly mediaService = inject(DirectCallMediaService);
 
   @ViewChild('card') cardRef?: ElementRef<HTMLDivElement>;
-  @ViewChild('localVideo') localVideoRef?: ElementRef<HTMLVideoElement>;
+  @ViewChild('localVideo') set localVideoElement(ref: ElementRef<HTMLVideoElement> | undefined) {
+    if (ref?.nativeElement) {
+      this.mediaService.attachLocalVideo(ref.nativeElement);
+    }
+  }
 
   readonly isDragging = signal<boolean>(false);
   readonly currentOffsetX = signal<number>(0);
@@ -209,9 +213,7 @@ export class DraggableSelfViewComponent implements AfterViewInit, OnDestroy {
   });
 
   ngAfterViewInit(): void {
-    if (this.localVideoRef?.nativeElement) {
-      this.mediaService.attachLocalVideo(this.localVideoRef.nativeElement);
-    }
+    // Handled via setter
   }
 
   ngOnDestroy(): void {
