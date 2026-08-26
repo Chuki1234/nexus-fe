@@ -1,77 +1,120 @@
-<main class="grid min-h-dvh bg-canvas lg:grid-cols-2">
+<main class="grid min-h-dvh bg-canvas lg:grid-cols-2" [class.anim-in]="animateIn()">
   <!-- ══ Cột trái: panel thương hiệu. Ẩn trên mobile, hiện từ breakpoint lg. ══
        Nền surface (không đổ xanh: primary chỉ dành cho CTA theo design system). -->
   <aside
-    class="relative hidden items-center justify-center border-r border-hairline bg-surface p-12 lg:flex"
+    class="brand-panel relative hidden flex-col items-center justify-center overflow-hidden border-r border-hairline p-12 lg:flex"
   >
-    <div class="flex w-full max-w-lg flex-col items-center text-center">
-      <!-- Bỏ file logo vào nexus-fe/public/assets/logo.png (nền trong suốt) là hiện.
-           Khi chưa có file (hoặc lỗi tải), tự rơi về logo SVG dự phòng bên dưới. -->
-      @if (!logoFailed()) {
+    <!-- Quầng sáng sau mascot -->
+    <div class="brand-bloom" aria-hidden="true"></div>
+
+    <!-- Thiên hà mạng lưới: node/đa giác, khối wireframe, tia sao, quỹ đạo -->
+    <svg class="brand-scene" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <!-- Mạng lưới đa giác -->
+      <g>
+        <line class="net-line" x1="60" y1="110" x2="300" y2="50" />
+        <line class="net-line" x1="300" y1="50" x2="545" y2="105" />
+        <line class="net-line" x1="545" y1="105" x2="585" y2="330" />
+        <line class="net-line" x1="585" y1="330" x2="560" y2="600" />
+        <line class="net-line" x1="560" y1="600" x2="430" y2="745" />
+        <line class="net-line" x1="430" y1="745" x2="150" y2="730" />
+        <line class="net-line" x1="150" y1="730" x2="45" y2="470" />
+        <line class="net-line" x1="45" y1="470" x2="60" y2="110" />
+        <line class="net-line" x1="60" y1="110" x2="210" y2="250" />
+        <line class="net-line" x1="210" y1="250" x2="400" y2="240" />
+        <line class="net-line" x1="400" y1="240" x2="545" y2="105" />
+        <line class="net-line" x1="300" y1="50" x2="400" y2="240" />
+        <line class="net-line" x1="300" y1="50" x2="210" y2="250" />
+        <line class="net-line" x1="45" y1="470" x2="180" y2="520" />
+        <line class="net-line" x1="180" y1="520" x2="150" y2="730" />
+        <line class="net-line" x1="180" y1="520" x2="210" y2="250" />
+        <line class="net-line" x1="585" y1="330" x2="470" y2="470" />
+        <line class="net-line" x1="470" y1="470" x2="560" y2="600" />
+        <line class="net-line" x1="400" y1="240" x2="470" y2="470" />
+        <line class="net-line" x1="470" y1="470" x2="430" y2="745" />
+      </g>
+
+      <!-- Node -->
+      <circle class="net-node" cx="60" cy="110" r="3.2" />
+      <circle class="net-node" cx="300" cy="50" r="3.2" />
+      <circle class="net-node" cx="545" cy="105" r="3.2" />
+      <circle class="net-node" cx="585" cy="330" r="3.2" />
+      <circle class="net-node" cx="560" cy="600" r="3.2" />
+      <circle class="net-node" cx="430" cy="745" r="3.2" />
+      <circle class="net-node" cx="150" cy="730" r="3.2" />
+      <circle class="net-node" cx="45" cy="470" r="3.2" />
+      <circle class="net-node" cx="210" cy="250" r="2.6" />
+      <circle class="net-node" cx="400" cy="240" r="2.6" />
+      <circle class="net-node" cx="470" cy="470" r="2.6" />
+      <circle class="net-node" cx="180" cy="520" r="2.6" />
+      <circle class="net-node" cx="250" cy="150" r="1.8" />
+      <circle class="net-node" cx="360" cy="640" r="1.8" />
+      <circle class="net-node" cx="520" cy="230" r="1.8" />
+      <circle class="net-node" cx="110" cy="640" r="1.8" />
+
+      <!-- Khối lập phương wireframe -->
+      <g class="wire wire-cube">
+        <path d="M110 384 H160 V434 H110 Z" />
+        <path d="M128 366 H178 V416 H128 Z" />
+        <path d="M110 384 L128 366 M160 384 L178 366 M160 434 L178 416 M110 434 L128 416" />
+      </g>
+
+      <!-- Khối icosahedron wireframe -->
+      <g class="wire wire-ico">
+        <path d="M480 108 L516 130 L516 172 L480 194 L444 172 L444 130 Z" />
+        <path d="M480 108 L480 194 M444 130 L516 172 M516 130 L444 172 M480 108 L444 172 M480 108 L516 172" />
+      </g>
+
+      <!-- Tia sao -->
+      <path class="sparkle" d="M455 288 Q455 300 467 300 Q455 300 455 312 Q455 300 443 300 Q455 300 455 288 Z" />
+      <path class="sparkle" d="M180 551 Q180 560 189 560 Q180 560 180 569 Q180 560 171 560 Q180 560 180 551 Z" />
+      <path class="sparkle" d="M92 292 Q92 300 100 300 Q92 300 92 308 Q92 300 84 300 Q92 300 92 292 Z" />
+      <path class="sparkle" d="M470 600 Q470 610 480 610 Q470 610 470 620 Q470 610 460 610 Q470 610 470 600 Z" />
+    </svg>
+
+    <div class="relative z-10 flex w-full max-w-md flex-col items-center text-center">
+      <!-- Mascot tắc kè (nền trong suốt ở /assets/nexus-mascot.png). -->
+      <div class="rise d1">
         <img
-          src="/assets/nexus-logo.png"
+          src="/assets/nexus-mascot.png"
           alt="Nexus"
-          class="w-full max-w-lg"
-          (error)="logoFailed.set(true)"
+          class="brand-mascot w-full max-w-xs"
         />
-      } @else {
-        <svg viewBox="0 0 240 260" class="w-full max-w-lg" role="img" aria-label="Nexus">
-          <defs>
-            <filter id="nexus-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <g filter="url(#nexus-glow)">
-            <g fill="none" stroke="#00ed64" stroke-width="4">
-              <ellipse cx="120" cy="92" rx="94" ry="34" transform="rotate(28 120 92)" />
-              <ellipse cx="120" cy="92" rx="94" ry="34" transform="rotate(-28 120 92)" />
-            </g>
-            <circle cx="64" cy="66" r="9" fill="#00ed64" />
-            <circle cx="176" cy="118" r="9" fill="#00ed64" />
-            <text
-              x="120"
-              y="112"
-              text-anchor="middle"
-              font-family="Inter, system-ui, sans-serif"
-              font-size="62"
-              font-weight="700"
-              fill="#00ed64"
-            >
-              N
-            </text>
-            <text
-              x="120"
-              y="214"
-              text-anchor="middle"
-              font-family="Inter, system-ui, sans-serif"
-              font-size="42"
-              font-weight="600"
-              letter-spacing="10"
-              fill="#00ed64"
-            >
-              NEXUS
-            </text>
-          </g>
-        </svg>
-      }
+      </div>
+
+      <h2 class="brand-wordmark rise d2 mt-6 font-extrabold">Nexus</h2>
+      <p class="rise d3 mt-3 max-w-sm text-body-md text-slate">
+        Hòa vào mọi cuộc trò chuyện — cộng đồng của bạn, sắc màu của bạn.
+      </p>
+
+      <!-- Điều thật sự nhận được sau khi đăng nhập — không phải trang trí. -->
+      <ul class="rise d4 mt-8 flex flex-wrap justify-center gap-2 text-caption">
+        <li class="brand-chip">Trò chuyện realtime</li>
+        <li class="brand-chip">Máy chủ &amp; kênh</li>
+        <li class="brand-chip">Bảo mật 2FA</li>
+      </ul>
     </div>
   </aside>
 
   <!-- ══ Cột phải: khu vực form, canh giữa dọc, không dùng card nổi ══ -->
   <div class="flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-auth-card">
-      <header class="mb-8">
+      <!-- Mascot cho mobile: panel thương hiệu bên trái ẩn từ dưới breakpoint lg. -->
+      <div class="mb-6 flex justify-center lg:hidden">
+        <img
+          src="/assets/nexus-mascot.png"
+          alt="Nexus"
+          class="h-24 w-auto object-contain"
+        />
+      </div>
+
+      <header class="rise d1 mb-8">
         <p class="text-micro-uppercase text-steel uppercase">Nexus</p>
         <h1 class="mt-2 text-heading-3 text-ink">Đăng nhập</h1>
         <p class="mt-2 text-body-md text-slate">
           Chưa có tài khoản?
           <a
             routerLink="/register"
-            class="rounded-xs font-semibold text-primary underline underline-offset-2 hover:text-primary-soft"
+            class="rounded-xs font-semibold text-primary underline-offset-2 hover:underline hover:text-primary-soft"
             >Đăng ký</a
           >
         </p>
@@ -92,7 +135,7 @@
       <button
         type="button"
         (click)="onGoogle()"
-        class="flex w-full items-center justify-center gap-3 rounded-full border border-hairline-strong bg-canvas px-4 py-3 text-button-md text-ink hover:border-primary cursor-pointer"
+        class="rise d2 flex w-full items-center justify-center gap-3 rounded-full border border-hairline-strong bg-canvas px-4 py-3 text-button-md text-ink transition-colors hover:border-primary cursor-pointer"
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5">
           <path
@@ -116,36 +159,42 @@
       </button>
 
       <!-- Gạch "hoặc" phân cách hai phương thức đăng nhập -->
-      <div class="my-6 flex items-center gap-3" aria-hidden="true">
+      <div class="rise d3 my-6 flex items-center gap-3" aria-hidden="true">
         <span class="h-px flex-1 bg-hairline"></span>
         <span class="text-caption text-steel uppercase">hoặc</span>
         <span class="h-px flex-1 bg-hairline"></span>
       </div>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-        <div class="mb-5">
+        <div class="rise d4 mb-5">
           <label for="identifier" class="mb-2 block text-body-sm text-ink font-semibold">
             Email
           </label>
-          <input
-            id="identifier"
-            type="text"
-            formControlName="identifier"
-            autocomplete="email"
-            inputmode="email"
-            placeholder="ban@vidu.com"
-            [attr.aria-invalid]="showError('identifier')"
-            [attr.aria-describedby]="showError('identifier') ? 'identifier-error' : null"
-            class="w-full rounded-lg border border-hairline-strong bg-canvas px-4 py-3 text-body-md text-ink placeholder:text-steel focus:border-primary focus:outline-none aria-invalid:border-danger"
-          />
+          <div class="relative">
+            <svg class="input-icon h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="m3 7 9 6 9-6" />
+            </svg>
+            <input
+              id="identifier"
+              type="text"
+              formControlName="identifier"
+              autocomplete="email"
+              inputmode="email"
+              placeholder="ban@vidu.com"
+              [attr.aria-invalid]="showError('identifier')"
+              [attr.aria-describedby]="showError('identifier') ? 'identifier-error' : null"
+              class="input-field w-full rounded-lg border border-hairline-strong bg-canvas py-3 pr-4 pl-11 text-body-md text-ink placeholder:text-steel focus:outline-none aria-invalid:border-danger"
+            />
+          </div>
           @if (showError('identifier')) {
             <p id="identifier-error" class="mt-2 text-body-sm text-danger">
-              Vui lòng nhập email.
+              Email không đúng định dạng.
             </p>
           }
         </div>
 
-        <div class="mb-4">
+        <div class="rise d5 mb-4">
           <div class="mb-2 flex items-baseline justify-between gap-2">
             <label for="password" class="block text-body-sm text-ink font-semibold">Mật khẩu</label>
             <a
@@ -164,6 +213,10 @@
             >
           </div>
           <div class="relative">
+            <svg class="input-icon h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
             <input
               id="password"
               [type]="passwordVisible() ? 'text' : 'password'"
@@ -171,7 +224,7 @@
               autocomplete="current-password"
               [attr.aria-invalid]="showError('password')"
               [attr.aria-describedby]="showError('password') ? 'password-error' : null"
-              class="w-full rounded-lg border border-hairline-strong bg-canvas py-3 pr-16 pl-4 text-body-md text-ink focus:border-primary focus:outline-none aria-invalid:border-danger"
+              class="input-field w-full rounded-lg border border-hairline-strong bg-canvas py-3 pr-16 pl-11 text-body-md text-ink focus:outline-none aria-invalid:border-danger"
             />
             <button
               type="button"
@@ -191,7 +244,7 @@
         </div>
 
         <!-- Đăng nhập nhanh bằng Google Authenticator / Mã dự phòng -->
-        <div class="mb-6 flex justify-end">
+        <div class="rise d6 mb-6 flex justify-end">
           <button
             type="button"
             (click)="openFastLogin()"
@@ -205,7 +258,7 @@
           type="submit"
           [disabled]="submitting()"
           [attr.aria-busy]="submitting()"
-          class="w-full rounded-full bg-primary px-4 py-3 text-button-md font-bold text-on-primary transition-colors hover:bg-primary-soft disabled:cursor-not-allowed disabled:bg-hairline disabled:text-mute cursor-pointer"
+          class="cta rise d7 w-full rounded-full bg-primary px-4 py-3 text-button-md font-bold text-on-primary hover:bg-primary-soft disabled:cursor-not-allowed disabled:bg-hairline disabled:text-muted cursor-pointer"
         >
           {{ submitting() ? 'Đang đăng nhập…' : 'Đăng nhập' }}
         </button>
@@ -223,17 +276,20 @@
 ══════════════════════════════════════════════════════════════════════ -->
 @if (showFastLoginModal()) {
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+    class="modal-scrim fixed inset-0 z-50 flex items-center justify-center p-4"
     role="dialog"
     aria-modal="true"
-    aria-label="Đăng nhập bằng mã xác thực"
+    aria-labelledby="fast-login-title"
     (click)="closeFastLogin()"
+    (keydown.escape)="closeFastLogin()"
   >
     <div
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
       class="w-full max-w-sm rounded-lg border border-hairline bg-surface p-6 shadow-modal space-y-4"
       (click)="$event.stopPropagation()"
     >
-      <h2 class="text-heading-4 text-ink font-bold">Đăng nhập bằng mã 2FA</h2>
+      <h2 id="fast-login-title" class="text-heading-4 text-ink font-bold">Đăng nhập bằng mã 2FA</h2>
       <p class="text-body-sm text-slate">
         Nhập email và một <strong class="text-ink">mã dự phòng 2FA</strong> (hoặc mã 6 số) của bạn.
       </p>
@@ -297,12 +353,15 @@
 ══════════════════════════════════════════════════════════════════════ -->
 @if (showDisabledModal()) {
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in"
+    class="modal-scrim fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
     role="dialog"
     aria-modal="true"
-    aria-label="Thông báo tài khoản bị vô hiệu hóa"
+    [attr.aria-labelledby]="disabledStep() === 'notice' ? 'disabled-title-notice' : 'disabled-title-2fa'"
+    (keydown.escape)="closeDisabledModal()"
   >
     <div
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
       class="w-full max-w-md rounded-2xl bg-surface border border-hairline-strong p-6 shadow-2xl space-y-5 animate-slide-up"
     >
       @if (disabledStep() === 'notice') {
@@ -314,7 +373,7 @@
             </svg>
           </div>
           <div>
-            <h3 class="text-heading-4 font-bold text-ink">Tài khoản đang bị vô hiệu hóa</h3>
+            <h3 id="disabled-title-notice" class="text-heading-4 font-bold text-ink">Tài khoản đang bị vô hiệu hóa</h3>
             <p class="text-caption text-steel">Không thể đăng nhập trực tiếp qua Google</p>
           </div>
         </div>
@@ -371,7 +430,7 @@
             </svg>
           </div>
           <div>
-            <h3 class="text-heading-4 font-bold text-ink">Xác thực 2FA để mở khóa</h3>
+            <h3 id="disabled-title-2fa" class="text-heading-4 font-bold text-ink">Xác thực 2FA để mở khóa</h3>
             <p class="text-caption text-steel">Nhập mã từ Google Authenticator</p>
           </div>
         </div>

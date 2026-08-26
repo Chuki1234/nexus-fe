@@ -1,0 +1,192 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Trang đăng nhập — panel trái "nebula mạng lưới": mascot phát sáng giữa một
+   thiên hà node/đa giác, khối wireframe, quả cầu bóng và tia sao.
+   Chỉ dùng token design system (styles.css); blur/opacity là ánh sáng nền.
+══════════════════════════════════════════════════════════════════════ */
+
+/* ── Nền panel: teal sâu, tối dần ở rìa (vignette), ấm xanh ở giữa ────── */
+.brand-panel {
+  background:
+    radial-gradient(60% 45% at 50% 42%, color-mix(in srgb, var(--color-brand-green) 20%, transparent) 0%, transparent 60%),
+    radial-gradient(120% 100% at 50% 50%, #04303a 0%, #021c26 55%, #01121a 100%);
+}
+
+/* Quầng sáng mạnh ngay sau mascot — như mascot đang phát quang. */
+.brand-bloom {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  width: 30rem;
+  height: 30rem;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle,
+    color-mix(in srgb, var(--color-brand-green) 30%, transparent) 0%,
+    color-mix(in srgb, var(--color-brand-green) 11%, transparent) 34%,
+    transparent 66%);
+  filter: blur(16px);
+  pointer-events: none;
+  animation: bloom 7s ease-in-out infinite;
+}
+@keyframes bloom {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.62; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+/* ── Lớp SVG cảnh vật (mạng lưới, wireframe, sao, quỹ đạo) ───────────── */
+.brand-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.brand-scene .net-line {
+  stroke: color-mix(in srgb, var(--color-brand-green) 30%, transparent);
+  stroke-width: 1;
+  fill: none;
+}
+.brand-scene .net-node {
+  fill: color-mix(in srgb, var(--color-brand-green) 70%, transparent);
+  animation: node-pulse 4s ease-in-out infinite;
+}
+.brand-scene .net-node:nth-of-type(2n) { animation-delay: 1s; }
+.brand-scene .net-node:nth-of-type(3n) { animation-delay: 2.1s; }
+.brand-scene .net-node:nth-of-type(4n) { animation-delay: 3s; }
+@keyframes node-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Khối wireframe trôi + xoay rất chậm. */
+.brand-scene .wire {
+  stroke: color-mix(in srgb, var(--color-brand-green) 34%, transparent);
+  stroke-width: 1;
+  fill: color-mix(in srgb, var(--color-brand-green) 5%, transparent);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.wire-cube { animation: drift-a 16s ease-in-out infinite; }
+.wire-ico { animation: drift-b 20s ease-in-out infinite; }
+
+/* Tia sao 4 cánh lấp lánh. */
+.brand-scene .sparkle {
+  fill: color-mix(in srgb, var(--color-brand-green) 85%, white 15%);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: twinkle 3.4s ease-in-out infinite;
+}
+.brand-scene .sparkle:nth-of-type(2n) { animation-delay: 1.2s; }
+.brand-scene .sparkle:nth-of-type(3n) { animation-delay: 2.3s; }
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes drift-a {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(8px, -12px); }
+}
+@keyframes drift-b {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-10px, 10px); }
+}
+
+/* ── Mascot + wordmark + chip ────────────────────────────────────────── */
+.brand-mascot {
+  animation: mascot-float 6.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 34px color-mix(in srgb, var(--color-brand-green) 55%, transparent))
+          drop-shadow(0 18px 40px color-mix(in srgb, var(--color-brand-green) 30%, transparent));
+}
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+.brand-wordmark {
+  font-size: clamp(3rem, 4.4vw, 4.25rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  background: linear-gradient(96deg, #ffffff 0%, #d9fff0 32%, var(--color-brand-green) 62%, var(--color-brand-green-mid) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 40px color-mix(in srgb, var(--color-brand-green) 25%, transparent);
+}
+
+.brand-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid color-mix(in srgb, var(--color-brand-green) 24%, transparent);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-surface) 45%, transparent);
+  backdrop-filter: blur(2px);
+  padding: 0.32rem 0.72rem;
+  color: var(--color-slate);
+}
+.brand-chip::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--color-brand-green);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-brand-green) 75%, transparent);
+}
+
+/* ── Form bên phải: icon dẫn + focus glow + CTA nâng ─────────────────── */
+.input-icon {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-steel);
+  pointer-events: none;
+}
+.input-field:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-brand-green) 16%, transparent);
+}
+
+.cta {
+  box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--color-brand-green) 55%, transparent);
+  transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+.cta:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px -8px color-mix(in srgb, var(--color-brand-green) 65%, transparent);
+}
+.cta:active:not(:disabled) { transform: translateY(0); }
+.cta:disabled { box-shadow: none; }
+
+/* Lớp phủ modal: `bg-black/*` của Tailwind KHÔNG dùng được vì project đã xoá
+   palette mặc định (không có token `black`). Đặt màu tối trực tiếp ở đây +
+   làm mờ nền để gom sự chú ý vào hộp thoại. */
+.modal-scrim {
+  background: rgba(0, 9, 15, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ── Vào trang: nổi lên theo tầng ────────────────────────────────────── */
+.anim-in .rise { animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.d1 { animation-delay: 0.05s; }
+.d2 { animation-delay: 0.12s; }
+.d3 { animation-delay: 0.19s; }
+.d4 { animation-delay: 0.26s; }
+.d5 { animation-delay: 0.33s; }
+.d6 { animation-delay: 0.40s; }
+.d7 { animation-delay: 0.47s; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tôn trọng người tắt hiệu ứng chuyển động. */
+@media (prefers-reduced-motion: reduce) {
+  .brand-bloom, .brand-mascot, .anim-in .rise,
+  .brand-scene .net-node, .brand-scene .sparkle,
+  .wire-cube, .wire-ico {
+    animation: none;
+  }
+}

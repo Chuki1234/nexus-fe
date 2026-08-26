@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { A11yModule } from '@angular/cdk/a11y';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AccountDisabledInfo, AccountDisabledService } from '../../../core/auth/account-disabled.service';
@@ -20,7 +21,7 @@ import { getAndClearReturnUrl, saveReturnUrl } from '../../../core/auth/auth-red
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, A11yModule],
   templateUrl: './login.html',
   styleUrl: './login.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,7 +38,7 @@ export class LoginPage implements OnInit {
    * Một ô định danh duy nhất: email hoặc tên đăng nhập.
    */
   protected readonly form = this.formBuilder.group({
-    identifier: ['', [Validators.required]],
+    identifier: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
   });
 
@@ -45,6 +46,13 @@ export class LoginPage implements OnInit {
   protected readonly submitted = signal(false);
   protected readonly passwordVisible = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+
+  /**
+   * Hiệu ứng "trôi lên" khi vào trang chỉ được chạy MỘT LẦN. Sau khi xong, gỡ
+   * cờ này để `<main>` mất class `anim-in` → không còn selector `.anim-in .rise`
+   * nào khớp, nên không lần re-render/HMR nào phát lại animation entrance nữa.
+   */
+  protected readonly animateIn = signal(true);
 
   /**
    * "Quên mật khẩu?" chỉ bật khi ô Email đã có một địa chỉ hợp lệ — luồng khôi
@@ -59,9 +67,6 @@ export class LoginPage implements OnInit {
   protected readonly canResetPassword = computed(() =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((this.identifierValue() ?? '').trim()),
   );
-
-  /** Bật true khi /assets/logo.png chưa có (hoặc lỗi tải) → dùng logo SVG dự phòng. */
-  protected readonly logoFailed = signal(false);
 
   // Đăng nhập nhanh bằng MÃ DỰ PHÒNG 2FA (không cần mật khẩu).
   protected readonly showFastLoginModal = signal(false);
@@ -79,6 +84,11 @@ export class LoginPage implements OnInit {
   protected readonly modal2faError = signal<string | null>(null);
 
   constructor() {
+    // Cho hiệu ứng vào trang chạy đúng một lần rồi tắt (xem `animateIn`).
+    if (typeof window !== 'undefined') {
+      setTimeout(() => this.animateIn.set(false), 1300);
+    }
+
     effect(() => {
       const blocked = this.auth.blockedGoogleAttempt();
       if (blocked) {
@@ -283,10 +293,15 @@ export class LoginPage implements OnInit {
     this.modal2faError.set(null);
   }
 
-  /** Errors stay hidden until the field is left or the form is submitted. */
+  /**
+   * Chỉ báo lỗi khi ô CÓ nội dung sai — ô trống thì không bao giờ đỏ (kể cả sau
+   * khi bấm Đăng nhập). Người dùng gõ sai → rời ô (hoặc submit) mới hiện lỗi;
+   * xoá sạch nội dung thì lỗi tự tắt ngay vì không còn "nội dung sai" nào.
+   */
   protected showError(field: 'identifier' | 'password'): boolean {
     const control = this.form.controls[field];
-    return control.invalid && (control.touched || this.submitted());
+    const hasContent = (control.value ?? '').trim().length > 0;
+    return control.invalid && hasContent && (control.touched || this.submitted());
   }
 
   protected async onSubmit(): Promise<void> {
@@ -295,7 +310,11 @@ export class LoginPage implements OnInit {
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.focusFirst('[aria-invalid="true"]');
+      // Ô trống không hiện lỗi đỏ (theo yêu cầu UX) — thay vào đó đưa con trỏ tới
+      // ô đầu tiên chưa hợp lệ để nhắc người dùng điền, không "nạt" bằng chữ đỏ.
+      this.focusFirst(
+        this.form.controls.identifier.invalid ? '#identifier' : '#password',
+      );
       return;
     }
     if (this.submitting()) {
