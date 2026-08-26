@@ -1,4 +1,4 @@
-<div class="space-y-8">
+<div class="space-y-8 pb-8">
   <!-- Title / Tab Subheading -->
   <div>
     <h2 class="text-heading-4 font-bold text-ink tracking-tight">Giọng nói và Video</h2>
@@ -11,32 +11,38 @@
   <div class="space-y-4">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Input Device (Microphone) -->
-      <div>
-        <label class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider mb-2" for="voice-mic-select">
+      <div class="p-4 rounded-2xl bg-surface border border-hairline space-y-3 shadow-xs">
+        <label class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider" for="voice-mic-select">
           THIẾT BỊ ĐẦU VÀO
         </label>
+        
         <div class="relative">
-          <div class="absolute left-3.5 top-3 text-steel pointer-events-none">
+          <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-steel pointer-events-none flex items-center justify-center">
             <mat-icon class="!w-5 !h-5 !text-[20px]">mic</mat-icon>
           </div>
           <select
             id="voice-mic-select"
-            class="input-base pl-11 pr-10 appearance-none cursor-pointer"
+            [ngModel]="mediaDevices.selectedAudioInputId()"
+            (ngModelChange)="onInputDeviceChange($event)"
+            class="voice-select"
           >
-            <option>Cài đặt mặc định của Windows (Microphone Array...)</option>
-            <option>Realtek High Definition Audio (Mic)</option>
-            <option>HyperX SoloCast USB Microphone</option>
+            @if (mediaDevices.audioInputs().length === 0) {
+              <option value="default">Cài đặt mặc định của hệ thống (Microphone)</option>
+            }
+            @for (d of mediaDevices.audioInputs(); track d.deviceId; let i = $index) {
+              <option [value]="d.deviceId">{{ d.label || ('Microphone ' + (i + 1)) }}</option>
+            }
           </select>
-          <div class="absolute right-3.5 top-3 text-steel pointer-events-none">
+          <div class="absolute right-3.5 top-1/2 -translate-y-1/2 text-steel pointer-events-none flex items-center justify-center">
             <mat-icon class="!w-5 !h-5 !text-[20px]">expand_more</mat-icon>
           </div>
         </div>
 
         <!-- Input Volume Slider -->
-        <div class="mt-3">
-          <div class="flex justify-between items-center text-caption text-steel font-semibold mb-1">
+        <div class="pt-1">
+          <div class="flex justify-between items-center text-caption text-steel font-semibold mb-1.5">
             <span>ÂM LƯỢNG MICROPHONE</span>
-            <span class="font-mono text-ink font-bold">{{ settingsService.preferences().inputVolume }}%</span>
+            <span class="font-mono text-primary font-bold">{{ settingsService.preferences().inputVolume }}%</span>
           </div>
           <input
             type="range"
@@ -45,38 +51,44 @@
             step="1"
             [ngModel]="settingsService.preferences().inputVolume"
             (ngModelChange)="setInputVolume($event)"
-            class="w-full accent-primary cursor-pointer h-2 bg-surface rounded-lg"
+            class="discord-slider"
           />
         </div>
       </div>
 
       <!-- Output Device (Speaker/Headphone) -->
-      <div>
-        <label class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider mb-2" for="voice-speaker-select">
+      <div class="p-4 rounded-2xl bg-surface border border-hairline space-y-3 shadow-xs">
+        <label class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider" for="voice-speaker-select">
           THIẾT BỊ ĐẦU RA
         </label>
+        
         <div class="relative">
-          <div class="absolute left-3.5 top-3 text-steel pointer-events-none">
+          <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-steel pointer-events-none flex items-center justify-center">
             <mat-icon class="!w-5 !h-5 !text-[20px]">headphones</mat-icon>
           </div>
           <select
             id="voice-speaker-select"
-            class="input-base pl-11 pr-10 appearance-none cursor-pointer"
+            [ngModel]="mediaDevices.selectedAudioOutputId()"
+            (ngModelChange)="onOutputDeviceChange($event)"
+            class="voice-select"
           >
-            <option>Cài đặt mặc định của Windows (Speakers/Headphones...)</option>
-            <option>Realtek High Definition Audio (Speaker)</option>
-            <option>HyperX Cloud II Wireless</option>
+            @if (mediaDevices.audioOutputs().length === 0) {
+              <option value="default">Cài đặt mặc định của hệ thống (Speakers/Headphones)</option>
+            }
+            @for (d of mediaDevices.audioOutputs(); track d.deviceId; let i = $index) {
+              <option [value]="d.deviceId">{{ d.label || ('Speakers / Headphones ' + (i + 1)) }}</option>
+            }
           </select>
-          <div class="absolute right-3.5 top-3 text-steel pointer-events-none">
+          <div class="absolute right-3.5 top-1/2 -translate-y-1/2 text-steel pointer-events-none flex items-center justify-center">
             <mat-icon class="!w-5 !h-5 !text-[20px]">expand_more</mat-icon>
           </div>
         </div>
 
         <!-- Output Volume Slider -->
-        <div class="mt-3">
-          <div class="flex justify-between items-center text-caption text-steel font-semibold mb-1">
+        <div class="pt-1">
+          <div class="flex justify-between items-center text-caption text-steel font-semibold mb-1.5">
             <span>ÂM LƯỢNG LOA NGOÀI</span>
-            <span class="font-mono text-ink font-bold">{{ settingsService.preferences().outputVolume }}%</span>
+            <span class="font-mono text-primary font-bold">{{ settingsService.preferences().outputVolume }}%</span>
           </div>
           <input
             type="range"
@@ -85,7 +97,7 @@
             step="1"
             [ngModel]="settingsService.preferences().outputVolume"
             (ngModelChange)="setOutputVolume($event)"
-            class="w-full accent-primary cursor-pointer h-2 bg-surface rounded-lg"
+            class="discord-slider"
           />
         </div>
       </div>
@@ -93,32 +105,36 @@
   </div>
 
   <!-- Mic Check Visualizer -->
-  <div class="space-y-2 pt-2">
-    <label class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider">
-      KIỂM TRA MIC
-    </label>
-    <p class="text-caption text-steel">
-      Có đang nói chuyện kỳ cục một mình không? Chúng tôi sẽ phát lại giọng nói của bạn để kiểm tra chất lượng micrô.
-    </p>
+  <div class="p-4 rounded-2xl bg-surface border border-hairline space-y-3 shadow-xs">
+    <div class="flex items-center justify-between">
+      <div>
+        <label class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider">
+          KIỂM TRA MIC
+        </label>
+        <p class="text-caption text-steel mt-0.5">
+          Có đang nói chuyện kỳ cục một mình không? Chúng tôi sẽ phát lại giọng nói của bạn để kiểm tra chất lượng micrô.
+        </p>
+      </div>
+    </div>
 
     <div class="flex items-center gap-4 pt-1">
       <button
         type="button"
         (click)="toggleMicTest()"
-        [class]="settingsService.isTestingMic() ? 'btn-danger' : 'btn-primary'"
+        [class]="mediaDevices.isTestingMic() ? 'px-5 py-2.5 rounded-full font-bold bg-danger text-on-danger hover:bg-danger/80 transition-all flex items-center gap-2 cursor-pointer shrink-0' : 'px-5 py-2.5 rounded-full font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all flex items-center gap-2 cursor-pointer shrink-0'"
       >
         <mat-icon class="!w-4 !h-4 !text-[16px]">
-          {{ settingsService.isTestingMic() ? 'stop' : 'graphic_eq' }}
+          {{ mediaDevices.isTestingMic() ? 'stop' : 'graphic_eq' }}
         </mat-icon>
-        <span>{{ settingsService.isTestingMic() ? 'Dừng kiểm tra' : 'Kiểm tra' }}</span>
+        <span>{{ mediaDevices.isTestingMic() ? 'Dừng kiểm tra' : 'Kiểm tra' }}</span>
       </button>
 
       <!-- Segmented Vertical Bars Audio Level Meter -->
-      <div class="flex-1 bg-surface border border-hairline rounded-full h-11 px-4 flex items-center justify-between gap-1 overflow-hidden">
+      <div class="flex-1 bg-canvas border border-hairline rounded-full h-11 px-4 flex items-center justify-between gap-1 overflow-hidden">
         @for (i of barsArray; track i) {
           <div
             class="flex-1 h-5 rounded-full transition-all duration-75"
-            [class.bg-success]="i < activeBars()"
+            [class.bg-primary]="i < activeBars()"
             [class.shadow-xs]="i < activeBars()"
             [class.bg-surface-soft]="i >= activeBars()"
           ></div>
@@ -148,12 +164,15 @@
       >
         <div class="flex items-center justify-between mb-1">
           <span class="text-body-sm-medium font-bold text-ink">Cảm ứng giọng nói</span>
-          <input
-            type="radio"
-            name="input-mode"
-            [checked]="settingsService.preferences().inputMode === 'voice-activity'"
-            class="accent-primary w-4 h-4 cursor-pointer"
-          />
+          <div
+            class="w-4 h-4 rounded-full border flex items-center justify-center"
+            [class.border-primary]="settingsService.preferences().inputMode === 'voice-activity'"
+            [class.border-hairline-strong]="settingsService.preferences().inputMode !== 'voice-activity'"
+          >
+            @if (settingsService.preferences().inputMode === 'voice-activity') {
+              <div class="w-2 h-2 rounded-full bg-primary"></div>
+            }
+          </div>
         </div>
         <p class="text-caption text-steel">Tự động truyền âm khi bạn cất tiếng nói.</p>
       </button>
@@ -169,39 +188,41 @@
       >
         <div class="flex items-center justify-between mb-1">
           <span class="text-body-sm-medium font-bold text-ink">Nhấn để nói (Push to Talk)</span>
-          <input
-            type="radio"
-            name="input-mode"
-            [checked]="settingsService.preferences().inputMode === 'push-to-talk'"
-            class="accent-primary w-4 h-4 cursor-pointer"
-          />
+          <div
+            class="w-4 h-4 rounded-full border flex items-center justify-center"
+            [class.border-primary]="settingsService.preferences().inputMode === 'push-to-talk'"
+            [class.border-hairline-strong]="settingsService.preferences().inputMode !== 'push-to-talk'"
+          >
+            @if (settingsService.preferences().inputMode === 'push-to-talk') {
+              <div class="w-2 h-2 rounded-full bg-primary"></div>
+            }
+          </div>
         </div>
         <p class="text-caption text-steel">Chỉ mở micrô khi bạn nhấn giữ một phím chỉ định.</p>
       </button>
     </div>
 
+    <!-- Push to talk keybinding recorder -->
     @if (settingsService.preferences().inputMode === 'push-to-talk') {
-      <div class="p-4 rounded-xl bg-surface border border-hairline space-y-4 animate-slide-up">
-        <div class="flex items-center justify-between gap-4">
+      <div class="p-4 rounded-xl bg-surface border border-hairline space-y-4 animate-slide-up shadow-xs">
+        <div class="flex items-center justify-between">
           <div>
             <span class="block text-body-sm-medium font-bold text-ink">Phím gán Push-to-Talk</span>
-            <span class="text-caption text-steel">
-              {{ isRecordingPttKey() ? 'Nhấn phím bất kỳ trên bàn phím để gán (hoặc nhấn Esc để hủy)' : 'Nhấn giữ phím này khi muốn nói chuyện trong voice' }}
-            </span>
+            <span class="text-caption text-steel">Nhấn giữ phím này khi muốn nói chuyện trong voice</span>
           </div>
+
           <button
             type="button"
             (click)="startPttKeyRecording()"
-            class="px-4 py-2 rounded-full font-mono text-body-sm font-bold border transition-all flex items-center gap-2 cursor-pointer shadow-xs"
-            [class.bg-danger/20]="isRecordingPttKey()"
+            class="px-4 py-2 rounded-xl text-button font-mono font-bold border transition-all flex items-center gap-2 cursor-pointer"
+            [class.bg-danger-surface]="isRecordingPttKey()"
             [class.border-danger]="isRecordingPttKey()"
             [class.text-danger]="isRecordingPttKey()"
             [class.animate-pulse]="isRecordingPttKey()"
-            [class.bg-surface-feature]="!isRecordingPttKey()"
+            [class.bg-canvas]="!isRecordingPttKey()"
             [class.border-hairline-strong]="!isRecordingPttKey()"
             [class.text-primary]="!isRecordingPttKey()"
             [class.hover:border-primary]="!isRecordingPttKey()"
-            [class.hover:scale-105]="!isRecordingPttKey()"
           >
             @if (isRecordingPttKey()) {
               <mat-icon class="!w-4 !h-4 !text-[16px] text-danger">fiber_manual_record</mat-icon>
@@ -225,99 +246,7 @@
             step="20"
             [ngModel]="settingsService.preferences().pushToTalkDelay"
             (ngModelChange)="setPushToTalkDelay($event)"
-            class="w-full accent-primary cursor-pointer h-2 bg-canvas rounded-lg"
-          />
-        </div>
-      </div>
-    }
-  </div>
-
-  <!-- Voice Processing Mode Radio Group -->
-  <div class="space-y-4">
-    <label class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider">
-      CHẾ ĐỘ XỬ LÝ GIỌNG NÓI
-    </label>
-
-    <div class="space-y-3">
-      <!-- Option 1: Voice Isolation -->
-      <label class="flex items-center justify-between p-4 rounded-xl border border-hairline bg-surface hover:bg-surface-feature transition-colors cursor-pointer">
-        <div>
-          <span class="block text-body-sm-medium font-bold text-ink">Tách giọng nói</span>
-          <span class="block text-caption text-steel">Loại bỏ tiếng ồn bàn phím, tiếng quạt và tạp âm xung quanh tự động.</span>
-        </div>
-        <input
-          type="radio"
-          name="voice-proc"
-          [checked]="settingsService.preferences().voiceProcessingMode === 'voice-isolation'"
-          (change)="setVoiceProcessingMode('voice-isolation')"
-          class="accent-primary w-4 h-4 cursor-pointer"
-        />
-      </label>
-
-      <!-- Option 2: Studio Mode -->
-      <label class="flex items-center justify-between p-4 rounded-xl border border-hairline bg-surface hover:bg-surface-feature transition-colors cursor-pointer">
-        <div>
-          <span class="block text-body-sm-medium font-bold text-ink">Studio</span>
-          <span class="block text-caption text-steel">Âm thanh chất lượng cao nguyên bản (không nén hay lọc, thích hợp cho ca hát, podcast).</span>
-        </div>
-        <input
-          type="radio"
-          name="voice-proc"
-          [checked]="settingsService.preferences().voiceProcessingMode === 'studio'"
-          (change)="setVoiceProcessingMode('studio')"
-          class="accent-primary w-4 h-4 cursor-pointer"
-        />
-      </label>
-
-      <!-- Option 3: Custom Mode -->
-      <label class="flex items-center justify-between p-4 rounded-xl border border-hairline bg-surface hover:bg-surface-feature transition-colors cursor-pointer">
-        <div>
-          <span class="block text-body-sm-medium font-bold text-ink">Tùy biến</span>
-          <span class="block text-caption text-steel">Tự điều chỉnh các tính năng khử ồn, triệt tiêu tiếng vang và tự động khuếch đại.</span>
-        </div>
-        <input
-          type="radio"
-          name="voice-proc"
-          [checked]="settingsService.preferences().voiceProcessingMode === 'custom'"
-          (change)="setVoiceProcessingMode('custom')"
-          class="accent-primary w-4 h-4 cursor-pointer"
-        />
-      </label>
-    </div>
-
-    <!-- Custom Advanced Voice Toggles -->
-    @if (settingsService.preferences().voiceProcessingMode === 'custom') {
-      <div class="mt-4 p-4 rounded-xl bg-surface-soft border border-hairline space-y-3 animate-slide-up">
-        <div class="flex items-center justify-between py-2 border-b border-hairline">
-          <div>
-            <span class="block text-body-sm-medium font-semibold text-ink">Khử tiếng ồn Nexus AI</span>
-            <span class="text-caption text-steel">Lọc sạch tạp âm môi trường bằng thuật toán học máy.</span>
-          </div>
-          <mat-slide-toggle
-            [checked]="settingsService.preferences().noiseSuppression"
-            (change)="settingsService.updatePreference('noiseSuppression', $event.checked)"
-          />
-        </div>
-
-        <div class="flex items-center justify-between py-2 border-b border-hairline">
-          <div>
-            <span class="block text-body-sm-medium font-semibold text-ink">Triệt tiêu tiếng vang (Echo Cancellation)</span>
-            <span class="text-caption text-steel">Ngăn tiếng dội lại từ loa vào micro khi đàm thoại.</span>
-          </div>
-          <mat-slide-toggle
-            [checked]="settingsService.preferences().echoCancellation"
-            (change)="settingsService.updatePreference('echoCancellation', $event.checked)"
-          />
-        </div>
-
-        <div class="flex items-center justify-between py-2">
-          <div>
-            <span class="block text-body-sm-medium font-semibold text-ink">Tự động điều chỉnh âm lượng (Auto Gain Control)</span>
-            <span class="text-caption text-steel">Cân bằng âm lượng người nói to và người nói nhỏ cho đều nhau.</span>
-          </div>
-          <mat-slide-toggle
-            [checked]="settingsService.preferences().autoGainControl"
-            (change)="settingsService.updatePreference('autoGainControl', $event.checked)"
+            class="discord-slider"
           />
         </div>
       </div>
@@ -339,42 +268,47 @@
       <button
         type="button"
         (click)="toggleVideoTest()"
-        [class]="settingsService.isTestingVideo() ? 'btn-danger' : 'btn-primary'"
+        [class]="isTestingVideo() ? 'px-4 py-2 rounded-full font-bold bg-danger text-on-danger hover:bg-danger/80 transition-all flex items-center gap-2 cursor-pointer' : 'px-4 py-2 rounded-full font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all flex items-center gap-2 cursor-pointer'"
       >
         <mat-icon class="!w-4 !h-4 !text-[16px]">
-          {{ settingsService.isTestingVideo() ? 'videocam_off' : 'videocam' }}
+          {{ isTestingVideo() ? 'videocam_off' : 'videocam' }}
         </mat-icon>
-        <span>{{ settingsService.isTestingVideo() ? 'Tắt xem trước' : 'Kiểm tra Video' }}</span>
+        <span>{{ isTestingVideo() ? 'Tắt xem trước' : 'Kiểm tra Video' }}</span>
       </button>
     </div>
 
     <!-- Camera Dropdown -->
     <div class="relative">
-      <div class="absolute left-3.5 top-3 text-steel pointer-events-none">
+      <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-steel pointer-events-none flex items-center justify-center">
         <mat-icon class="!w-5 !h-5 !text-[20px]">videocam</mat-icon>
       </div>
       <select
-        class="input-base pl-11 pr-10 appearance-none cursor-pointer"
+        [ngModel]="mediaDevices.selectedVideoInputId()"
+        (ngModelChange)="onVideoDeviceChange($event)"
+        class="voice-select"
       >
-        @for (c of cameras; track c.id) {
-          <option [value]="c.id">{{ c.name }}</option>
+        @if (mediaDevices.videoInputs().length === 0) {
+          <option value="default">Cài đặt mặc định của hệ thống (Camera)</option>
+        }
+        @for (c of mediaDevices.videoInputs(); track c.deviceId; let i = $index) {
+          <option [value]="c.deviceId">{{ c.label || ('Camera ' + (i + 1)) }}</option>
         }
       </select>
-      <div class="absolute right-3.5 top-3 text-steel pointer-events-none">
+      <div class="absolute right-3.5 top-1/2 -translate-y-1/2 text-steel pointer-events-none flex items-center justify-center">
         <mat-icon class="!w-5 !h-5 !text-[20px]">expand_more</mat-icon>
       </div>
     </div>
 
     <!-- Video Preview Box -->
-    @if (settingsService.isTestingVideo()) {
-      <div class="rounded-2xl overflow-hidden bg-canvas-dark border border-hairline relative aspect-video max-h-[300px] flex items-center justify-center animate-slide-up shadow-card">
-        <div class="text-center space-y-2 p-6">
-          <div class="w-16 h-16 rounded-full bg-primary/20 border border-primary text-primary flex items-center justify-center mx-auto animate-pulse">
-            <mat-icon class="!w-8 !h-8 !text-[32px]">videocam</mat-icon>
-          </div>
-          <span class="block text-body-md font-bold text-on-dark">Camera đang phát trực tiếp xem trước</span>
-          <span class="block text-caption text-on-dark-muted">Hiệu ứng nền: {{ settingsService.preferences().videoBackgroundEffect }}</span>
-        </div>
+    @if (isTestingVideo()) {
+      <div class="rounded-2xl overflow-hidden bg-black border border-hairline relative aspect-video max-h-[300px] flex items-center justify-center animate-slide-up shadow-card">
+        <video
+          id="settings-video-preview"
+          autoplay
+          playsinline
+          muted
+          class="w-full h-full object-cover"
+        ></video>
       </div>
     }
 
@@ -416,7 +350,7 @@
     <div>
       <div class="flex justify-between items-center text-caption text-steel font-semibold mb-1">
         <span>TỈ LỆ SUY GIẢM ÂM LƯỢNG</span>
-        <span class="font-mono text-ink font-bold">{{ settingsService.preferences().attenuationPercent }}%</span>
+        <span class="font-mono text-primary font-bold">{{ settingsService.preferences().attenuationPercent }}%</span>
       </div>
       <input
         type="range"
@@ -425,7 +359,7 @@
         step="5"
         [ngModel]="settingsService.preferences().attenuationPercent"
         (ngModelChange)="setAttenuationPercent($event)"
-        class="w-full accent-primary cursor-pointer h-2 bg-surface rounded-lg"
+        class="discord-slider"
       />
     </div>
 
