@@ -41,7 +41,7 @@
         <div class="flex flex-wrap items-center gap-3 pt-1">
           <label
             for="srv-icon-file-input"
-            class="btn-primary !py-2 !px-4 !rounded-xl !text-caption font-bold cursor-pointer shadow-glow flex items-center gap-2"
+            class="py-2 px-4 rounded-xl bg-primary text-on-primary font-bold text-caption cursor-pointer shadow-glow hover:opacity-90 active:scale-98 transition-all inline-flex items-center gap-2"
           >
             <mat-icon class="!w-4 !h-4 !text-[16px]">photo_camera</mat-icon>
             <span>Thay Đổi Biểu Tượng Máy Chủ</span>
@@ -59,7 +59,7 @@
             <button
               type="button"
               (click)="removeServerIcon()"
-              class="px-3 py-2 rounded-xl text-caption font-bold text-danger hover:bg-danger-surface border border-danger/30 transition-colors cursor-pointer"
+              class="px-3.5 py-2 rounded-xl text-caption font-bold text-danger hover:bg-danger-surface border border-danger/30 transition-colors cursor-pointer"
             >
               Gỡ ảnh hiện tại
             </button>
@@ -181,16 +181,17 @@
       </div>
 
       <!-- Save Button -->
-      <div class="flex items-center gap-3 pt-2">
+      <div class="flex items-center gap-3 pt-3">
         <button
           type="button"
           (click)="saveServerOverview()"
-          class="btn-primary !py-2.5 !px-6 !rounded-xl font-bold shadow-glow cursor-pointer"
+          class="py-2.5 px-6 rounded-xl bg-primary text-on-primary font-bold text-caption shadow-glow hover:opacity-90 active:scale-98 transition-all flex items-center gap-2 cursor-pointer"
         >
-          Lưu Thay Đổi
+          <mat-icon class="!w-4 !h-4 !text-[16px]">save</mat-icon>
+          <span>Lưu Thay Đổi</span>
         </button>
         @if (savedNotice()) {
-          <span class="text-caption font-semibold text-success flex items-center gap-1 animate-fade-in">
+          <span class="text-caption font-bold text-success flex items-center gap-1.5 animate-fade-in bg-success/10 px-3 py-1.5 rounded-full">
             <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
             Đã lưu hồ sơ máy chủ thành công!
           </span>

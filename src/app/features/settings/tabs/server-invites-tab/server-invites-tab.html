@@ -34,9 +34,10 @@
       <button
         type="button"
         (click)="showCreateModal.set(true)"
-        class="btn-primary !py-2 !px-4 !rounded-xl text-caption font-bold shadow-glow cursor-pointer"
+        class="py-2 px-4 rounded-xl bg-primary text-on-primary text-caption font-bold shadow-glow hover:opacity-90 active:scale-98 transition-all flex items-center gap-1.5 cursor-pointer"
       >
-        Tạo liên kết mới
+        <mat-icon class="!w-4 !h-4 !text-[16px]">add_link</mat-icon>
+        <span>Tạo liên kết mới</span>
       </button>
     </div>
   </div>

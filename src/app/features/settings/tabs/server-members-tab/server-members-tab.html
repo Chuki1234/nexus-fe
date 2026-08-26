@@ -43,7 +43,7 @@
     <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
       <!-- Search Input -->
       <div class="relative flex-1 w-full">
-        <mat-icon class="absolute left-3.5 top-2.5 text-steel !w-4 !h-4 !text-[18px] pointer-events-none">
+        <mat-icon class="absolute left-3.5 top-1/2 -translate-y-1/2 text-steel !w-4.5 !h-4.5 !text-[18px] pointer-events-none">
           search
         </mat-icon>
         <input
@@ -51,13 +51,13 @@
           [value]="memberSearchQuery()"
           (input)="memberSearchQuery.set($any($event.target).value)"
           placeholder="Tìm kiếm thành viên theo tên hoặc @username..."
-          class="input-base !rounded-xl !pl-10 !py-2 !bg-surface text-caption text-ink"
+          class="w-full bg-surface border border-hairline rounded-xl pl-10 pr-9 py-2 text-caption text-ink font-medium focus:outline-none focus:border-primary transition-colors shadow-2xs"
         />
         @if (memberSearchQuery()) {
           <button
             type="button"
             (click)="memberSearchQuery.set('')"
-            class="absolute right-3 top-2.5 text-steel hover:text-ink cursor-pointer"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-steel hover:text-ink cursor-pointer p-0.5 rounded-full hover:bg-surface-feature"
           >
             <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
           </button>
@@ -65,15 +65,15 @@
       </div>
 
       <!-- Role Filter Dropdown -->
-      <div class="flex items-center gap-2 w-full sm:w-auto">
-        <label for="filter-role-select" class="text-caption text-steel font-medium whitespace-nowrap">
+      <div class="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+        <label for="filter-role-select" class="text-caption text-steel font-bold whitespace-nowrap">
           Lọc vai trò:
         </label>
         <select
           id="filter-role-select"
           [value]="selectedRoleFilter()"
           (change)="selectedRoleFilter.set($any($event.target).value)"
-          class="input-base !rounded-xl !py-2 !px-3 !bg-surface cursor-pointer text-caption font-bold text-ink"
+          class="bg-surface border border-hairline rounded-xl py-2 px-3.5 cursor-pointer text-caption font-bold text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
         >
           <option value="all">Tất cả vai trò</option>
           @for (r of settingsService.serverRoles(); track r.id) {
