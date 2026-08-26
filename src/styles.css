@@ -243,7 +243,10 @@
    palette mà không cần mỗi component tự biết mã màu cụ thể.
    ========================================================================== */
 
-html[data-theme='light'] {
+html[data-theme='light'],
+html[data-theme='warm-light'],
+[data-theme='warm-light'],
+[data-theme='light'] {
   color-scheme: light;
 
   --color-primary: #006241;
