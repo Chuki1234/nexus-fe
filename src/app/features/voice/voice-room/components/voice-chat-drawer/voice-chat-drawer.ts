@@ -40,6 +40,10 @@ import {
   type MessageContentToken,
 } from '../../../../dashboard/conversation/utils/message-content-parser';
 import { formatMessageTimestamp } from '../../../../../core/utils/date-format.util';
+import { InlineMessageEditor } from '../../../../dashboard/components/inline-message-editor/inline-message-editor';
+import { MessageClockService } from '../../../../../core/utils/message-clock.service';
+import { canEditMessage } from '../../../../../../shared/dto/messages.dto';
+import { extractErrorMessage } from '../../../../../core/utils/error.util';
 
 @Component({
   selector: 'app-voice-chat-drawer',
@@ -54,8 +58,9 @@ import { formatMessageTimestamp } from '../../../../../core/utils/date-format.ut
     MessageComposer,
     ForwardMessageModal,
     GiphyMessageEmbedComponent,
+    InlineMessageEditor,
   ],
-  providers: [ChannelChatStore],
+  providers: [ChannelChatStore, MessageClockService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './voice-chat-drawer.html',
   styleUrl: './voice-chat-drawer.css',
@@ -66,6 +71,7 @@ import { formatMessageTimestamp } from '../../../../../core/utils/date-format.ut
 export class VoiceChatDrawer implements OnInit {
   readonly channelChat = inject(ChannelChatStore);
   readonly auth = inject(AuthService);
+  readonly messageClock = inject(MessageClockService);
   private readonly injector = inject(Injector);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
@@ -76,6 +82,10 @@ export class VoiceChatDrawer implements OnInit {
 
   readonly composerContext = signal<MessageComposerContext | null>(null);
   readonly forwardModalMessage = signal<ChannelChatUiMessage | null>(null);
+
+  readonly editingMessageId = signal<string | null>(null);
+  readonly editingSaving = signal<boolean>(false);
+  readonly editingError = signal<string | null>(null);
 
   private readonly processedMessageIds = new Set<string>();
 
@@ -231,7 +241,46 @@ export class VoiceChatDrawer implements OnInit {
     this.scrollController.scrollToBottom('smooth');
   }
 
+  protected isMine(msg: ChannelChatUiMessage): boolean {
+    const uid = this.auth.user()?.id;
+    return Boolean(uid && msg.authorId === uid);
+  }
+
+  protected canEdit(msg: ChannelChatUiMessage): boolean {
+    return canEditMessage(msg, this.auth.user()?.id, this.messageClock.now());
+  }
+
+  protected startEdit(msg: ChannelChatUiMessage): void {
+    this.editingMessageId.set(msg.id);
+    this.editingError.set(null);
+  }
+
+  protected cancelInlineEdit(): void {
+    this.editingMessageId.set(null);
+    this.editingError.set(null);
+  }
+
+  protected async saveInlineEdit(messageId: string, newContent: string): Promise<void> {
+    try {
+      this.editingSaving.set(true);
+      this.editingError.set(null);
+      await this.channelChat.editMessage(messageId, newContent);
+      this.editingMessageId.set(null);
+    } catch (err: unknown) {
+      this.editingError.set(extractErrorMessage(err, 'Lỗi khi chỉnh sửa tin nhắn.'));
+    } finally {
+      this.editingSaving.set(false);
+    }
+  }
+
   protected onAction(event: MessageComposerContext): void {
+    if (event.kind === 'edit' && event.messageId) {
+      const msg = this.channelChat.allMessages().find((m) => m.id === event.messageId);
+      if (msg) {
+        this.startEdit(msg);
+      }
+      return;
+    }
     if (event.kind === 'forward' && event.messageId) {
       const msg = this.channelChat.allMessages().find((m) => m.id === event.messageId);
       if (msg) {

@@ -11,3 +11,9 @@
 .invitation-card:hover {
   transform: translateY(-1px);
 }
+
+@media (max-width: 767.98px) {
+  .server-invitations-view > header {
+    padding-left: 3.75rem !important;
+  }
+}

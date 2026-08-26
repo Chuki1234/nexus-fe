@@ -545,14 +545,16 @@ describe('ActiveChatStore', () => {
   });
 
   describe('Optimistic Rollback & Helpers (Hardening Tests)', () => {
-    it('editMessage thất bại: rollback lại nội dung và editedAt snapshot ban đầu', async () => {
+    it('editMessage thất bại: rollback lại nội dung và editedAt snapshot ban đầu và re-throw error', async () => {
       await store.setActiveConversation('conv-1');
 
       messagesApiMock.editMessage.mockRejectedValue(
         new Error('Lỗi server khi sửa'),
       );
 
-      await store.editMessage('100', 'Nội dung sửa thất bại');
+      await expect(
+        store.editMessage('100', 'Nội dung sửa thất bại'),
+      ).rejects.toThrow('Lỗi server khi sửa');
 
       const target = store.messages().find((m) => m.id === '100');
       expect(target?.content).toBe('Hello 100');

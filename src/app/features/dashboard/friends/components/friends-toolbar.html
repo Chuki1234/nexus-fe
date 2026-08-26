@@ -1,13 +1,17 @@
-<mat-toolbar class="friends-toolbar !h-auto !min-h-14 !flex-wrap !gap-3 !px-3 !py-2 sm:!px-4">
+<mat-toolbar class="friends-toolbar flex h-14 min-h-14 items-center gap-2 !px-3 sm:!px-4">
+  <!-- Nhóm tiêu đề "Bạn bè" -->
   <span class="friends-toolbar__title flex items-center gap-2.5 shrink-0">
     <span class="friends-toolbar__badge" aria-hidden="true">
       <mat-icon>group</mat-icon>
     </span>
-    <h1 class="text-body-md-medium text-ink">Bạn bè</h1>
+    <h1 class="text-body-md-medium font-semibold text-ink whitespace-nowrap">Bạn bè</h1>
   </span>
 
+  <span aria-hidden="true" class="hidden sm:block mx-1 h-5 w-px shrink-0 bg-hairline"></span>
+
+  <!-- Bộ lọc Tabs cuộn ngang mượt mà trong dòng, không bao giờ nhảy hàng -->
   <div
-    class="friends-segmented order-3 flex w-full flex-wrap gap-1 rounded-full bg-surface-soft p-1 lg:order-none lg:w-auto"
+    class="friends-segmented flex items-center gap-1 rounded-full bg-surface-soft p-1 overflow-x-auto min-w-0 flex-1"
     role="group"
     aria-label="Chọn chế độ bạn bè"
   >
@@ -16,7 +20,7 @@
         type="button"
         (click)="tab.set(option.id)"
         [attr.aria-pressed]="tab() === option.id"
-        class="nexus-filter-tab min-h-9 rounded-full border px-3 text-body-sm-medium flex items-center gap-1.5 cursor-pointer"
+        class="nexus-filter-tab min-h-8 shrink-0 rounded-full border px-3 text-body-sm-medium flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
       >
         <span>{{ option.label }}</span>
         @if (option.id === 'pending' && pendingCount() > 0) {
@@ -28,9 +32,8 @@
     }
   </div>
 
-  <span class="flex-1"></span>
-
-  <span class="friends-toolbar__actions flex items-center gap-1 rounded-full bg-surface-soft p-1 shrink-0">
+  <!-- Nút chức năng luôn được ghim cố định ở góc phải -->
+  <span class="friends-toolbar__actions flex items-center gap-1 rounded-full bg-surface-soft p-1 shrink-0 ml-auto">
     @if (showActivityToggle()) {
       <button
         mat-icon-button

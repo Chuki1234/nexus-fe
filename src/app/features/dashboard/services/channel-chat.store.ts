@@ -498,11 +498,50 @@ export class ChannelChatStore implements OnDestroy {
   }
 
   /**
-   * Chỉnh sửa tin nhắn.
+   * Chỉnh sửa tin nhắn với Optimistic Update và Snapshot Rollback khi lỗi
    */
-  async editMessage(messageId: string, content: string): Promise<void> {
-    const updated = await this.messagesApi.editMessage(messageId, { content });
-    this.upsertPersistedMessage(updated);
+  async editMessage(messageId: string, content: string): Promise<MessageResponseDto> {
+    const chanId = this._channelId();
+    const generation = this.currentGeneration;
+
+    const prevSnapshot = this._messages().find((m) => m.id === messageId);
+    if (!prevSnapshot) {
+      throw new Error('Không tìm thấy tin nhắn cần chỉnh sửa.');
+    }
+
+    // Optimistic update
+    this._messages.update((list) =>
+      list.map((m) =>
+        m.id === messageId
+          ? { ...m, content, editedAt: new Date().toISOString() }
+          : m,
+      ),
+    );
+
+    try {
+      const updated = await this.messagesApi.editMessage(messageId, { content });
+
+      if (
+        this._channelId() === chanId &&
+        this.currentGeneration === generation
+      ) {
+        this.upsertPersistedMessage(updated);
+      }
+      return updated;
+    } catch (err: unknown) {
+      if (
+        this._channelId() === chanId &&
+        this.currentGeneration === generation
+      ) {
+        // Rollback lại nội dung ban đầu
+        this._messages.update((list) =>
+          list.map((m) => (m.id === messageId ? prevSnapshot : m)),
+        );
+        const errorMsg = extractErrorMessage(err, 'Chỉnh sửa tin nhắn thất bại.');
+        this._error.set(errorMsg);
+      }
+      throw err;
+    }
   }
 
   /**

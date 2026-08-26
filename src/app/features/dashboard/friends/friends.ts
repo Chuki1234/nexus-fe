@@ -6,6 +6,7 @@ import {
   inject,
   OnInit,
   signal,
+  untracked,
 } from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -32,6 +33,11 @@ import {
   type FriendListPerson,
   type FriendRequestPerson,
 } from './services/friends-store';
+
+import {
+  DashboardLayoutService,
+  MOBILE_BREAKPOINT_QUERY,
+} from '../../../layouts/app-layout/services/dashboard-layout.service';
 
 type FriendsContextView = 'activity';
 
@@ -75,10 +81,15 @@ export class FriendsPage implements OnInit {
     { initialValue: typeof window !== 'undefined' ? window.innerWidth >= 1280 : true },
   );
 
+  protected readonly isMobile = toSignal(
+    this.breakpoints.observe(MOBILE_BREAKPOINT_QUERY).pipe(map((state) => state.matches)),
+    { initialValue: typeof window !== 'undefined' ? window.innerWidth < 768 : false },
+  );
+
   protected readonly tab = signal<FriendsTab>('all');
   protected readonly query = signal('');
   protected readonly theme = this.themeService.mode;
-  protected readonly contextView = signal<FriendsContextView | null>('activity');
+  protected readonly contextView = signal<FriendsContextView | null>(null);
   protected readonly blockingState = this.uiState.blockingState;
   protected readonly connectionState = this.uiState.connectionState;
   protected readonly friendsLoading = this.friendsStore.loading;
@@ -142,9 +153,7 @@ export class FriendsPage implements OnInit {
   protected readonly contextOpen = computed(() => this.contextView() !== null);
   protected readonly activityExpanded = computed(() => this.contextView() === 'activity');
 
-  protected unblockUser(id: string): void {
-    this.userSettings.unblockUser(id);
-  }
+  private previousIsMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
 
   constructor() {
     effect(() => {
@@ -152,6 +161,21 @@ export class FriendsPage implements OnInit {
       this.tab();
       this.friendsStore.clearFeedback();
     });
+
+    effect(() => {
+      const mobile = this.isMobile();
+      // Chỉ tự động đóng khi vừa chuyển từ desktop sang mobile (khi resize co nhỏ)
+      if (mobile && !this.previousIsMobile) {
+        untracked(() => {
+          this.contextView.set(null);
+        });
+      }
+      this.previousIsMobile = mobile;
+    });
+  }
+
+  protected unblockUser(id: string): void {
+    this.userSettings.unblockUser(id);
   }
 
   ngOnInit(): void {
