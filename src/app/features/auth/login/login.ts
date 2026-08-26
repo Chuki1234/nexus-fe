@@ -46,9 +46,12 @@ export class LoginPage implements OnInit {
   protected readonly fastSubmitting = signal(false);
   protected readonly fastErrorMessage = signal<string | null>(null);
 
-  // Modal thông báo tài khoản bị vô hiệu hóa khi cố đăng nhập bằng Google
+  // Modal thông báo tài khoản bị vô hiệu hóa khi chọn Google
   protected readonly showDisabledModal = signal(false);
   protected readonly disabledInfo = signal<AccountDisabledInfo | null>(null);
+  protected readonly modal2faCode = signal('');
+  protected readonly modal2faSubmitting = signal(false);
+  protected readonly modal2faError = signal<string | null>(null);
 
   ngOnInit(): void {
     const isBlockedGoogle = this.route.snapshot.queryParamMap.get('blockedGoogle') === 'true';
@@ -60,6 +63,8 @@ export class LoginPage implements OnInit {
       }
       const disabledAcc = this.accountDisabled.getDisabledAccount(emailParam || undefined) || this.accountDisabled.currentDisabled();
       this.disabledInfo.set(disabledAcc);
+      this.modal2faCode.set('');
+      this.modal2faError.set(null);
       this.showDisabledModal.set(true);
     }
   }
@@ -90,6 +95,10 @@ export class LoginPage implements OnInit {
 
   protected onFastCodeInput(event: Event): void {
     this.fastCode.set((event.target as HTMLInputElement).value.replace(/[^0-9a-zA-Z]/g, ''));
+  }
+
+  protected onModal2faInput(event: Event): void {
+    this.modal2faCode.set((event.target as HTMLInputElement).value.replace(/[^0-9a-zA-Z]/g, ''));
   }
 
   protected async onSubmitFastLogin(): Promise<void> {
@@ -134,6 +143,47 @@ export class LoginPage implements OnInit {
     }
   }
 
+  /**
+   * Mở khóa tài khoản bị vô hiệu hóa thông qua mã 2FA Google Authenticator
+   */
+  protected async onSubmitModal2fa(): Promise<void> {
+    const email = this.disabledInfo()?.email || this.form.controls.identifier.value.trim();
+    const code = this.modal2faCode().trim();
+
+    if (!code) {
+      this.modal2faError.set('Vui lòng nhập mã xác thực Google Authenticator (hoặc mã dự phòng).');
+      return;
+    }
+
+    this.modal2faSubmitting.set(true);
+    this.modal2faError.set(null);
+    try {
+      await this.auth.fastLoginTotp(email, code);
+      // Mở khóa thành công
+      this.accountDisabled.reactivateAccount();
+
+      const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
+      const returnUrl = getAndClearReturnUrl(rawParam);
+      this.showDisabledModal.set(false);
+      await this.router.navigateByUrl(returnUrl);
+    } catch (error: unknown) {
+      let msg = 'Mã xác thực Google Authenticator không đúng hoặc đã hết hạn.';
+      if (error instanceof HttpErrorResponse) {
+        if (typeof error.error?.message === 'string') {
+          msg = error.error.message;
+        } else if (Array.isArray(error.error?.message)) {
+          msg = error.error.message.join('. ');
+        }
+      } else {
+        msg = toAuthErrorMessage(error);
+      }
+      this.modal2faError.set(msg);
+      this.modal2faCode.set('');
+    } finally {
+      this.modal2faSubmitting.set(false);
+    }
+  }
+
   /** Chuyển hướng sang Google; quay lại /auth/callback kèm returnUrl. */
   protected async onGoogle(): Promise<void> {
     this.errorMessage.set(null);
@@ -149,16 +199,6 @@ export class LoginPage implements OnInit {
     }
   }
 
-  /** Chuyển từ Modal chặn Google sang nhập 2FA mở khóa */
-  protected proceedTo2faFromModal(): void {
-    this.showDisabledModal.set(false);
-    const email = this.disabledInfo()?.email || this.form.controls.identifier.value.trim();
-    if (email) {
-      this.fastIdentifier.set(email);
-    }
-    this.openFastLogin();
-  }
-
   /** Mở khóa trực tiếp nếu tài khoản không bật 2FA */
   protected unlockAccountDirectly(): void {
     this.accountDisabled.reactivateAccount();
@@ -169,6 +209,8 @@ export class LoginPage implements OnInit {
 
   protected closeDisabledModal(): void {
     this.showDisabledModal.set(false);
+    this.modal2faCode.set('');
+    this.modal2faError.set(null);
   }
 
   /** Errors stay hidden until the field is left or the form is submitted. */

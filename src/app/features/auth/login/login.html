@@ -308,11 +308,11 @@
 
       <div class="p-4 rounded-xl bg-canvas border border-hairline text-body-sm text-slate leading-relaxed space-y-2">
         <p>
-          Tài khoản <strong class="text-ink font-semibold">{{ disabledInfo()?.email || form.controls.identifier.value }}</strong> hiện đang trong trạng thái tạm ngưng sử dụng.
+          Tài khoản Google <strong class="text-ink font-semibold">{{ disabledInfo()?.email || form.controls.identifier.value }}</strong> hiện đang trong trạng thái tạm vô hiệu hóa.
         </p>
         @if (disabledInfo()?.has2fa) {
           <p class="text-amber-400 text-caption font-medium">
-            🛡️ Tài khoản này đã kích hoạt xác thực 2 lớp (2FA). Để mở khóa và vào lại hệ thống, bạn cần nhập mã xác thực 2FA.
+            🛡️ Tài khoản của bạn đã cài đặt bảo mật 2 lớp (2FA). Để mở khóa vô hiệu hóa và vào lại hệ thống, vui lòng nhập mã xác thực từ <strong>Google Authenticator</strong> (hoặc mã dự phòng).
           </p>
         } @else {
           <p class="text-caption text-steel">
@@ -320,6 +320,33 @@
           </p>
         }
       </div>
+
+      <!-- Khung nhập mã 2FA Google Authenticator trực tiếp trong Popup -->
+      @if (disabledInfo()?.has2fa) {
+        <div class="space-y-3 pt-1">
+          @if (modal2faError(); as err) {
+            <p class="rounded-md bg-danger-surface px-3 py-2 text-body-sm text-danger">{{ err }}</p>
+          }
+
+          <div>
+            <label class="block text-caption text-steel mb-1" for="modal-2fa-code">
+              Mã xác thực Google Authenticator (6 số) hoặc Mã dự phòng:
+            </label>
+            <input
+              id="modal-2fa-code"
+              type="text"
+              inputmode="text"
+              autocomplete="one-time-code"
+              [value]="modal2faCode()"
+              (input)="onModal2faInput($event)"
+              (keydown.enter)="onSubmitModal2fa()"
+              placeholder="VD: 123456 hoặc A1B2C3D4"
+              class="w-full rounded-lg border border-hairline-strong bg-canvas px-3 py-2.5 text-center font-mono text-body-md tracking-widest text-ink placeholder:text-steel focus:border-primary focus:outline-none"
+              autofocus
+            />
+          </div>
+        </div>
+      }
 
       <div class="flex items-center justify-end gap-3 pt-2">
         <button
@@ -333,10 +360,11 @@
         @if (disabledInfo()?.has2fa) {
           <button
             type="button"
-            (click)="proceedTo2faFromModal()"
-            class="px-5 py-2.5 rounded-full text-button-md font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer"
+            (click)="onSubmitModal2fa()"
+            [disabled]="modal2faSubmitting() || !modal2faCode()"
+            class="px-5 py-2.5 rounded-full text-button-md font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Xác thực 2FA để mở khóa
+            {{ modal2faSubmitting() ? 'Đang mở khóa…' : 'Mở khóa bằng Google Authenticator' }}
           </button>
         } @else {
           <button
