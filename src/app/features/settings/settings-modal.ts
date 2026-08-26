@@ -153,18 +153,10 @@ export class SettingsModal {
             { label: 'Trạng thái tài khoản', actionId: 'account-status-heading' },
           ],
         },
-        // "Quyền Hạn Tin Nhắn" từng là mục riêng ở đây nhưng render đúng cùng
-        // một `<app-privacy-tab />` — bấm mục nào cũng ra một trang y hệt, chỉ
-        // khác dòng breadcrumb. Gộp về một mục, phần tin nhắn thành mục con trỏ
-        // thẳng tới đúng khối của nó trong trang.
         {
           id: 'privacy',
           label: 'Dữ Liệu & Bảo Mật',
           icon: 'shield',
-          subItems: [
-            { label: 'Cách Nexus Sử Dụng Dữ Liệu Của Tôi', actionId: 'privacy-data-heading' },
-            { label: 'Quyền Riêng Tư Hồ Sơ & An Toàn Tin Nhắn', actionId: 'privacy-safety-heading' },
-          ],
         },
         { id: 'connections', label: 'Ứng Dụng Đã Kết Nối', icon: 'link' },
         { id: 'notifications', label: 'Các Thông Báo', icon: 'notifications' },
