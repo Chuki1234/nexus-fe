@@ -11,8 +11,11 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
+import { ServersStore } from '../../core/servers/servers.store';
+import { DeleteServerDialog } from '../../layouts/app-layout/components/channel-sidebar/components/delete-server-dialog/delete-server-dialog';
 import { ConnectedAppsService } from '../profile/connected-apps.service';
 import { CUSTOM_LINK_COLOR, tint } from '../profile/connected-apps';
 import { LINK_LABEL_MAX } from '../../../shared';
@@ -184,7 +187,6 @@ export class SettingsModal {
       title: 'QUẢN TRỊ & BẢO MẬT',
       items: [
         { id: 'server-safety', label: 'Bảo Mật & Phê Duyệt', icon: 'gavel' },
-        { id: 'server-audit-log', label: 'Nhật Ký Kiểm Toán', icon: 'receipt_long' },
       ],
     },
   ];
@@ -231,6 +233,9 @@ export class SettingsModal {
     }
     return tab;
   });
+
+  private readonly dialog = inject(MatDialog);
+  private readonly serversStore = inject(ServersStore);
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -310,6 +315,29 @@ export class SettingsModal {
     if (event.target === event.currentTarget) {
       this.close();
     }
+  }
+
+  protected handleDeleteServer(): void {
+    const sId = this.settingsService.currentServerId();
+    const sData = this.settingsService.currentServerData();
+    const serverName = sData.name || 'Máy chủ';
+
+    const ref = this.dialog.open(DeleteServerDialog, {
+      data: {
+        serverId: sId,
+        serverName: serverName,
+      },
+      width: '440px',
+      panelClass: 'nexus-dialog-panel',
+    });
+
+    ref.afterClosed().subscribe((deleted) => {
+      if (deleted) {
+        this.settingsService.close();
+        this.serversStore.selectServer(null);
+        this.router.navigate(['/dashboard']);
+      }
+    });
   }
 
   protected async handleLogout(): Promise<void> {

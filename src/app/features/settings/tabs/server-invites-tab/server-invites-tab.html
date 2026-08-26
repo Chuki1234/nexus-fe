@@ -258,8 +258,8 @@
 
   <!-- Toast -->
   @if (toastMessage()) {
-    <div class="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-full bg-primary text-on-primary shadow-modal font-bold text-caption flex items-center gap-2 animate-slide-down">
-      <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+    <div class="fixed bottom-8 right-8 z-200 px-4.5 py-3 rounded-2xl bg-surface border border-primary/40 text-ink shadow-modal font-bold text-caption flex items-center gap-2.5 animate-slide-up ring-1 ring-primary/20 backdrop-blur-md">
+      <mat-icon class="!w-5 !h-5 !text-[20px] text-primary">check_circle</mat-icon>
       <span>{{ toastMessage() }}</span>
     </div>
   }
