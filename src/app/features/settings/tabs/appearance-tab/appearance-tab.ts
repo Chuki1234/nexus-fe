@@ -1,8 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserSettingsService, AppPreferences } from '../../services/user-settings.service';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import { ProfileStore } from '../../../profile/profile-store';
@@ -10,7 +7,7 @@ import { ProfileStore } from '../../../profile/profile-store';
 @Component({
   selector: 'app-appearance-tab',
   standalone: true,
-  imports: [FormsModule, MatIconModule, MatSlideToggleModule, MatTooltipModule, Avatar],
+  imports: [FormsModule, Avatar],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './appearance-tab.html',
   styleUrl: './appearance-tab.css',
@@ -52,15 +49,15 @@ export class AppearanceTab {
   }
 
   protected setFontSize(size: number): void {
-    this.settingsService.updatePreference('fontSize', size);
+    this.settingsService.updatePreference('fontSize', Number(size));
   }
 
   protected setMessageSpacing(spacing: number): void {
-    this.settingsService.updatePreference('messageSpacing', spacing);
+    this.settingsService.updatePreference('messageSpacing', Number(spacing));
   }
 
   protected setZoomLevel(zoom: number): void {
-    this.settingsService.updatePreference('zoomLevel', zoom);
+    this.settingsService.updatePreference('zoomLevel', Number(zoom));
   }
 
   protected toggleReducedMotion(checked: boolean): void {

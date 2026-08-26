@@ -1,5 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '../auth/auth.service';
+import { ChatSocketService } from '../realtime/chat-socket.service';
 import { UserSettingsService } from '../../features/settings/services/user-settings.service';
 
 export interface InAppNotification {
@@ -19,11 +21,51 @@ export interface InAppNotification {
 })
 export class NotificationService {
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  private readonly chatSocket = inject(ChatSocketService);
   private readonly settings = inject(UserSettingsService);
 
   readonly notifications = signal<InAppNotification[]>([]);
 
   private audioCtx: AudioContext | null = null;
+
+  constructor() {
+    this.chatSocket.messageCreated$.subscribe(({ message }) => {
+      if (!message) return;
+      const currentUserId = this.auth.user()?.id;
+      const authorId = message.author?.id || (message as any).senderId;
+      if (currentUserId && authorId === currentUserId) {
+        return; // Không tự thông báo tin nhắn của chính mình
+      }
+
+      const senderName = message.author?.displayName || message.author?.username || 'Thành viên';
+      const senderAvatarUrl = message.author?.avatarUrl || null;
+      const content = message.content || (message.attachments?.length ? '[Đính kèm tệp]' : 'Tin nhắn mới');
+
+      let contextTag = 'Tin nhắn mới';
+      let routeUrl: string[] = ['/channels/@me'];
+      if (message.channelId) {
+        contextTag = `# kênh chat`;
+        routeUrl = ['/channels', (message as any).serverId || '@me', message.channelId];
+      } else if (message.conversationId) {
+        contextTag = 'Tin nhắn trực tiếp';
+        routeUrl = ['/channels/@me', message.conversationId];
+      }
+
+      const myUsername = this.auth.user()?.user_metadata?.['username'] || '';
+      const isMention = !!myUsername && content.includes(`@${myUsername}`);
+
+      this.show({
+        senderName,
+        senderAvatarUrl,
+        contextTag,
+        content,
+        routeUrl,
+        type: isMention ? 'mention' : 'message',
+        serverId: (message as any).serverId,
+      });
+    });
+  }
 
   private getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;

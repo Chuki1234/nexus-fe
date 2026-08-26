@@ -92,7 +92,7 @@
       <button
         type="button"
         (click)="onGoogle()"
-        class="flex w-full items-center justify-center gap-3 rounded-full border border-hairline-strong bg-canvas px-4 py-3 text-button-md text-ink hover:border-primary"
+        class="flex w-full items-center justify-center gap-3 rounded-full border border-hairline-strong bg-canvas px-4 py-3 text-button-md text-ink hover:border-primary cursor-pointer"
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5">
           <path
@@ -115,19 +115,7 @@
         Tiếp tục với Google
       </button>
 
-      <!-- Đăng nhập nhanh bằng mã dự phòng 2FA (không cần mật khẩu). -->
-      <button
-        type="button"
-        (click)="openFastLogin()"
-        class="mt-3 flex w-full items-center justify-center gap-3 rounded-full border border-hairline-strong bg-canvas px-4 py-3 text-button-md text-ink hover:border-primary"
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4" />
-        </svg>
-        Đăng nhập bằng mã xác thực
-      </button>
-
+      <!-- Gạch "hoặc" phân cách hai phương thức đăng nhập -->
       <div class="my-6 flex items-center gap-3" aria-hidden="true">
         <span class="h-px flex-1 bg-hairline"></span>
         <span class="text-caption text-steel uppercase">hoặc</span>
@@ -136,11 +124,9 @@
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
         <div class="mb-5">
-          <label for="identifier" class="mb-2 block text-body-sm-medium text-ink"
-            >Email hoặc tên đăng nhập</label
-          >
-          <!-- type="text" chứ không phải "email": trình duyệt sẽ báo sai định dạng
-               khi người dùng gõ tên đăng nhập. autocomplete="username" nhận cả hai. -->
+          <label for="identifier" class="mb-2 block text-body-sm text-ink font-semibold">
+            Email hoặc tên đăng nhập
+          </label>
           <input
             id="identifier"
             type="text"
@@ -149,7 +135,7 @@
             placeholder="ban@vidu.com hoặc tendangnhap"
             [attr.aria-invalid]="showError('identifier')"
             [attr.aria-describedby]="showError('identifier') ? 'identifier-error' : null"
-            class="w-full rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-body-sm text-ink placeholder:text-steel focus:border-primary aria-invalid:border-danger"
+            class="w-full rounded-lg border border-hairline-strong bg-canvas px-4 py-3 text-body-md text-ink placeholder:text-steel focus:border-primary focus:outline-none aria-invalid:border-danger"
           />
           @if (showError('identifier')) {
             <p id="identifier-error" class="mt-2 text-body-sm text-danger">
@@ -158,9 +144,9 @@
           }
         </div>
 
-        <div class="mb-6">
+        <div class="mb-4">
           <div class="mb-2 flex items-baseline justify-between gap-2">
-            <label for="password" class="block text-body-sm-medium text-ink">Mật khẩu</label>
+            <label for="password" class="block text-body-sm text-ink font-semibold">Mật khẩu</label>
             <a
               routerLink="/forgot-password"
               class="rounded-xs text-body-sm text-primary-deep underline underline-offset-2 hover:text-primary-soft"
@@ -175,28 +161,41 @@
               autocomplete="current-password"
               [attr.aria-invalid]="showError('password')"
               [attr.aria-describedby]="showError('password') ? 'password-error' : null"
-              class="w-full rounded-sm border border-hairline-strong bg-canvas py-3 pr-16 pl-4 text-body-sm text-ink focus:border-primary aria-invalid:border-danger"
+              class="w-full rounded-lg border border-hairline-strong bg-canvas py-3 pr-16 pl-4 text-body-md text-ink focus:border-primary focus:outline-none aria-invalid:border-danger"
             />
             <button
               type="button"
               (click)="togglePasswordVisibility()"
               [attr.aria-pressed]="passwordVisible()"
               aria-controls="password"
-              class="absolute inset-y-0 right-0 rounded-r-sm px-4 text-body-sm-medium text-slate hover:text-ink"
+              class="absolute inset-y-0 right-0 rounded-r-lg px-4 text-body-sm font-semibold text-slate hover:text-ink cursor-pointer"
             >
               {{ passwordVisible() ? 'Ẩn' : 'Hiện' }}
             </button>
           </div>
           @if (showError('password')) {
-            <p id="password-error" class="mt-2 text-body-sm text-danger">Vui lòng nhập mật khẩu.</p>
+            <p id="password-error" class="mt-2 text-body-sm text-danger">
+              Vui lòng nhập mật khẩu.
+            </p>
           }
+        </div>
+
+        <!-- Đăng nhập nhanh bằng Google Authenticator / Mã dự phòng -->
+        <div class="mb-6 flex justify-end">
+          <button
+            type="button"
+            (click)="openFastLogin()"
+            class="text-body-sm text-primary hover:underline font-medium inline-flex items-center gap-1 cursor-pointer"
+          >
+            <span>Đăng nhập nhanh bằng mã 2FA</span>
+          </button>
         </div>
 
         <button
           type="submit"
           [disabled]="submitting()"
           [attr.aria-busy]="submitting()"
-          class="w-full rounded-full bg-primary px-4 py-3 text-button-md text-on-primary hover:bg-primary-soft disabled:cursor-not-allowed disabled:bg-hairline disabled:text-steel"
+          class="w-full rounded-full bg-primary px-4 py-3 text-button-md font-bold text-on-primary transition-colors hover:bg-primary-soft disabled:cursor-not-allowed disabled:bg-hairline disabled:text-mute cursor-pointer"
         >
           {{ submitting() ? 'Đang đăng nhập…' : 'Đăng nhập' }}
         </button>
@@ -209,6 +208,9 @@
   </div>
 </main>
 
+<!-- ══════════════════════════════════════════════════════════════════════
+     MODAL: ĐĂNG NHẬP NHANH BẰNG MÃ DỰ PHÒNG 2FA
+══════════════════════════════════════════════════════════════════════ -->
 @if (showFastLoginModal()) {
   <div
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
@@ -218,47 +220,51 @@
     (click)="closeFastLogin()"
   >
     <div
-      class="w-full max-w-sm rounded-lg border border-hairline bg-surface p-6 shadow-modal"
+      class="w-full max-w-sm rounded-lg border border-hairline bg-surface p-6 shadow-modal space-y-4"
       (click)="$event.stopPropagation()"
     >
-      <h2 class="text-heading-4 text-ink">Đăng nhập bằng mã xác thực</h2>
-      <p class="mt-1 text-body-sm text-slate">
-        Nhập email hoặc tên đăng nhập và một <strong class="text-ink">mã dự phòng 2FA</strong> của bạn.
+      <h2 class="text-heading-4 text-ink font-bold">Đăng nhập bằng mã 2FA</h2>
+      <p class="text-body-sm text-slate">
+        Nhập email hoặc tên đăng nhập và một <strong class="text-ink">mã dự phòng 2FA</strong> (hoặc mã 6 số) của bạn.
       </p>
 
       @if (fastErrorMessage(); as err) {
-        <p class="mt-3 rounded-md bg-danger-surface px-3 py-2 text-body-sm text-danger">{{ err }}</p>
+        <p class="rounded-md bg-danger-surface px-3 py-2 text-body-sm text-danger">{{ err }}</p>
       }
 
-      <label class="mt-4 block text-caption text-steel" for="fast-identifier">Email hoặc tên đăng nhập</label>
-      <input
-        id="fast-identifier"
-        type="text"
-        autocomplete="username"
-        [value]="fastIdentifier()"
-        (input)="onFastIdInput($event)"
-        placeholder="ban@vidu.com hoặc tendangnhap"
-        class="mt-1 w-full rounded-lg border border-hairline-strong bg-canvas px-3 py-2.5 text-body-md text-ink placeholder:text-steel focus:border-primary focus:outline-none"
-      />
+      <div>
+        <label class="block text-caption text-steel mb-1" for="fast-identifier">Email hoặc tên đăng nhập</label>
+        <input
+          id="fast-identifier"
+          type="text"
+          autocomplete="username"
+          [value]="fastIdentifier()"
+          (input)="onFastIdInput($event)"
+          placeholder="ban@vidu.com hoặc tendangnhap"
+          class="w-full rounded-lg border border-hairline-strong bg-canvas px-3 py-2.5 text-body-md text-ink placeholder:text-steel focus:border-primary focus:outline-none"
+        />
+      </div>
 
-      <label class="mt-3 block text-caption text-steel" for="fast-code">Mã dự phòng</label>
-      <input
-        id="fast-code"
-        type="text"
-        inputmode="text"
-        autocomplete="one-time-code"
-        [value]="fastCode()"
-        (input)="onFastCodeInput($event)"
-        (keydown.enter)="onSubmitFastLogin()"
-        placeholder="VD: A1B2C3D4"
-        class="mt-1 w-full rounded-lg border border-hairline-strong bg-canvas px-3 py-2.5 text-center font-mono text-body-md tracking-widest text-ink placeholder:text-steel focus:border-primary focus:outline-none"
-      />
+      <div>
+        <label class="block text-caption text-steel mb-1" for="fast-code">Mã dự phòng / Mã 2FA</label>
+        <input
+          id="fast-code"
+          type="text"
+          inputmode="text"
+          autocomplete="one-time-code"
+          [value]="fastCode()"
+          (input)="onFastCodeInput($event)"
+          (keydown.enter)="onSubmitFastLogin()"
+          placeholder="VD: A1B2C3D4 hoặc 123456"
+          class="w-full rounded-lg border border-hairline-strong bg-canvas px-3 py-2.5 text-center font-mono text-body-md tracking-widest text-ink placeholder:text-steel focus:border-primary focus:outline-none"
+        />
+      </div>
 
-      <div class="mt-5 flex items-center justify-end gap-2">
+      <div class="flex items-center justify-end gap-2 pt-2">
         <button
           type="button"
           (click)="closeFastLogin()"
-          class="rounded-full px-4 py-2 text-button-md text-slate hover:text-ink"
+          class="rounded-full px-4 py-2 text-button-md text-slate hover:text-ink cursor-pointer"
         >
           Hủy
         </button>
@@ -266,11 +272,146 @@
           type="button"
           (click)="onSubmitFastLogin()"
           [disabled]="fastSubmitting()"
-          class="rounded-full bg-primary px-5 py-2 text-button-md text-on-primary transition-colors hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-60"
+          class="rounded-full bg-primary px-5 py-2 text-button-md text-on-primary font-bold transition-colors hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
         >
           {{ fastSubmitting() ? 'Đang đăng nhập…' : 'Đăng nhập' }}
         </button>
       </div>
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     POPUP / MODAL: THÔNG BÁO TÀI KHOẢN BỊ VÔ HIỆU HÓA & MỞ KHÓA 2FA
+══════════════════════════════════════════════════════════════════════ -->
+@if (showDisabledModal()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Thông báo tài khoản bị vô hiệu hóa"
+  >
+    <div
+      class="w-full max-w-md rounded-2xl bg-surface border border-hairline-strong p-6 shadow-2xl space-y-5 animate-slide-up"
+    >
+      @if (disabledStep() === 'notice') {
+        <!-- ── BƯỚC 1: THÔNG BÁO TÀI KHOẢN TẠM KHÓA ── -->
+        <div class="flex items-center gap-3 text-amber-400">
+          <div class="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-heading-4 font-bold text-ink">Tài khoản đang bị vô hiệu hóa</h3>
+            <p class="text-caption text-steel">Không thể đăng nhập trực tiếp qua Google</p>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-canvas border border-hairline text-body-sm text-slate leading-relaxed space-y-2">
+          <p>
+            Tài khoản <strong class="text-ink font-semibold">{{ disabledInfo()?.email || form.controls.identifier.value }}</strong> hiện đang trong trạng thái tạm ngưng sử dụng.
+          </p>
+          @if (disabledInfo()?.has2fa) {
+            <p class="text-amber-400 text-caption font-medium">
+              🛡️ Tài khoản này đã kích hoạt xác thực 2 lớp (2FA). Để mở khóa và vào lại hệ thống, bạn cần nhập mã xác thực 2FA.
+            </p>
+          } @else {
+            <p class="text-caption text-steel">
+              Tài khoản này chưa cài đặt 2FA. Bạn có thể nhấn mở khóa để kích hoạt lại tài khoản ngay bây giờ.
+            </p>
+          }
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            (click)="closeDisabledModal()"
+            class="px-4 py-2.5 rounded-full text-button-md text-slate hover:text-ink cursor-pointer"
+          >
+            Đóng
+          </button>
+
+          @if (disabledInfo()?.has2fa) {
+            <button
+              type="button"
+              (click)="proceedTo2faFromModal()"
+              class="px-5 py-2.5 rounded-full text-button-md font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer"
+            >
+              Xác thực 2FA để mở khóa
+            </button>
+          } @else {
+            <button
+              type="button"
+              (click)="unlockAccountDirectly()"
+              class="px-5 py-2.5 rounded-full text-button-md font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer"
+            >
+              Mở khóa & Kích hoạt lại
+            </button>
+          }
+        </div>
+
+      } @else if (disabledStep() === 'verify_2fa') {
+        <!-- ── BƯỚC 2: POPUP NHẬP MÃ 2FA ĐỂ MỞ KHÓA ── -->
+        <div class="flex items-center gap-3 text-primary">
+          <div class="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-heading-4 font-bold text-ink">Xác thực 2FA để mở khóa</h3>
+            <p class="text-caption text-steel">Nhập mã từ Google Authenticator</p>
+          </div>
+        </div>
+
+        <p class="text-body-sm text-slate leading-relaxed">
+          Nhập mã 6 chữ số từ ứng dụng <strong class="text-ink">Google Authenticator</strong> (hoặc mã dự phòng 8 ký tự) để mở khóa tài khoản <strong class="text-ink">{{ disabledInfo()?.email || form.controls.identifier.value }}</strong> và vào hệ thống.
+        </p>
+
+        @if (modal2faError(); as err) {
+          <div class="rounded-xl border border-danger-border bg-danger-surface px-4 py-3 text-body-sm text-danger animate-fade-in">
+            {{ err }}
+          </div>
+        }
+
+        <div class="space-y-2">
+          <label class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase" for="modal-2fa-code">
+            Mã xác thực 2FA / Mã dự phòng
+          </label>
+          <input
+            id="modal-2fa-code"
+            type="text"
+            inputmode="text"
+            autocomplete="one-time-code"
+            [value]="modal2faCode()"
+            (input)="onModal2faInput($event)"
+            (keydown.enter)="onSubmitModal2fa()"
+            placeholder="VD: 123456 hoặc A1B2C3D4"
+            maxlength="16"
+            class="w-full rounded-xl border border-hairline-strong bg-canvas px-4 py-3 text-center font-mono text-heading-5 tracking-widest text-ink placeholder:text-steel focus:border-primary focus:outline-none shadow-2xs"
+            autofocus
+          />
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            (click)="backToNoticeFromModal()"
+            class="px-4 py-2.5 rounded-full text-button-md text-slate hover:text-ink cursor-pointer"
+          >
+            Quay lại
+          </button>
+          <button
+            type="button"
+            (click)="onSubmitModal2fa()"
+            [disabled]="modal2faSubmitting() || !modal2faCode()"
+            class="px-5 py-2.5 rounded-full text-button-md font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {{ modal2faSubmitting() ? 'Đang mở khóa…' : 'Mở khóa & Đăng nhập' }}
+          </button>
+        </div>
+      }
     </div>
   </div>
 }

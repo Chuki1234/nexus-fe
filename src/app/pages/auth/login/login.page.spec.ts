@@ -7,11 +7,8 @@ import { LoginPage } from './login.page';
 
 class AuthServiceStub {
   signInWithPassword = vi.fn().mockResolvedValue({});
-  /**
-   * Trang đăng nhập hỏi trạng thái provider ngoài lúc khởi tạo để quyết định có
-   * hiện nút Google hay không. Trả false: các test dưới đây chỉ quan tâm luồng
-   * email/mật khẩu, và nút Google ẩn đi không ảnh hưởng gì tới chúng.
-   */
+  loginRaw = vi.fn().mockResolvedValue({ accessToken: 'test-token', refreshToken: 'test-refresh' });
+  establishSession = vi.fn().mockResolvedValue({});
   isProviderEnabled = vi.fn().mockResolvedValue(false);
 }
 
@@ -45,7 +42,7 @@ describe('LoginPage', () => {
   it('does not call Supabase when the form is empty', async () => {
     await submit();
 
-    expect(auth.signInWithPassword).not.toHaveBeenCalled();
+    expect(auth.loginRaw).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('#email-error')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('#password-error')).toBeTruthy();
   });
@@ -55,7 +52,7 @@ describe('LoginPage', () => {
     setInput('password', 'matkhau123');
     await submit();
 
-    expect(auth.signInWithPassword).not.toHaveBeenCalled();
+    expect(auth.loginRaw).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('#email-error').textContent).toContain('định dạng');
   });
 
@@ -64,7 +61,7 @@ describe('LoginPage', () => {
     setInput('password', '123');
     await submit();
 
-    expect(auth.signInWithPassword).not.toHaveBeenCalled();
+    expect(auth.loginRaw).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('#password-error').textContent).toContain('6 ký tự');
   });
 
@@ -76,15 +73,15 @@ describe('LoginPage', () => {
     setInput('password', 'matkhau123');
     await submit();
 
-    expect(auth.signInWithPassword).toHaveBeenCalledWith({
-      email: 'ban@vidu.com',
+    expect(auth.loginRaw).toHaveBeenCalledWith({
+      identifier: 'ban@vidu.com',
       password: 'matkhau123',
     });
     expect(navigate).toHaveBeenCalledWith('/');
   });
 
   it('shows a readable message and clears the password when credentials are wrong', async () => {
-    auth.signInWithPassword.mockRejectedValue(
+    auth.loginRaw.mockRejectedValue(
       new AuthError('Invalid login credentials', 400, 'invalid_credentials'),
     );
 

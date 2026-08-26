@@ -1,6 +1,7 @@
 import { inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CanActivateFn, Router } from '@angular/router';
+import { AccountDisabledService } from './account-disabled.service';
 import { AuthService } from './auth.service';
 import { ProfileService } from '../profile/profile.service';
 
@@ -17,12 +18,22 @@ import { ProfileService } from '../profile/profile.service';
 export const authGuard: CanActivateFn = async (_route, state) => {
   const isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   const auth = inject(AuthService);
+  const accountDisabled = inject(AccountDisabledService);
   const router = inject(Router);
 
   if (!isBrowser) {
     return true;
   }
   await auth.whenReady();
+
+  const user = auth.user();
+  const disabled = user?.email ? accountDisabled.getDisabledAccount(user.email) : accountDisabled.currentDisabled();
+  if (disabled) {
+    await auth.signOut();
+    return router.createUrlTree(['/login'], {
+      queryParams: { blockedGoogle: 'true', email: disabled.email || user?.email || '' },
+    });
+  }
 
   return (
     auth.isAuthenticated() ||
@@ -38,26 +49,42 @@ export const authGuard: CanActivateFn = async (_route, state) => {
 export const landingGuard: CanActivateFn = async () => {
   const isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   const auth = inject(AuthService);
+  const accountDisabled = inject(AccountDisabledService);
   const router = inject(Router);
 
   if (!isBrowser) {
     return true;
   }
   await auth.whenReady();
+
+  const user = auth.user();
+  const disabled = user?.email ? accountDisabled.getDisabledAccount(user.email) : accountDisabled.currentDisabled();
+  if (disabled) {
+    await auth.signOut();
+    return true;
+  }
 
   return auth.isAuthenticated() ? router.createUrlTree(['/channels/@me']) : true;
 };
 
-/** Keeps an already signed-in user off the login page. */
+/** Keeps an already signed-in user off the login page unless their account is disabled. */
 export const guestGuard: CanActivateFn = async () => {
   const isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   const auth = inject(AuthService);
+  const accountDisabled = inject(AccountDisabledService);
   const router = inject(Router);
 
   if (!isBrowser) {
     return true;
   }
   await auth.whenReady();
+
+  const user = auth.user();
+  const disabled = user?.email ? accountDisabled.getDisabledAccount(user.email) : accountDisabled.currentDisabled();
+  if (disabled) {
+    // Để người dùng ở lại trang /login để mở khóa/xác thực 2FA
+    return true;
+  }
 
   return auth.isAuthenticated() ? router.createUrlTree(['/']) : true;
 };

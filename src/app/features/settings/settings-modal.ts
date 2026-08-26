@@ -142,30 +142,8 @@ export class SettingsModal {
     {
       title: 'CÀI ĐẶT NGƯỜI DÙNG',
       items: [
-        {
-          id: 'account',
-          label: 'Tài Khoản',
-          icon: 'person',
-          subItems: [
-            { label: 'Thông Tin Tài Khoản', actionId: 'account-info-heading' },
-            { label: 'Mật Khẩu & Bảo Mật', actionId: 'security-heading' },
-            { label: 'Xác Thực Hai Yếu Tố', actionId: 'two-factor-heading' },
-            { label: 'Trạng thái tài khoản', actionId: 'account-status-heading' },
-          ],
-        },
-        // "Quyền Hạn Tin Nhắn" từng là mục riêng ở đây nhưng render đúng cùng
-        // một `<app-privacy-tab />` — bấm mục nào cũng ra một trang y hệt, chỉ
-        // khác dòng breadcrumb. Gộp về một mục, phần tin nhắn thành mục con trỏ
-        // thẳng tới đúng khối của nó trong trang.
-        {
-          id: 'privacy',
-          label: 'Dữ Liệu & Bảo Mật',
-          icon: 'shield',
-          subItems: [
-            { label: 'Cách Nexus Sử Dụng Dữ Liệu Của Tôi', actionId: 'privacy-data-heading' },
-            { label: 'Quyền Riêng Tư Hồ Sơ & An Toàn Tin Nhắn', actionId: 'privacy-safety-heading' },
-          ],
-        },
+        { id: 'account', label: 'Tài Khoản', icon: 'person' },
+        { id: 'privacy', label: 'Dữ Liệu & Bảo Mật', icon: 'shield' },
         { id: 'connections', label: 'Ứng Dụng Đã Kết Nối', icon: 'link' },
         { id: 'notifications', label: 'Các Thông Báo', icon: 'notifications' },
       ],
@@ -173,34 +151,9 @@ export class SettingsModal {
     {
       title: 'TRẢI NGHIỆM',
       items: [
-        {
-          id: 'voice-video',
-          label: 'Giọng nói và Video',
-          icon: 'mic',
-          subItems: [
-            { label: 'Giọng nói', actionId: 'voice-settings-heading' },
-            { label: 'Camera', actionId: 'video-settings-heading' },
-          ],
-        },
-        {
-          id: 'appearance',
-          label: 'Hiển thị',
-          icon: 'palette',
-          badge: 'MỚI',
-          badgeType: 'new',
-        },
+        { id: 'voice-video', label: 'Giọng nói và Video', icon: 'mic' },
+        { id: 'appearance', label: 'Hiển thị', icon: 'palette' },
         { id: 'text-images', label: 'Văn Bản & Hình Ảnh', icon: 'image' },
-        { id: 'accessibility', label: 'Trợ Năng', icon: 'accessibility' },
-        { id: 'keybinds', label: 'Hệ Thống & Phím Tắt', icon: 'keyboard' },
-        { id: 'language', label: 'Ngôn Ngữ & Thời Gian', icon: 'language' },
-      ],
-    },
-    {
-      title: 'TRÒ CHƠI & ỨNG DỤNG',
-      items: [
-        { id: 'games', label: 'Trò chơi đã đăng ký', icon: 'sports_esports' },
-        { id: 'activity', label: 'Tính bảo mật của Hoạt động', icon: 'privacy_tip' },
-        { id: 'developer', label: 'Nhà phát triển & Nâng cao', icon: 'code' },
       ],
     },
   ];

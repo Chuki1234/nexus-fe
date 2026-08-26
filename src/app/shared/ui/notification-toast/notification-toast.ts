@@ -1,12 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { NotificationService, InAppNotification } from '../../../core/notification/notification.service';
-import { Avatar } from '../avatar/avatar';
 
 @Component({
   selector: 'app-notification-toast',
   standalone: true,
-  imports: [MatIconModule, Avatar],
+  imports: [MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './notification-toast.html',
   styleUrl: './notification-toast.css',

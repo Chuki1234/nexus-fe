@@ -3,6 +3,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import type { Session, User } from '@supabase/supabase-js';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AccountDisabledService } from './account-disabled.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import type {
   LoginMfaRequired,
@@ -20,9 +21,11 @@ export interface SignInCredentials {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly supabase = inject(SupabaseService);
+  private readonly accountDisabled = inject(AccountDisabledService);
   private readonly http = inject(HttpClient);
 
   private readonly currentSession = signal<Session | null>(null);
+  readonly blockedGoogleAttempt = signal<{ email: string; disabledInfo: any } | null>(null);
 
   /**
    * Restoring a session from storage is async, so anything that reads
@@ -37,6 +40,15 @@ export class AuthService {
 
   constructor() {
     this.supabase.client.auth.onAuthStateChange((_event, session) => {
+      const email = session?.user?.email;
+      const disabled = email ? this.accountDisabled.getDisabledAccount(email) : this.accountDisabled.currentDisabled();
+      if (disabled && session) {
+        // Tài khoản đang vô hiệu hóa: lưu trạng thái và xóa phiên cục bộ ngay
+        this.blockedGoogleAttempt.set({ email: email || disabled.email || '', disabledInfo: disabled });
+        this.currentSession.set(null);
+        void this.supabase.client.auth.signOut({ scope: 'local' });
+        return;
+      }
       this.currentSession.set(session);
     });
     this.ready = this.restoreSession();
@@ -59,7 +71,12 @@ export class AuthService {
   async signInWithGoogle(redirectTo: string): Promise<void> {
     const { error } = await this.supabase.client.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo },
+      options: {
+        redirectTo,
+        queryParams: {
+          prompt: 'select_account',
+        },
+      },
     });
     if (error) {
       throw error;
@@ -68,6 +85,13 @@ export class AuthService {
 
   private async restoreSession(): Promise<void> {
     const { data } = await this.supabase.client.auth.getSession();
+    const email = data?.session?.user?.email;
+    const disabled = email ? this.accountDisabled.getDisabledAccount(email) : this.accountDisabled.currentDisabled();
+    if (disabled && data?.session) {
+      this.currentSession.set(null);
+      await this.supabase.client.auth.signOut({ scope: 'local' });
+      return;
+    }
     this.currentSession.set(data.session);
   }
 
@@ -105,6 +129,40 @@ export class AuthService {
 
     this.currentSession.set(data.session);
     return data.session;
+  }
+
+  /**
+   * Gọi API login và trả kết quả thô (chưa setSession) để caller có thể
+   * can thiệp trước khi kích hoạt phiên (ví dụ luồng 2FA mở khóa tài khoản).
+   */
+  async loginRaw(credentials: SignInCredentials): Promise<LoginResult> {
+    return firstValueFrom(
+      this.http.post<LoginResult>(`${environment.apiUrl}/auth/login`, credentials),
+    );
+  }
+
+  /**
+   * Thiết lập phiên đăng nhập từ tokens đã xác thực.
+   */
+  async establishSession(tokens: { accessToken: string; refreshToken?: string | null }): Promise<Session> {
+    const { data, error } = await this.supabase.client.auth.setSession({
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken || tokens.accessToken,
+    });
+    if (error || !data.session) {
+      throw error ?? new Error('Không nạp được phiên đăng nhập.');
+    }
+    this.currentSession.set(data.session);
+    return data.session;
+  }
+
+  /** Alias cho signIn nhận { email, password } */
+  async signInWithPassword(creds: { email: string; password: string }): Promise<Session | LoginMfaRequired> {
+    return this.signIn({ identifier: creds.email, password: creds.password });
+  }
+
+  async isProviderEnabled(_provider: string): Promise<boolean> {
+    return false;
   }
 
   /**
