@@ -320,10 +320,6 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
     this.settingsService.updatePreference('voiceSensitivity', Number(val));
   }
 
-  protected setPushToTalkDelay(val: number): void {
-    this.settingsService.updatePreference('pushToTalkDelay', Number(val));
-  }
-
   protected setAttenuationPercent(val: number): void {
     this.settingsService.updatePreference('attenuationPercent', Number(val));
   }

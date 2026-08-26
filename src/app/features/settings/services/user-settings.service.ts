@@ -292,7 +292,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   inputMode: 'voice-activity',
   voiceSensitivity: 60,
   pushToTalkKey: 'Caps Lock',
-  pushToTalkDelay: 20,
+  pushToTalkDelay: 0,
   voiceProcessingMode: 'custom',
   noiseSuppression: true,
   echoCancellation: true,

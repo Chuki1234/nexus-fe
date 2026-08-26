@@ -345,22 +345,6 @@
             }
           </button>
         </div>
-
-        <div class="space-y-2 pt-1">
-          <div class="flex justify-between items-center text-caption text-steel font-semibold">
-            <span class="text-micro-uppercase font-extrabold text-stone tracking-wider uppercase">Độ trễ nhả phím PTT</span>
-            <span class="font-mono text-caption-bold text-ink">{{ settingsService.preferences().pushToTalkDelay }} ms</span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="2000"
-            step="20"
-            [ngModel]="settingsService.preferences().pushToTalkDelay"
-            (ngModelChange)="setPushToTalkDelay($event)"
-            class="custom-range-slider"
-          />
-        </div>
       </div>
     }
   </div>
