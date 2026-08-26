@@ -5,6 +5,9 @@ import { Subject } from 'rxjs';
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ConversationsApiService } from '../../../../../core/api/conversations-api.service';
 import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
+import { DirectCallCoordinatorService } from '../../../../../core/calls/direct-call-coordinator.service';
+import { UserSettingsService } from '../../../../../features/settings/services/user-settings.service';
+import { FriendsStore } from '../../../../../features/dashboard/friends/services/friends-store';
 import { ActiveChatStore } from '../../../../../features/dashboard/services/active-chat.store';
 import { ConversationList } from './conversation-list';
 
@@ -20,6 +23,9 @@ describe('ConversationList', () => {
   };
   let mockAuthService: any;
   let mockActiveChatStore: any;
+  let mockDirectCallCoordinator: { startCall: any };
+  let mockUserSettingsService: any;
+  let mockFriendsStore: any;
   let activeConversationIdSignal: ReturnType<typeof signal<string | null>>;
 
   beforeEach(() => {
@@ -51,6 +57,21 @@ describe('ConversationList', () => {
     };
     mockAuthService = {
       user: signal({ id: 'my-user-id', email: 'me@example.com' }).asReadonly(),
+      accessToken: signal('fake-token').asReadonly(),
+    };
+    mockDirectCallCoordinator = {
+      startCall: vi.fn().mockResolvedValue(undefined),
+    };
+    mockUserSettingsService = {
+      isFriendMuted: vi.fn().mockReturnValue(false),
+      toggleMuteFriend: vi.fn(),
+      getFriendNote: vi.fn().mockReturnValue(''),
+      setFriendNote: vi.fn(),
+      blockUser: vi.fn(),
+    };
+    mockFriendsStore = {
+      incomingRequests: signal([]).asReadonly(),
+      removeFriend: vi.fn().mockResolvedValue(undefined),
     };
     activeConversationIdSignal = signal<string | null>(null);
     mockActiveChatStore = {
@@ -62,11 +83,17 @@ describe('ConversationList', () => {
     await TestBed.configureTestingModule({
       imports: [ConversationList],
       providers: [
-        provideRouter([]),
+        provideRouter([
+          { path: 'channels/@me', component: class {} },
+          { path: 'channels/@me/:id', component: class {} },
+        ]),
         { provide: ConversationsApiService, useValue: mockConversationsApi },
         { provide: ChatSocketService, useValue: mockChatSocket },
         { provide: AuthService, useValue: mockAuthService },
         { provide: ActiveChatStore, useValue: mockActiveChatStore },
+        { provide: DirectCallCoordinatorService, useValue: mockDirectCallCoordinator },
+        { provide: UserSettingsService, useValue: mockUserSettingsService },
+        { provide: FriendsStore, useValue: mockFriendsStore },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(ConversationList);
@@ -166,5 +193,43 @@ describe('ConversationList', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).not.toContain('Alice');
+  });
+
+  it('mở context menu khi chuột phải vào cuộc trò chuyện', async () => {
+    const fixture = await mount();
+
+    const row = fixture.nativeElement.querySelector('.conversation-row');
+    expect(row).toBeTruthy();
+
+    const event = new MouseEvent('contextmenu', {
+      clientX: 200,
+      clientY: 300,
+      bubbles: true,
+      cancelable: true,
+    });
+    row.dispatchEvent(event);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['selectedConversation']()?.name).toBe('Alice');
+    expect(fixture.componentInstance['contextMenuPosition']()).toEqual({ x: 200, y: 300 });
+  });
+
+  it('kích hoạt onRemoveFriend khi gọi removeFriend từ context menu', async () => {
+    const fixture = await mount();
+
+    const conv = fixture.componentInstance['conversations']()[0];
+    expect(conv).toBeTruthy();
+
+    fixture.componentInstance['onRemoveFriend'](conv);
+    expect(mockFriendsStore.removeFriend).toHaveBeenCalledWith('user-1');
+  });
+
+  it('kích hoạt onStartAudioCall khi gọi từ context menu', async () => {
+    const fixture = await mount();
+
+    const conv = fixture.componentInstance['conversations']()[0];
+    fixture.componentInstance['onStartAudioCall'](conv);
+
+    expect(mockDirectCallCoordinator.startCall).toHaveBeenCalledWith('conv-1', 'audio');
   });
 });

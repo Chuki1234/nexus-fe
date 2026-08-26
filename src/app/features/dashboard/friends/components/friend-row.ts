@@ -7,10 +7,11 @@ import {
   input,
   output,
   signal,
+  ViewChild,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -196,6 +197,18 @@ export class FriendRow {
       displayName: p.name,
     });
     this.removed.emit(p.id);
+  }
+
+  @ViewChild('friendOptionsMenuTrigger', { read: MatMenuTrigger })
+  protected friendOptionsMenuTrigger?: MatMenuTrigger;
+
+  protected readonly contextMenuPosition = signal<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  onContextMenu(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.contextMenuPosition.set({ x: event.clientX, y: event.clientY });
+    this.friendOptionsMenuTrigger?.openMenu();
   }
 
   clearError(): void {
