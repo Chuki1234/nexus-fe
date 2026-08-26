@@ -206,6 +206,9 @@ export interface AppPreferences {
   attenuationPercent: number;
   attenuateWhileSpeaking: boolean;
   attenuateWhileOthersSpeak: boolean;
+  selectedInputDevice: string;
+  selectedOutputDevice: string;
+  selectedVideoDevice: string;
   videoCameraId: string;
   videoBackgroundEffect: 'none' | 'blur' | 'cyberpunk' | 'cozy-room' | 'matrix';
 
@@ -297,6 +300,9 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   attenuationPercent: 70,
   attenuateWhileSpeaking: true,
   attenuateWhileOthersSpeak: false,
+  selectedInputDevice: 'default',
+  selectedOutputDevice: 'default',
+  selectedVideoDevice: 'default',
   videoCameraId: 'default',
   videoBackgroundEffect: 'none',
 
