@@ -8,6 +8,7 @@ import { ProfileGamesService } from '../../profile/profile-games.service';
 import { ProfileStore } from '../../profile/profile-store';
 import { ProfilesApiService } from '../../../core/api/profiles-api.service';
 import { formatApiError } from '../../../core/api/servers-api.service';
+import { ProfileLookup } from '../../profile/profile-lookup';
 
 export type SettingsTab =
   | 'account'
@@ -369,6 +370,7 @@ export class UserSettingsService {
   private readonly profileGames = inject(ProfileGamesService);
   private readonly profilesApi = inject(ProfilesApiService);
   private readonly profileStore = inject(ProfileStore);
+  private readonly profileLookup = inject(ProfileLookup);
 
   private getEffectiveUsername(): string {
     const fromProfile = this.profileService.current()?.username;
@@ -2067,6 +2069,11 @@ export class UserSettingsService {
       // Một nguồn duy nhất cho ảnh: thanh dưới đáy, thẻ hồ sơ và tab cài đặt
       // đều đọc ProfileStore. Không set ở đây thì chúng giữ ảnh cũ.
       this.profileStore.set(updated);
+      // `ProfileLookup` (thẻ hồ sơ nổi mở qua avatar/[appProfileTrigger]) là một
+      // cache RIÊNG theo username, chỉ tự xoá lúc đăng xuất — không nghe
+      // `ProfileStore`. Không `prime()` lại ở đây thì bấm avatar của chính mình
+      // ngay sau khi Lưu vẫn thấy tên/bio CŨ, phải F5 cả trang mới thấy đúng.
+      this.profileLookup.prime(updated);
       this.pendingAvatarFile.set(null);
       this.avatarRemovalStaged.set(false);
       this.pendingBannerFile.set(null);
