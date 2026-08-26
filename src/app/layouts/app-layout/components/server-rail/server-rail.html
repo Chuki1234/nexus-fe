@@ -24,7 +24,7 @@
 
     @if (totalDmUnreadCount() > 0) {
       <app-unread-badge
-        class="pointer-events-none absolute -right-1 -bottom-1"
+        class="server-tile-unread-badge pointer-events-none absolute"
         [count]="totalDmUnreadCount()"
         label="thông báo chưa đọc"
       />
@@ -108,7 +108,7 @@
 
           @if (item.server.mentionCount > 0) {
             <app-unread-badge
-              class="pointer-events-none absolute -right-1 -bottom-1"
+              class="server-tile-unread-badge pointer-events-none absolute"
               [count]="item.server.mentionCount"
               label="lượt nhắc tên chưa đọc"
             />
@@ -169,7 +169,7 @@
 
             @if (groupMentions(item.servers) > 0) {
               <app-unread-badge
-                class="pointer-events-none absolute -right-1 -bottom-1"
+                class="server-tile-unread-badge pointer-events-none absolute"
                 [count]="groupMentions(item.servers)"
                 label="lượt nhắc tên trong nhóm chưa đọc"
               />
@@ -253,7 +253,7 @@
 
                   @if (server.mentionCount > 0) {
                     <app-unread-badge
-                      class="pointer-events-none absolute -right-1 -bottom-1"
+                      class="server-tile-unread-badge pointer-events-none absolute"
                       [count]="server.mentionCount"
                       label="lượt nhắc tên chưa đọc"
                     />
