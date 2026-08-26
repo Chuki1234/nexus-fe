@@ -17,6 +17,7 @@ import {
 import { VoiceApiService } from '../../../core/api/voice-api.service';
 import { ProfileService } from '../../../core/profile/profile.service';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
+import { UserSettingsService } from '../../settings/services/user-settings.service';
 import { MediaDeviceService } from './media-device.service';
 
 export type VoiceConnectionStatus =
@@ -51,11 +52,14 @@ export class VoiceRoomService implements OnDestroy {
   private readonly profile = inject(ProfileService);
   private readonly mediaDevices = inject(MediaDeviceService);
   private readonly chatSocket = inject(ChatSocketService);
+  private readonly userSettings = inject(UserSettingsService);
 
   private room: Room | null = null;
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private isTestingMicActive = false;
   private wasMutedBeforeTest = false;
+  private isPttPressed = false;
+  private pttReleaseTimeout: ReturnType<typeof setTimeout> | null = null;
   private readonly socketSubs = new Subscription();
 
   private localAudioContext: AudioContext | null = null;
@@ -196,6 +200,101 @@ export class VoiceRoomService implements OnDestroy {
         }
       });
     });
+
+    // 4. Lắng nghe phím Push-to-Talk toàn cục (Global Push-to-Talk)
+    if (typeof window !== 'undefined') {
+      window.addEventListener(
+        'keydown',
+        (e: KeyboardEvent) => {
+          const prefs = this.userSettings.preferences();
+          if (prefs.inputMode !== 'push-to-talk') return;
+          if (e.repeat) return;
+
+          const target = e.target as HTMLElement | null;
+          const isTyping =
+            target &&
+            (target.tagName === 'INPUT' ||
+              target.tagName === 'TEXTAREA' ||
+              target.isContentEditable);
+          const isModifier = ['Caps Lock', 'Ctrl', 'Alt', 'Shift', 'Tab'].includes(prefs.pushToTalkKey);
+
+          if (isTyping && !isModifier) return;
+
+          if (this.matchesPttKey(e, prefs.pushToTalkKey)) {
+            if (this.pttReleaseTimeout) {
+              clearTimeout(this.pttReleaseTimeout);
+              this.pttReleaseTimeout = null;
+            }
+            this.isPttPressed = true;
+            if (this.isConnected() && this.room) {
+              void this.setMicrophoneActive(true);
+            }
+          }
+        },
+        { capture: true },
+      );
+
+      window.addEventListener(
+        'keyup',
+        (e: KeyboardEvent) => {
+          const prefs = this.userSettings.preferences();
+          if (prefs.inputMode !== 'push-to-talk') return;
+
+          if (this.matchesPttKey(e, prefs.pushToTalkKey)) {
+            this.isPttPressed = false;
+            const delay = prefs.pushToTalkDelay || 0;
+            if (delay > 0) {
+              this.pttReleaseTimeout = setTimeout(() => {
+                if (!this.isPttPressed && this.isConnected() && this.room) {
+                  void this.setMicrophoneActive(false);
+                }
+              }, delay);
+            } else {
+              if (this.isConnected() && this.room) {
+                void this.setMicrophoneActive(false);
+              }
+            }
+          }
+        },
+        { capture: true },
+      );
+    }
+  }
+
+  private matchesPttKey(event: KeyboardEvent, targetKey: string): boolean {
+    if (!targetKey) return false;
+    const cleanTarget = targetKey.trim().toLowerCase();
+    if (cleanTarget === 'caps lock' || cleanTarget === 'capslock') return event.code === 'CapsLock';
+    if (cleanTarget === 'space' || cleanTarget === 'spacebar') return event.code === 'Space';
+    if (cleanTarget === 'ctrl' || cleanTarget === 'control') return event.key === 'Control' || event.ctrlKey;
+    if (cleanTarget === 'alt') return event.key === 'Alt' || event.altKey;
+    if (cleanTarget === 'shift') return event.key === 'Shift' || event.shiftKey;
+    if (cleanTarget === 'tab') return event.code === 'Tab';
+    if (event.key && event.key.toLowerCase() === cleanTarget) return true;
+    if (event.code && event.code.toLowerCase().replace('key', '') === cleanTarget) return true;
+    return false;
+  }
+
+  /**
+   * Đặt trạng thái bật/tắt microphone (dùng cho Push-to-Talk)
+   */
+  async setMicrophoneActive(enabled: boolean): Promise<void> {
+    if (!this.room) return;
+    try {
+      await this.room.localParticipant.setMicrophoneEnabled(enabled);
+      if (enabled) {
+        const micPub = this.room.localParticipant.getTrackPublication(Track.Source.Microphone);
+        if (micPub?.audioTrack?.mediaStreamTrack) {
+          this.startLocalFastVad(micPub.audioTrack.mediaStreamTrack);
+        }
+      } else {
+        this.stopLocalFastVad();
+      }
+      this.updateLocalParticipantState();
+      this.broadcastVoiceState(this.currentChannelId());
+    } catch (err) {
+      console.warn('Lỗi khi đổi trạng thái microphone:', err);
+    }
   }
 
   /**
@@ -315,13 +414,16 @@ export class VoiceRoomService implements OnDestroy {
       // 3. Kết nối WebRTC tới LiveKit Server
       await this.room.connect(tokenRes.serverUrl, tokenRes.participantToken);
 
-      // 4. Bật micro / camera theo options ban đầu
-      if (enableAudio) {
+      // 4. Bật micro / camera theo options ban đầu và chế độ nhập (Voice Activity vs PTT)
+      const isPttMode = this.userSettings.preferences().inputMode === 'push-to-talk';
+      if (enableAudio && !isPttMode) {
         await this.room.localParticipant.setMicrophoneEnabled(true);
         const micPub = this.room.localParticipant.getTrackPublication(Track.Source.Microphone);
         if (micPub?.audioTrack?.mediaStreamTrack) {
           this.startLocalFastVad(micPub.audioTrack.mediaStreamTrack);
         }
+      } else {
+        await this.room.localParticipant.setMicrophoneEnabled(false);
       }
       if (enableVideo) {
         await this.room.localParticipant.setCameraEnabled(true);

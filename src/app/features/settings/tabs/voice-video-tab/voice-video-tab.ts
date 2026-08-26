@@ -49,18 +49,6 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
 
   protected readonly barsArray = Array.from({ length: this.totalBars }, (_, i) => i);
 
-  protected readonly backgroundEffects: {
-    id: AppPreferences['videoBackgroundEffect'];
-    label: string;
-    description: string;
-    icon: string;
-  }[] = [
-    { id: 'none', label: 'Mặc định', description: 'Hình ảnh gốc tự nhiên', icon: 'block' },
-    { id: 'blur', label: 'Làm mờ nền', description: 'Làm mờ sâu hậu cảnh', icon: 'blur' },
-    { id: 'cyberpunk', label: 'Cyberpunk', description: 'Ánh sáng neon tương lai', icon: 'cyberpunk' },
-    { id: 'cozy-room', label: 'Studio Ấm', description: 'Tông màu vintage ấm áp', icon: 'room' },
-  ];
-
   protected selectedInputLabel = computed(() => {
     const id = this.mediaDevices.selectedAudioInputId();
     const devices = this.mediaDevices.audioInputs();
@@ -83,22 +71,6 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
     if (!devices.length) return 'Cài đặt mặc định của Windows (Integrated Camera...)';
     const found = devices.find((d) => d.deviceId === id);
     return found?.label || devices[0]?.label || 'Integrated Camera 1';
-  });
-
-  /** Filter CSS thời gian thực cho video theo hiệu ứng phông nền đang chọn */
-  protected currentVideoFilter = computed(() => {
-    const effect = this.settingsService.preferences().videoBackgroundEffect;
-    switch (effect) {
-      case 'blur':
-        return 'blur(5px) contrast(1.05)';
-      case 'cyberpunk':
-        return 'contrast(1.35) saturate(1.8) hue-rotate(185deg)';
-      case 'cozy-room':
-        return 'sepia(0.3) saturate(1.3) contrast(1.1) brightness(0.95)';
-      case 'none':
-      default:
-        return 'none';
-    }
   });
 
   @HostListener('document:click', ['$event'])
@@ -322,9 +294,5 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
 
   protected setAttenuationPercent(val: number): void {
     this.settingsService.updatePreference('attenuationPercent', Number(val));
-  }
-
-  protected setBackgroundEffect(effect: AppPreferences['videoBackgroundEffect']): void {
-    this.settingsService.updatePreference('videoBackgroundEffect', effect);
   }
 }
