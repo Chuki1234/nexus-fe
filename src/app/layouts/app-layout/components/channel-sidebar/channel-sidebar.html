@@ -1,4 +1,4 @@
-<header class="channel-sidebar__header shrink-0 border-b border-hairline">
+<header class="channel-sidebar__header shrink-0 border-b border-hairline h-12 flex items-center">
   @if (serverId(); as id) {
     <!-- Full-width unified server header — Nút mở dropdown menu server chuẩn phong cách Discord -->
     <div
@@ -196,7 +196,7 @@
       }
     </mat-menu>
   } @else {
-    <div class="p-2.5">
+    <div class="flex h-12 w-full items-center px-2.5">
       <button
         type="button"
         (click)="openCommandCenter()"

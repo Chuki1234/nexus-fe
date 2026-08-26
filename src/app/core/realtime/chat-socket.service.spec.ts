@@ -348,6 +348,30 @@ describe('ChatSocketService', () => {
     expect(received).toEqual(payload);
   });
 
+  it('phát tán conversationDeleted$ khi socket nhận conversation:deleted', async () => {
+    service.connect('jwt-token-123');
+
+    const callback = mockSocket.on.mock.calls.find(
+      (call: any[]) => call[0] === 'conversation:deleted',
+    )?.[1];
+
+    expect(callback).toBeDefined();
+
+    const payload = {
+      conversationId: 'conv-200',
+      friendId: 'user-friend-123',
+    };
+
+    const promise = new Promise<any>((resolve) => {
+      service.conversationDeleted$.subscribe((p) => resolve(p));
+    });
+
+    callback(payload);
+    const received = await promise;
+
+    expect(received).toEqual(payload);
+  });
+
   it('presence:updated và presence:sync phát tán qua observable và getPresenceSnapshot emit request', async () => {
     service.connect('jwt-token-123');
 

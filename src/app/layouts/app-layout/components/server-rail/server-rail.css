@@ -3,6 +3,18 @@
   background: var(--color-surface);
   border: 1px solid var(--nexus-border-subtle);
   box-shadow: var(--shadow-glow);
+  display: flex;
+  flex-direction: column;
+}
+
+.server-rail__header {
+  height: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--nexus-border-subtle);
+  width: 100%;
 }
 
 /* Thanh chỉ báo Pill ở mép trái (Pill Indicator) chuẩn Discord */
@@ -120,7 +132,7 @@
   align-items: center;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 0 0.25rem 0.5rem;
+  padding: 0.5rem 0.25rem;
   gap: 0.5rem;
 }
 

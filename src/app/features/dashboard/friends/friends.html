@@ -87,8 +87,46 @@
             <app-section-label [text]="'Chờ duyệt — ' + pendingCount()" />
 
             @if (pendingCount() > 0) {
+              <!-- 1. Danh sách lời mời tham gia máy chủ -->
+              @if (serverInvitations().length > 0) {
+                <div class="mt-4 flex items-center justify-between">
+                  <h2 class="text-caption-bold text-ink flex items-center gap-2">
+                    <mat-icon class="!size-4 !text-base text-primary">dns</mat-icon>
+                    <span>Lời mời tham gia máy chủ</span>
+                  </h2>
+                  <span class="text-[11px] font-semibold text-steel">
+                    {{ serverInvitations().length }} lời mời
+                  </span>
+                </div>
+
+                <div class="friends-list-well mt-2 rounded-2xl p-2">
+                  <ul class="flex flex-col gap-2" aria-label="Lời mời tham gia máy chủ">
+                    @for (inv of serverInvitations(); track inv.id) {
+                      <li>
+                        <app-server-invitation-item
+                          [invitation]="inv"
+                          [busy]="processingInviteIds().has(inv.id)"
+                          (accepted)="onAcceptServerInvite($event)"
+                          (dismissed)="onDeclineServerInvite($event)"
+                        />
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <!-- 2. Danh sách lời mời kết bạn đã nhận -->
               @if (incomingRequests().length > 0) {
-                <h2 class="mt-4 text-caption-bold text-ink">Lời mời đã nhận</h2>
+                <div class="mt-6 flex items-center justify-between">
+                  <h2 class="text-caption-bold text-ink flex items-center gap-2">
+                    <mat-icon class="!size-4 !text-base text-steel">call_received</mat-icon>
+                    <span>Lời mời kết bạn đã nhận</span>
+                  </h2>
+                  <span class="text-[11px] font-semibold text-steel">
+                    {{ incomingRequests().length }} yêu cầu
+                  </span>
+                </div>
+
                 <div class="friends-list-well mt-2 rounded-2xl p-2">
                   <ul class="flex flex-col gap-2" aria-label="Lời mời kết bạn đã nhận">
                     @for (request of incomingRequests(); track request.id) {
@@ -105,8 +143,18 @@
                 </div>
               }
 
+              <!-- 3. Danh sách lời mời kết bạn đã gửi -->
               @if (outgoingRequests().length > 0) {
-                <h2 class="mt-6 text-caption-bold text-ink">Lời mời đã gửi</h2>
+                <div class="mt-6 flex items-center justify-between">
+                  <h2 class="text-caption-bold text-ink flex items-center gap-2">
+                    <mat-icon class="!size-4 !text-base text-steel">call_made</mat-icon>
+                    <span>Lời mời kết bạn đã gửi</span>
+                  </h2>
+                  <span class="text-[11px] font-semibold text-steel">
+                    {{ outgoingRequests().length }} yêu cầu
+                  </span>
+                </div>
+
                 <div class="friends-list-well mt-2 rounded-2xl p-2">
                   <ul class="flex flex-col gap-2" aria-label="Lời mời kết bạn đã gửi">
                     @for (request of outgoingRequests(); track request.id) {
@@ -126,7 +174,7 @@
                 class="mt-6 flex min-h-0 flex-1"
                 icon="mark_email_read"
                 title="Đã xử lý hết"
-                message="Bạn không còn lời mời kết bạn nào đang chờ."
+                message="Bạn không còn lời mời kết bạn hay lời mời máy chủ nào đang chờ."
               />
             }
           } @else if (tab() === 'blocked') {

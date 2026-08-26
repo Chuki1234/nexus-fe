@@ -8,6 +8,10 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { ServerInvitationsStore } from '../../../core/servers/server-invitations.store';
+import type { DirectServerInvitationDto } from '../../../../shared/dto/server-invitations.dto';
+import { ServerInvitationItem } from './components/server-invitation-item/server-invitation-item';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -44,7 +48,7 @@ type FriendsContextView = 'activity';
 /**
  * Trang đích của khu tin nhắn trực tiếp — `/channels/@me`.
  *
- * Chỉ lắp ráp và giữ trạng thái lọc; dữ liệu thật nằm trong `FriendsStore`.
+ * Quản lý danh sách bạn bè và duyệt các yêu cầu kết bạn / lời mời tham gia máy chủ.
  */
 @Component({
   selector: 'app-friends-page',
@@ -62,6 +66,7 @@ type FriendsContextView = 'activity';
     MatIconModule,
     SearchField,
     SectionLabel,
+    ServerInvitationItem,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col' },
@@ -73,7 +78,9 @@ export class FriendsPage implements OnInit {
   private readonly themeService = inject(ThemeService);
   private readonly uiState = inject(DashboardUiState);
   private readonly friendsStore = inject(FriendsStore);
+  private readonly invitationsStore = inject(ServerInvitationsStore);
   private readonly presenceService = inject(PresenceService);
+  private readonly route = inject(ActivatedRoute);
 
   // Màn hình rộng (>= 1280px) thì mở Activity Panel; màn hình nhỏ/tablet/mobile thì đóng để không che danh sách
   protected readonly isLargeScreen = toSignal(
@@ -99,6 +106,11 @@ export class FriendsPage implements OnInit {
   protected readonly busyIds = this.friendsStore.busyIds;
   protected readonly incomingRequests = this.friendsStore.incomingRequests;
   protected readonly outgoingRequests = this.friendsStore.outgoingRequests;
+
+  /** Quản lý danh sách lời mời máy chủ */
+  protected readonly serverInvitations = this.invitationsStore.pendingInvitations;
+  protected readonly serverInvitationsLoading = this.invitationsStore.isLoading;
+  protected readonly processingInviteIds = signal<Set<string>>(new Set());
 
   protected readonly allFriends = this.friendsStore.friends;
 
@@ -135,8 +147,12 @@ export class FriendsPage implements OnInit {
     });
   });
 
+  /** Tổng số yêu cầu đang chờ duyệt: lời mời kết bạn (đến + đi) + lời mời tham gia máy chủ */
   protected readonly pendingCount = computed(
-    () => this.incomingRequests().length + this.outgoingRequests().length,
+    () =>
+      this.incomingRequests().length +
+      this.outgoingRequests().length +
+      this.serverInvitations().length,
   );
 
   protected readonly sectionLabel = computed(() => {
@@ -179,7 +195,20 @@ export class FriendsPage implements OnInit {
   }
 
   ngOnInit(): void {
+    const tabParam = this.route.snapshot.queryParamMap.get('tab');
+    if (tabParam === 'pending' || tabParam === 'online' || tabParam === 'all' || tabParam === 'blocked' || tabParam === 'add') {
+      this.tab.set(tabParam);
+    }
+
+    this.route.queryParamMap.subscribe((params) => {
+      const tab = params.get('tab');
+      if (tab === 'pending' || tab === 'online' || tab === 'all' || tab === 'blocked' || tab === 'add') {
+        this.tab.set(tab);
+      }
+    });
+
     void this.friendsStore.load();
+    void this.invitationsStore.hydrateInvitations();
   }
 
   protected toggleActivity(): void {
@@ -210,11 +239,38 @@ export class FriendsPage implements OnInit {
     void this.friendsStore.deleteRequest(userId, 'outgoing');
   }
 
+  protected async onAcceptServerInvite(invitation: DirectServerInvitationDto): Promise<void> {
+    this.processingInviteIds.update((s) => new Set(s).add(invitation.id));
+    try {
+      await this.invitationsStore.acceptInvitation(invitation.id);
+    } finally {
+      this.processingInviteIds.update((s) => {
+        const next = new Set(s);
+        next.delete(invitation.id);
+        return next;
+      });
+    }
+  }
+
+  protected async onDeclineServerInvite(invitation: DirectServerInvitationDto): Promise<void> {
+    this.processingInviteIds.update((s) => new Set(s).add(invitation.id));
+    try {
+      await this.invitationsStore.declineInvitation(invitation.id);
+    } finally {
+      this.processingInviteIds.update((s) => {
+        const next = new Set(s);
+        next.delete(invitation.id);
+        return next;
+      });
+    }
+  }
+
   protected onRemoveFriend(personId: string): void {
     void this.friendsStore.removeFriend(personId);
   }
 
   protected onRetry(): void {
     void this.friendsStore.load(true);
+    void this.invitationsStore.hydrateInvitations();
   }
 }

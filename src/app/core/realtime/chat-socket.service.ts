@@ -228,6 +228,15 @@ export class ChatSocketService {
     unreadDelta: number;
   }> = this.conversationUpdatedSubject.asObservable();
 
+  private readonly conversationDeletedSubject = new Subject<{
+    conversationId: string;
+    friendId?: string;
+  }>();
+  readonly conversationDeleted$: Observable<{
+    conversationId: string;
+    friendId?: string;
+  }> = this.conversationDeletedSubject.asObservable();
+
   readonly directCallIncoming$: Observable<DirectCallDto> =
     this.directCallIncomingSubject.asObservable();
   readonly directCallRinging$: Observable<DirectCallDto> =
@@ -880,6 +889,10 @@ export class ChatSocketService {
 
     this.socket.on('conversation:updated', (payload) => {
       this.conversationUpdatedSubject.next(payload);
+    });
+
+    this.socket.on('conversation:deleted', (payload) => {
+      this.conversationDeletedSubject.next(payload);
     });
 
     this.socket.on('presence:updated', (payload) => {
