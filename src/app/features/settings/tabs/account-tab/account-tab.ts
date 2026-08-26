@@ -27,7 +27,6 @@ export class AccountTab implements OnInit {
   protected readonly showPhone = signal<boolean>(false);
   protected readonly showChangePasswordModal = signal<boolean>(false);
   protected readonly passwordChangedSuccess = signal<boolean>(false);
-  protected readonly showSessionsPanel = signal<boolean>(false);
 
   // In-place row editing states (Ảnh 1)
   protected readonly editingUsername = signal<boolean>(false);
