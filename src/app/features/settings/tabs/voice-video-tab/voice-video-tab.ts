@@ -30,14 +30,17 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
   protected readonly isTestingVideo = signal<boolean>(false);
   protected readonly videoError = signal<string | null>(null);
 
+  // Custom dropdown open states
+  protected readonly inputDropdownOpen = signal<boolean>(false);
+  protected readonly outputDropdownOpen = signal<boolean>(false);
+  protected readonly videoDropdownOpen = signal<boolean>(false);
+
   private keydownListener: ((e: KeyboardEvent) => void) | null = null;
   private videoStream: MediaStream | null = null;
 
-  // Active green bars computed from live mic level (0-100) from real hardware
   protected readonly activeBars = computed(() => {
     if (!this.mediaDevices.isTestingMic()) return 0;
-    const level = this.mediaDevices.audioLevel();
-    return Math.round((level / 100) * this.totalBars);
+    return Math.round((this.mediaDevices.audioLevel() / 100) * this.totalBars);
   });
 
   protected readonly barsArray = Array.from({ length: this.totalBars }, (_, i) => i);
@@ -53,12 +56,33 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
     { id: 'cozy-room', label: 'Phòng Studio ấm', icon: 'weekend' },
   ];
 
-  async ngOnInit(): Promise<void> {
-    // Xin quyền và quét thiết bị phần cứng thực tế của máy
-    await this.mediaDevices.requestPermissions(true);
-    await this.mediaDevices.enumerateDevices();
+  protected selectedInputLabel = computed(() => {
+    const id = this.mediaDevices.selectedAudioInputId();
+    const devices = this.mediaDevices.audioInputs();
+    if (!devices.length) return 'Cài đặt mặc định của Windows (Microphone Array...)';
+    const found = devices.find((d) => d.deviceId === id);
+    return found?.label || devices[0]?.label || 'Microphone 1';
+  });
 
-    // Đồng bộ mức âm lượng đã lưu
+  protected selectedOutputLabel = computed(() => {
+    const id = this.mediaDevices.selectedAudioOutputId();
+    const devices = this.mediaDevices.audioOutputs();
+    if (!devices.length) return 'Cài đặt mặc định của Windows (Speakers/Headphones...)';
+    const found = devices.find((d) => d.deviceId === id);
+    return found?.label || devices[0]?.label || 'Speakers 1';
+  });
+
+  protected selectedVideoLabel = computed(() => {
+    const id = this.mediaDevices.selectedVideoInputId();
+    const devices = this.mediaDevices.videoInputs();
+    if (!devices.length) return 'Cài đặt mặc định của Windows (Integrated Camera...)';
+    const found = devices.find((d) => d.deviceId === id);
+    return found?.label || devices[0]?.label || 'Camera 1';
+  });
+
+  async ngOnInit(): Promise<void> {
+    await this.mediaDevices.requestPermissions(false);
+    await this.mediaDevices.enumerateDevices();
     const prefs = this.settingsService.preferences();
     this.mediaDevices.setInputVolumeLevel(prefs.inputVolume);
     this.mediaDevices.setOutputVolumeLevel(prefs.outputVolume);
@@ -68,6 +92,45 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
     this.stopPttKeyRecording();
     this.mediaDevices.stopMicrophoneTest();
     this.stopVideoTest();
+  }
+
+  protected toggleInputDropdown(): void {
+    this.inputDropdownOpen.update((v) => !v);
+    this.outputDropdownOpen.set(false);
+    this.videoDropdownOpen.set(false);
+  }
+
+  protected toggleOutputDropdown(): void {
+    this.outputDropdownOpen.update((v) => !v);
+    this.inputDropdownOpen.set(false);
+    this.videoDropdownOpen.set(false);
+  }
+
+  protected toggleVideoDropdown(): void {
+    this.videoDropdownOpen.update((v) => !v);
+    this.inputDropdownOpen.set(false);
+    this.outputDropdownOpen.set(false);
+  }
+
+  protected selectInput(deviceId: string): void {
+    this.onInputDeviceChange(deviceId);
+    this.inputDropdownOpen.set(false);
+  }
+
+  protected selectOutput(deviceId: string): void {
+    this.onOutputDeviceChange(deviceId);
+    this.outputDropdownOpen.set(false);
+  }
+
+  protected selectVideo(deviceId: string): void {
+    this.onVideoDeviceChange(deviceId);
+    this.videoDropdownOpen.set(false);
+  }
+
+  protected closeAllDropdowns(): void {
+    this.inputDropdownOpen.set(false);
+    this.outputDropdownOpen.set(false);
+    this.videoDropdownOpen.set(false);
   }
 
   protected onInputDeviceChange(deviceId: string): void {
@@ -83,16 +146,13 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
   protected onVideoDeviceChange(deviceId: string): void {
     this.mediaDevices.selectVideoInput(deviceId);
     this.settingsService.updatePreference('selectedVideoDevice', deviceId);
-    if (this.isTestingVideo()) {
-      void this.startVideoTest();
-    }
+    if (this.isTestingVideo()) void this.startVideoTest();
   }
 
   protected toggleMicTest(): void {
     if (this.mediaDevices.isTestingMic()) {
       this.mediaDevices.stopMicrophoneTest();
     } else {
-      // Bắt đầu test mic với loopback để người dùng có thể nghe giọng mình qua loa/tai nghe đã chọn
       void this.mediaDevices.startMicrophoneTest(this.mediaDevices.selectedAudioInputId(), true);
     }
   }
@@ -108,21 +168,17 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
   private async startVideoTest(): Promise<void> {
     this.stopVideoTest();
     this.videoError.set(null);
-
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       this.videoError.set('Trình duyệt không hỗ trợ truy cập camera.');
       return;
     }
-
     try {
       const vidId = this.mediaDevices.selectedVideoInputId();
       const constraints: MediaStreamConstraints = {
         video: vidId && vidId !== 'default' ? { deviceId: { exact: vidId } } : true,
       };
-
       this.videoStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.isTestingVideo.set(true);
-
       setTimeout(() => {
         const videoEl = document.querySelector<HTMLVideoElement>('#settings-video-preview');
         if (videoEl && this.videoStream) {
@@ -144,27 +200,15 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
       this.videoStream = null;
     }
     const videoEl = document.querySelector<HTMLVideoElement>('#settings-video-preview');
-    if (videoEl) {
-      videoEl.srcObject = null;
-    }
+    if (videoEl) videoEl.srcObject = null;
   }
 
   protected startPttKeyRecording(): void {
-    if (this.isRecordingPttKey()) {
-      this.stopPttKeyRecording();
-      return;
-    }
+    if (this.isRecordingPttKey()) { this.stopPttKeyRecording(); return; }
     this.isRecordingPttKey.set(true);
-
     this.keydownListener = (e: KeyboardEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (e.key === 'Escape') {
-        this.stopPttKeyRecording();
-        return;
-      }
-
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === 'Escape') { this.stopPttKeyRecording(); return; }
       let keyName = e.key;
       if (e.code === 'Space') keyName = 'Space';
       else if (e.code === 'CapsLock') keyName = 'Caps Lock';
@@ -175,11 +219,9 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
       else if (e.key === 'Shift') keyName = 'Shift';
       else if (e.key === 'Meta') keyName = 'Win / Cmd';
       else if (e.key.length === 1) keyName = e.key.toUpperCase();
-
       this.settingsService.updatePreference('pushToTalkKey', keyName);
       this.stopPttKeyRecording();
     };
-
     window.addEventListener('keydown', this.keydownListener, { capture: true });
   }
 
