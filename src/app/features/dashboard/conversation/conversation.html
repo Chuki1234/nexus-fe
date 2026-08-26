@@ -60,6 +60,7 @@
 } @else if (hasValidConversation()) {
   <app-chat-toolbar
     [title]="recipientName()"
+    [subtitle]="recipientStatusSubtitle()"
     leadingIcon="alternate_email"
     [showCallActions]="true"
     [showDetailsAction]="recipientUsername() !== null"

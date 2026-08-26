@@ -79,4 +79,42 @@ describe('GiphyMessageEmbedComponent', () => {
       }),
     );
   });
+
+  it('hiển thị nhãn dán Stipop với class is-sticker và định dạng png', () => {
+    const stickerMedia: GiphyMediaDto = {
+      provider: 'stipop',
+      externalId: '45268',
+      mediaType: 'sticker',
+      title: 'Cute Cat Sticker',
+      creatorUsername: 'amam',
+      pageUrl: 'https://stipop.io/package/2199',
+      previewUrl: 'https://img.stipop.io/sticker/2199/200.png',
+      displayUrl: 'https://img.stipop.io/2019/9/6/disp.png',
+      mp4Url: null,
+      width: 300,
+      height: 300,
+    };
+
+    fixture.componentRef.setInput('media', stickerMedia);
+    fixture.detectChanges();
+
+    const wrapperEl: HTMLElement = fixture.nativeElement.querySelector('.giphy-embed-wrapper');
+    expect(wrapperEl.classList.contains('is-sticker')).toBe(true);
+
+    const lightboxService = (component as any).lightbox;
+    const openSpy = vi.spyOn(lightboxService, 'open').mockReturnValue({} as any);
+    wrapperEl.click();
+
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            mimeType: 'image/png',
+            url: 'https://img.stipop.io/2019/9/6/disp.png',
+            filename: 'Cute Cat Sticker.png',
+          }),
+        ]),
+      }),
+    );
+  });
 });

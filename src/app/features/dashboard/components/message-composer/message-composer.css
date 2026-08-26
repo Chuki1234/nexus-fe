@@ -179,62 +179,109 @@
   color: var(--color-steel);
 }
 
-/* Nút GIF nổi bật phong cách Discord/Nexus */
-.gif-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  height: 2rem;
-  padding: 0 0.35rem;
-  border-radius: var(--radius-md, 8px);
-  background: transparent;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  font-family: inherit;
-  user-select: none;
+/* Bộ icon media đồng nhất: đơn sắc khi nghỉ, dùng màu thương hiệu khi tương tác. */
+.composer-media-action {
+  color: var(--color-steel);
+  border-radius: var(--radius-md, 0.5rem);
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
 }
 
-.gif-pill-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px 7px;
-  border-radius: 6px;
-  font-size: 0.725rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  line-height: 1;
-  background: color-mix(in srgb, var(--color-surface-feature, #003d4f) 70%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-primary, #00ed64) 35%, transparent);
-  color: var(--color-primary, #00ed64);
-  box-shadow: 0 0 8px rgba(0, 237, 100, 0.15);
-  transition: all 0.18s ease;
-}
-
-.gif-toggle-btn:hover:not(:disabled) {
+.composer-media-action:hover:not(:disabled) {
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
   transform: translateY(-1px);
 }
 
-.gif-toggle-btn:hover:not(:disabled) .gif-pill-badge {
-  background: var(--color-primary, #00ed64);
-  color: var(--color-on-primary, #001e2b);
-  border-color: var(--color-primary, #00ed64);
-  box-shadow: 0 0 14px rgba(0, 237, 100, 0.45);
+.composer-media-action.active {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
-.gif-toggle-btn.active,
-.gif-toggle-btn.active .gif-pill-badge {
-  background: var(--color-primary, #00ed64);
-  color: var(--color-on-primary, #001e2b);
-  border-color: var(--color-primary, #00ed64);
-  box-shadow: 0 0 16px rgba(0, 237, 100, 0.55);
-}
-
-.gif-toggle-btn:disabled {
+.composer-media-action:disabled {
+  color: var(--color-steel);
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.composer-media-icon {
+  display: block;
+  width: 1.4rem;
+  height: 1.4rem;
+  overflow: visible;
+}
+
+.composer-icon-fill {
+  fill: currentColor;
+}
+
+.composer-icon-cutout-fill {
+  fill: var(--color-canvas);
+}
+
+.composer-icon-cutout-stroke {
+  fill: none;
+  stroke: var(--color-canvas);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+.composer-gif-icon {
+  display: inline-grid;
+  width: 1.55rem;
+  height: 1.25rem;
+  place-items: center;
+  border-radius: 0.25rem;
+  background: currentColor;
+  user-select: none;
+}
+
+.composer-gif-icon > span {
+  color: var(--color-canvas);
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.composer-sticker-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-media-action {
+    transition: none;
+  }
+
+  .composer-media-action:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+.composer-picker-popover {
+  position: absolute;
+  right: 0.25rem;
+  bottom: calc(100% + 0.625rem);
+  z-index: 100;
+  margin: 0;
+  max-width: 100%;
+  transform-origin: bottom right;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 639.98px) {
+  .composer-picker-popover {
+    right: 0;
+    left: 0;
+    margin-inline: auto;
+    bottom: calc(100% + 0.5rem);
+    max-width: 100%;
+    justify-content: center;
+  }
 }
 
 .composer-shell.drag-over {
@@ -307,10 +354,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.composer-hint {
-  text-wrap: pretty;
 }
 
 @media (max-width: 39.999rem), (pointer: coarse) {

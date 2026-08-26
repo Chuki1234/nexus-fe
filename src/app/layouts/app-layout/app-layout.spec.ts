@@ -91,6 +91,7 @@ import { Subject } from 'rxjs';
 class ChatSocketServiceStub {
   connect = vi.fn();
   disconnect = vi.fn();
+  emitActivity = vi.fn();
   getServerVoiceStates = vi.fn().mockResolvedValue([]);
   isConnected = signal(true).asReadonly();
   messageCreated$ = new Subject<any>();

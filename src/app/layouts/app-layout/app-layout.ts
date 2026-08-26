@@ -31,6 +31,8 @@ import { IncomingCallOverlayComponent } from '../../features/dashboard/component
 import { DirectCallStageComponent } from '../../features/dashboard/components/direct-call-stage/direct-call-stage.component';
 import { DirectCallCoordinatorService } from '../../core/calls/direct-call-coordinator.service';
 
+import { UserActivityTrackerService } from '../../core/presence/user-activity-tracker.service';
+
 import {
   DashboardLayoutService,
   MOBILE_BREAKPOINT_QUERY,
@@ -76,6 +78,7 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   private readonly chatSocket = inject(ChatSocketService);
   private readonly coordinator = inject(ServerRealtimeCoordinator);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
+  private readonly activityTracker = inject(UserActivityTrackerService);
   protected readonly layoutService = inject(DashboardLayoutService);
   protected readonly theme = inject(ThemeService).mode;
   protected readonly toastService = inject(ToastService);
@@ -108,6 +111,7 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     void this.hydrateServers();
     void this.directCallCoordinator.restoreActiveCall();
+    this.activityTracker.start();
 
     this.subs.add(
       this.router.events

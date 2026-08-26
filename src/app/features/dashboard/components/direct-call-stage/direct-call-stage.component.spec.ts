@@ -14,13 +14,15 @@ describe('DirectCallStageComponent', () => {
   let mockCoordinator: any;
   let mockMedia: any;
   let mockDevice: any;
+  let remoteVideoAvailable: ReturnType<typeof signal<boolean>>;
 
   beforeEach(async () => {
+    remoteVideoAvailable = signal(false);
     mockStore = {
       showStage: () => true,
       remoteParticipant: () => ({ id: 'u2', displayName: 'Friend Name', username: 'friend' }),
       callState: () => 'connected',
-      isRemoteVideoAvailable: () => false,
+      isRemoteVideoAvailable: remoteVideoAvailable,
       isRemoteSpeaking: () => false,
       isRemoteCameraOff: () => false,
       isAudioMuted: () => false,
@@ -46,6 +48,8 @@ describe('DirectCallStageComponent', () => {
       attachRemoteVideo: vi.fn(),
       attachRemoteAudio: vi.fn(),
       attachLocalVideo: vi.fn(),
+      releaseLocalVideo: vi.fn(),
+      releaseRemoteVideo: vi.fn(),
       setMicrophoneEnabled: vi.fn(),
       setCameraEnabled: vi.fn(),
       setAudioOutput: vi.fn(),
@@ -81,5 +85,33 @@ describe('DirectCallStageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.header-name')?.textContent).toContain('Friend Name');
     expect(compiled.querySelector('.header-status')?.textContent).toContain('Đã kết nối');
+  });
+
+  it('swaps local video into the main stage when both cameras are available', () => {
+    remoteVideoAvailable.set(true);
+    fixture.detectChanges();
+
+    component.swapPrimaryVideo();
+    fixture.detectChanges();
+
+    expect(component.isLocalVideoPrimary()).toBe(true);
+    expect(fixture.nativeElement.querySelector('.local-primary-video')).toBeTruthy();
+  });
+
+  it('does not swap while the remote camera is unavailable', () => {
+    component.swapPrimaryVideo();
+    expect(component.isLocalVideoPrimary()).toBe(false);
+  });
+
+  it('returns the remote participant to the main stage when their camera turns off', () => {
+    remoteVideoAvailable.set(true);
+    component.swapPrimaryVideo();
+    expect(component.isLocalVideoPrimary()).toBe(true);
+
+    remoteVideoAvailable.set(false);
+    fixture.detectChanges();
+
+    expect(component.isLocalVideoPrimary()).toBe(false);
+    expect(fixture.nativeElement.querySelector('.avatar-fallback-wrapper')).toBeTruthy();
   });
 });

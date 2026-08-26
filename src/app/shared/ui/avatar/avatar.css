@@ -6,3 +6,10 @@
   align-items: center;
   justify-content: center;
 }
+
+:host(.avatar--offline) img,
+:host(.avatar--offline) .avatar-fallback {
+  opacity: 0.85;
+  filter: grayscale(20%);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
