@@ -71,6 +71,18 @@
       <span>Chuyển tiếp</span>
     </span>
   </button>
+  <button mat-menu-item type="button" (click)="requestTogglePin()">
+    <mat-icon aria-hidden="true">push_pin</mat-icon>
+    <span class="message-menu-copy">
+      <span>{{ pinned() ? 'Bỏ ghim tin nhắn' : 'Ghim tin nhắn' }}</span>
+    </span>
+  </button>
+  <button mat-menu-item type="button" (click)="requestCopy()">
+    <mat-icon aria-hidden="true">content_copy</mat-icon>
+    <span class="message-menu-copy">
+      <span>Sao chép nội dung</span>
+    </span>
+  </button>
   <mat-divider />
   <button mat-menu-item type="button" class="message-menu-danger" (click)="requestDelete()">
     <mat-icon aria-hidden="true">{{ ownMessage() ? 'delete_forever' : 'delete_outline' }}</mat-icon>

@@ -1,4 +1,5 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, isPlatformBrowser } from '@angular/common';
+import { ToastService } from '../../../core/toast/toast.service';
 import {
   afterNextRender,
   AfterViewInit,
@@ -46,6 +47,10 @@ import {
   type ChannelChatUiMessage,
 } from '../services/channel-chat.store';
 import { compareMessageOrder } from '../../../core/utils/safe-message-comparator';
+import {
+  MessagesApiService,
+  type MessageResponseDto,
+} from '../../../core/api/messages-api.service';
 import { ServersStore } from '../../../core/servers/servers.store';
 import { ServerRealtimeCoordinator } from '../../../core/servers/server-realtime-coordinator.service';
 import { PresenceService } from '../../../core/presence/presence.service';
@@ -128,6 +133,8 @@ export class ChannelPage implements OnInit, AfterViewInit {
   readonly editingError = signal<string | null>(null);
   private readonly lightbox = inject(LightboxGalleryService);
   private readonly uiState = inject(DashboardUiState);
+  private readonly toast = inject(ToastService);
+  private readonly messagesApi = inject(MessagesApiService);
   private readonly injector = inject(Injector);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
@@ -158,6 +165,11 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
   // UI state signals
   protected readonly detailsOpen = signal<boolean>(false);
+  protected readonly searchOpen = signal<boolean>(false);
+  protected readonly pinsOpen = signal<boolean>(false);
+  protected readonly searchResults = signal<MessageResponseDto[]>([]);
+  protected readonly searchLoading = signal<boolean>(false);
+  protected readonly searchQuery = signal<string>('');
   protected readonly composerContext = signal<MessageComposerContext | null>(null);
   protected readonly forwardModalMessage = signal<ChannelChatUiMessage | null>(null);
   protected readonly serverMembers = signal<ServerMemberDto[]>([]);
@@ -522,7 +534,38 @@ export class ChannelPage implements OnInit, AfterViewInit {
       }
       return;
     }
+    if (event.kind === 'copy' && event.messageId) {
+      void this.copyMessageContent(event.messageId);
+      return;
+    }
+    if (event.kind === 'pin' && event.messageId) {
+      void this.channelChat.pinMessage(event.messageId);
+      return;
+    }
+    if (event.kind === 'unpin' && event.messageId) {
+      void this.channelChat.unpinMessage(event.messageId);
+      return;
+    }
     this.composerContext.set(event);
+  }
+
+  /** Sao chép nội dung tin nhắn vào bộ nhớ tạm. */
+  private async copyMessageContent(messageId: string): Promise<void> {
+    const msg = this.messages().find((m) => m.id === messageId);
+    const text = msg?.content ?? '';
+    if (!text) {
+      this.toast.show({ message: 'Tin nhắn này không có nội dung văn bản để sao chép.', type: 'info' });
+      return;
+    }
+    if (!isPlatformBrowser(this.platformId) || !navigator.clipboard) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      this.toast.show({ message: 'Đã sao chép nội dung tin nhắn.', type: 'success' });
+    } catch {
+      this.toast.show({ message: 'Không sao chép được. Hãy thử lại.', type: 'error' });
+    }
   }
 
   protected async onToggleReaction(messageId: string, emoji: string): Promise<void> {
@@ -530,6 +573,47 @@ export class ChannelPage implements OnInit, AfterViewInit {
     const reaction = msg?.reactions?.find((r) => r.emoji === emoji);
     const reactedByMe = reaction?.reactedByMe ?? false;
     await this.channelChat.setReaction(messageId, emoji, !reactedByMe);
+  }
+
+  /** Tìm kiếm tin nhắn trong kênh; mở panel kết quả bên phải. */
+  protected async onSearch(query: string): Promise<void> {
+    const q = query.trim();
+    this.searchQuery.set(q);
+    if (q.length === 0) {
+      this.searchOpen.set(false);
+      this.searchResults.set([]);
+      return;
+    }
+    const channelId = this.channelId();
+    if (!channelId) {
+      return;
+    }
+    this.pinsOpen.set(false);
+    this.detailsOpen.set(false);
+    this.searchOpen.set(true);
+    this.searchLoading.set(true);
+    try {
+      const res = await this.messagesApi.searchChannelMessages(channelId, q, { limit: 30 });
+      this.searchResults.set(res.messages);
+    } catch {
+      this.searchResults.set([]);
+    } finally {
+      this.searchLoading.set(false);
+    }
+  }
+
+  /** Mở panel danh sách tin đã ghim. */
+  protected openPins(): void {
+    this.searchOpen.set(false);
+    this.detailsOpen.set(false);
+    this.pinsOpen.set(true);
+  }
+
+  /** Nhảy tới tin nhắn từ panel (kết quả tìm kiếm / danh sách ghim) rồi đóng panel. */
+  protected jumpFromPanel(messageId: string): void {
+    this.searchOpen.set(false);
+    this.pinsOpen.set(false);
+    this.jumpToMessage(messageId);
   }
 
   protected onComposerTyping(): void {

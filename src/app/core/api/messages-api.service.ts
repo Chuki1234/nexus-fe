@@ -45,6 +45,10 @@ export interface MessageResponseDto {
   externalMedia: GiphyMediaDto | null;
   attachments?: AttachmentResponseDto[];
   reactions?: ReactionSummaryDto[];
+  /** Thời điểm được ghim (null/vắng nếu chưa ghim). */
+  pinnedAt?: string | null;
+  /** Người ghim (null/vắng nếu chưa ghim). */
+  pinnedBy?: string | null;
   createdAt: string;
 }
 
@@ -56,6 +60,12 @@ export interface MessagesPaginationResponseDto {
 
 export interface ChannelMessagesResponseDto extends MessagesPaginationResponseDto {
   lastReadMessageId?: string | null;
+}
+
+export interface ChannelSearchResponseDto {
+  messages: MessageResponseDto[];
+  hasMore: boolean;
+  nextCursor?: string;
 }
 
 export interface SendMessageDto {
@@ -427,6 +437,76 @@ export class MessagesApiService {
   // ---------------------------------------------------------------------------
   // Message Common API
   // ---------------------------------------------------------------------------
+
+  /**
+   * Tìm kiếm tin nhắn (nội dung + tên file) trong phạm vi một kênh.
+   */
+  async searchChannelMessages(
+    channelId: string,
+    query: string,
+    opts?: { limit?: number; before?: string },
+  ): Promise<ChannelSearchResponseDto> {
+    let params = new HttpParams().set('q', query);
+    if (opts?.limit != null) {
+      params = params.set('limit', opts.limit.toString());
+    }
+    if (opts?.before) {
+      params = params.set('before', opts.before);
+    }
+    const headers = await this.getAuthHeaders();
+    return firstValueFrom(
+      this.http
+        .get<ChannelSearchResponseDto>(
+          `${this.baseUrl}/channels/${channelId}/messages/search`,
+          { headers, params },
+        )
+        .pipe(timeout(15000)),
+    );
+  }
+
+  /**
+   * Danh sách tin nhắn đã ghim của một kênh.
+   */
+  async getChannelPins(channelId: string): Promise<MessageResponseDto[]> {
+    const headers = await this.getAuthHeaders();
+    return firstValueFrom(
+      this.http
+        .get<MessageResponseDto[]>(`${this.baseUrl}/channels/${channelId}/pins`, {
+          headers,
+        })
+        .pipe(timeout(15000)),
+    );
+  }
+
+  /**
+   * Ghim một tin nhắn trong kênh.
+   */
+  async pinMessage(messageId: string): Promise<MessageResponseDto> {
+    const headers = await this.getAuthHeaders();
+    return firstValueFrom(
+      this.http
+        .post<MessageResponseDto>(
+          `${this.baseUrl}/messages/${messageId}/pin`,
+          {},
+          { headers },
+        )
+        .pipe(timeout(15000)),
+    );
+  }
+
+  /**
+   * Bỏ ghim một tin nhắn trong kênh.
+   */
+  async unpinMessage(messageId: string): Promise<MessageResponseDto> {
+    const headers = await this.getAuthHeaders();
+    return firstValueFrom(
+      this.http
+        .delete<MessageResponseDto>(`${this.baseUrl}/messages/${messageId}/pin`, {
+          headers,
+        })
+        .pipe(timeout(15000)),
+    );
+  }
 
   /**
    * Chỉnh sửa tin nhắn của chính mình.

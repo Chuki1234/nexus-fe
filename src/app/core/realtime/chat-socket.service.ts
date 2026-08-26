@@ -99,6 +99,11 @@ export class ChatSocketService {
     error: string;
   }>();
   private readonly reactionUpdatedSubject = new Subject<ReactionUpdatedPayload>();
+  private readonly messagePinUpdatedSubject = new Subject<{
+    channelId: string;
+    message: MessagePayload;
+    pinned: boolean;
+  }>();
   private readonly presenceUpdatedSubject = new Subject<PresenceUpdatedPayload>();
   private readonly presenceSyncSubject = new Subject<PresenceSyncPayload>();
 
@@ -160,6 +165,11 @@ export class ChatSocketService {
   }> = this.messageHiddenForUserSubject.asObservable();
   readonly reactionUpdated$: Observable<ReactionUpdatedPayload> =
     this.reactionUpdatedSubject.asObservable();
+  readonly messagePinUpdated$: Observable<{
+    channelId: string;
+    message: MessagePayload;
+    pinned: boolean;
+  }> = this.messagePinUpdatedSubject.asObservable();
   readonly messageRead$: Observable<{
     conversationId?: string | null;
     channelId?: string | null;
@@ -845,6 +855,10 @@ export class ChatSocketService {
 
     this.socket.on('message:reaction-updated', (payload) => {
       this.reactionUpdatedSubject.next(payload);
+    });
+
+    this.socket.on('message:pin-updated', (payload) => {
+      this.messagePinUpdatedSubject.next(payload);
     });
 
     this.socket.on('message:read', (payload) => {

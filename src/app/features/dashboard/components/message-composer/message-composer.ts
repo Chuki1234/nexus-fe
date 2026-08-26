@@ -24,7 +24,10 @@ export type MessageComposerContextKind =
   | 'reply'
   | 'edit'
   | 'forward'
-  | 'delete';
+  | 'delete'
+  | 'pin'
+  | 'unpin'
+  | 'copy';
 
 export interface MessageComposerContext {
   kind: MessageComposerContextKind;

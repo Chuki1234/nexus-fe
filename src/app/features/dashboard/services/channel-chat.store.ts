@@ -107,6 +107,7 @@ export class ChannelChatStore implements OnDestroy {
     canAttach: true,
     canManageMessages: false,
   });
+  private readonly _pinnedMessages = signal<MessageResponseDto[]>([]);
 
   // Readonly Selectors
   readonly serverId = this._serverId.asReadonly();
@@ -123,6 +124,8 @@ export class ChannelChatStore implements OnDestroy {
   readonly chatError = this._chatError.asReadonly();
   readonly paginationError = this._paginationError.asReadonly();
   readonly permissions = this._permissions.asReadonly();
+  readonly pinnedMessages = this._pinnedMessages.asReadonly();
+  readonly pinnedIds = computed(() => new Set(this._pinnedMessages().map((m) => m.id)));
 
   /**
    * Danh sách toàn bộ tin nhắn UI kết hợp giữa persisted và optimistic messages,
@@ -279,6 +282,9 @@ export class ChannelChatStore implements OnDestroy {
       this._messages.set(mergedMessages);
       this._hasMore.set(response.hasMore);
       this._nextCursor.set(response.nextCursor);
+
+      // Nạp danh sách tin đã ghim của kênh (không chặn luồng chính)
+      void this.loadPins(channelId);
       this._lastReadMessageId.set(response.lastReadMessageId ?? null);
       this.isReconciling = false;
       this.bufferedRealtimeMessages = [];
@@ -720,6 +726,49 @@ export class ChannelChatStore implements OnDestroy {
     }
   }
 
+  /** Nạp danh sách tin đã ghim của kênh hiện tại. */
+  async loadPins(channelId: string): Promise<void> {
+    try {
+      const pins = await this.messagesApi.getChannelPins(channelId);
+      if (this._channelId() === channelId) {
+        this._pinnedMessages.set(pins);
+      }
+    } catch {
+      // Không chặn chat nếu lỗi tải ghim
+    }
+  }
+
+  /** Ghim một tin nhắn (cập nhật lạc quan, socket đồng bộ phần còn lại). */
+  async pinMessage(messageId: string): Promise<void> {
+    try {
+      const updated = await this.messagesApi.pinMessage(messageId);
+      this.applyPinUpdate(updated, true);
+    } catch {
+      // Bỏ qua — trạng thái sẽ được socket/refresh sửa lại
+    }
+  }
+
+  /** Bỏ ghim một tin nhắn. */
+  async unpinMessage(messageId: string): Promise<void> {
+    try {
+      await this.messagesApi.unpinMessage(messageId);
+      this.applyPinUpdate({ id: messageId } as MessageResponseDto, false);
+    } catch {
+      // Bỏ qua
+    }
+  }
+
+  /** Cập nhật danh sách ghim khi có thay đổi (từ API hoặc socket). */
+  private applyPinUpdate(message: MessageResponseDto, pinned: boolean): void {
+    this._pinnedMessages.update((curr) => {
+      const without = curr.filter((m) => m.id !== message.id);
+      if (!pinned) {
+        return without;
+      }
+      return [message, ...without];
+    });
+  }
+
   private upsertPersistedMessage(msg: MessageResponseDto): void {
     this._messages.update((curr) => {
       const idx = curr.findIndex((m) => m.id === msg.id);
@@ -815,6 +864,14 @@ export class ChannelChatStore implements OnDestroy {
             };
           }),
         );
+      }),
+    );
+
+    // 4b. Pin updated — đồng bộ danh sách ghim từ mọi client trong kênh
+    this.subs.add(
+      this.chatSocket.messagePinUpdated$.subscribe(({ channelId, message, pinned }) => {
+        if (this._channelId() !== channelId) return;
+        this.applyPinUpdate(message as unknown as MessageResponseDto, pinned);
       }),
     );
 
