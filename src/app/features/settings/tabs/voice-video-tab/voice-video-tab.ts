@@ -29,7 +29,9 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
   protected readonly totalBars = 45;
   protected readonly isRecordingPttKey = signal<boolean>(false);
   protected readonly isTestingVideo = signal<boolean>(false);
+  protected readonly isCameraStarting = signal<boolean>(false);
   protected readonly videoError = signal<string | null>(null);
+  protected readonly videoStats = signal<string>('720p • 30 FPS');
 
   // Custom dropdown open states
   protected readonly inputDropdownOpen = signal<boolean>(false);
@@ -50,12 +52,13 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
   protected readonly backgroundEffects: {
     id: AppPreferences['videoBackgroundEffect'];
     label: string;
+    description: string;
     icon: string;
   }[] = [
-    { id: 'none', label: 'Không hiệu ứng', icon: 'block' },
-    { id: 'blur', label: 'Làm mờ nền', icon: 'blur' },
-    { id: 'cyberpunk', label: 'Nexus Cyberpunk', icon: 'cyberpunk' },
-    { id: 'cozy-room', label: 'Phòng Studio', icon: 'room' },
+    { id: 'none', label: 'Mặc định', description: 'Hình ảnh gốc tự nhiên', icon: 'block' },
+    { id: 'blur', label: 'Làm mờ nền', description: 'Làm mờ sâu hậu cảnh', icon: 'blur' },
+    { id: 'cyberpunk', label: 'Cyberpunk', description: 'Ánh sáng neon tương lai', icon: 'cyberpunk' },
+    { id: 'cozy-room', label: 'Studio Ấm', description: 'Tông màu vintage ấm áp', icon: 'room' },
   ];
 
   protected selectedInputLabel = computed(() => {
@@ -82,6 +85,22 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
     return found?.label || devices[0]?.label || 'Integrated Camera 1';
   });
 
+  /** Filter CSS thời gian thực cho video theo hiệu ứng phông nền đang chọn */
+  protected currentVideoFilter = computed(() => {
+    const effect = this.settingsService.preferences().videoBackgroundEffect;
+    switch (effect) {
+      case 'blur':
+        return 'blur(5px) contrast(1.05)';
+      case 'cyberpunk':
+        return 'contrast(1.35) saturate(1.8) hue-rotate(185deg)';
+      case 'cozy-room':
+        return 'sepia(0.3) saturate(1.3) contrast(1.1) brightness(0.95)';
+      case 'none':
+      default:
+        return 'none';
+    }
+  });
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     if (!this.elementRef.nativeElement.contains(event.target)) {
@@ -90,7 +109,7 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
   }
 
   async ngOnInit(): Promise<void> {
-    await this.mediaDevices.requestPermissions(false);
+    await this.mediaDevices.requestPermissions(true);
     await this.mediaDevices.enumerateDevices();
     const prefs = this.settingsService.preferences();
     this.mediaDevices.setInputVolumeLevel(prefs.inputVolume);
@@ -155,7 +174,9 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
   protected onVideoDeviceChange(deviceId: string): void {
     this.mediaDevices.selectVideoInput(deviceId);
     this.settingsService.updatePreference('selectedVideoDevice', deviceId);
-    if (this.isTestingVideo()) void this.startVideoTest();
+    if (this.isTestingVideo()) {
+      void this.startVideoTest();
+    }
   }
 
   protected toggleMicTest(): void {
@@ -174,42 +195,75 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
     }
   }
 
-  private async startVideoTest(): Promise<void> {
+  /**
+   * Kết nối và truyền trực tiếp luồng hình ảnh từ Camera phần cứng thật của máy tính
+   */
+  protected async startVideoTest(): Promise<void> {
     this.stopVideoTest();
     this.videoError.set(null);
+    this.isCameraStarting.set(true);
+
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      this.videoError.set('Trình duyệt không hỗ trợ truy cập camera.');
+      this.isCameraStarting.set(false);
+      this.videoError.set('Trình duyệt không hỗ trợ truy cập thiết bị Camera.');
       return;
     }
+
     try {
       const vidId = this.mediaDevices.selectedVideoInputId();
       const constraints: MediaStreamConstraints = {
-        video: vidId && vidId !== 'default' ? { deviceId: { exact: vidId } } : true,
+        audio: false,
+        video: vidId && vidId !== 'default' ? { deviceId: { exact: vidId }, width: { ideal: 1280 }, height: { ideal: 720 } } : { width: { ideal: 1280 }, height: { ideal: 720 } },
       };
+
       this.videoStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.isTestingVideo.set(true);
+      this.isCameraStarting.set(false);
+
+      const track = this.videoStream.getVideoTracks()[0];
+      if (track) {
+        const settings = track.getSettings();
+        const w = settings.width || 1280;
+        const h = settings.height || 720;
+        const fps = Math.round(settings.frameRate || 30);
+        this.videoStats.set(`${w >= 1920 ? '1080p' : '720p'} (${w}x${h}) • ${fps} FPS`);
+      }
+
       setTimeout(() => {
         const videoEl = document.querySelector<HTMLVideoElement>('#settings-video-preview');
         if (videoEl && this.videoStream) {
           videoEl.srcObject = this.videoStream;
           videoEl.play().catch(() => {});
         }
-      }, 60);
+      }, 50);
     } catch (err: unknown) {
-      const error = err as Error;
+      const error = err as { name?: string; message?: string };
       this.isTestingVideo.set(false);
-      this.videoError.set(error?.message || 'Không thể mở camera xem trước.');
+      this.isCameraStarting.set(false);
+
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        this.videoError.set('Bạn đã từ chối quyền truy cập Camera. Vui lòng bấm vào biểu tượng ổ khóa cạnh thanh địa chỉ để cho phép.');
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        this.videoError.set('Không tìm thấy webcam nào được kết nối với máy tính.');
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        this.videoError.set('Camera đang bị ứng dụng khác chiếm dụng (Zoom, Teams, v.v.). Hãy tắt ứng dụng đó và thử lại.');
+      } else {
+        this.videoError.set(error.message || 'Không thể mở luồng hình ảnh từ Camera.');
+      }
     }
   }
 
-  private stopVideoTest(): void {
+  protected stopVideoTest(): void {
     this.isTestingVideo.set(false);
+    this.isCameraStarting.set(false);
     if (this.videoStream) {
       this.videoStream.getTracks().forEach((t) => t.stop());
       this.videoStream = null;
     }
     const videoEl = document.querySelector<HTMLVideoElement>('#settings-video-preview');
-    if (videoEl) videoEl.srcObject = null;
+    if (videoEl) {
+      videoEl.srcObject = null;
+    }
   }
 
   protected startPttKeyRecording(): void {
