@@ -1877,6 +1877,12 @@ app-dashboard-shell
     color: var(--color-muted, #5c6c7a);
   }
 
+  select option {
+    background-color: var(--color-surface, #002634);
+    color: var(--color-ink, #ffffff);
+    padding: 8px 12px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .btn-pill,
     .btn-outline {
