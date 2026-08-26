@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { AccountDisabledService } from '../../../core/auth/account-disabled.service';
 import { AuthService } from '../../../core/auth/auth.service';
 
 /**
@@ -18,6 +19,7 @@ import { AuthService } from '../../../core/auth/auth.service';
  */
 @Component({
   selector: 'app-callback-page',
+  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="flex min-h-dvh items-center justify-center bg-canvas px-4 py-12">
@@ -27,6 +29,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 })
 export class CallbackPage {
   private readonly auth = inject(AuthService);
+  private readonly accountDisabled = inject(AccountDisabledService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
@@ -45,8 +48,26 @@ export class CallbackPage {
       void this.router.navigateByUrl('/login');
     }, 8000);
 
-    const watcher = effect(() => {
+    const watcher = effect(async () => {
       if (this.auth.isAuthenticated()) {
+        const user = this.auth.user();
+        const email = user?.email;
+        const disabledAcc = email ? this.accountDisabled.getDisabledAccount(email) : null;
+
+        // Nếu tài khoản đang bị vô hiệu hóa -> Chặn đăng nhập Google ngay lập tức
+        if (disabledAcc) {
+          clearTimeout(timeout);
+          watcher.destroy();
+          await this.auth.signOut();
+          void this.router.navigate(['/login'], {
+            queryParams: {
+              blockedGoogle: 'true',
+              email: email ?? '',
+            },
+          });
+          return;
+        }
+
         clearTimeout(timeout);
         watcher.destroy();
         const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';

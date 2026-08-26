@@ -92,7 +92,7 @@
           <button
             type="button"
             (click)="onGoogle()"
-            class="flex w-full items-center justify-center gap-3 rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-button text-ink hover:border-primary"
+            class="flex w-full items-center justify-center gap-3 rounded-sm border border-hairline-strong bg-canvas px-4 py-3 text-button text-ink hover:border-primary cursor-pointer"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5">
               <path
@@ -170,7 +170,7 @@
                 (click)="togglePasswordVisibility()"
                 [attr.aria-pressed]="passwordVisible()"
                 aria-controls="password"
-                class="absolute inset-y-0 right-0 rounded-r-sm px-4 text-body-sm-strong text-body hover:text-ink"
+                class="absolute inset-y-0 right-0 rounded-r-sm px-4 text-body-sm-strong text-body hover:text-ink cursor-pointer"
               >
                 {{ passwordVisible() ? 'Ẩn' : 'Hiện' }}
               </button>
@@ -315,4 +315,70 @@
 
     </div>
   </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       POPUP / MODAL: THÔNG BÁO TÀI KHOẢN BỊ VÔ HIỆU HÓA (CHẶN GOOGLE LOGIN)
+  ══════════════════════════════════════════════════════════════════════ -->
+  @if (showGoogleBlockedModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in">
+      <div class="w-full max-w-md rounded-2xl bg-canvas border border-hairline-strong p-6 shadow-2xl space-y-5 animate-scale-up">
+        
+        <div class="flex items-center gap-3 text-amber-400">
+          <div class="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-heading-4 font-bold text-ink-strong">Tài khoản đang bị vô hiệu hóa</h3>
+            <p class="text-caption text-mute">Không thể đăng nhập trực tiếp qua Google</p>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-canvas-soft border border-hairline text-body-sm text-body leading-relaxed space-y-2">
+          <p>
+            Tài khoản <strong class="text-ink font-semibold">{{ disabledInfo()?.email || form.controls.email.value }}</strong> hiện đang trong trạng thái tạm vô hiệu hóa.
+          </p>
+          @if (disabledInfo()?.has2fa) {
+            <p class="text-amber-400 text-caption font-medium">
+              🛡️ Vì bạn đã kích hoạt bảo mật 2 lớp (2FA), bạn cần xác thực mã 2FA để mở khóa và vào lại hệ thống.
+            </p>
+          } @else {
+            <p class="text-caption text-mute">
+              Tài khoản này chưa cài đặt 2FA. Bạn có thể mở khóa tài khoản để kích hoạt lại.
+            </p>
+          }
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            (click)="closeGoogleBlockedModal()"
+            class="px-4 py-2.5 rounded-xl text-button text-body hover:text-ink hover:bg-canvas-soft transition-all cursor-pointer"
+          >
+            Đóng
+          </button>
+
+          @if (disabledInfo()?.has2fa) {
+            <button
+              type="button"
+              (click)="proceedTo2faFromModal()"
+              class="px-5 py-2.5 rounded-xl text-button font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer"
+            >
+              Xác thực 2FA để mở khóa
+            </button>
+          } @else {
+            <button
+              type="button"
+              (click)="unlockAccountDirectly()"
+              class="px-5 py-2.5 rounded-xl text-button font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer"
+            >
+              Mở khóa & Kích hoạt lại
+            </button>
+          }
+        </div>
+
+      </div>
+    </div>
+  }
 </main>

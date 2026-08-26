@@ -248,6 +248,7 @@ export class AccountTab implements OnInit {
     else if (duration === 10080) durationLabel = '7 ngày';
     else if (duration === 43200) durationLabel = '30 ngày';
 
+    const has2fa = !!this.tfa.status()?.enabled;
     this.accountDisabled.disableAccount({
       userId: prof?.id,
       email: this.email(),
@@ -255,6 +256,7 @@ export class AccountTab implements OnInit {
       displayName: prof?.displayName || this.username(),
       durationMinutes: duration,
       durationLabel,
+      has2fa,
       reason: this.disableReason(),
     });
 

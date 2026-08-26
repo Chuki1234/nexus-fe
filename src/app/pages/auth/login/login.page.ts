@@ -4,6 +4,7 @@ import {
   Component,
   ElementRef,
   inject,
+  OnInit,
   PLATFORM_ID,
   signal,
 } from '@angular/core';
@@ -21,7 +22,7 @@ import type { LoginMfaRequired } from '../../../shared/dto/auth';
   templateUrl: './login.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly auth = inject(AuthService);
   private readonly accountDisabled = inject(AccountDisabledService);
@@ -40,6 +41,7 @@ export class LoginPage {
   protected readonly pendingMfa = signal<LoginMfaRequired | null>(null);
   protected readonly pendingTokens = signal<{ accessToken: string; refreshToken?: string | null } | null>(null);
   protected readonly disabledInfo = signal<AccountDisabledInfo | null>(null);
+  protected readonly showGoogleBlockedModal = signal<boolean>(false);
 
   protected readonly submitting = signal(false);
   protected readonly submitted = signal(false);
@@ -60,6 +62,20 @@ export class LoginPage {
     }
   }
 
+  ngOnInit(): void {
+    const isBlockedGoogle = this.route.snapshot.queryParamMap.get('blockedGoogle') === 'true';
+    const emailParam = this.route.snapshot.queryParamMap.get('email');
+
+    if (isBlockedGoogle) {
+      if (emailParam) {
+        this.form.controls.email.setValue(emailParam);
+      }
+      const disabledAcc = this.accountDisabled.getDisabledAccount(emailParam || undefined) || this.accountDisabled.currentDisabled();
+      this.disabledInfo.set(disabledAcc);
+      this.showGoogleBlockedModal.set(true);
+    }
+  }
+
   protected togglePasswordVisibility(): void {
     this.passwordVisible.update((visible) => !visible);
   }
@@ -67,6 +83,18 @@ export class LoginPage {
   /** Chuyển hướng sang Google; quay lại /auth/callback kèm returnUrl. */
   protected async onGoogle(): Promise<void> {
     this.errorMessage.set(null);
+
+    // Kiểm tra xem email đang nhập có bị vô hiệu hóa không
+    const email = this.form.controls.email.value.trim();
+    if (email) {
+      const disabledAcc = this.accountDisabled.getDisabledAccount(email);
+      if (disabledAcc) {
+        this.disabledInfo.set(disabledAcc);
+        this.showGoogleBlockedModal.set(true);
+        return;
+      }
+    }
+
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
     const redirectTo = `${window.location.origin}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`;
     try {
@@ -109,16 +137,27 @@ export class LoginPage {
       const result = await this.auth.loginRaw({ identifier: email, password: rawPassword });
 
       if (disabledAcc) {
-        // Tài khoản đang bị vô hiệu hóa -> BẮT BUỘC xác thực 2FA để mở khóa
+        // Tài khoản đang bị vô hiệu hóa
         this.disabledInfo.set(disabledAcc);
         if (result.requiresMfa) {
           this.pendingMfa.set(result);
         } else {
           this.pendingTokens.set({ accessToken: result.accessToken, refreshToken: result.refreshToken });
         }
-        this.authMode.set('disabled_reactivate_2fa');
-        this.tfaCode.set('');
-        return;
+
+        if (disabledAcc.has2fa || result.requiresMfa) {
+          // Bắt buộc xác thực 2FA để mở khóa
+          this.authMode.set('disabled_reactivate_2fa');
+          this.tfaCode.set('');
+          return;
+        } else {
+          // Chưa bật 2FA: tự động kích hoạt lại và nạp phiên
+          this.accountDisabled.reactivateAccount();
+          await this.auth.establishSession(result);
+          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+          await this.router.navigateByUrl(returnUrl);
+          return;
+        }
       }
 
       // Tài khoản bình thường
@@ -162,7 +201,7 @@ export class LoginPage {
       if (mfaInfo) {
         await this.auth.verifyMfaChallenge(mfaInfo.accessToken, mfaInfo.mfaChallengeId, code);
       } else if (tokens) {
-        // Tài khoản đang vô hiệu hóa cần 2FA: thử xác thực qua fast-login hoặc kiểm tra định dạng
+        // Tài khoản đang vô hiệu hóa cần 2FA
         try {
           await this.auth.fastLoginTotp(this.form.controls.email.value.trim(), code);
         } catch {
@@ -185,6 +224,28 @@ export class LoginPage {
     } finally {
       this.submitting.set(false);
     }
+  }
+
+  /**
+   * Chuyển từ Modal thông báo chặn Google sang nhập mã 2FA để mở khóa
+   */
+  protected proceedTo2faFromModal(): void {
+    this.showGoogleBlockedModal.set(false);
+    this.authMode.set('disabled_reactivate_2fa');
+  }
+
+  /**
+   * Mở khóa trực tiếp nếu tài khoản không bật 2FA
+   */
+  protected unlockAccountDirectly(): void {
+    this.accountDisabled.reactivateAccount();
+    this.showGoogleBlockedModal.set(false);
+    this.disabledInfo.set(null);
+    this.errorMessage.set('Tài khoản đã được mở khóa thành công! Vui lòng đăng nhập.');
+  }
+
+  protected closeGoogleBlockedModal(): void {
+    this.showGoogleBlockedModal.set(false);
   }
 
   /**
