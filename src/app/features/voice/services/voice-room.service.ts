@@ -75,6 +75,7 @@ export class VoiceRoomService implements OnDestroy {
   readonly currentChannelName = signal<string | null>(null);
   readonly callDurationSeconds = signal<number>(0);
   readonly errorMessage = signal<string | null>(null);
+  readonly microphoneReady = signal(false);
 
   readonly localParticipant = signal<VoiceParticipantModel | null>(null);
   readonly remoteParticipants = signal<VoiceParticipantModel[]>([]);
@@ -417,13 +418,20 @@ export class VoiceRoomService implements OnDestroy {
       // 4. Bật micro / camera theo options ban đầu và chế độ nhập (Voice Activity vs PTT)
       const isPttMode = this.userSettings.preferences().inputMode === 'push-to-talk';
       if (enableAudio && !isPttMode) {
-        await this.room.localParticipant.setMicrophoneEnabled(true);
+        const publication = await this.room.localParticipant.setMicrophoneEnabled(true);
         const micPub = this.room.localParticipant.getTrackPublication(Track.Source.Microphone);
-        if (micPub?.audioTrack?.mediaStreamTrack) {
-          this.startLocalFastVad(micPub.audioTrack.mediaStreamTrack);
+        const micTrack =
+          publication?.audioTrack?.mediaStreamTrack ?? micPub?.audioTrack?.mediaStreamTrack;
+        if (!micTrack || micTrack.readyState !== 'live') {
+          throw new Error(
+            'Microphone chưa được LiveKit publish. Hãy kiểm tra quyền micro và thiết bị đầu vào.',
+          );
         }
+        this.microphoneReady.set(true);
+        this.startLocalFastVad(micTrack);
       } else {
         await this.room.localParticipant.setMicrophoneEnabled(false);
+        this.microphoneReady.set(false);
       }
       if (enableVideo) {
         await this.room.localParticipant.setCameraEnabled(true);
@@ -583,6 +591,7 @@ export class VoiceRoomService implements OnDestroy {
         this.connectionStatus.set('connected');
         this.updateLocalParticipantState();
         this.syncRemoteParticipants();
+        this.broadcastVoiceState(this.currentChannelId());
       })
       .on(RoomEvent.Disconnected, () => {
         this.leaveRoom();
@@ -595,12 +604,14 @@ export class VoiceRoomService implements OnDestroy {
       })
       .on(RoomEvent.LocalTrackPublished, (pub: LocalTrackPublication) => {
         if (pub.source === Track.Source.Microphone && pub.audioTrack?.mediaStreamTrack) {
+          this.microphoneReady.set(pub.audioTrack.mediaStreamTrack.readyState === 'live');
           this.startLocalFastVad(pub.audioTrack.mediaStreamTrack);
         }
         this.updateLocalParticipantState();
       })
       .on(RoomEvent.LocalTrackUnpublished, (pub: LocalTrackPublication) => {
         if (pub.source === Track.Source.Microphone) {
+          this.microphoneReady.set(false);
           this.stopLocalFastVad();
         }
         this.updateLocalParticipantState();
@@ -745,6 +756,7 @@ export class VoiceRoomService implements OnDestroy {
   private cleanup(): void {
     this.stopDurationTimer();
     this.stopLocalFastVad();
+    this.microphoneReady.set(false);
     this.isTestingMicActive = false;
     this.wasMutedBeforeTest = false;
 

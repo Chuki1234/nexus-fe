@@ -379,14 +379,29 @@ export class ChannelList {
     const localPart = isCurrentlyConnected ? this.voiceRoom.localParticipant() : null;
     const remotes = isCurrentlyConnected ? this.voiceRoom.remoteParticipants() : [];
 
-    // Nếu đang kết nối trực tiếp vào kênh này, lấy thông tin realtime từ LiveKit (kèm trạng thái speaking)
-    if (isCurrentlyConnected && (localPart || remotes.length > 0)) {
-      const liveList: VoiceChannelMemberViewModel[] = [];
+    // Redis là presence canonical cho sidebar; LiveKit bổ sung speaking/media realtime.
+    // Không thay thế toàn bộ snapshot vì participant event của LiveKit có thể đến trễ.
+    const members = new Map<string, VoiceChannelMemberViewModel>();
+    for (const s of states) {
+      members.set(s.userId, {
+        userId: s.userId,
+        name: s.displayName || s.name || s.username,
+        avatarUrl: s.avatarUrl,
+        isMuted: s.isMuted,
+        isCameraOn: s.isCameraOn,
+        isScreenSharing: s.isScreenSharing,
+        isSpeaking: false,
+        isLocal: false,
+      });
+    }
+
+    if (isCurrentlyConnected) {
       if (localPart) {
-        liveList.push({
+        const fromState = members.get(localPart.identity);
+        members.set(localPart.identity, {
           userId: localPart.identity,
           name: localPart.name,
-          avatarUrl: localPart.avatarUrl ?? null,
+          avatarUrl: localPart.avatarUrl ?? fromState?.avatarUrl ?? null,
           isMuted: localPart.isMuted,
           isCameraOn: localPart.isCameraOn,
           isScreenSharing: localPart.isScreenSharing,
@@ -395,10 +410,11 @@ export class ChannelList {
         });
       }
       for (const r of remotes) {
-        liveList.push({
+        const fromState = members.get(r.identity);
+        members.set(r.identity, {
           userId: r.identity,
           name: r.name,
-          avatarUrl: r.avatarUrl ?? null,
+          avatarUrl: r.avatarUrl ?? fromState?.avatarUrl ?? null,
           isMuted: r.isMuted,
           isCameraOn: r.isCameraOn,
           isScreenSharing: r.isScreenSharing,
@@ -406,20 +422,9 @@ export class ChannelList {
           isLocal: false,
         });
       }
-      return liveList;
     }
 
-    // Nếu đứng bên ngoài (chưa join kênh này), lấy từ voiceStatesStore
-    return states.map((s) => ({
-      userId: s.userId,
-      name: s.displayName || s.name || s.username,
-      avatarUrl: s.avatarUrl,
-      isMuted: s.isMuted,
-      isCameraOn: s.isCameraOn,
-      isScreenSharing: s.isScreenSharing,
-      isSpeaking: false,
-      isLocal: false,
-    }));
+    return [...members.values()];
   }
 
   /**
@@ -743,5 +748,3 @@ export class ChannelList {
     this.chatSocket.moveVoiceMember(this.serverId(), member.userId, targetChannel.id);
   }
 }
-
-

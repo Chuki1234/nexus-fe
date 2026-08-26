@@ -36,6 +36,21 @@ export interface RoomRegistration {
   joinPromise: Promise<JoinConversationResponse> | null;
 }
 
+interface ServerRoomRegistration {
+  refCount: number;
+  state: 'idle' | 'joining' | 'joined' | 'failed';
+  joinPromise: Promise<boolean> | null;
+}
+
+interface LocalVoiceState {
+  serverId: string;
+  channelId: string | null;
+  isMuted?: boolean;
+  isDeafened?: boolean;
+  isCameraOn?: boolean;
+  isScreenSharing?: boolean;
+}
+
 export const CHAT_SOCKET_FACTORY = new InjectionToken<typeof io>(
   'CHAT_SOCKET_FACTORY',
   { providedIn: 'root', factory: () => io },
@@ -60,7 +75,9 @@ export class ChatSocketService {
   /** Ref-counted Multi-Room Registries */
   private readonly conversationRooms = new Map<string, RoomRegistration>();
   private readonly channelRooms = new Map<string, RoomRegistration>();
-  private readonly serverRooms = new Map<string, RoomRegistration>();
+  private readonly serverRooms = new Map<string, ServerRoomRegistration>();
+  /** Trạng thái voice mong muốn của local user, dùng để reconcile sau Socket.IO reconnect. */
+  private readonly localVoiceStates = new Map<string, LocalVoiceState>();
 
   // Event Subjects
   private readonly messageCreatedSubject = new Subject<{
@@ -409,6 +426,7 @@ export class ChatSocketService {
     this.conversationRooms.clear();
     this.channelRooms.clear();
     this.serverRooms.clear();
+    this.localVoiceStates.clear();
     this.currentToken = null;
 
     if (this.socket) {
@@ -688,34 +706,52 @@ export class ChatSocketService {
       return true;
     }
 
-    try {
-      const isConnected = await this.ensureConnected(undefined, timeoutMs);
-      if (!isConnected || !this.socket || !this.socket.connected) {
-        reg.state = 'idle';
-        return false;
-      }
+    return this.ensureServerRoomJoined(serverId, reg, timeoutMs);
+  }
 
-      return await new Promise<boolean>((resolve) => {
-        this.socket?.emit(
-          'server:join',
-          { serverId },
-          (res: { success: boolean; error?: string }) => {
-            if (res?.success) {
-              reg.state = 'joined';
-              resolve(true);
-            } else {
-              reg.state = 'failed';
-              this.serverRooms.delete(serverId);
-              resolve(false);
-            }
-          },
-        );
-      });
-    } catch {
-      reg.state = 'failed';
-      this.serverRooms.delete(serverId);
-      return false;
-    }
+  private async ensureServerRoomJoined(
+    serverId: string,
+    reg: ServerRoomRegistration,
+    timeoutMs = 5000,
+  ): Promise<boolean> {
+    if (reg.state === 'joined' && this.socket?.connected) return true;
+    if (reg.state === 'joining' && reg.joinPromise) return reg.joinPromise;
+
+    reg.state = 'joining';
+    reg.joinPromise = (async () => {
+      try {
+        const isConnected = await this.ensureConnected(undefined, timeoutMs);
+        if (!isConnected || !this.socket || !this.socket.connected) {
+          reg.state = 'idle';
+          return false;
+        }
+
+        return await new Promise<boolean>((resolve) => {
+          this.socket?.emit(
+            'server:join',
+            { serverId },
+            (res: { success: boolean; error?: string }) => {
+              if (res?.success) {
+                reg.state = 'joined';
+                this.reconcileVoiceState(serverId);
+                this.refreshServerVoiceStates(serverId);
+                resolve(true);
+              } else {
+                reg.state = 'failed';
+                resolve(false);
+              }
+            },
+          );
+        });
+      } catch {
+        reg.state = 'failed';
+        return false;
+      } finally {
+        reg.joinPromise = null;
+      }
+    })();
+
+    return reg.joinPromise;
   }
 
   leaveServer(serverId: string): Promise<void> {
@@ -724,6 +760,7 @@ export class ChatSocketService {
       reg.refCount--;
       if (reg.refCount <= 0) {
         this.serverRooms.delete(serverId);
+        this.localVoiceStates.delete(serverId);
         if (this.socket && this.socket.connected) {
           this.socket.emit('server:leave', { serverId });
         }
@@ -781,7 +818,8 @@ export class ChatSocketService {
         const reg = this.serverRooms.get(serverId);
         if (reg) {
           reg.state = 'idle';
-          void this.joinServer(serverId);
+          reg.joinPromise = null;
+          void this.ensureServerRoomJoined(serverId, reg);
         }
       }
 
@@ -981,17 +1019,32 @@ export class ChatSocketService {
     });
   }
 
-  updateVoiceState(payload: {
-    serverId: string;
-    channelId: string | null;
-    isMuted?: boolean;
-    isDeafened?: boolean;
-    isCameraOn?: boolean;
-    isScreenSharing?: boolean;
-  }): void {
+  updateVoiceState(payload: LocalVoiceState): void {
+    if (payload.channelId) {
+      this.localVoiceStates.set(payload.serverId, payload);
+    } else {
+      this.localVoiceStates.delete(payload.serverId);
+    }
+
     if (this.socket && this.socket.connected) {
       this.socket.emit('voice:state-update', payload);
     }
+  }
+
+  private reconcileVoiceState(serverId: string): void {
+    const state = this.localVoiceStates.get(serverId);
+    if (state && this.socket?.connected) {
+      this.socket.emit('voice:state-update', state);
+    }
+  }
+
+  private refreshServerVoiceStates(serverId: string): void {
+    if (!this.socket?.connected) return;
+    this.socket.emit('voice:get-server-states', { serverId }, (payload) => {
+      if (payload?.serverId === serverId) {
+        this.voiceServerStatesSyncSubject.next(payload);
+      }
+    });
   }
 
   moveVoiceMember(serverId: string, targetUserId: string, targetChannelId: string): void {
