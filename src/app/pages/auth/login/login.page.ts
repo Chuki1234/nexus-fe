@@ -83,18 +83,6 @@ export class LoginPage implements OnInit {
   /** Chuyển hướng sang Google; quay lại /auth/callback kèm returnUrl. */
   protected async onGoogle(): Promise<void> {
     this.errorMessage.set(null);
-
-    // Kiểm tra xem email đang nhập có bị vô hiệu hóa không
-    const email = this.form.controls.email.value.trim();
-    if (email) {
-      const disabledAcc = this.accountDisabled.getDisabledAccount(email);
-      if (disabledAcc) {
-        this.disabledInfo.set(disabledAcc);
-        this.showGoogleBlockedModal.set(true);
-        return;
-      }
-    }
-
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
     const redirectTo = `${window.location.origin}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`;
     try {

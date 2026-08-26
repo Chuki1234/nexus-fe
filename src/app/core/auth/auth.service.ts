@@ -69,7 +69,12 @@ export class AuthService {
   async signInWithGoogle(redirectTo: string): Promise<void> {
     const { error } = await this.supabase.client.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo },
+      options: {
+        redirectTo,
+        queryParams: {
+          prompt: 'select_account',
+        },
+      },
     });
     if (error) {
       throw error;

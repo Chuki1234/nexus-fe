@@ -137,16 +137,6 @@ export class LoginPage implements OnInit {
   /** Chuyển hướng sang Google; quay lại /auth/callback kèm returnUrl. */
   protected async onGoogle(): Promise<void> {
     this.errorMessage.set(null);
-
-    // Kiểm tra nếu tài khoản đang nhập bị vô hiệu hóa
-    const currentId = this.form.controls.identifier.value.trim();
-    const disabledAcc = this.accountDisabled.getDisabledAccount(currentId || undefined) || this.accountDisabled.currentDisabled();
-    if (disabledAcc) {
-      this.disabledInfo.set(disabledAcc);
-      this.showDisabledModal.set(true);
-      return;
-    }
-
     const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
     const returnUrl = getAndClearReturnUrl(rawParam);
     saveReturnUrl(returnUrl);
