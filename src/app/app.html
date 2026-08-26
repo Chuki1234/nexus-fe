@@ -1,5 +1,7 @@
 <router-outlet />
 
+<app-notification-toast />
+
 @if (boot.visible()) {
   <app-nexus-boot [leaving]="boot.leaving()" />
 }

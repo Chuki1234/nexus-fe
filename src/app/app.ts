@@ -2,10 +2,12 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NexusBoot } from './features/dashboard/components/nexus-boot/nexus-boot';
 import { NexusBootState } from './features/dashboard/services/nexus-boot-state';
+import { NotificationToast } from './shared/ui/notification-toast/notification-toast';
 
 @Component({
   selector: 'app-root',
-  imports: [NexusBoot, RouterOutlet],
+  standalone: true,
+  imports: [NexusBoot, RouterOutlet, NotificationToast],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
