@@ -71,7 +71,7 @@
           Chưa có tài khoản?
           <a
             routerLink="/register"
-            class="rounded-xs text-primary-deep underline underline-offset-2 hover:text-primary-soft"
+            class="rounded-xs font-semibold text-primary underline underline-offset-2 hover:text-primary-soft"
             >Đăng ký</a
           >
         </p>
@@ -125,21 +125,22 @@
       <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
         <div class="mb-5">
           <label for="identifier" class="mb-2 block text-body-sm text-ink font-semibold">
-            Email hoặc tên đăng nhập
+            Email
           </label>
           <input
             id="identifier"
             type="text"
             formControlName="identifier"
-            autocomplete="username"
-            placeholder="ban@vidu.com hoặc tendangnhap"
+            autocomplete="email"
+            inputmode="email"
+            placeholder="ban@vidu.com"
             [attr.aria-invalid]="showError('identifier')"
             [attr.aria-describedby]="showError('identifier') ? 'identifier-error' : null"
             class="w-full rounded-lg border border-hairline-strong bg-canvas px-4 py-3 text-body-md text-ink placeholder:text-steel focus:border-primary focus:outline-none aria-invalid:border-danger"
           />
           @if (showError('identifier')) {
             <p id="identifier-error" class="mt-2 text-body-sm text-danger">
-              Vui lòng nhập email hoặc tên đăng nhập.
+              Vui lòng nhập email.
             </p>
           }
         </div>
@@ -148,8 +149,17 @@
           <div class="mb-2 flex items-baseline justify-between gap-2">
             <label for="password" class="block text-body-sm text-ink font-semibold">Mật khẩu</label>
             <a
-              routerLink="/forgot-password"
-              class="rounded-xs text-body-sm text-primary-deep underline underline-offset-2 hover:text-primary-soft"
+              [routerLink]="canResetPassword() ? '/forgot-password' : null"
+              [queryParams]="canResetPassword() ? { email: form.controls.identifier.value.trim() } : null"
+              [attr.aria-disabled]="!canResetPassword()"
+              [attr.tabindex]="canResetPassword() ? null : -1"
+              [attr.title]="canResetPassword() ? null : 'Nhập email trước để khôi phục mật khẩu'"
+              class="rounded-xs text-body-sm font-semibold underline-offset-2 transition-colors"
+              [class.text-primary]="canResetPassword()"
+              [class.hover:underline]="canResetPassword()"
+              [class.hover:text-primary-soft]="canResetPassword()"
+              [class.text-primary-deep]="!canResetPassword()"
+              [class.cursor-not-allowed]="!canResetPassword()"
               >Quên mật khẩu?</a
             >
           </div>
@@ -225,7 +235,7 @@
     >
       <h2 class="text-heading-4 text-ink font-bold">Đăng nhập bằng mã 2FA</h2>
       <p class="text-body-sm text-slate">
-        Nhập email hoặc tên đăng nhập và một <strong class="text-ink">mã dự phòng 2FA</strong> (hoặc mã 6 số) của bạn.
+        Nhập email và một <strong class="text-ink">mã dự phòng 2FA</strong> (hoặc mã 6 số) của bạn.
       </p>
 
       @if (fastErrorMessage(); as err) {
@@ -233,14 +243,15 @@
       }
 
       <div>
-        <label class="block text-caption text-steel mb-1" for="fast-identifier">Email hoặc tên đăng nhập</label>
+        <label class="block text-caption text-steel mb-1" for="fast-identifier">Email</label>
         <input
           id="fast-identifier"
           type="text"
-          autocomplete="username"
+          autocomplete="email"
+          inputmode="email"
           [value]="fastIdentifier()"
           (input)="onFastIdInput($event)"
-          placeholder="ban@vidu.com hoặc tendangnhap"
+          placeholder="ban@vidu.com"
           class="w-full rounded-lg border border-hairline-strong bg-canvas px-3 py-2.5 text-body-md text-ink placeholder:text-steel focus:border-primary focus:outline-none"
         />
       </div>

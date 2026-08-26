@@ -2,12 +2,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   ElementRef,
   inject,
   OnInit,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AccountDisabledInfo, AccountDisabledService } from '../../../core/auth/account-disabled.service';
@@ -43,6 +45,20 @@ export class LoginPage implements OnInit {
   protected readonly submitted = signal(false);
   protected readonly passwordVisible = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+
+  /**
+   * "Quên mật khẩu?" chỉ bật khi ô Email đã có một địa chỉ hợp lệ — luồng khôi
+   * phục cần đúng một email để gửi mã, nên chưa nhập email thì nút chưa có việc
+   * để làm. Trước khi đủ điều kiện, nút ở trạng thái mờ (disabled thật), không
+   * còn là màu "trông như disabled" gây hiểu nhầm như trước.
+   */
+  private readonly identifierValue = toSignal(
+    this.form.controls.identifier.valueChanges,
+    { initialValue: this.form.controls.identifier.value },
+  );
+  protected readonly canResetPassword = computed(() =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((this.identifierValue() ?? '').trim()),
+  );
 
   /** Bật true khi /assets/logo.png chưa có (hoặc lỗi tải) → dùng logo SVG dự phòng. */
   protected readonly logoFailed = signal(false);
@@ -142,7 +158,7 @@ export class LoginPage implements OnInit {
     const code = this.fastCode().trim();
 
     if (!identifier) {
-      this.fastErrorMessage.set('Vui lòng nhập email hoặc tên đăng nhập.');
+      this.fastErrorMessage.set('Vui lòng nhập email.');
       return;
     }
     if (!code) {

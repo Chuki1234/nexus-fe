@@ -6,7 +6,7 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { toAuthErrorMessage } from '../../../core/auth/auth-error';
 import { PASSWORD_MIN_LENGTH } from '../models/register';
@@ -64,6 +64,15 @@ export class ForgotPasswordPage {
   protected readonly emailForm = this.formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
   });
+
+  constructor() {
+    // Đến từ trang đăng nhập kèm ?email= thì điền sẵn bước 1, người dùng khỏi
+    // gõ lại địa chỉ vừa nhập bên login. Không có tham số thì để trống như cũ.
+    const prefill = inject(ActivatedRoute).snapshot.queryParamMap.get('email');
+    if (prefill) {
+      this.emailForm.controls.email.setValue(prefill.trim());
+    }
+  }
 
   protected readonly codeForm = this.formBuilder.group({
     code: ['', [Validators.required, Validators.pattern(`^\\d{${CODE_LENGTH}}$`)]],
