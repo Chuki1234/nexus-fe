@@ -2016,3 +2016,24 @@ app-dashboard-shell
   font-size: var(--chat-font-size, 15px);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   MAT-TOOLBAR ICON CENTERING FIX
+   Angular Material's mat-toolbar renders a `.mat-toolbar-single-row` inside.
+   Fix vertical alignment of icons/buttons to be perfectly centered.
+   ══════════════════════════════════════════════════════════════════════════ */
+.friends-toolbar.mat-toolbar .mat-toolbar-single-row,
+.chat-toolbar.mat-toolbar .mat-toolbar-single-row {
+  display: flex !important;
+  align-items: center !important;
+  height: 56px !important;
+  min-height: 56px !important;
+}
+
+/* Ensure mat-icon-button inside toolbars is perfectly centered vertically */
+.friends-toolbar .mat-mdc-icon-button,
+.chat-toolbar .mat-mdc-icon-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+}

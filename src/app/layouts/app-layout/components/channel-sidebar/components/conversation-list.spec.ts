@@ -72,6 +72,7 @@ describe('ConversationList', () => {
     mockFriendsStore = {
       incomingRequests: signal([]).asReadonly(),
       removeFriend: vi.fn().mockResolvedValue(undefined),
+      blockUser: vi.fn().mockResolvedValue(null),
     };
     activeConversationIdSignal = signal<string | null>(null);
     mockActiveChatStore = {

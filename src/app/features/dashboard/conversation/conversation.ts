@@ -33,6 +33,7 @@ import {
   MessageComposer,
   type MessageComposerContext,
   type SendMessagePayload,
+  type MentionCandidate,
 } from '../components/message-composer/message-composer';
 import { MessageActions } from '../components/message-actions/message-actions';
 import { DashboardState } from '../components/dashboard-state/dashboard-state';
@@ -201,6 +202,7 @@ export interface StreamMessageViewModel {
 
 import { DirectCallCoordinatorService } from '../../../core/calls/direct-call-coordinator.service';
 import { UserSettingsService } from '../../settings/services/user-settings.service';
+import { FriendsStore } from '../friends/services/friends-store';
 
 /**
  * Trang chi tiết cuộc trò chuyện Direct Message — `/channels/@me/:conversationId`.
@@ -243,6 +245,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
   private readonly userSettings = inject(UserSettingsService);
+  private readonly friendsStore = inject(FriendsStore);
   readonly activeChatStore = inject(ActiveChatStore);
   readonly messageClock = inject(MessageClockService);
   private readonly uiState = inject(DashboardUiState);
@@ -286,13 +289,19 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   protected readonly isRecipientBlocked = computed(() => {
     const details = this.conversationDetails();
     if (!details?.recipient?.id) return false;
-    return this.userSettings.isUserBlocked(details.recipient.id);
+    return this.friendsStore.isBlocked(details.recipient.id);
+  });
+
+  protected readonly isRelationshipInvalidated = computed(() => {
+    const details = this.conversationDetails();
+    if (!details?.recipient?.id) return false;
+    return this.friendsStore.isRelationshipInvalidated(details.recipient.id);
   });
 
   protected unblockRecipient(): void {
     const details = this.conversationDetails();
     if (details?.recipient?.id) {
-      this.userSettings.unblockUser(details.recipient.id);
+      void this.friendsStore.unblockUser(details.recipient.id);
     }
   }
 
@@ -331,6 +340,19 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   protected readonly recipientUsername = computed(
     () => this.conversationDetails()?.recipient?.username ?? null,
   );
+
+  protected readonly mentionCandidates = computed<MentionCandidate[]>(() => {
+    const recipient = this.conversationDetails()?.recipient;
+    if (!recipient) return [];
+    return [
+      {
+        id: recipient.id,
+        username: recipient.username,
+        displayName: recipient.displayName || recipient.username,
+        avatarUrl: recipient.avatarUrl ?? null,
+      },
+    ];
+  });
 
   private readonly breakpoints = inject(BreakpointObserver);
   protected readonly isMobile = toSignal(
@@ -1466,6 +1488,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onStartAudioCall(): void {
+    if (this.isRecipientBlocked() || this.isRelationshipInvalidated()) return;
     const convId = this.conversationId();
     if (convId) {
       void this.directCallCoordinator.startCall(convId, 'audio');
@@ -1473,6 +1496,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onStartVideoCall(): void {
+    if (this.isRecipientBlocked() || this.isRelationshipInvalidated()) return;
     const convId = this.conversationId();
     if (convId) {
       void this.directCallCoordinator.startCall(convId, 'video');

@@ -43,6 +43,9 @@ import {
   MOBILE_BREAKPOINT_QUERY,
 } from '../../../layouts/app-layout/services/dashboard-layout.service';
 
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
 type FriendsContextView = 'activity';
 
 /**
@@ -64,6 +67,8 @@ type FriendsContextView = 'activity';
     FriendsToolbar,
     MatButtonModule,
     MatIconModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule,
     SearchField,
     SectionLabel,
     ServerInvitationItem,
@@ -121,8 +126,8 @@ export class FriendsPage implements OnInit {
     }),
   );
 
-  private readonly userSettings = inject(UserSettingsService);
-  protected readonly blockedUsers = this.userSettings.blockedUsers;
+  protected readonly blockedUsers = this.friendsStore.blocked;
+  protected readonly blockedLoading = this.friendsStore.loadingBlocked;
 
   protected readonly visible = computed(() => {
     const needle = this.query().trim().toLowerCase();
@@ -140,8 +145,9 @@ export class FriendsPage implements OnInit {
     const needle = this.query().trim().toLowerCase();
     return this.blockedUsers().filter((user) => {
       if (!needle) return true;
+      const name = user.displayName || user.username;
       return (
-        user.displayName.toLowerCase().includes(needle) ||
+        name.toLowerCase().includes(needle) ||
         user.username.toLowerCase().includes(needle)
       );
     });
@@ -191,7 +197,7 @@ export class FriendsPage implements OnInit {
   }
 
   protected unblockUser(id: string): void {
-    this.userSettings.unblockUser(id);
+    void this.friendsStore.unblockUser(id);
   }
 
   ngOnInit(): void {
@@ -208,6 +214,7 @@ export class FriendsPage implements OnInit {
     });
 
     void this.friendsStore.load();
+    void this.friendsStore.loadBlocked();
     void this.invitationsStore.hydrateInvitations();
   }
 
@@ -270,7 +277,11 @@ export class FriendsPage implements OnInit {
   }
 
   protected onRetry(): void {
-    void this.friendsStore.load(true);
-    void this.invitationsStore.hydrateInvitations();
+    if (this.tab() === 'blocked') {
+      void this.friendsStore.loadBlocked(true);
+    } else {
+      void this.friendsStore.load(true);
+      void this.invitationsStore.hydrateInvitations();
+    }
   }
 }

@@ -1,5 +1,5 @@
-<!-- Tin nhắn trực tiếp: luôn trên cùng trong header 48px với đường line thẳng hàng toàn bộ header -->
-<header class="server-rail__header flex h-12 w-full shrink-0 items-center justify-center border-b border-hairline">
+<!-- Tin nhắn trực tiếp: luôn trên cùng trong header 56px với đường line thẳng hàng toàn bộ header -->
+<header class="server-rail__header flex h-14 w-full shrink-0 items-center justify-center border-b border-hairline">
   <div class="server-tile-wrapper relative">
     <a
       routerLink="/channels/@me"
@@ -294,18 +294,35 @@
   {{ dropAnnouncement() }}
 </div>
 
-<button
-  type="button"
-  (click)="openCommandCenter(commandDialog)"
-  matTooltip="Đi tới máy chủ, kênh hoặc tin nhắn riêng"
-  matTooltipPosition="right"
-  aria-label="Điều hướng tới máy chủ, kênh hoặc tin nhắn trực tiếp"
-  aria-keyshortcuts="Control+K Meta+K"
-  data-action="global-search"
-  class="server-rail-action nexus-icon-control flex size-12 items-center justify-center rounded-full"
->
-  <mat-icon aria-hidden="true">search</mat-icon>
-</button>
+<!-- Server Rail Bottom Actions Footer: search and add server with proper spacing and divider -->
+<div class="server-rail-footer flex flex-col items-center gap-2 py-2.5 shrink-0">
+  <div class="h-px w-8 bg-hairline shrink-0" aria-hidden="true"></div>
+
+  <button
+    type="button"
+    (click)="openCommandCenter(commandDialog)"
+    matTooltip="Đi tới máy chủ, kênh hoặc tin nhắn riêng"
+    matTooltipPosition="right"
+    aria-label="Điều hướng tới máy chủ, kênh hoặc tin nhắn trực tiếp"
+    aria-keyshortcuts="Control+K Meta+K"
+    data-action="global-search"
+    class="server-rail-action nexus-icon-control flex size-11 items-center justify-center rounded-full"
+  >
+    <mat-icon aria-hidden="true">search</mat-icon>
+  </button>
+
+  <button
+    type="button"
+    aria-label="Thêm máy chủ"
+    matTooltip="Thêm máy chủ"
+    matTooltipPosition="right"
+    class="server-rail-action nexus-icon-control flex size-11 items-center justify-center rounded-full"
+    (click)="openAddServer(addServerDialog)"
+  >
+    <mat-icon aria-hidden="true">add</mat-icon>
+    <span class="sr-only">Thêm máy chủ</span>
+  </button>
+</div>
 
 <ng-template #commandDialog>
   <section class="command-center" aria-labelledby="command-center-title">
@@ -520,18 +537,6 @@
     </footer>
   </section>
 </ng-template>
-
-<button
-  type="button"
-  aria-label="Thêm máy chủ"
-  matTooltip="Thêm máy chủ"
-  matTooltipPosition="right"
-  class="server-rail-action nexus-icon-control flex size-12 items-center justify-center rounded-full"
-  (click)="openAddServer(addServerDialog)"
->
-  <mat-icon aria-hidden="true">add</mat-icon>
-  <span class="sr-only">Thêm máy chủ</span>
-</button>
 
 <ng-template #addServerDialog>
   <header class="flex items-center justify-between border-b border-hairline px-5 py-4">

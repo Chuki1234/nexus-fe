@@ -17,6 +17,9 @@ import type {
   PresenceUpdatedPayload,
   ReactionUpdatedPayload,
   ServerToClientEvents,
+  UserBlockCreatedPayload,
+  UserBlockRemovedPayload,
+  RelationshipInvalidatedPayload,
   VoiceMemberState,
   VoiceServerStatesSyncPayload,
   VoiceStateUpdatePayload,
@@ -146,6 +149,18 @@ export class ChatSocketService {
   private readonly directCallMissedSubject = new Subject<DirectCallDto>();
   private readonly directCallBusySubject = new Subject<{ conversationId: string; calleeId: string }>();
   private readonly directCallStateSyncSubject = new Subject<DirectCallDto | null>();
+
+  // Block & Relationship Invalidation Subjects
+  private readonly userBlockCreatedSubject = new Subject<UserBlockCreatedPayload>();
+  private readonly userBlockRemovedSubject = new Subject<UserBlockRemovedPayload>();
+  private readonly relationshipInvalidatedSubject = new Subject<RelationshipInvalidatedPayload>();
+
+  readonly userBlockCreated$: Observable<UserBlockCreatedPayload> =
+    this.userBlockCreatedSubject.asObservable();
+  readonly userBlockRemoved$: Observable<UserBlockRemovedPayload> =
+    this.userBlockRemovedSubject.asObservable();
+  readonly relationshipInvalidated$: Observable<RelationshipInvalidatedPayload> =
+    this.relationshipInvalidatedSubject.asObservable();
 
   readonly messageCreated$: Observable<{ message: MessagePayload }> =
     this.messageCreatedSubject.asObservable();
@@ -893,6 +908,18 @@ export class ChatSocketService {
 
     this.socket.on('conversation:deleted', (payload) => {
       this.conversationDeletedSubject.next(payload);
+    });
+
+    this.socket.on('user:block-created', (payload) => {
+      this.userBlockCreatedSubject.next(payload);
+    });
+
+    this.socket.on('user:block-removed', (payload) => {
+      this.userBlockRemovedSubject.next(payload);
+    });
+
+    this.socket.on('relationship:invalidated', (payload) => {
+      this.relationshipInvalidatedSubject.next(payload);
     });
 
     this.socket.on('presence:updated', (payload) => {

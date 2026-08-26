@@ -33,7 +33,7 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'm-2 mt-1 min-w-0 self-stretch overflow-hidden rounded-xl bg-canvas p-2 shadow-glow flex flex-col',
+    class: 'min-w-0 self-stretch overflow-hidden flex flex-col',
   },
   templateUrl: './user-panel.html',
   styleUrl: './user-panel.css',

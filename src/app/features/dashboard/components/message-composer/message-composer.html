@@ -26,40 +26,46 @@
 
 <!-- Lỗi file đính kèm nếu có -->
 @if (fileErrorMessage(); as fileErr) {
-  <div class="composer-file-alert mb-2 flex items-center justify-between gap-2 rounded-lg bg-rose-500/10 px-3 py-1.5 text-xs text-rose-400 border border-rose-500/20">
-    <div class="flex items-center gap-1.5 min-w-0">
-      <mat-icon class="!w-4 !h-4 text-base text-rose-400">error_outline</mat-icon>
-      <span class="truncate">{{ fileErr }}</span>
+  <div class="composer-file-alert mb-2.5 flex items-center justify-between gap-3 rounded-xl bg-danger/10 px-3.5 py-2 border border-danger/30 text-danger text-body-sm shadow-sm animate-fade-in">
+    <div class="flex items-center gap-2 min-w-0">
+      <mat-icon class="!size-5 !text-[20px] text-danger shrink-0 leading-none">error</mat-icon>
+      <span class="truncate font-medium text-danger">{{ fileErr }}</span>
     </div>
-    <button type="button" class="text-rose-300 hover:text-rose-100" (click)="fileErrorMessage.set(null)">
-      <mat-icon class="!w-4 !h-4 text-base">close</mat-icon>
+    <button
+      type="button"
+      class="text-danger/80 hover:text-danger hover:bg-danger/15 rounded-lg p-1 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+      aria-label="Đóng cảnh báo"
+      (click)="fileErrorMessage.set(null)"
+    >
+      <mat-icon class="!size-4.5 !text-[18px] leading-none">close</mat-icon>
     </button>
   </div>
 }
 
 <!-- Khay xem trước File đính kèm -->
 @if (pendingFiles().length > 0) {
-  <div class="composer-preview-tray mb-2 flex flex-wrap gap-2 p-2 rounded-xl bg-surface-soft border border-surface-feature/30">
+  <div class="composer-preview-tray mb-2.5 flex flex-wrap gap-2.5 p-2.5 rounded-xl bg-surface-feature/30 border border-nexus-border-subtle shadow-sm">
     @for (item of pendingFiles(); track item.id) {
-      <div class="preview-item relative group flex items-center gap-2 rounded-lg bg-canvas p-1.5 pr-3 border border-border-subtle shadow-sm">
+      <div class="preview-item relative group flex items-center gap-2.5 rounded-xl bg-surface p-2 pr-3 border border-nexus-border-subtle hover:border-primary/40 shadow-xs transition-all">
         @if (item.isImage && item.previewUrl) {
-          <img [src]="item.previewUrl" [alt]="item.name" class="w-10 h-10 object-cover rounded-md border border-border-subtle" />
+          <img [src]="item.previewUrl" [alt]="item.name" class="size-11 object-cover rounded-lg border border-nexus-border-subtle shrink-0 shadow-2xs" />
         } @else {
-          <div class="w-10 h-10 rounded-md bg-surface-feature/50 flex items-center justify-center text-primary-soft">
-            <mat-icon class="!w-6 !h-6 text-xl">description</mat-icon>
+          <div class="size-11 rounded-lg bg-surface-feature/70 flex items-center justify-center text-primary-soft shrink-0 border border-nexus-border-subtle">
+            <mat-icon class="!size-6 !text-2xl">description</mat-icon>
           </div>
         }
-        <div class="min-w-0 flex-1 max-w-[140px]">
-          <p class="truncate text-xs font-medium text-ink">{{ item.name }}</p>
+        <div class="min-w-0 flex-1 max-w-[150px]">
+          <p class="truncate text-body-sm-medium text-ink font-semibold" [title]="item.name">{{ item.name }}</p>
           <span class="text-micro text-steel">{{ item.formattedSize }}</span>
         </div>
         <button
           type="button"
-          class="remove-file-btn w-5 h-5 rounded-full bg-surface-soft hover:bg-rose-500 hover:text-white flex items-center justify-center transition-colors"
+          class="remove-file-btn"
           (click)="removeFile(item.id)"
           matTooltip="Xoá tệp"
+          aria-label="Xoá tệp"
         >
-          <mat-icon class="!w-3.5 !h-3.5 text-xs">close</mat-icon>
+          <mat-icon class="!size-3.5 !text-[14px] leading-none">close</mat-icon>
         </button>
       </div>
     }
@@ -84,8 +90,7 @@
     </div>
   }
 
-  <span class="composer-thread" aria-hidden="true"></span>
-  <div class="composer-core flex items-end gap-1 rounded-lg bg-canvas px-2 py-1.5">
+  <div class="composer-core flex items-end gap-1.5 rounded-lg bg-canvas px-2.5 py-1.5">
     <!-- Nút đính kèm file -->
     <input
       #fileInput
@@ -101,10 +106,10 @@
       type="button"
       [disabled]="disabled() || attachmentsDisabled() || context()?.kind === 'edit'"
       (click)="openFileDialog()"
-      class="composer-action hover:text-primary-soft"
+      class="composer-action hover:text-primary-soft !size-8.5 !rounded-lg"
       [matTooltip]="context()?.kind === 'edit' ? 'Không thể đính kèm tệp khi đang chỉnh sửa tin nhắn' : (attachmentsDisabled() ? attachmentsDisabledReason() : 'Đính kèm tệp/ảnh (tối đa 5 file, 10MB/file)')"
     >
-      <mat-icon>add_circle</mat-icon>
+      <mat-icon class="!size-5 !text-[20px] leading-none">add_circle</mat-icon>
       <span class="sr-only">Đính kèm tệp</span>
     </button>
 
@@ -118,10 +123,25 @@
       [ngModel]="text()"
       (ngModelChange)="onInput($event)"
       (keydown)="onKeydown($event)"
+      (keyup)="onKeyup($event)"
       (blur)="onBlur()"
       (paste)="onPaste($event)"
       class="composer-textarea min-w-0 flex-1 bg-transparent py-1 text-body-sm text-ink placeholder:text-steel focus:outline-none disabled:cursor-not-allowed resize-none leading-relaxed"
     ></textarea>
+
+    <!-- Nút Mention (@) -->
+    <button
+      type="button"
+      [disabled]="disabled() || context()?.kind === 'edit'"
+      (click)="triggerMentionFromButton()"
+      class="composer-action composer-media-action mention-toggle-btn"
+      [class.active]="showMentionPopup()"
+      matTooltip="Nhắc tới ai đó (@)"
+      aria-label="Nhắc tới ai đó"
+    >
+      <mat-icon class="!size-5 !text-[20px] leading-none">alternate_email</mat-icon>
+      <span class="sr-only">Nhắc tới ai đó</span>
+    </button>
 
     <!-- Nút Emoji Picker -->
     <button
@@ -204,6 +224,86 @@
   </div>
 
   <!-- Popovers đặt trực thuộc composer-shell để đảm bảo luôn nằm trọn vẹn trong khung chat, không bao giờ tràn sang sidebar -->
+  @if (showMentionPopup()) {
+    <div
+      class="composer-picker-popover composer-mention-popover animate-in fade-in zoom-in-95 duration-150"
+      role="listbox"
+      id="composer-mention-listbox"
+      aria-label="Danh sách gợi ý nhắc tên"
+    >
+      <div class="composer-mention-palette rounded-2xl bg-surface border border-nexus-border-subtle shadow-glow overflow-hidden flex flex-col max-h-72 w-80">
+        <!-- Header -->
+        <div class="px-3.5 py-2 border-b border-nexus-border-subtle bg-surface-feature/40 flex items-center justify-between">
+          <span class="text-micro font-bold uppercase tracking-wider text-steel">
+            @if (mentionQuery()) {
+              Thành viên khớp với "{{ mentionQuery() }}"
+            } @else {
+              Gợi ý nhắc tên
+            }
+          </span>
+          @if (loadingMentions()) {
+            <mat-spinner diameter="14" strokeWidth="2" />
+          }
+        </div>
+
+        <!-- Danh sách gợi ý -->
+        <div class="mention-list overflow-y-auto nexus-scrollbar p-1.5 flex flex-col gap-0.5 max-h-56" tabindex="-1">
+          @if (loadingMentions()) {
+            <div class="py-6 text-center text-body-sm text-steel">
+              <span>Đang tải danh sách thành viên...</span>
+            </div>
+          } @else if (filteredMentionCandidates().length === 0) {
+            <div class="py-6 text-center text-body-sm text-steel flex flex-col items-center gap-1.5">
+              <mat-icon class="!size-5 !text-xl text-stone">person_off</mat-icon>
+              <span>Không tìm thấy người dùng phù hợp</span>
+            </div>
+          } @else {
+            @for (candidate of filteredMentionCandidates(); track candidate.id; let i = $index) {
+              <button
+                type="button"
+                role="option"
+                [id]="'mention-opt-' + candidate.id"
+                [attr.aria-selected]="selectedMentionIndex() === i"
+                class="mention-item flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-left cursor-pointer transition-colors text-ink select-none"
+                [class.active-mention]="selectedMentionIndex() === i"
+                (mouseenter)="selectedMentionIndex.set(i)"
+                (mousedown)="$event.preventDefault(); selectMentionCandidate(candidate)"
+              >
+                @if (candidate.isEveryone) {
+                  <div class="size-8 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                    <mat-icon class="!size-4.5 !text-lg">campaign</mat-icon>
+                  </div>
+                  <div class="flex flex-col min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="font-bold text-primary text-body-sm">&#64;everyone</span>
+                    </div>
+                    <span class="text-micro text-steel truncate">{{ candidate.description || 'Thông báo tới tất cả thành viên' }}</span>
+                  </div>
+                } @else {
+                  <app-avatar
+                    [src]="candidate.avatarUrl"
+                    [name]="candidate.displayName || candidate.username"
+                    size="sm"
+                    class="shrink-0"
+                  />
+                  <div class="flex flex-col min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="font-semibold text-body-sm text-ink truncate">{{ candidate.displayName }}</span>
+                      @if (candidate.role) {
+                        <span class="text-micro px-1.5 py-0.5 rounded bg-surface-feature text-steel font-mono capitalize">{{ candidate.role }}</span>
+                      }
+                    </div>
+                    <span class="text-micro text-steel truncate">&#64;{{ candidate.username }}</span>
+                  </div>
+                }
+              </button>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  }
+
   @if (showEmojiPicker()) {
     <div class="composer-picker-popover composer-emoji-popover animate-in fade-in zoom-in-95 duration-150">
       <div class="composer-emoji-palette rounded-2xl bg-surface border border-border-subtle shadow-2xl overflow-hidden flex flex-col">

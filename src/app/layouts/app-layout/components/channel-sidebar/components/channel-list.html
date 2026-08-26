@@ -1,130 +1,179 @@
-<div cdkDropListGroup class="channel-list-drop-group flex flex-col">
-  <!-- Danh sách kênh không có danh mục (Uncategorized) — luôn nằm ở ĐẦU TIÊN trên cùng -->
-  @if (uncategorizedGroup(); as uncatGroup) {
-    <div class="uncategorized-channel-group mb-1">
-      <mat-nav-list
-        id="channel-group-cat-uncategorized"
-        cdkDropList
-        [cdkDropListData]="uncatGroup"
-        [cdkDropListDisabled]="!canManageChannels()"
-        [cdkDropListEnterPredicate]="isChannelPredicate"
-        (cdkDropListDropped)="onChannelDrop($event)"
-        class="channel-drop-list !px-1 !py-0 flex flex-col gap-0.5"
-      >
-        @for (channel of visibleChannelsOf(uncatGroup); track channel.id) {
-          <ng-container *ngTemplateOutlet="channelItem; context: { $implicit: channel, group: uncatGroup }" />
-        }
-      </mat-nav-list>
-    </div>
-  }
-
-  <!-- Danh sách các danh mục (Categories) có thể kéo thả sắp xếp thứ tự -->
-  <div
-    cdkDropList
-    id="categories-drop-list"
-    [cdkDropListData]="categoryGroups()"
-    [cdkDropListDisabled]="!canManageChannels()"
-    [cdkDropListEnterPredicate]="isCategoryPredicate"
-    (cdkDropListDropped)="onCategoryDrop($event)"
-    class="categories-drop-list flex flex-col"
-  >
-    @for (group of categoryGroups(); track group.id) {
-      <div
-        cdkDrag
-        cdkDragLockAxis="y"
-        [cdkDragData]="group"
-        [cdkDragDisabled]="!canManageChannels()"
-        class="channel-group mt-3 mb-1 group/category"
-      >
-        <!-- Category Drag Placeholder & Preview -->
-        <div *cdkDragPlaceholder class="category-drag-placeholder"></div>
-
-        <ng-template cdkDragPreview>
-          <div class="category-drag-preview" [style.width.px]="dragPreviewWidth">
-            <mat-icon class="!size-4 !text-base text-primary">folder</mat-icon>
-            <span class="truncate text-micro-uppercase font-bold tracking-wider text-ink">
-              {{ group.label }}
-            </span>
-            <span class="text-caption text-steel ml-auto text-[11px]">
-              {{ group.channels.length }} kênh
-            </span>
-          </div>
-        </ng-template>
-
-        <!-- Group Header: Collapsible Toggle + Section Label + Add Channel Button + Context Menu Trigger -->
-        <div
-          cdkDragHandle
-          (pointerdown)="onPrepDrag($event)"
-          (contextmenu)="onCategoryContextMenu($event, group)"
-          class="channel-group-header flex items-center justify-between px-2 py-1 select-none group cursor-grab active:cursor-grabbing"
-        >
-          <button
-            type="button"
-            (click)="toggleGroup(group.id)"
-            class="flex items-center gap-1 min-w-0 flex-1 text-left cursor-pointer hover:text-ink text-steel transition-colors"
-            [attr.aria-expanded]="!isGroupCollapsed(group.id)"
-            [attr.aria-controls]="'channel-group-' + group.id"
-          >
-            <mat-icon
-              class="channel-group-chevron !size-4 !text-base transition-transform duration-200"
-              [class.channel-group-chevron--collapsed]="isGroupCollapsed(group.id)"
-            >
-              expand_more
-            </mat-icon>
-            <app-overflow-marquee
-              class="min-w-0 flex-1 text-micro-uppercase font-bold tracking-wider"
-              [text]="group.label"
-            />
-            @if (isGroupCollapsed(group.id)) {
-              @if (getGroupMentionCount(group) > 0) {
-                <app-unread-badge
-                  class="ml-1 shrink-0"
-                  [count]="getGroupMentionCount(group)"
-                  label="lượt nhắc tên chưa đọc"
-                />
-              } @else if (getGroupHasUnread(group)) {
-                <span class="size-2 rounded-full bg-primary shrink-0 ml-1" aria-label="Có tin nhắn chưa đọc"></span>
-              }
-            }
-          </button>
-
-          <!-- Add Channel Button (chỉ render trong DOM khi có quyền canManageChannels) -->
-          @if (canManageChannels()) {
-            <button
-              type="button"
-              (click)="openCreateChannelDialog(group, $event)"
-              matTooltip="Tạo kênh"
-              [attr.aria-label]="'Tạo kênh trong ' + group.label"
-              class="add-channel-btn size-5 rounded hover:text-ink text-steel hover:bg-surface-feature/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-            >
-              <mat-icon class="!size-4 !text-base leading-none">add</mat-icon>
-            </button>
-          }
-        </div>
-
-        <!-- Group Channel List (collapsible - retains active channel & supports Drag & Drop) -->
-        @if (visibleChannelsOf(group).length > 0 || !isGroupCollapsed(group.id)) {
-          <mat-nav-list
-            [id]="'channel-group-' + group.id"
-            cdkDropList
-            [cdkDropListData]="group"
-            [cdkDropListDisabled]="!canManageChannels()"
-            [cdkDropListEnterPredicate]="isChannelPredicate"
-            (cdkDropListDropped)="onChannelDrop($event)"
-            class="channel-drop-list !px-1 !py-0 flex flex-col gap-0.5 mt-0.5"
-          >
-            @for (channel of visibleChannelsOf(group); track channel.id) {
-              <ng-container *ngTemplateOutlet="channelItem; context: { $implicit: channel, group: group }" />
-            }
-          </mat-nav-list>
-        }
-      </div>
-    }
+<div class="channel-sidebar-container relative flex flex-col">
+  <!-- ARIA Live announcement region for screen readers -->
+  <div class="sr-only" aria-live="polite" aria-atomic="true">
+    {{ liveAnnouncement() }}
   </div>
 
-  @if (groups().length === 0) {
-    <p class="px-2 py-4 text-body-sm text-steel">Server này chưa có kênh nào.</p>
-  }
+  <div
+    cdkDropListGroup
+    class="channel-sidebar-drop-group channel-list-drop-group flex flex-col"
+  >
+    <!-- Root Drop List: Chứa cả Category Group và Root Channel xen kẽ theo đúng layout canonical -->
+    <div
+      cdkDropList
+      id="channel-sidebar-root-list"
+      [cdkDropListData]="{ kind: 'root' }"
+      [cdkDropListConnectedTo]="channelDropListConnections()"
+      [cdkDropListDisabled]="!canManageChannels()"
+      [cdkDropListEnterPredicate]="isRootEnterPredicate"
+      (cdkDropListDropped)="onRootDrop($event)"
+      class="channel-sidebar-root-list channel-drop-list flex flex-col gap-0.5"
+    >
+      @for (item of rootItems(); track item.kind === 'category' ? item.category.id : item.channel.id) {
+        <div
+          cdkDropList
+          [id]="'root-channel-drop-slot-' + $index"
+          [cdkDropListData]="{ kind: 'root-slot', rootIndex: $index }"
+          [cdkDropListConnectedTo]="channelDropListConnections()"
+          [cdkDropListDisabled]="!canManageChannels()"
+          [cdkDropListEnterPredicate]="isCategoryChildEnterPredicate"
+          (cdkDropListDropped)="onRootChannelSlotDrop($event, $index)"
+          class="root-channel-drop-slot"
+          [class.root-channel-drop-slot--dragging]="isDraggingChannel()"
+          aria-hidden="true"
+        ></div>
+
+        @if (item.kind === 'channel') {
+          <!-- Root Channel (Cấp máy chủ xen kẽ với Category) -->
+          <ng-container
+            *ngTemplateOutlet="channelItem; context: { $implicit: item.channel, group: null }"
+          />
+        } @else {
+          <!-- Category Group (Cấp máy chủ, chứa header và danh sách con) -->
+          <div
+            cdkDrag
+            cdkDragLockAxis="y"
+            [cdkDragData]="item"
+            [cdkDragDisabled]="!canManageChannels()"
+            class="channel-group mt-3 mb-1 group/category"
+            [class.category-drop-target-active]="activeHoverCategoryId() === item.category.id"
+          >
+            <!-- Category Drag Placeholder & Preview -->
+            <div *cdkDragPlaceholder class="category-drag-placeholder"></div>
+
+            <ng-template cdkDragPreview>
+              <div class="category-drag-preview" [style.width.px]="dragPreviewWidth">
+                <mat-icon class="!size-4 !text-base text-primary">folder</mat-icon>
+                <span class="truncate text-micro-uppercase font-bold tracking-wider text-ink">
+                  {{ item.category.name }}
+                </span>
+                <span class="text-caption text-steel ml-auto text-[11px]">
+                  {{ item.channels.length }} kênh
+                </span>
+              </div>
+            </ng-template>
+
+            <!-- Group Header: Collapsible Toggle + Section Label + Add Channel Button + Real Drop Target for Channel nesting -->
+            <div
+              cdkDropList
+              [id]="'category-header-drop-' + item.category.id"
+              [cdkDropListData]="{ kind: 'category-header', categoryId: item.category.id, id: item.category.id }"
+              [cdkDropListConnectedTo]="channelDropListConnections()"
+              [cdkDropListDisabled]="!canManageChannels()"
+              [cdkDropListEnterPredicate]="isCategoryChildEnterPredicate"
+              (cdkDropListEntered)="onCategoryHeaderDropEntered(item.category.id)"
+              (cdkDropListExited)="onCategoryHeaderDropExited(item.category.id)"
+              (cdkDropListDropped)="onCategoryHeaderDrop($event, item.category.id)"
+              cdkDragHandle
+              (pointerdown)="onPrepDrag($event)"
+              (contextmenu)="onCategoryContextMenu($event, item)"
+              (mouseenter)="onCategoryHeaderMouseEnter(item.category.id)"
+              (mouseleave)="onCategoryHeaderMouseLeave(item.category.id)"
+              class="channel-group-header flex items-center justify-between px-2 py-1 select-none group cursor-grab active:cursor-grabbing rounded-md transition-colors"
+              [class.category-header-nest-target]="activeHoverCategoryId() === item.category.id"
+            >
+              <button
+                type="button"
+                (click)="toggleGroup(item.category.id)"
+                class="flex items-center gap-1 min-w-0 flex-1 text-left cursor-pointer hover:text-ink text-steel transition-colors"
+                [attr.aria-expanded]="!isGroupCollapsed(item.category.id)"
+                [attr.aria-controls]="'channel-group-' + item.category.id"
+              >
+                <mat-icon
+                  class="channel-group-chevron !size-4 !text-base transition-transform duration-200"
+                  [class.channel-group-chevron--collapsed]="isGroupCollapsed(item.category.id)"
+                >
+                  expand_more
+                </mat-icon>
+                <app-overflow-marquee
+                  class="min-w-0 flex-1 text-micro-uppercase font-bold tracking-wider"
+                  [text]="item.category.name"
+                />
+                @if (isGroupCollapsed(item.category.id)) {
+                  @if (getGroupMentionCount(item) > 0) {
+                    <app-unread-badge
+                      class="ml-1 shrink-0"
+                      [count]="getGroupMentionCount(item)"
+                      label="lượt nhắc tên chưa đọc"
+                    />
+                  } @else if (getGroupHasUnread(item)) {
+                    <span class="size-2 rounded-full bg-primary shrink-0 ml-1" aria-label="Có tin nhắn chưa đọc"></span>
+                  }
+                }
+              </button>
+
+              @if (activeHoverCategoryId() === item.category.id) {
+                <span class="text-[10px] font-bold text-primary px-1.5 py-0.5 rounded bg-surface-feature/90 border border-primary/40 shrink-0 ml-1 animate-pulse">
+                  Đưa vào {{ item.category.name }}
+                </span>
+              }
+
+              <!-- Add Channel Button (chỉ render trong DOM khi có quyền canManageChannels) -->
+              @if (canManageChannels()) {
+                <button
+                  type="button"
+                  (click)="openCreateChannelDialog(item, $event)"
+                  matTooltip="Tạo kênh"
+                  [attr.aria-label]="'Tạo kênh trong ' + item.category.name"
+                  class="add-channel-btn size-5 rounded hover:text-ink text-steel hover:bg-surface-feature/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                >
+                  <mat-icon class="!size-4 !text-base leading-none">add</mat-icon>
+                </button>
+              }
+            </div>
+
+            <!-- Group Channel List: luôn render trong DOM với min-height để nhận drop ngay cả khi đóng/rỗng -->
+            <mat-nav-list
+              [id]="'channel-group-' + item.category.id"
+              cdkDropList
+              [cdkDropListData]="{ kind: 'category', categoryId: item.category.id, id: item.category.id }"
+              [cdkDropListConnectedTo]="channelDropListConnections()"
+              [cdkDropListDisabled]="!canManageChannels()"
+              [cdkDropListEnterPredicate]="isCategoryChildEnterPredicate"
+              (cdkDropListDropped)="onCategoryChildDrop($event, item.category.id)"
+              class="channel-drop-list !px-0 !py-0 flex flex-col gap-0.5 mt-0.5"
+              [class.channel-drop-list--collapsed]="isGroupCollapsed(item.category.id)"
+              [class.channel-drop-list--empty]="item.channels.length === 0"
+              [class.channel-drop-list--dragging]="isDraggingChannel()"
+            >
+              @if (!isGroupCollapsed(item.category.id)) {
+                @for (channel of item.channels; track channel.id) {
+                  <ng-container *ngTemplateOutlet="channelItem; context: { $implicit: channel, group: item }" />
+                }
+              }
+            </mat-nav-list>
+          </div>
+        }
+      }
+
+      <div
+        cdkDropList
+        [id]="'root-channel-drop-slot-' + rootItems().length"
+        [cdkDropListData]="{ kind: 'root-slot', rootIndex: rootItems().length }"
+        [cdkDropListConnectedTo]="channelDropListConnections()"
+        [cdkDropListDisabled]="!canManageChannels()"
+        [cdkDropListEnterPredicate]="isCategoryChildEnterPredicate"
+        (cdkDropListDropped)="onRootChannelSlotDrop($event, rootItems().length)"
+        class="root-channel-drop-slot"
+        [class.root-channel-drop-slot--dragging]="isDraggingChannel()"
+        aria-hidden="true"
+      ></div>
+    </div>
+
+    @if (rootItems().length === 0) {
+      <p class="px-2 py-4 text-body-sm text-steel">Server này chưa có kênh nào.</p>
+    }
+  </div>
 </div>
 
 <!-- Reusable Channel Item Template -->
@@ -135,6 +184,9 @@
     cdkDragLockAxis="y"
     [cdkDragData]="channel"
     [cdkDragDisabled]="!canManageChannels()"
+    [cdkDragStartDelay]="dragStartDelay"
+    (cdkDragStarted)="onChannelDragStarted()"
+    (cdkDragEnded)="onChannelDragEnded()"
     (pointerdown)="onPrepChannelDrag($event)"
     (contextmenu)="onChannelContextMenu($event, channel)"
     [routerLink]="['/channels', serverId(), channel.id]"
@@ -145,7 +197,11 @@
     class="channel-row nexus-nav-item group relative !h-auto !min-h-8.5 !rounded-lg !px-2"
   >
     <!-- Khoảng trống chèn kênh khi kéo (Drop slot gap indicator) -->
-    <div *cdkDragPlaceholder class="channel-drag-placeholder"></div>
+    <div
+      *cdkDragPlaceholder
+      class="channel-drag-placeholder"
+      [class.channel-drag-placeholder--child]="!!group"
+    ></div>
 
     <ng-template cdkDragPreview [matchSize]="true">
       <div
@@ -227,87 +283,80 @@
   <!-- Active Voice Channel Connected Members List (Discord Style) -->
   @if (channel.type === 'voice') {
     @let members = getVoiceChannelMembers(channel.id);
-    <div
-      [id]="'voice-members-' + channel.id"
-      cdkDropList
-      [cdkDropListData]="channel"
-      [cdkDropListDisabled]="!isOwner()"
-      [cdkDropListEnterPredicate]="isVoiceMemberPredicate"
-      (cdkDropListDropped)="onVoiceMemberDrop($event, channel)"
-      class="voice-channel-members pl-5 pr-2 py-1 flex flex-col gap-0.5 min-h-[2px]"
-    >
-      @for (m of members; track m.userId) {
-        <div
-          cdkDrag
-          cdkDragLockAxis="y"
-          [cdkDragData]="m"
-          [cdkDragDisabled]="!isOwner() || m.isLocal"
-          (pointerdown)="onPrepDrag($event)"
-          (contextmenu)="onMemberContextMenu($event, m, channel)"
-          class="voice-member-row flex items-center justify-between gap-1.5 rounded-md px-1.5 py-1 hover:bg-surface-feature/70 text-steel hover:text-ink transition-colors group/member cursor-pointer"
-          [class.cursor-grab]="isOwner() && !m.isLocal"
-        >
-          <div *cdkDragPlaceholder class="h-6 rounded bg-primary/20 border border-dashed border-primary/40"></div>
+    @if (members.length > 0) {
+      <div
+        [id]="'voice-members-' + channel.id"
+        cdkDropList
+        [cdkDropListData]="channel"
+        [cdkDropListDisabled]="!isOwner()"
+        [cdkDropListEnterPredicate]="isVoiceMemberPredicate"
+        (cdkDropListDropped)="onVoiceMemberDrop($event, channel)"
+        class="voice-channel-members pl-5 pr-2 py-1 flex flex-col gap-0.5"
+      >
+        @for (m of members; track m.userId) {
+          <div
+            cdkDrag
+            cdkDragLockAxis="y"
+            [cdkDragData]="m"
+            [cdkDragDisabled]="!isOwner() || m.isLocal"
+            (pointerdown)="onPrepDrag($event)"
+            (contextmenu)="onMemberContextMenu($event, m, channel)"
+            class="voice-member-row flex items-center justify-between gap-1.5 rounded-md px-1.5 py-1 hover:bg-surface-feature/70 text-steel hover:text-ink transition-colors group/member cursor-pointer"
+            [class.cursor-grab]="isOwner() && !m.isLocal"
+          >
+            <div *cdkDragPlaceholder class="h-6 rounded bg-primary/20 border border-dashed border-primary/40"></div>
 
-          <!-- Thẻ nổi khi đang kéo thành viên thoại -->
-          <ng-template cdkDragPreview>
-            <div class="voice-member-drag-preview" [style.width.px]="dragPreviewWidth - 24">
-              <app-avatar [name]="m.name" [src]="m.avatarUrl || null" size="xs" ring="surface" class="shrink-0" />
-              <span class="voice-member-drag-preview-title">{{ m.name }}</span>
+            <!-- Thẻ nổi khi đang kéo thành viên thoại -->
+            <ng-template cdkDragPreview>
+              <div class="voice-member-drag-preview" [style.width.px]="dragPreviewWidth - 24">
+                <app-avatar [name]="m.name" [src]="m.avatarUrl || null" size="xs" ring="surface" class="shrink-0" />
+                <span class="voice-member-drag-preview-title">{{ m.name }}</span>
+              </div>
+            </ng-template>
+
+            <!-- Member Identity (Avatar + Name with safe truncation) -->
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+              <app-avatar
+                [name]="m.name"
+                [src]="m.avatarUrl || null"
+                size="xs"
+                ring="surface"
+                [presence]="m.isSpeaking ? 'online' : null"
+              />
+              <div class="min-w-0 flex-1">
+                <app-overflow-marquee
+                  class="text-caption font-medium transition-colors"
+                  [class.text-primary]="m.isSpeaking"
+                  [class.text-ink]="!m.isSpeaking"
+                  [text]="m.name"
+                />
+              </div>
             </div>
-          </ng-template>
 
-          <!-- Member Identity (Avatar + Name with safe truncation) -->
-          <div class="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-            <app-avatar [name]="m.name" [src]="m.avatarUrl || null" size="xs" ring="surface" class="shrink-0" />
-            <app-overflow-marquee class="min-w-0 flex-1 text-micro font-medium text-ink" [class.text-primary]="m.isSpeaking" [text]="m.name" />
-            @if (m.isLocal) {
-              <span class="text-[10px] text-primary/80 font-bold shrink-0">(Bạn)</span>
-            }
-          </div>
-
-          <!-- Indicators & Action Badges -->
-          <div class="flex items-center gap-1 shrink-0">
-            <!-- Speaking pulse indicator -->
-            @if (m.isSpeaking) {
-              <span class="size-1.5 rounded-full bg-primary animate-pulse" matTooltip="Đang nói"></span>
-            }
-
-            <!-- Mic Muted Icon -->
-            @if (m.isMuted) {
-              <mat-icon class="!size-3.5 !text-xs text-danger" matTooltip="Đã tắt mic">mic_off</mat-icon>
-            }
-
-            <!-- Camera On Icon -->
-            @if (m.isCameraOn) {
-              <mat-icon class="!size-3.5 !text-xs text-primary" matTooltip="Đang bật camera">videocam</mat-icon>
-            }
-
-            <!-- Live Stream Badge & Watch Button (Clean, compact, vibrant colors) -->
-            @if (m.isScreenSharing) {
-              <div class="flex items-center gap-1.5 shrink-0">
-                <!-- Compact vibrant red LIVE badge -->
-                <span class="voice-live-badge">
-                  <span class="voice-live-badge__dot"></span>
-                  <span>LIVE</span>
-                </span>
-
-                <!-- Sleek Watch Stream Button -->
+            <!-- Trạng thái mic, camera, chia sẻ màn hình -->
+            <div class="flex items-center gap-1 shrink-0 text-steel">
+              @if (m.isScreenSharing) {
                 <button
                   type="button"
                   (click)="onWatchStream($event, channel, m)"
-                  matTooltip="Xem Stream của {{ m.name }}"
                   class="voice-watch-stream-btn"
+                  matTooltip="Xem màn hình chia sẻ trực tiếp"
                 >
                   <mat-icon>live_tv</mat-icon>
-                  <span>Xem Stream</span>
+                  <span>XEM</span>
                 </button>
-              </div>
-            }
+              }
+              @if (m.isCameraOn) {
+                <mat-icon class="!size-3.5 !text-sm" matTooltip="Đang bật camera">videocam</mat-icon>
+              }
+              @if (m.isMuted) {
+                <mat-icon class="!size-3.5 !text-sm text-danger" matTooltip="Đã tắt mic">mic_off</mat-icon>
+              }
+            </div>
           </div>
-        </div>
-      }
-    </div>
+        }
+      </div>
+    }
   }
 </ng-template>
 

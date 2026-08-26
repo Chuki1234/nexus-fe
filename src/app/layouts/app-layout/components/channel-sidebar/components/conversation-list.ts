@@ -33,6 +33,7 @@ import { ActiveChatStore } from '../../../../../features/dashboard/services/acti
 import { ServerInvitationsStore } from '../../../../../core/servers/server-invitations.store';
 import { FriendsStore } from '../../../../../features/dashboard/friends/services/friends-store';
 import { FriendNoteDialog } from '../../../../../features/dashboard/friends/components/friend-note-dialog/friend-note-dialog';
+import { BlockUserConfirmDialog } from '../../../../../features/dashboard/friends/components/block-user-confirm-dialog/block-user-confirm-dialog';
 import { ProfileAvatar } from '../../../../../features/profile/components/profile-avatar/profile-avatar';
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
@@ -74,7 +75,7 @@ export class ConversationList implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService, { optional: true });
   private readonly userSettingsService = inject(UserSettingsService, { optional: true });
-  private readonly dialog = inject(MatDialog, { optional: true });
+  private readonly dialog = inject(MatDialog);
   protected readonly invitationsStore = inject(ServerInvitationsStore);
   protected readonly friendsStore = inject(FriendsStore);
   private readonly subs = new Subscription();
@@ -282,12 +283,21 @@ export class ConversationList implements OnInit, OnDestroy {
 
   protected onBlockUser(conv: DisplayConversation): void {
     if (conv.recipientId) {
-      this.userSettingsService?.blockUser({
-        id: conv.recipientId,
-        username: conv.username || conv.name,
-        displayName: conv.name,
+      const dialogRef = this.dialog.open(BlockUserConfirmDialog, {
+        data: {
+          userId: conv.recipientId,
+          username: conv.username || conv.name,
+          displayName: conv.name,
+        },
+        panelClass: 'nexus-dialog-surface',
+        hasBackdrop: true,
       });
-      void this.friendsStore.removeFriend(conv.recipientId);
+
+      dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {
+        if (confirmed && conv.recipientId) {
+          void this.friendsStore.blockUser(conv.recipientId);
+        }
+      });
     }
   }
 

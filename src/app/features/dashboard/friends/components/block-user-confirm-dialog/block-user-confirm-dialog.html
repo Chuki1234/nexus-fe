@@ -1,0 +1,39 @@
+<div class="block-dialog">
+  <div class="block-dialog__header">
+    <div class="block-dialog__icon-wrap">
+      <mat-icon class="block-dialog__icon">block</mat-icon>
+    </div>
+    <div class="block-dialog__titles">
+      <h2 class="block-dialog__title">Chặn {{ data.displayName }}?</h2>
+      <p class="block-dialog__subtitle">&#64;{{ data.username }}</p>
+    </div>
+  </div>
+
+  <mat-dialog-content class="block-dialog__content">
+    <p class="block-dialog__body">
+      Bạn có chắc chắn muốn chặn <strong>{{ data.displayName }}</strong> không? Người dùng này sẽ không thể gửi tin nhắn trực tiếp, bắt đầu cuộc gọi hoặc gửi lời mời kết bạn cho bạn nữa.
+    </p>
+    <p class="block-dialog__note">
+      Quan hệ bạn bè hiện tại (nếu có) sẽ bị hủy bỏ ngay lập tức.
+    </p>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="block-dialog__actions" align="end">
+    <button
+      mat-button
+      type="button"
+      class="block-dialog__btn block-dialog__btn--cancel"
+      (click)="onCancel()"
+    >
+      Hủy
+    </button>
+    <button
+      mat-flat-button
+      type="button"
+      class="block-dialog__btn block-dialog__btn--danger"
+      (click)="onConfirm()"
+    >
+      Chặn người dùng
+    </button>
+  </mat-dialog-actions>
+</div>

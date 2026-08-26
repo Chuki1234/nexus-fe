@@ -14,6 +14,7 @@ import {
   type DashboardUiStateName,
 } from '../services/dashboard-ui-state';
 import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.service';
+import { FriendsStore } from '../friends/services/friends-store';
 import {
   ConversationPage,
   formatCompactTime,
@@ -1146,7 +1147,8 @@ describe('ConversationPage', () => {
 
       it('T7 & T8: Pagination Prepend và Realtime Append giữ vững cấu trúc divider', async () => {
         const today = new Date();
-        const todayEarlier = new Date(today.getTime() - 10 * 60 * 1000); // 10 phút trước
+        today.setHours(14, 30, 0, 0);
+        const todayEarlier = new Date(today.getTime() - 10 * 60 * 1000); // 10 phút trước cùng ngày
 
         messagesSignal.set([
           {
@@ -2161,6 +2163,43 @@ describe('ConversationPage', () => {
         };
 
         expect(component.canEdit(oldMsg)).toBe(false);
+      });
+    });
+
+    describe('User Blocking & Neutral Invalidation in DM', () => {
+      it('hiển thị thông báo đã chặn và nút Bỏ chặn khi người nhận bị user chặn', async () => {
+        const harness = await mount('conv-123');
+        const friendsStore = TestBed.inject(FriendsStore);
+        friendsStore.handleUserBlockCreated({
+          id: 'other-user',
+          username: 'alice',
+          displayName: 'Alice',
+          avatarUrl: null,
+          blockedAt: new Date().toISOString(),
+        });
+
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+
+        const text = harness.routeNativeElement?.textContent;
+        expect(text).toContain('Bạn không thể gửi tin nhắn vì đã chặn người dùng này.');
+        expect(text).toContain('Bỏ chặn');
+        expect(harness.routeNativeElement?.querySelector('app-message-composer')).toBeNull();
+      });
+
+      it('hiển thị thông báo trung tính khi nhận relationship:invalidated mà không tiết lộ lý do', async () => {
+        const harness = await mount('conv-123');
+        const friendsStore = TestBed.inject(FriendsStore);
+        friendsStore.handleRelationshipInvalidated({ userId: 'other-user' });
+
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+
+        const text = harness.routeNativeElement?.textContent;
+        expect(text).toContain('Không thể tương tác với người dùng này.');
+        expect(text).not.toContain('Bỏ chặn');
+        expect(text).not.toContain('đã chặn người dùng này');
+        expect(harness.routeNativeElement?.querySelector('app-message-composer')).toBeNull();
       });
     });
   });

@@ -62,7 +62,7 @@
     [title]="recipientName()"
     [subtitle]="recipientStatusSubtitle()"
     leadingIcon="alternate_email"
-    [showCallActions]="true"
+    [showCallActions]="!isRecipientBlocked() && !isRelationshipInvalidated()"
     [showDetailsAction]="recipientUsername() !== null"
     [detailsOpen]="profilePanelOpen()"
     detailsLabel="hồ sơ"
@@ -348,6 +348,17 @@
                                 class="nexus-chat-link text-primary underline hover:text-primary-hover break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
                                 (click)="$event.stopPropagation()"
                               >{{ token.value }}</a>
+                            } @else if (token.type === 'mention') {
+                              <span
+                                class="inline-flex items-baseline px-1.5 py-0.5 rounded font-medium text-xs transition-colors cursor-pointer select-none"
+                                [class.bg-primary/15]="!token.isEveryone"
+                                [class.text-primary]="!token.isEveryone"
+                                [class.hover:bg-primary/25]="!token.isEveryone"
+                                [class.bg-amber-500/20]="token.isEveryone"
+                                [class.text-amber-400]="token.isEveryone"
+                                [class.hover:bg-amber-500/30]="token.isEveryone"
+                                [title]="token.isEveryone ? 'Nhắc tới tất cả mọi người' : 'Người dùng: @' + token.value"
+                              >@{{ token.value }}</span>
                             } @else {
                               <span>{{ token.value }}</span>
                             }
@@ -545,6 +556,17 @@
                                     class="nexus-chat-link text-primary underline hover:text-primary-hover break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
                                     (click)="$event.stopPropagation()"
                                   >{{ token.value }}</a>
+                                } @else if (token.type === 'mention') {
+                                  <span
+                                    class="inline-flex items-baseline px-1.5 py-0.5 rounded font-medium text-xs transition-colors cursor-pointer select-none"
+                                    [class.bg-primary/15]="!token.isEveryone"
+                                    [class.text-primary]="!token.isEveryone"
+                                    [class.hover:bg-primary/25]="!token.isEveryone"
+                                    [class.bg-amber-500/20]="token.isEveryone"
+                                    [class.text-amber-400]="token.isEveryone"
+                                    [class.hover:bg-amber-500/30]="token.isEveryone"
+                                    [title]="token.isEveryone ? 'Nhắc tới tất cả mọi người' : 'Người dùng: @' + token.value"
+                                  >@{{ token.value }}</span>
                                 } @else {
                                   <span>{{ token.value }}</span>
                                 }
@@ -780,11 +802,19 @@
             Bỏ chặn
           </button>
         </div>
+      } @else if (isRelationshipInvalidated()) {
+        <div class="flex items-center justify-center p-3.5 rounded-2xl bg-surface-feature/80 border border-hairline text-body-sm text-steel">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <mat-icon class="text-steel !size-5 !text-xl shrink-0">info</mat-icon>
+            <span class="text-ink font-medium">Không thể tương tác với người dùng này.</span>
+          </div>
+        </div>
       } @else {
         <app-message-composer
           [target]="'@' + recipientName()"
           [disabled]="loadingInitial() || storeError() !== null"
           [context]="composerContext()"
+          [mentionCandidates]="mentionCandidates()"
           (send)="onSendMessage($event)"
           (typing)="onTyping()"
           (stoppedTyping)="onStoppedTyping()"

@@ -73,16 +73,24 @@ class FriendsStoreStub {
   friends = signal([]).asReadonly();
   incomingRequests = signal([]).asReadonly();
   outgoingRequests = signal([]).asReadonly();
+  blockedUsers = signal([]).asReadonly();
   loading = signal(false).asReadonly();
   sending = signal(false).asReadonly();
+  blockedLoading = signal(false).asReadonly();
   busyIds = signal<ReadonlySet<string>>(new Set()).asReadonly();
+  invalidatedRelationshipIds = signal<ReadonlySet<string>>(new Set()).asReadonly();
   error = signal<string | null>(null).asReadonly();
+  blockedError = signal<string | null>(null).asReadonly();
   feedback = signal<string | null>(null).asReadonly();
   load = () => Promise.resolve();
+  loadBlocked = () => Promise.resolve();
   sendRequest = () => Promise.resolve(true);
   acceptRequest = () => Promise.resolve();
   deleteRequest = () => Promise.resolve();
   removeFriend = () => Promise.resolve();
+  blockUser = () => Promise.resolve(true);
+  unblockUser = () => Promise.resolve(true);
+  isUserBlocked = () => false;
   clearFeedback = () => undefined;
 }
 

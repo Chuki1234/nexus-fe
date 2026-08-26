@@ -5,7 +5,7 @@ import {
 } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import type { PresenceStatus } from '../../../../../shared/dto/common';
+import type { PresenceStatus, BlockedUserDto } from '../../../../../shared';
 import { environment } from '../../../../../environments/environment';
 import { AuthService } from '../../../../core/auth/auth.service';
 
@@ -116,6 +116,32 @@ export class FriendsApi {
   removeFriend(userId: string): Promise<void> {
     return firstValueFrom(
       this.http.delete<void>(`${this.baseUrl}/${userId}`, {
+        headers: this.authHeaders(),
+      }),
+    );
+  }
+
+  listBlocked(): Promise<BlockedUserDto[]> {
+    return firstValueFrom(
+      this.http.get<BlockedUserDto[]>(`${this.baseUrl}/blocked`, {
+        headers: this.authHeaders(),
+      }),
+    );
+  }
+
+  blockUser(userId: string): Promise<BlockedUserDto> {
+    return firstValueFrom(
+      this.http.post<BlockedUserDto>(
+        `${this.baseUrl}/${userId}/block`,
+        {},
+        { headers: this.authHeaders() },
+      ),
+    );
+  }
+
+  unblockUser(userId: string): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(`${this.baseUrl}/${userId}/block`, {
         headers: this.authHeaders(),
       }),
     );

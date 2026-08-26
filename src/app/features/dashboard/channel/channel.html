@@ -218,7 +218,16 @@
                                   {{ token.value }}
                                 </a>
                               } @else if (token.type === 'mention') {
-                                <span class="chat-mention font-medium text-brand">@{{ token.value }}</span>
+                                <span
+                                  class="inline-flex items-baseline px-1.5 py-0.5 rounded font-medium text-xs transition-colors cursor-pointer select-none"
+                                  [class.bg-primary/15]="!token.isEveryone"
+                                  [class.text-primary]="!token.isEveryone"
+                                  [class.hover:bg-primary/25]="!token.isEveryone"
+                                  [class.bg-amber-500/20]="token.isEveryone"
+                                  [class.text-amber-400]="token.isEveryone"
+                                  [class.hover:bg-amber-500/30]="token.isEveryone"
+                                  [title]="token.isEveryone ? 'Nhắc tới tất cả mọi người' : 'Người dùng: @' + token.value"
+                                >@{{ token.value }}</span>
                               } @else if (token.type === 'channel') {
                                 <span class="chat-channel-mention font-medium text-brand">#{{ token.value }}</span>
                               }
@@ -381,6 +390,8 @@
             <app-message-composer
               [target]="'#' + current.name"
               [context]="composerContext()"
+              [mentionCandidates]="mentionCandidates()"
+              [loadingMentions]="loadingMembers()"
               [attachmentsDisabled]="!permissions().canAttach"
               attachmentsDisabledReason="Bạn không có quyền đính kèm tệp trong kênh này"
               (contextClosed)="composerContext.set(null)"

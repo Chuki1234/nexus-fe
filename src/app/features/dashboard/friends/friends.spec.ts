@@ -49,22 +49,33 @@ describe('FriendsPage', () => {
     const connectionState = signal<DashboardConnectionState | null>(
       uiState === 'offline' || uiState === 'reconnecting' ? uiState : null,
     ).asReadonly();
+    const blockedSignal = signal<any[]>([]);
+    const loadingBlockedSignal = signal(false);
+    const errorSignal = signal<string | null>(null);
+
     const friendStore = {
       friends: signal(people).asReadonly(),
       incomingRequests: signal([]).asReadonly(),
       outgoingRequests: signal([]).asReadonly(),
+      blocked: blockedSignal.asReadonly(),
       loading: signal(false).asReadonly(),
+      loadingBlocked: loadingBlockedSignal.asReadonly(),
       sending: signal(false).asReadonly(),
       busyIds: signal<ReadonlySet<string>>(new Set()).asReadonly(),
-      error: signal<string | null>(null).asReadonly(),
+      error: errorSignal.asReadonly(),
       feedback: signal<string | null>(null).asReadonly(),
       load: vi.fn().mockResolvedValue(undefined),
+      loadBlocked: vi.fn().mockResolvedValue(undefined),
       sendFriendRequest: vi.fn().mockResolvedValue(true),
       acceptFriendRequest: vi.fn().mockResolvedValue(undefined),
       declineFriendRequest: vi.fn().mockResolvedValue(undefined),
       cancelFriendRequest: vi.fn().mockResolvedValue(undefined),
       removeFriend: vi.fn().mockResolvedValue(undefined),
+      unblockUser: vi.fn().mockResolvedValue(true),
       clearFeedback: vi.fn(),
+      _blockedSignal: blockedSignal,
+      _loadingBlockedSignal: loadingBlockedSignal,
+      _errorSignal: errorSignal,
     };
     const serverInvitationsStore = {
       pendingInvitations: signal(serverInvites),
@@ -303,5 +314,42 @@ describe('FriendsPage', () => {
     // Từ chối lời mời
     await fixture.componentInstance['onDeclineServerInvite'](mockInvite);
     expect(invStore.declineInvitation).toHaveBeenCalledWith('inv-123');
+  });
+
+  it('tab Đã chặn hiển thị danh sách, skeleton khi loading, và retry gọi loadBlocked(true)', async () => {
+    const fixture = await mount();
+    const store = TestBed.inject(FriendsStore) as any;
+
+    fixture.componentInstance['tab'].set('blocked');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Không có ai bị chặn');
+
+    // 1. Loading state
+    store._loadingBlockedSignal.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-dashboard-state')).toBeTruthy();
+
+    store._loadingBlockedSignal.set(false);
+    store._blockedSignal.set([
+      {
+        id: 'blocked-1',
+        username: 'spammer',
+        displayName: 'Spammer User',
+        avatarUrl: null,
+        blockedAt: new Date().toISOString(),
+      },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Spammer User');
+    expect(fixture.nativeElement.textContent).toContain('Bỏ chặn');
+
+    // 2. Click retry khi có lỗi
+    store._errorSignal.set('Lỗi nạp danh sách chặn');
+    fixture.detectChanges();
+
+    fixture.componentInstance['onRetry']();
+    expect(store.loadBlocked).toHaveBeenCalledWith(true);
   });
 });

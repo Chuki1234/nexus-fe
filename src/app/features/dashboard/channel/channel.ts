@@ -33,6 +33,7 @@ import {
   MessageComposer,
   type MessageComposerContext,
   type SendMessagePayload,
+  type MentionCandidate,
 } from '../components/message-composer/message-composer';
 import { MessageActions } from '../components/message-actions/message-actions';
 import { DashboardState } from '../components/dashboard-state/dashboard-state';
@@ -231,6 +232,32 @@ export class ChannelPage implements OnInit, AfterViewInit {
   protected readonly offlineMembers = computed(() =>
     this.membersWithPresence().filter((m) => m.presence === 'offline'),
   );
+
+  protected readonly mentionCandidates = computed<MentionCandidate[]>(() => {
+    const members = this.serverMembers();
+    const list: MentionCandidate[] = [
+      {
+        id: 'everyone',
+        username: 'everyone',
+        displayName: 'everyone',
+        avatarUrl: null,
+        isEveryone: true,
+        description: 'Thông báo tới tất cả thành viên trong kênh',
+      },
+    ];
+
+    for (const m of members) {
+      list.push({
+        id: m.userId,
+        username: m.username,
+        displayName: m.nickname || m.displayName || m.username,
+        avatarUrl: m.avatarUrl,
+        role: m.role,
+      });
+    }
+
+    return list;
+  });
 
   private previousIsMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
 

@@ -6,6 +6,8 @@ import { ConversationsApiService } from '../../../../core/api/conversations-api.
 import { DirectCallCoordinatorService } from '../../../../core/calls/direct-call-coordinator.service';
 import { FriendRow } from './friend-row';
 
+import { FriendsStore } from '../services/friends-store';
+
 const NGUOI: ConversationSummary = {
   id: 'ho-be',
   name: 'ho_be',
@@ -27,6 +29,7 @@ class Host {
 describe('FriendRow', () => {
   let mockConversationsApi: { getOrCreateDm: any };
   let mockDirectCallCoordinator: { startCall: any };
+  let mockFriendsStore: { blockUser: any; removeFriend: any };
   let router: Router;
 
   beforeEach(() => {
@@ -42,6 +45,10 @@ describe('FriendRow', () => {
     mockDirectCallCoordinator = {
       startCall: vi.fn().mockResolvedValue(undefined),
     };
+    mockFriendsStore = {
+      blockUser: vi.fn().mockResolvedValue(null),
+      removeFriend: vi.fn().mockResolvedValue(undefined),
+    };
   });
 
   const mount = async () => {
@@ -51,6 +58,7 @@ describe('FriendRow', () => {
         provideRouter([]),
         { provide: ConversationsApiService, useValue: mockConversationsApi },
         { provide: DirectCallCoordinatorService, useValue: mockDirectCallCoordinator },
+        { provide: FriendsStore, useValue: mockFriendsStore },
       ],
     }).compileComponents();
 

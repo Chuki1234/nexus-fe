@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   ElementRef,
   input,
@@ -13,12 +14,14 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule } from '@angular/forms';
 
 import { ATTACHMENT_LIMITS } from '../../../../core/constants/attachments.constant';
 import { ExternalMediaDto, GiphyMediaDto } from '../../../../../shared/dto/messages.dto';
 import { GiphyPickerComponent } from '../giphy-picker/giphy-picker.component';
 import { StipopPickerComponent } from '../stipop-picker/stipop-picker.component';
+import { Avatar } from '../../../../shared/ui/avatar/avatar';
 
 export type MessageComposerContextKind =
   | 'reply'
@@ -59,6 +62,16 @@ export interface PendingFileItem {
   isImage: boolean;
   name: string;
   formattedSize: string;
+}
+
+export interface MentionCandidate {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isEveryone?: boolean;
+  role?: string | null;
+  description?: string;
 }
 
 export interface EmojiCategory {
@@ -149,7 +162,7 @@ function formatFileSize(bytes: number): string {
  * Ô soạn tin nhắn ở đáy khu nội dung.
  *
  * Hỗ trợ Textarea auto-resize, Enter để gửi, Shift+Enter để xuống dòng,
- * đính kèm file/ảnh (Drag-drop, Paste, Picker), Emoji Picker Unicode thật.
+ * đính kèm file/ảnh, Emoji, GIPHY, Stipop, và Mention (@username / @everyone).
  */
 @Component({
   selector: 'app-message-composer',
@@ -158,8 +171,10 @@ function formatFileSize(bytes: number): string {
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    MatProgressSpinnerModule,
     GiphyPickerComponent,
     StipopPickerComponent,
+    Avatar,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -183,6 +198,10 @@ export class MessageComposer implements OnDestroy {
   readonly attachmentsDisabledReason = input<string>('Đính kèm tệp đã bị vô hiệu hóa');
   readonly context = input<MessageComposerContext | null>(null);
 
+  /** Danh sách ứng viên Mention (@username, @everyone) */
+  readonly mentionCandidates = input<MentionCandidate[]>([]);
+  readonly loadingMentions = input<boolean>(false);
+
   readonly send = output<SendMessagePayload>();
   readonly typing = output<void>();
   readonly stoppedTyping = output<void>();
@@ -196,6 +215,26 @@ export class MessageComposer implements OnDestroy {
   readonly showStipopPicker = signal<boolean>(false);
   readonly activeEmojiCategoryIndex = signal<number>(0);
   readonly fileErrorMessage = signal<string | null>(null);
+
+  // Mention State
+  readonly showMentionPopup = signal<boolean>(false);
+  readonly mentionQuery = signal<string>('');
+  readonly mentionTriggerStart = signal<number>(-1);
+  readonly selectedMentionIndex = signal<number>(0);
+
+  readonly filteredMentionCandidates = computed(() => {
+    const list = this.mentionCandidates();
+    const query = this.mentionQuery().trim().toLowerCase();
+    if (!query) {
+      return list;
+    }
+    return list.filter((c) => {
+      const matchUsername = c.username.toLowerCase().includes(query);
+      const matchDisplayName = c.displayName.toLowerCase().includes(query);
+      return matchUsername || matchDisplayName;
+    });
+  });
+
   dragEnterCounter = 0;
 
   protected readonly emojiCategories = EMOJI_CATEGORIES;
@@ -205,6 +244,7 @@ export class MessageComposer implements OnDestroy {
       const ctx = this.context();
       if (ctx) {
         untracked(() => {
+          this.closeMentionPopup();
           if (ctx.kind === 'edit') {
             this.revokePendingUrls();
             this.pendingFiles.set([]);
@@ -230,6 +270,7 @@ export class MessageComposer implements OnDestroy {
 
   ngOnDestroy(): void {
     this.revokePendingUrls();
+    this.closeMentionPopup();
   }
 
   onDocumentClick(event: MouseEvent): void {
@@ -255,9 +296,20 @@ export class MessageComposer implements OnDestroy {
     ) {
       this.showStipopPicker.set(false);
     }
+    if (
+      this.showMentionPopup() &&
+      !target.closest('.composer-mention-palette') &&
+      !target.closest('.mention-toggle-btn')
+    ) {
+      this.closeMentionPopup();
+    }
   }
 
   onEscape(): void {
+    if (this.showMentionPopup()) {
+      this.closeMentionPopup();
+      return;
+    }
     if (this.showEmojiPicker()) {
       this.showEmojiPicker.set(false);
     }
@@ -269,7 +321,147 @@ export class MessageComposer implements OnDestroy {
     }
   }
 
+  openMentionPopup(): void {
+    this.showEmojiPicker.set(false);
+    this.showGiphyPicker.set(false);
+    this.showStipopPicker.set(false);
+    this.showMentionPopup.set(true);
+  }
+
+  closeMentionPopup(): void {
+    this.showMentionPopup.set(false);
+    this.mentionQuery.set('');
+    this.mentionTriggerStart.set(-1);
+    this.selectedMentionIndex.set(0);
+  }
+
+  triggerMentionFromButton(): void {
+    if (this.disabled() || this.context()?.kind === 'edit') return;
+    this.showEmojiPicker.set(false);
+    this.showGiphyPicker.set(false);
+    this.showStipopPicker.set(false);
+
+    const textarea = this.textareaEl()?.nativeElement;
+    if (!textarea) return;
+
+    textarea.focus();
+    const caret = textarea.selectionStart ?? this.text().length;
+    const currentText = this.text();
+    const before = currentText.slice(0, caret);
+    const after = currentText.slice(caret);
+
+    const needsSpaceBefore = before.length > 0 && !/[\s(\[{<"']$/.test(before);
+    const insertString = needsSpaceBefore ? ' @' : '@';
+    const newText = before + insertString + after;
+    const newCaret = caret + insertString.length;
+
+    this.text.set(newText);
+    textarea.value = newText;
+    textarea.setSelectionRange(newCaret, newCaret);
+
+    this.mentionTriggerStart.set(newCaret - 1);
+    this.mentionQuery.set('');
+    this.selectedMentionIndex.set(0);
+    this.openMentionPopup();
+    this.typing.emit();
+    this.adjustTextareaHeight();
+  }
+
+  checkMentionTrigger(): void {
+    const textarea = this.textareaEl()?.nativeElement;
+    if (!textarea) return;
+    const caret = textarea.selectionStart ?? 0;
+    const fullText = textarea.value;
+    const textBeforeCaret = fullText.slice(0, caret);
+
+    // Tìm ký tự @ gần nhất trước caret
+    const match = textBeforeCaret.match(/(?:^|[\s(\[{<"'])@([a-zA-Z0-9_.]{0,32})$/);
+    if (match) {
+      const query = match[1];
+      const atPos = textBeforeCaret.lastIndexOf('@' + query);
+      this.mentionTriggerStart.set(atPos);
+      this.mentionQuery.set(query);
+      this.selectedMentionIndex.set(0);
+      this.openMentionPopup();
+    } else {
+      if (this.showMentionPopup()) {
+        this.closeMentionPopup();
+      }
+    }
+  }
+
+  selectMentionCandidate(candidate: MentionCandidate): void {
+    const textarea = this.textareaEl()?.nativeElement;
+    const currentText = this.text();
+    const atPos = this.mentionTriggerStart();
+    const caret = textarea?.selectionStart ?? currentText.length;
+
+    if (atPos >= 0 && atPos <= currentText.length) {
+      const beforeAt = currentText.slice(0, atPos);
+      const afterQuery = currentText.slice(caret);
+      const replacement = `@${candidate.username} `;
+      const newText = beforeAt + replacement + afterQuery;
+      const newCaret = beforeAt.length + replacement.length;
+
+      this.text.set(newText);
+      if (textarea) {
+        textarea.value = newText;
+        textarea.setSelectionRange(newCaret, newCaret);
+        textarea.focus();
+      }
+    } else {
+      const replacement = `@${candidate.username} `;
+      const newText = currentText + replacement;
+      this.text.set(newText);
+      if (textarea) {
+        textarea.value = newText;
+        textarea.setSelectionRange(newText.length, newText.length);
+        textarea.focus();
+      }
+    }
+
+    this.closeMentionPopup();
+    this.adjustTextareaHeight();
+    this.typing.emit();
+  }
+
   onKeydown(event: KeyboardEvent): void {
+    // Intercept keyboard events khi Mention Popup đang mở
+    if (this.showMentionPopup()) {
+      const candidates = this.filteredMentionCandidates();
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (candidates.length > 0) {
+          this.selectedMentionIndex.update((i) => (i + 1) % candidates.length);
+        }
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (candidates.length > 0) {
+          this.selectedMentionIndex.update((i) => (i - 1 + candidates.length) % candidates.length);
+        }
+        return;
+      }
+      if (event.key === 'Enter' || event.key === 'Tab') {
+        if (!event.shiftKey && !event.isComposing) {
+          event.preventDefault();
+          if (candidates.length > 0) {
+            const selected = candidates[this.selectedMentionIndex()] || candidates[0];
+            this.selectMentionCandidate(selected);
+          } else {
+            this.closeMentionPopup();
+          }
+          return;
+        }
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.closeMentionPopup();
+        return;
+      }
+    }
+
     if (event.key === 'Enter' && !event.shiftKey) {
       if (event.isComposing) return;
       event.preventDefault();
@@ -280,10 +472,17 @@ export class MessageComposer implements OnDestroy {
   onInput(value: string): void {
     this.text.set(value);
     this.adjustTextareaHeight();
+    this.checkMentionTrigger();
     if (value.trim().length > 0) {
       this.typing.emit();
     } else {
       this.stoppedTyping.emit();
+    }
+  }
+
+  onKeyup(event: KeyboardEvent): void {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Enter') {
+      this.checkMentionTrigger();
     }
   }
 
@@ -447,6 +646,7 @@ export class MessageComposer implements OnDestroy {
 
   toggleEmojiPicker(): void {
     if (this.disabled()) return;
+    this.closeMentionPopup();
     this.showGiphyPicker.set(false);
     this.showStipopPicker.set(false);
     this.showEmojiPicker.update((v) => !v);
@@ -454,6 +654,7 @@ export class MessageComposer implements OnDestroy {
 
   toggleGiphyPicker(): void {
     if (this.disabled() || this.context()?.kind === 'edit') return;
+    this.closeMentionPopup();
     this.showEmojiPicker.set(false);
     this.showStipopPicker.set(false);
     this.showGiphyPicker.update((v) => !v);
@@ -461,6 +662,7 @@ export class MessageComposer implements OnDestroy {
 
   toggleStipopPicker(): void {
     if (this.disabled() || this.context()?.kind === 'edit') return;
+    this.closeMentionPopup();
     this.showEmojiPicker.set(false);
     this.showGiphyPicker.set(false);
     this.showStipopPicker.update((v) => !v);
@@ -482,6 +684,7 @@ export class MessageComposer implements OnDestroy {
 
     this.send.emit(payload);
 
+    this.closeMentionPopup();
     this.showGiphyPicker.set(false);
     this.showStipopPicker.set(false);
     this.showEmojiPicker.set(false);
@@ -508,6 +711,7 @@ export class MessageComposer implements OnDestroy {
 
     this.send.emit(payload);
 
+    this.closeMentionPopup();
     this.showStipopPicker.set(false);
     this.showGiphyPicker.set(false);
     this.showEmojiPicker.set(false);
@@ -609,6 +813,7 @@ export class MessageComposer implements OnDestroy {
     this.text.set('');
     this.pendingFiles.set([]);
     this.fileErrorMessage.set(null);
+    this.closeMentionPopup();
     this.showEmojiPicker.set(false);
     this.showGiphyPicker.set(false);
     this.showStipopPicker.set(false);
