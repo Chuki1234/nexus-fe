@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
+  HostListener,
   inject,
   OnDestroy,
   OnInit,
@@ -22,8 +24,9 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
 export class VoiceVideoTab implements OnInit, OnDestroy {
   protected readonly settingsService = inject(UserSettingsService);
   protected readonly mediaDevices = inject(MediaDeviceService);
+  private readonly elementRef = inject(ElementRef);
 
-  protected readonly totalBars = 50;
+  protected readonly totalBars = 45;
   protected readonly isRecordingPttKey = signal<boolean>(false);
   protected readonly isTestingVideo = signal<boolean>(false);
   protected readonly videoError = signal<string | null>(null);
@@ -38,7 +41,8 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
 
   protected readonly activeBars = computed(() => {
     if (!this.mediaDevices.isTestingMic()) return 0;
-    return Math.round((this.mediaDevices.audioLevel() / 100) * this.totalBars);
+    const level = this.mediaDevices.audioLevel();
+    return Math.round((level / 100) * this.totalBars);
   });
 
   protected readonly barsArray = Array.from({ length: this.totalBars }, (_, i) => i);
@@ -49,9 +53,9 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
     icon: string;
   }[] = [
     { id: 'none', label: 'Không hiệu ứng', icon: 'block' },
-    { id: 'blur', label: 'Làm mờ nền', icon: 'blur_on' },
-    { id: 'cyberpunk', label: 'Nexus Cyberpunk', icon: 'nightlife' },
-    { id: 'cozy-room', label: 'Phòng Studio ấm', icon: 'weekend' },
+    { id: 'blur', label: 'Làm mờ nền', icon: 'blur' },
+    { id: 'cyberpunk', label: 'Nexus Cyberpunk', icon: 'cyberpunk' },
+    { id: 'cozy-room', label: 'Phòng Studio', icon: 'room' },
   ];
 
   protected selectedInputLabel = computed(() => {
@@ -67,7 +71,7 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
     const devices = this.mediaDevices.audioOutputs();
     if (!devices.length) return 'Cài đặt mặc định của Windows (Speakers/Headphones...)';
     const found = devices.find((d) => d.deviceId === id);
-    return found?.label || devices[0]?.label || 'Speakers 1';
+    return found?.label || devices[0]?.label || 'Speakers / Headphones 1';
   });
 
   protected selectedVideoLabel = computed(() => {
@@ -75,8 +79,15 @@ export class VoiceVideoTab implements OnInit, OnDestroy {
     const devices = this.mediaDevices.videoInputs();
     if (!devices.length) return 'Cài đặt mặc định của Windows (Integrated Camera...)';
     const found = devices.find((d) => d.deviceId === id);
-    return found?.label || devices[0]?.label || 'Camera 1';
+    return found?.label || devices[0]?.label || 'Integrated Camera 1';
   });
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.closeAllDropdowns();
+    }
+  }
 
   async ngOnInit(): Promise<void> {
     await this.mediaDevices.requestPermissions(false);

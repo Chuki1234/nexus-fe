@@ -1,347 +1,184 @@
-/* ============================================================
-   voice-video-tab.css — hoàn toàn custom, không phụ thuộc UI lib
-   ============================================================ */
+/* ==========================================================================
+   Voice & Video Tab Styles (Nexus Design System Compliant)
+   ========================================================================== */
 
-:host { display: block; }
-
-/* ─── Section label ─── */
-.vv-label {
-  font-size: 11px;
-  font-weight: 800;
-  color: #949ba4;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+:host {
+  display: block;
+  width: 100%;
 }
 
-/* ─── Card ─── */
-.vv-card {
-  background: #0d1117;
-  border: 1.5px solid #2e3338;
-  border-radius: 12px;
-  padding: 16px;
-}
-
-/* ─── Custom Dropdown ─── */
-.vv-select-btn {
-  position: relative;
+/* Custom Dropdown Styling */
+.custom-select-btn {
   display: flex;
   align-items: center;
+  gap: 10px;
   width: 100%;
-  height: 46px;
-  padding: 0 40px 0 40px;
-  background: #060d12;
-  border: 1.5px solid #2e3338;
-  border-radius: 10px;
-  color: #dbdee1;
+  height: 44px;
+  padding: 0 14px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline-strong);
+  border-radius: 12px;
+  color: var(--color-ink);
+  font-family: inherit;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-  font-family: inherit;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 
-.vv-select-btn:hover {
-  background: #0a1219;
-  border-color: #4e5058;
+.custom-select-btn:hover {
+  background: var(--color-surface-soft);
+  border-color: var(--color-primary-soft);
 }
 
-.vv-select-btn.open {
-  border-color: #00ed64;
-  background: #071510;
-  box-shadow: 0 0 0 3px rgba(0, 237, 100, 0.12);
+.custom-select-btn.is-open {
+  border-color: var(--color-primary);
+  background: var(--color-surface-soft);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
-.vv-select-icon-left {
+.custom-select-menu {
   position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #5c6f7a;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-}
-
-.vv-select-icon-right {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #949ba4;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-  transition: transform 0.15s;
-}
-
-.vv-select-icon-right.open {
-  transform: translateY(-50%) rotate(180deg);
-}
-
-/* Dropdown menu */
-.vv-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: #111214;
-  border: 1.5px solid #2e3338;
-  border-radius: 10px;
-  z-index: 300;
-  overflow: hidden;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-  animation: vv-dropdown-in 0.13s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 50;
+  background: var(--color-surface);
+  border: 1px solid var(--color-hairline-strong);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  max-height: 220px;
+  overflow-y: auto;
+  animation: dropdownFadeIn 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes vv-dropdown-in {
-  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-.vv-dropdown-item {
+.custom-select-option {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
-  color: #b5bac1;
+  color: var(--color-slate);
   cursor: pointer;
-  border-bottom: 1px solid #1a1b1e;
-  transition: background 0.08s, color 0.08s;
-  min-width: 0;
+  transition: all 0.1s ease;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-hairline) 50%, transparent);
 }
 
-.vv-dropdown-item:last-child { border-bottom: none; }
-
-.vv-dropdown-item:hover {
-  background: #1e2124;
-  color: #f2f3f5;
+.custom-select-option:last-child {
+  border-bottom: none;
 }
 
-.vv-dropdown-item.is-active {
-  background: #0a1f14;
-  color: #00ed64;
+.custom-select-option:hover {
+  background: var(--color-surface-feature);
+  color: var(--color-ink);
+}
+
+.custom-select-option.is-active {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
   font-weight: 700;
 }
 
-.vv-dropdown-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* ─── Range Slider ─── */
-.vv-slider {
+/* Custom Range Slider */
+.custom-range-slider {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 5px;
+  height: 6px;
   border-radius: 9999px;
-  background: #2e3338;
+  background: var(--color-surface-feature);
   outline: none;
   cursor: pointer;
   display: block;
 }
 
-.vv-slider::-webkit-slider-thumb {
+.custom-range-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 17px;
-  height: 17px;
+  appearance: none;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #00ed64;
+  background: var(--color-primary);
+  border: 2px solid var(--color-canvas);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   cursor: pointer;
-  border: 2px solid #0d1117;
-  box-shadow: 0 2px 8px rgba(0, 237, 100, 0.4);
-  transition: transform 0.12s, background 0.12s;
+  transition: transform 0.1s ease, background-color 0.1s ease;
 }
 
-.vv-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.25);
-  background: #2bff8f;
+.custom-range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: var(--color-primary-soft);
 }
 
-.vv-slider::-moz-range-thumb {
-  width: 17px;
-  height: 17px;
+.custom-range-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #00ed64;
+  background: var(--color-primary);
+  border: 2px solid var(--color-canvas);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   cursor: pointer;
-  border: 2px solid #0d1117;
-  box-shadow: 0 2px 8px rgba(0, 237, 100, 0.4);
 }
 
-/* ─── Custom Toggle ─── */
-.vv-toggle {
+/* Custom Toggle Switch */
+.custom-toggle {
   position: relative;
   display: inline-block;
-  width: 42px;
-  height: 24px;
+  width: 38px;
+  height: 22px;
   flex-shrink: 0;
 }
 
-.vv-toggle input {
+.custom-toggle input {
   opacity: 0;
   width: 0;
   height: 0;
   position: absolute;
 }
 
-.vv-toggle-track {
+.custom-toggle-track {
   position: absolute;
   inset: 0;
   border-radius: 9999px;
-  background: #2e3338;
+  background: var(--color-surface-feature);
+  border: 1px solid var(--color-hairline-strong);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.vv-toggle input:checked + .vv-toggle-track {
-  background: #00ed64;
+.custom-toggle input:checked + .custom-toggle-track {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
-.vv-toggle-thumb {
+.custom-toggle-thumb {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #fff;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+  background: var(--color-ink);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
   pointer-events: none;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.vv-toggle input:checked ~ .vv-toggle-thumb {
-  transform: translateX(18px);
-  box-shadow: 0 1px 6px rgba(0, 237, 100, 0.35);
-}
-
-/* ─── Mic Level Bars ─── */
-.vv-level-bar {
-  flex: 1;
-  border-radius: 9999px;
-  transition: height 0.07s, background 0.07s;
-  align-self: center;
-}
-
-/* ─── Buttons ─── */
-.vv-btn-green {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: #00ed64;
-  color: #001e2b;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  border: none;
-  transition: background 0.15s, transform 0.1s;
-  font-family: inherit;
-  flex-shrink: 0;
-}
-.vv-btn-green:hover { background: #2bff8f; transform: scale(1.02); }
-
-.vv-btn-red {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: #ff4b4b;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  border: none;
-  transition: background 0.15s, transform 0.1s;
-  font-family: inherit;
-  flex-shrink: 0;
-}
-.vv-btn-red:hover { background: #ff6b6b; }
-
-.vv-btn-outline {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  background: #060d12;
-  color: #00ed64;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  border: 1.5px solid #2e3338;
-  transition: border-color 0.15s, background 0.15s;
-  font-family: inherit;
-  flex-shrink: 0;
-}
-.vv-btn-outline:hover { border-color: #00ed64; background: #071510; }
-
-.vv-btn-outline.recording {
-  background: #3b0e0e;
-  border-color: #ff4b4b;
-  color: #ff4b4b;
-  animation: pulse 1s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.65; }
-}
-
-/* ─── Mode selector cards ─── */
-.vv-mode-card {
-  padding: 14px;
-  border-radius: 10px;
-  border: 1.5px solid #2e3338;
-  background: #0d1117;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.15s, background 0.15s;
-  font-family: inherit;
-  width: 100%;
-}
-.vv-mode-card.active {
-  border-color: #00ed64;
-  background: #0a1f14;
-}
-
-/* ─── SVG icon helper ─── */
-.vv-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-/* ─── Effect cards ─── */
-.vv-effect-btn {
-  padding: 12px 8px;
-  border-radius: 8px;
-  border: 1.5px solid #2e3338;
-  background: #0d1117;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
-  font-family: inherit;
-  color: #949ba4;
-}
-.vv-effect-btn.active {
-  border-color: #00ed64;
-  background: #0a1f14;
-  color: #00ed64;
-}
-.vv-effect-btn:hover:not(.active) {
-  border-color: #4e5058;
-  background: #111417;
-  color: #dbdee1;
+.custom-toggle input:checked ~ .custom-toggle-thumb {
+  transform: translateX(16px);
+  background: var(--color-on-primary);
 }
