@@ -39,9 +39,9 @@
   box-shadow: var(--shadow-glow);
 }
 
-@media (max-width: 39.999rem) {
+@media (max-width: 63.999rem) {
   .friends-toolbar__title {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
   }
 
   .friends-segmented {
@@ -49,6 +49,7 @@
     flex-wrap: nowrap;
     justify-content: flex-start;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
 
   .friends-segmented::-webkit-scrollbar {

@@ -506,13 +506,84 @@ export class ChannelChatStore implements OnDestroy {
   }
 
   /**
-   * Xóa tin nhắn (soft delete).
+   * Ẩn tin nhắn chỉ ở phía người dùng (Hide for Me) với Optimistic Update và Rollback cục bộ.
    */
-  async deleteMessage(messageId: string): Promise<void> {
-    await this.messagesApi.deleteMessage(messageId);
+  async hideMessage(messageId: string): Promise<void> {
+    const list = this._messages();
+    const targetIdx = list.findIndex((m) => m.id === messageId);
+    if (targetIdx === -1) return;
+
+    const originalMsg = list[targetIdx];
+
+    // 1. Optimistic removal
+    this._messages.update((curr) => curr.filter((m) => m.id !== messageId));
+
+    // 2. Gọi REST API
+    try {
+      await this.messagesApi.hideMessage(messageId);
+    } catch (err: unknown) {
+      // 3. Rollback: Chèn lại message vào đúng vị trí canonical
+      this._messages.update((curr) => {
+        if (curr.some((m) => m.id === originalMsg.id)) return curr;
+        return [...curr, originalMsg].sort((a, b) => compareMessageOrder(a, b));
+      });
+      const errorMsg = extractErrorMessage(err, 'Lỗi khi ẩn tin nhắn.');
+      this._error.set(errorMsg);
+      throw err;
+    }
+  }
+
+  /**
+   * Thu hồi tin nhắn đối với mọi người trong kênh (Recall for Everyone) với Optimistic Update và Rollback cục bộ.
+   */
+  async recallMessage(messageId: string): Promise<void> {
+    const list = this._messages();
+    const targetIdx = list.findIndex((m) => m.id === messageId);
+    if (targetIdx === -1) return;
+
+    const originalMsg = list[targetIdx];
+
+    // 1. Optimistic redact
+    const recalledMsg: MessageResponseDto = {
+      ...originalMsg,
+      content: null,
+      deletedAt: new Date().toISOString(),
+      attachments: [],
+      reactions: [],
+      externalMedia: null,
+    };
+
     this._messages.update((curr) =>
-      curr.map((m) => (m.id === messageId ? { ...m, content: null, deletedAt: new Date().toISOString() } : m)),
+      curr.map((m) => (m.id === messageId ? recalledMsg : m)),
     );
+
+    // 2. Gọi REST API
+    try {
+      await this.messagesApi.recallMessage(messageId);
+    } catch (err: unknown) {
+      // 3. Rollback nguyên trạng
+      this._messages.update((curr) =>
+        curr.map((m) => (m.id === messageId ? originalMsg : m)),
+      );
+      const errorMsg = extractErrorMessage(err, 'Lỗi khi thu hồi tin nhắn.');
+      this._error.set(errorMsg);
+      throw err;
+    }
+  }
+
+  /**
+   * Xóa / Thu hồi tin nhắn (hỗ trợ scope: 'for_me' | 'everyone').
+   */
+  async deleteMessage(
+    messageId: string,
+    scope: 'for_me' | 'everyone' = 'for_me',
+  ): Promise<void> {
+    if (scope === 'for_me') {
+      return this.hideMessage(messageId);
+    }
+    if (scope === 'everyone') {
+      return this.recallMessage(messageId);
+    }
   }
 
   /**
@@ -655,21 +726,40 @@ export class ChannelChatStore implements OnDestroy {
       }),
     );
 
-    // 3. Message deleted
+    // 3. Message deleted (Thu hồi cho mọi người)
     this.subs.add(
       this.chatSocket.messageDeleted$.subscribe(({ channelId, messageId }) => {
         const activeChan = this._channelId();
-        if (!activeChan || channelId !== activeChan) return;
+        if (!activeChan || (channelId && channelId !== activeChan)) return;
 
         this._messages.update((curr) =>
           curr.map((m) =>
             m.id === messageId
-              ? { ...m, content: null, deletedAt: new Date().toISOString() }
+              ? {
+                  ...m,
+                  content: null,
+                  reactions: [],
+                  attachments: [],
+                  externalMedia: null,
+                  deletedAt: new Date().toISOString(),
+                }
               : m,
           ),
         );
       }),
     );
+
+    // 3b. Message hidden for user (Ẩn tin nhắn ở phía tôi)
+    if (this.chatSocket.messageHiddenForUser$) {
+      this.subs.add(
+        this.chatSocket.messageHiddenForUser$.subscribe(({ channelId, messageId }) => {
+          const activeChan = this._channelId();
+          if (!activeChan || (channelId && channelId !== activeChan)) return;
+
+          this._messages.update((curr) => curr.filter((m) => m.id !== messageId));
+        }),
+      );
+    }
 
     // 4. Reaction updated
     this.subs.add(

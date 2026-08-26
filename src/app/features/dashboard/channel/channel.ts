@@ -53,6 +53,7 @@ import { Avatar } from '../../../shared/ui/avatar/avatar';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { ChannelSettingsModal } from '../../settings/modals/channel-settings-modal/channel-settings-modal';
 import { ForwardMessageModal } from '../components/forward-message-modal/forward-message-modal';
+import { DeleteMessageModal } from '../components/delete-message-modal/delete-message-modal';
 import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.service';
 import type { LightboxMediaItem } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.types';
 import { VoiceRoom } from '../../voice/voice-room/voice-room';
@@ -83,6 +84,7 @@ import type { AttachmentResponseDto } from '../../../core/api/messages-api.servi
     ContextPanel,
     DashboardState,
     DatePipe,
+    DeleteMessageModal,
     EmptyState,
     ForwardMessageModal,
     GiphyMessageEmbedComponent,
@@ -410,6 +412,28 @@ export class ChannelPage implements OnInit, AfterViewInit {
     this.scrollController.scrollToBottom('smooth');
   }
 
+  protected readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
+  protected readonly deleteModalMessage = signal<ChannelChatUiMessage | null>(null);
+  protected readonly isDeletingMessage = signal<boolean>(false);
+
+  protected closeDeleteModal(): void {
+    this.deleteModalMessage.set(null);
+  }
+
+  protected async onConfirmDelete(scope: 'for_me' | 'everyone'): Promise<void> {
+    const msg = this.deleteModalMessage();
+    if (!msg) return;
+    this.isDeletingMessage.set(true);
+    try {
+      await this.channelChat.deleteMessage(msg.id, scope);
+      this.closeDeleteModal();
+    } catch {
+      // Handled in store error
+    } finally {
+      this.isDeletingMessage.set(false);
+    }
+  }
+
   protected onAction(event: MessageComposerContext): void {
     if (event.kind === 'forward' && event.messageId) {
       const msg = this.messages().find((m) => m.id === event.messageId);
@@ -419,16 +443,13 @@ export class ChannelPage implements OnInit, AfterViewInit {
       return;
     }
     if (event.kind === 'delete' && event.messageId) {
-      void this.onDeleteMessage(event.messageId);
+      const msg = this.messages().find((m) => m.id === event.messageId);
+      if (msg) {
+        this.deleteModalMessage.set(msg);
+      }
       return;
     }
     this.composerContext.set(event);
-  }
-
-  protected async onDeleteMessage(messageId: string): Promise<void> {
-    if (confirm('Bạn có chắc chắn muốn xóa tin nhắn này không?')) {
-      await this.channelChat.deleteMessage(messageId);
-    }
   }
 
   protected async onToggleReaction(messageId: string, emoji: string): Promise<void> {

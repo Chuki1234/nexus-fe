@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -5,6 +6,9 @@ import { ProfileService } from '../../../../core/profile/profile.service';
 import { UserPanel } from './user-panel';
 import { ProfileStore } from '../../../../features/profile/profile-store';
 import { ProfilesApiService } from '../../../../core/api/profiles-api.service';
+import { VoiceRoomService } from '../../../../features/voice/services/voice-room.service';
+
+import { MediaDeviceService } from '../../../../features/voice/services/media-device.service';
 
 class AuthStub {
   user = () => ({ email: 'mon@nexus.test' });
@@ -14,8 +18,27 @@ class AuthStub {
 
 describe('UserPanel', () => {
   let profile: { current: () => unknown; reset: () => void };
+  let mockMediaDevice: {
+    isTestingMic: ReturnType<typeof signal<boolean>>;
+    startMicrophoneTest: ReturnType<typeof vi.fn>;
+    stopMicrophoneTest: ReturnType<typeof vi.fn>;
+    audioLevel: ReturnType<typeof signal<number>>;
+  };
 
   const mount = async () => {
+    const isTesting = signal(false);
+    mockMediaDevice = {
+      isTestingMic: isTesting,
+      startMicrophoneTest: vi.fn().mockImplementation(() => {
+        isTesting.set(true);
+        return Promise.resolve();
+      }),
+      stopMicrophoneTest: vi.fn().mockImplementation(() => {
+        isTesting.set(false);
+      }),
+      audioLevel: signal(0),
+    };
+
     await TestBed.configureTestingModule({
       imports: [UserPanel],
       providers: [
@@ -23,6 +46,7 @@ describe('UserPanel', () => {
         { provide: AuthService, useValue: new AuthStub() },
         { provide: ProfileService, useValue: profile },
         { provide: ProfilesApiService, useValue: { getOwn: () => Promise.resolve(null) } },
+        { provide: MediaDeviceService, useValue: mockMediaDevice },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(UserPanel);
@@ -119,5 +143,45 @@ describe('UserPanel', () => {
     expect(settings.disabled).toBe(false);
     expect(settings.textContent).toContain('settings');
     expect(settings.classList.contains('nexus-icon-control')).toBe(true);
+  });
+
+  it('hiển thị banner đã kết nối giọng nói kèm nút test mic và ngắt kết nối khi đang trong phòng voice', async () => {
+    const fixture = await mount();
+    const voiceRoom = TestBed.inject(VoiceRoomService);
+    voiceRoom.connectionStatus.set('connected');
+    voiceRoom.currentChannelName.set('Phòng họp');
+    fixture.detectChanges();
+
+    const voiceStatus = fixture.nativeElement.querySelector('.user-panel__voice-status');
+    expect(voiceStatus).toBeTruthy();
+    expect(voiceStatus.textContent).toContain('Đã Kết Nối Giọng Nói');
+    expect(voiceStatus.textContent).toContain('#Phòng họp');
+
+    const testMicBtn = voiceStatus.querySelectorAll('button')[0];
+    expect(testMicBtn).toBeTruthy();
+
+    const disconnectBtn = voiceStatus.querySelectorAll('button')[1];
+    expect(disconnectBtn).toBeTruthy();
+  });
+
+  it('bật và tắt test mic khi bấm nút Test Mic', async () => {
+    const fixture = await mount();
+    const voiceRoom = TestBed.inject(VoiceRoomService);
+    voiceRoom.connectionStatus.set('connected');
+    voiceRoom.currentChannelName.set('Phòng họp');
+    fixture.detectChanges();
+
+    const testMicBtn = fixture.nativeElement.querySelector(
+      '.user-panel__voice-status button',
+    ) as HTMLButtonElement;
+    expect(testMicBtn).toBeTruthy();
+
+    testMicBtn.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance['isTestingMic']()).toBe(true);
+
+    testMicBtn.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance['isTestingMic']()).toBe(false);
   });
 });

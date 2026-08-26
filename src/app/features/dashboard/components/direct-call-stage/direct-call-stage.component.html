@@ -8,7 +8,7 @@
     <div class="stage-ambient-glow" [ngClass]="store.callState()"></div>
 
     <!-- 1. Top Header: User Name & Call Status -->
-    <header class="stage-header">
+    <header class="stage-header" [class.hidden-controls]="!isControlsVisible()">
       <div class="header-glass-card">
         @if (remoteUser()?.avatarUrl) {
           <img
@@ -82,7 +82,7 @@
                 <span>Đang kết nối LiveKit...</span>
               } @else if (store.isRemoteCameraOff()) {
                 <span class="material-icons text-xs">videocam_off</span>
-                <span>Camera của đối phương đang tắt</span>
+                <span>Máy ảnh của {{ remoteUser()?.displayName || remoteUser()?.username }} đang tắt</span>
               } @else {
                 <span class="material-icons text-xs">mic</span>
                 <span>Cuộc gọi thoại</span>
@@ -97,7 +97,7 @@
     </section>
 
     <!-- 3. Bottom Controls Bar -->
-    <app-direct-call-controls />
+    <app-direct-call-controls [class.hidden-controls]="!isControlsVisible()" />
 
     <!-- 4. Hidden Remote Audio Element -->
     <audio #remoteAudio autoplay playsinline class="hidden"></audio>

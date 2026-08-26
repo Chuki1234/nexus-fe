@@ -715,37 +715,103 @@ export class ActiveChatStore implements OnDestroy {
   }
 
   /**
-   * Xoá tin nhắn với Optimistic Update
+   * Ẩn tin nhắn chỉ ở phía người dùng (Hide for Me) với Optimistic Update và Rollback cục bộ.
    */
-  async deleteMessage(messageId: string): Promise<void> {
+  async hideMessage(messageId: string): Promise<void> {
     const convId = this._conversationId();
     const generation = this.currentGeneration;
 
-    const prevSnapshot = this._messages().find((m) => m.id === messageId);
-    if (!prevSnapshot) return;
+    const list = this._messages();
+    const targetIdx = list.findIndex((m) => m.id === messageId);
+    if (targetIdx === -1) return;
 
-    // Optimistic soft delete
-    this._messages.update((list) =>
-      list.map((m) =>
-        m.id === messageId
-          ? { ...m, content: null, deletedAt: new Date().toISOString() }
-          : m,
-      ),
+    const originalMsg = list[targetIdx];
+
+    // 1. Optimistic removal
+    this._messages.update((current) =>
+      current.filter((m) => m.id !== messageId),
     );
 
+    // 2. Gọi REST API
     try {
-      await this.messagesApi.deleteMessage(messageId);
+      await this.messagesApi.hideMessage(messageId);
     } catch (err: unknown) {
       if (
         this._conversationId() === convId &&
         this.currentGeneration === generation
       ) {
-        // Rollback
-        this._messages.update((list) =>
-          list.map((m) => (m.id === messageId ? prevSnapshot : m)),
-        );
-        this._error.set(extractErrorMessage(err, 'Xoá tin nhắn thất bại.'));
+        // 3. Rollback: Chèn lại message vào đúng vị trí canonical bằng compareMessageIds
+        this._messages.update((current) => {
+          if (current.some((m) => m.id === originalMsg.id)) return current;
+          return [...current, originalMsg].sort((a, b) =>
+            compareMessageIds(a.id, b.id),
+          );
+        });
+        const errorMsg = extractErrorMessage(err, 'Lỗi khi ẩn tin nhắn.');
+        this._error.set(errorMsg);
+        throw err;
       }
+    }
+  }
+
+  /**
+   * Thu hồi tin nhắn đối với mọi người (Recall for Everyone) với Optimistic Update và Rollback cục bộ.
+   */
+  async recallMessage(messageId: string): Promise<void> {
+    const convId = this._conversationId();
+    const generation = this.currentGeneration;
+
+    const list = this._messages();
+    const targetIdx = list.findIndex((m) => m.id === messageId);
+    if (targetIdx === -1) return;
+
+    const originalMsg = list[targetIdx];
+
+    // 1. Optimistic redact
+    const recalledMsg: MessageResponseDto = {
+      ...originalMsg,
+      content: null,
+      deletedAt: new Date().toISOString(),
+      attachments: [],
+      reactions: [],
+      externalMedia: null,
+    };
+
+    this._messages.update((current) =>
+      current.map((m) => (m.id === messageId ? recalledMsg : m)),
+    );
+
+    // 2. Gọi REST API
+    try {
+      await this.messagesApi.recallMessage(messageId);
+    } catch (err: unknown) {
+      if (
+        this._conversationId() === convId &&
+        this.currentGeneration === generation
+      ) {
+        // 3. Rollback nguyên trạng
+        this._messages.update((current) =>
+          current.map((m) => (m.id === messageId ? originalMsg : m)),
+        );
+        const errorMsg = extractErrorMessage(err, 'Lỗi khi thu hồi tin nhắn.');
+        this._error.set(errorMsg);
+        throw err;
+      }
+    }
+  }
+
+  /**
+   * Xoá / Thu hồi tin nhắn theo scope ('for_me' hoặc 'everyone')
+   */
+  async deleteMessage(
+    messageId: string,
+    scope: 'for_me' | 'everyone' = 'for_me',
+  ): Promise<void> {
+    if (scope === 'for_me') {
+      return this.hideMessage(messageId);
+    }
+    if (scope === 'everyone') {
+      return this.recallMessage(messageId);
     }
   }
 
@@ -1069,7 +1135,7 @@ export class ActiveChatStore implements OnDestroy {
       }),
     );
 
-    // 3. Xoá mềm tin nhắn
+    // 3. Xoá mềm tin nhắn (Thu hồi cho mọi người)
     this.subs.add(
       this.chatSocket.messageDeleted$.subscribe((payload) => {
         if (
@@ -1086,6 +1152,8 @@ export class ActiveChatStore implements OnDestroy {
                   ...m,
                   content: null,
                   reactions: undefined,
+                  attachments: [],
+                  externalMedia: null,
                   deletedAt: new Date().toISOString(),
                 }
               : m,
@@ -1093,6 +1161,24 @@ export class ActiveChatStore implements OnDestroy {
         );
       }),
     );
+
+    // 3b. Ẩn tin nhắn ở phía người dùng (user-scoped sync từ socket Room.user(userId))
+    if (this.chatSocket.messageHiddenForUser$) {
+      this.subs.add(
+        this.chatSocket.messageHiddenForUser$.subscribe((payload) => {
+          if (
+            payload.conversationId &&
+            payload.conversationId !== this._conversationId()
+          ) {
+            return;
+          }
+
+          this._messages.update((list) =>
+            list.filter((m) => m.id !== payload.messageId),
+          );
+        }),
+      );
+    }
 
     // 4. Trạng thái đang gõ
     this.subs.add(

@@ -1,5 +1,6 @@
 import { inject, Injectable, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription } from 'rxjs';
 import { ServersApiService } from '../api/servers-api.service';
 import { ChannelSummary } from './server.models';
@@ -14,6 +15,7 @@ export class ServerRealtimeCoordinator implements OnDestroy {
   private readonly serversApi = inject(ServersApiService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly snackBar = inject(MatSnackBar);
 
   private readonly subs = new Subscription();
   private isInitialized = false;
@@ -39,12 +41,17 @@ export class ServerRealtimeCoordinator implements OnDestroy {
             if (activeServerId === serverId && activeChannelId) {
               const hasAccess = channels.some((c: ChannelSummary) => c.id === activeChannelId);
               if (!hasAccess) {
-                // Mất quyền VIEW_CHANNEL -> điều hướng an toàn về kênh đầu tiên được phép
+                // Kênh bị xóa hoặc mất quyền -> thông báo và chuyển về kênh đầu tiên
+                this.snackBar.open('Kênh bạn đang xem đã bị xóa hoặc thay đổi quyền.', 'Đóng', {
+                  duration: 4000,
+                  horizontalPosition: 'right',
+                  verticalPosition: 'bottom',
+                });
                 const firstValidChannel = channels.find((c: ChannelSummary) => c.type === 'text') || channels[0];
                 if (firstValidChannel) {
-                  await this.router.navigate(['/app/servers', serverId, 'channels', firstValidChannel.id]);
+                  await this.router.navigate(['/channels', serverId, firstValidChannel.id]);
                 } else {
-                  await this.router.navigate(['/app/servers', serverId]);
+                  await this.router.navigate(['/channels', serverId]);
                 }
               }
             }
@@ -63,7 +70,12 @@ export class ServerRealtimeCoordinator implements OnDestroy {
           this.serversStore.removeServer(serverId);
           void this.chatSocket.leaveServer(serverId);
           if (wasActive) {
-            await this.router.navigate(['/app']);
+            this.snackBar.open('Máy chủ này đã bị xóa bởi chủ sở hữu.', 'Đóng', {
+              duration: 5000,
+              horizontalPosition: 'right',
+              verticalPosition: 'bottom',
+            });
+            await this.router.navigate(['/channels/@me']);
           }
         }),
       );
@@ -79,7 +91,12 @@ export class ServerRealtimeCoordinator implements OnDestroy {
             this.serversStore.removeServer(serverId);
             void this.chatSocket.leaveServer(serverId);
             if (wasActive) {
-              await this.router.navigate(['/app']);
+              this.snackBar.open('Bạn không còn là thành viên của máy chủ này.', 'Đóng', {
+                duration: 4000,
+                horizontalPosition: 'right',
+                verticalPosition: 'bottom',
+              });
+              await this.router.navigate(['/channels/@me']);
             }
           }
         }),

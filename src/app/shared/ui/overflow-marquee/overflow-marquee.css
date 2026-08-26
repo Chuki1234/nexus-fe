@@ -1,0 +1,56 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.overflow-marquee__track {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  transform: translate3d(0, 0, 0);
+  transform-origin: left center;
+  will-change: auto;
+}
+
+:host(.overflow-marquee--overflowing:hover) .overflow-marquee__track,
+:host-context(.server-menu-item:hover).overflow-marquee--overflowing .overflow-marquee__track,
+:host-context(.context-menu-item:hover).overflow-marquee--overflowing .overflow-marquee__track,
+:host-context(.nexus-nav-item:hover).overflow-marquee--overflowing .overflow-marquee__track,
+:host-context(.channel-group-header:hover).overflow-marquee--overflowing .overflow-marquee__track,
+:host-context(.server-menu-item:focus-visible).overflow-marquee--overflowing .overflow-marquee__track,
+:host-context(.context-menu-item:focus-visible).overflow-marquee--overflowing .overflow-marquee__track,
+:host-context(.nexus-nav-item:focus-visible).overflow-marquee--overflowing .overflow-marquee__track,
+:host-context(.channel-group-header:focus-within).overflow-marquee--overflowing .overflow-marquee__track {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  will-change: transform;
+  animation: overflow-marquee-slide var(--overflow-marquee-duration) linear infinite;
+}
+
+@keyframes overflow-marquee-slide {
+  0%,
+  12% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(var(--overflow-marquee-offset), 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overflow-marquee__track {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    animation: none !important;
+    transform: translate3d(0, 0, 0) !important;
+    will-change: auto !important;
+  }
+}

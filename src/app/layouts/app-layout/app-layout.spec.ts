@@ -90,10 +90,12 @@ import { Subject } from 'rxjs';
 class ChatSocketServiceStub {
   connect = vi.fn();
   disconnect = vi.fn();
+  getServerVoiceStates = vi.fn().mockResolvedValue([]);
   isConnected = signal(true).asReadonly();
   messageCreated$ = new Subject<any>();
   messageUpdated$ = new Subject<any>();
   messageDeleted$ = new Subject<any>();
+  messageHiddenForUser$ = new Subject<any>();
   reactionUpdated$ = new Subject<any>();
   presenceSync$ = new Subject<any>();
   userPresenceUpdated$ = new Subject<any>();
@@ -112,6 +114,8 @@ class ChatSocketServiceStub {
   channelReactionUpdated$ = new Subject<any>();
   joinError$ = new Subject<any>();
   presenceUpdated$ = new Subject<any>();
+  voiceServerStatesSync$ = new Subject<any>();
+  voiceStateUpdated$ = new Subject<any>();
   channelCreated$ = new Subject<any>();
   capabilitiesUpdated$ = new Subject<any>();
   channelPinsUpdated$ = new Subject<any>();

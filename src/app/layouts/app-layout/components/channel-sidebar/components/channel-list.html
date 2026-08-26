@@ -1,157 +1,308 @@
 <div cdkDropListGroup class="channel-list-drop-group flex flex-col">
-  @for (group of groups(); track group.id) {
-    <div class="channel-group mt-3 mb-1">
-      <!-- Group Header: Collapsible Toggle + Section Label + Add Channel Button + Context Menu Trigger -->
-      <div
-        (contextmenu)="onCategoryContextMenu($event, group)"
-        class="channel-group-header flex items-center justify-between px-2 py-1 select-none group"
+  <!-- Danh sách kênh không có danh mục (Uncategorized) — luôn nằm ở ĐẦU TIÊN trên cùng -->
+  @if (uncategorizedGroup(); as uncatGroup) {
+    <div class="uncategorized-channel-group mb-1">
+      <mat-nav-list
+        id="channel-group-cat-uncategorized"
+        cdkDropList
+        [cdkDropListData]="uncatGroup"
+        [cdkDropListDisabled]="!canManageChannels()"
+        (cdkDropListDropped)="onChannelDrop($event)"
+        class="channel-drop-list !px-1 !py-0 flex flex-col gap-0.5"
       >
-        <button
-          type="button"
-          (click)="toggleGroup(group.id)"
-          class="flex items-center gap-1 min-w-0 flex-1 text-left cursor-pointer hover:text-ink text-steel transition-colors"
-          [attr.aria-expanded]="!isGroupCollapsed(group.id)"
-          [attr.aria-controls]="'channel-group-' + group.id"
-        >
-          <mat-icon
-            class="channel-group-chevron !size-4 !text-base transition-transform duration-200"
-            [class.channel-group-chevron--collapsed]="isGroupCollapsed(group.id)"
-          >
-            expand_more
-          </mat-icon>
-          <span class="text-micro-uppercase font-bold tracking-wider truncate">
-            {{ group.label }}
-          </span>
-        </button>
+        @for (channel of visibleChannelsOf(uncatGroup); track channel.id) {
+          <ng-container *ngTemplateOutlet="channelItem; context: { $implicit: channel, group: uncatGroup }" />
+        }
+      </mat-nav-list>
+    </div>
+  }
 
-        <!-- Add Channel Button (chỉ render trong DOM khi có quyền canManageChannels) -->
+  <!-- Danh sách các danh mục (Categories) có thể kéo thả sắp xếp thứ tự -->
+  <div
+    cdkDropList
+    id="categories-drop-list"
+    [cdkDropListData]="categoryGroups()"
+    [cdkDropListDisabled]="!canManageChannels()"
+    (cdkDropListDropped)="onCategoryDrop($event)"
+    class="categories-drop-list flex flex-col"
+  >
+    @for (group of categoryGroups(); track group.id) {
+      <div
+        cdkDrag
+        [cdkDragData]="group"
+        [cdkDragDisabled]="!canManageChannels()"
+        class="channel-group mt-3 mb-1 group/category"
+      >
+        <!-- Category Drag Placeholder & Preview -->
+        <div *cdkDragPlaceholder class="category-drag-placeholder"></div>
+
+        <ng-template cdkDragPreview>
+          <div class="category-drag-preview" [style.width.px]="dragPreviewWidth">
+            <mat-icon class="!size-4 !text-base text-primary">folder</mat-icon>
+            <span class="truncate text-micro-uppercase font-bold tracking-wider text-ink">
+              {{ group.label }}
+            </span>
+            <span class="text-caption text-steel ml-auto text-[11px]">
+              {{ group.channels.length }} kênh
+            </span>
+          </div>
+        </ng-template>
+
+        <!-- Group Header: Collapsible Toggle + Section Label + Add Channel Button + Context Menu Trigger -->
+        <div
+          cdkDragHandle
+          (pointerdown)="onPrepDrag($event)"
+          (contextmenu)="onCategoryContextMenu($event, group)"
+          class="channel-group-header flex items-center justify-between px-2 py-1 select-none group cursor-grab active:cursor-grabbing"
+        >
+          <button
+            type="button"
+            (click)="toggleGroup(group.id)"
+            class="flex items-center gap-1 min-w-0 flex-1 text-left cursor-pointer hover:text-ink text-steel transition-colors"
+            [attr.aria-expanded]="!isGroupCollapsed(group.id)"
+            [attr.aria-controls]="'channel-group-' + group.id"
+          >
+            <mat-icon
+              class="channel-group-chevron !size-4 !text-base transition-transform duration-200"
+              [class.channel-group-chevron--collapsed]="isGroupCollapsed(group.id)"
+            >
+              expand_more
+            </mat-icon>
+            <app-overflow-marquee
+              class="min-w-0 flex-1 text-micro-uppercase font-bold tracking-wider"
+              [text]="group.label"
+            />
+            @if (isGroupCollapsed(group.id)) {
+              @if (getGroupMentionCount(group) > 0) {
+                <app-unread-badge
+                  class="ml-1 shrink-0"
+                  [count]="getGroupMentionCount(group)"
+                  label="lượt nhắc tên chưa đọc"
+                />
+              } @else if (getGroupHasUnread(group)) {
+                <span class="size-2 rounded-full bg-primary shrink-0 ml-1" aria-label="Có tin nhắn chưa đọc"></span>
+              }
+            }
+          </button>
+
+          <!-- Add Channel Button (chỉ render trong DOM khi có quyền canManageChannels) -->
+          @if (canManageChannels()) {
+            <button
+              type="button"
+              (click)="openCreateChannelDialog(group, $event)"
+              matTooltip="Tạo kênh"
+              [attr.aria-label]="'Tạo kênh trong ' + group.label"
+              class="add-channel-btn size-5 rounded hover:text-ink text-steel hover:bg-surface-feature/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+            >
+              <mat-icon class="!size-4 !text-base leading-none">add</mat-icon>
+            </button>
+          }
+        </div>
+
+        <!-- Group Channel List (collapsible - retains active channel & supports Drag & Drop) -->
+        @if (visibleChannelsOf(group).length > 0 || !isGroupCollapsed(group.id)) {
+          <mat-nav-list
+            [id]="'channel-group-' + group.id"
+            cdkDropList
+            [cdkDropListData]="group"
+            [cdkDropListDisabled]="!canManageChannels()"
+            (cdkDropListDropped)="onChannelDrop($event)"
+            class="channel-drop-list !px-1 !py-0 flex flex-col gap-0.5 mt-0.5"
+          >
+            @for (channel of visibleChannelsOf(group); track channel.id) {
+              <ng-container *ngTemplateOutlet="channelItem; context: { $implicit: channel, group: group }" />
+            }
+          </mat-nav-list>
+        }
+      </div>
+    }
+  </div>
+
+  @if (groups().length === 0) {
+    <p class="px-2 py-4 text-body-sm text-steel">Server này chưa có kênh nào.</p>
+  }
+</div>
+
+<!-- Reusable Channel Item Template -->
+<ng-template #channelItem let-channel let-group="group">
+  <a
+    mat-list-item
+    cdkDrag
+    [cdkDragData]="channel"
+    [cdkDragDisabled]="!canManageChannels()"
+    (pointerdown)="onPrepChannelDrag($event)"
+    (contextmenu)="onChannelContextMenu($event, channel)"
+    [routerLink]="['/channels', serverId(), channel.id]"
+    routerLinkActive
+    #link="routerLinkActive"
+    [activated]="link.isActive"
+    [attr.aria-current]="link.isActive ? 'page' : null"
+    class="channel-row nexus-nav-item group relative !h-auto !min-h-8.5 !rounded-lg !px-2"
+  >
+    <!-- Khoảng trống chèn kênh khi kéo (Drop slot gap indicator) -->
+    <div *cdkDragPlaceholder class="channel-drag-placeholder"></div>
+
+    <ng-template cdkDragPreview [matchSize]="true">
+      <div
+        class="channel-drag-preview"
+        [style.width.px]="channelDragPreviewSize().width"
+        [style.min-width.px]="channelDragPreviewSize().width"
+        [style.max-width.px]="channelDragPreviewSize().width"
+        [style.height.px]="channelDragPreviewSize().height"
+      >
+        <mat-icon aria-hidden="true" class="channel-drag-preview-icon">
+          {{ channel.type === 'voice' ? 'volume_up' : (channel.type === 'forum' ? 'forum' : 'tag') }}
+        </mat-icon>
+        <span class="channel-drag-preview-title">{{ channel.name }}</span>
+      </div>
+    </ng-template>
+
+    <mat-icon matListItemIcon aria-hidden="true" class="channel-icon text-steel group-hover:text-ink transition-colors">
+      {{ channel.type === 'voice' ? 'volume_up' : (channel.type === 'forum' ? 'forum' : 'tag') }}
+    </mat-icon>
+
+    <span matListItemTitle class="min-w-0 text-body-sm font-medium text-slate group-hover:text-ink transition-colors" [class.text-ink]="!link.isActive && channel.unread" [class.font-semibold]="link.isActive || channel.unread">
+      <app-overflow-marquee [text]="channel.name" />
+    </span>
+
+    <!-- Action buttons & unread meta -->
+    <div matListItemMeta class="channel-actions-wrapper flex items-center gap-0.5 shrink-0">
+      <!-- Action buttons on hover/focus (chỉ hiển thị khi hover hoặc focus để không chiếm chỗ tên kênh khi ở trạng thái thường) -->
+      <div class="channel-actions hidden group-hover:flex group-focus-within:flex items-center gap-0.5">
+        <!-- Voice channel: Open Chat Button -->
+        @if (channel.type === 'voice') {
+          <button
+            type="button"
+            (click)="onOpenVoiceChat($event, channel)"
+            matTooltip="Mở trò chuyện"
+            [attr.aria-label]="'Mở trò chuyện của kênh thoại ' + channel.name"
+            class="channel-action-btn size-5 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <mat-icon class="!size-3.5 !text-sm">chat_bubble_outline</mat-icon>
+          </button>
+        }
+
+        <!-- Invite Button (chỉ render khi có quyền canInviteMembers) -->
+        @if (canInviteMembers()) {
+          <button
+            type="button"
+            (click)="onInvite($event, channel)"
+            matTooltip="Tạo lời mời"
+            [attr.aria-label]="'Tạo lời mời vào kênh ' + channel.name"
+            class="channel-action-btn size-5 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <mat-icon class="!size-3.5 !text-sm">person_add</mat-icon>
+          </button>
+        }
+
+        <!-- Channel Settings Button (chỉ render khi có quyền canManageChannels) -->
         @if (canManageChannels()) {
           <button
             type="button"
-            (click)="openCreateChannelDialog(group, $event)"
-            matTooltip="Tạo kênh"
-            [attr.aria-label]="'Tạo kênh trong ' + group.label"
-            class="add-channel-btn size-5 rounded hover:text-ink text-steel hover:bg-surface-feature/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-1"
+            (click)="onChannelSettings($event, channel)"
+            matTooltip="Chỉnh sửa kênh"
+            [attr.aria-label]="'Chỉnh sửa kênh ' + channel.name"
+            class="channel-action-btn size-5 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
           >
-            <mat-icon class="!size-4 !text-base leading-none">add</mat-icon>
+            <mat-icon class="!size-3.5 !text-sm">settings</mat-icon>
           </button>
         }
       </div>
 
-      <!-- Group Channel List (collapsible - retains active channel & supports Drag & Drop) -->
-      @if (visibleChannelsOf(group).length > 0 || !isGroupCollapsed(group.id)) {
-        <mat-nav-list
-          [id]="'channel-group-' + group.id"
-          cdkDropList
-          [cdkDropListData]="group"
-          [cdkDropListDisabled]="!canManageChannels()"
-          (cdkDropListDropped)="onChannelDrop($event)"
-          class="channel-drop-list !px-1 !py-0 flex flex-col gap-0.5 mt-0.5"
-        >
-          @for (channel of visibleChannelsOf(group); track channel.id) {
-            <a
-              mat-list-item
-              cdkDrag
-              [cdkDragData]="channel"
-              [cdkDragDisabled]="!canManageChannels()"
-              (contextmenu)="onChannelContextMenu($event, channel)"
-              [routerLink]="['/channels', serverId(), channel.id]"
-              routerLinkActive
-              #link="routerLinkActive"
-              [activated]="link.isActive"
-              [attr.aria-current]="link.isActive ? 'page' : null"
-              class="channel-row nexus-nav-item group relative !h-auto !min-h-8.5 !rounded-lg !px-2"
-            >
-              <!-- Khoảng trống chèn kênh khi kéo (Drop slot gap indicator) -->
-              <div *cdkDragPlaceholder class="channel-drag-placeholder"></div>
-
-              <mat-icon matListItemIcon aria-hidden="true" class="channel-icon text-steel group-hover:text-ink transition-colors">
-                {{ channel.type === 'voice' ? 'volume_up' : (channel.type === 'forum' ? 'forum' : 'tag') }}
-              </mat-icon>
-
-              <span matListItemTitle class="truncate text-body-sm font-medium text-slate group-hover:text-ink transition-colors" [class.text-ink]="!link.isActive && channel.unread" [class.font-semibold]="link.isActive || channel.unread">
-                {{ channel.name }}
-              </span>
-
-              <!-- Action buttons & unread meta -->
-              <div matListItemMeta class="channel-actions-wrapper flex items-center gap-0.5 shrink-0">
-                <!-- Action buttons on hover/focus -->
-                <div class="channel-actions opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-0.5">
-                  <!-- Voice channel: Open Chat Button -->
-                  @if (channel.type === 'voice') {
-                    <button
-                      type="button"
-                      (click)="onOpenVoiceChat($event, channel)"
-                      matTooltip="Mở trò chuyện"
-                      [attr.aria-label]="'Mở trò chuyện của kênh thoại ' + channel.name"
-                      class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
-                    >
-                      <mat-icon class="!size-4 !text-base">chat_bubble_outline</mat-icon>
-                    </button>
-                  }
-
-                  <!-- Invite Button (chỉ render khi có quyền canInviteMembers) -->
-                  @if (canInviteMembers()) {
-                    <button
-                      type="button"
-                      (click)="onInvite($event, channel)"
-                      matTooltip="Tạo lời mời"
-                      [attr.aria-label]="'Tạo lời mời vào kênh ' + channel.name"
-                      class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
-                    >
-                      <mat-icon class="!size-4 !text-base">person_add</mat-icon>
-                    </button>
-                  }
-
-                  <!-- Channel Settings Button (chỉ render khi có quyền canManageChannels) -->
-                  @if (canManageChannels()) {
-                    <button
-                      type="button"
-                      (click)="onChannelSettings($event, channel)"
-                      matTooltip="Chỉnh sửa kênh"
-                      [attr.aria-label]="'Chỉnh sửa kênh ' + channel.name"
-                      class="channel-action-btn size-6 rounded text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
-                    >
-                      <mat-icon class="!size-4 !text-base">settings</mat-icon>
-                    </button>
-                  }
-                </div>
-
-                <!-- Unread Badge -->
-                @if (channel.mentionCount > 0) {
-                  <app-unread-badge
-                    [count]="channel.mentionCount"
-                    label="lượt nhắc tên chưa đọc"
-                  />
-                }
-              </div>
-            </a>
-
-            <!-- Active Voice Channel Connected Members List (Discord Style) -->
-            @if (channel.type === 'voice' && voiceConnectedChannelId() === channel.id && voiceParticipants().length > 0) {
-              <div class="voice-channel-members pl-6 pr-2 py-1 flex flex-col gap-1">
-                @for (p of voiceParticipants(); track p.identity) {
-                  <div class="voice-member-row flex items-center gap-2 rounded-md px-2 py-1 hover:bg-surface-feature/50 text-steel hover:text-ink transition-colors">
-                    <app-avatar [name]="p.name" [src]="p.avatarUrl || null" size="xs" ring="surface" />
-                    <span class="truncate text-micro font-medium flex-1" [class.text-primary]="p.isSpeaking">{{ p.name }}</span>
-                    @if (p.isMuted) {
-                      <mat-icon class="!size-3.5 !text-xs text-danger">mic_off</mat-icon>
-                    }
-                    @if (p.isSpeaking) {
-                      <span class="size-1.5 rounded-full bg-primary animate-pulse"></span>
-                    }
-                  </div>
-                }
-              </div>
-            }
-          }
-        </mat-nav-list>
+      <!-- Unread Badge -->
+      @if (channel.mentionCount > 0) {
+        <app-unread-badge
+          [count]="channel.mentionCount"
+          label="lượt nhắc tên chưa đọc"
+        />
       }
     </div>
-  } @empty {
-    <p class="px-2 py-4 text-body-sm text-steel">Server này chưa có kênh nào.</p>
+  </a>
+
+  <!-- Active Voice Channel Connected Members List (Discord Style) -->
+  @if (channel.type === 'voice') {
+    @let members = getVoiceChannelMembers(channel.id);
+    <div
+      [id]="'voice-members-' + channel.id"
+      cdkDropList
+      [cdkDropListData]="channel"
+      [cdkDropListDisabled]="!isOwner()"
+      (cdkDropListDropped)="onVoiceMemberDrop($event, channel)"
+      class="voice-channel-members pl-5 pr-2 py-1 flex flex-col gap-0.5 min-h-[2px]"
+    >
+      @for (m of members; track m.userId) {
+        <div
+          cdkDrag
+          [cdkDragData]="m"
+          [cdkDragDisabled]="!isOwner() || m.isLocal"
+          (pointerdown)="onPrepDrag($event)"
+          (contextmenu)="onMemberContextMenu($event, m, channel)"
+          class="voice-member-row flex items-center justify-between gap-1.5 rounded-md px-1.5 py-1 hover:bg-surface-feature/70 text-steel hover:text-ink transition-colors group/member cursor-pointer"
+          [class.cursor-grab]="isOwner() && !m.isLocal"
+        >
+          <div *cdkDragPlaceholder class="h-6 rounded bg-primary/20 border border-dashed border-primary/40"></div>
+
+          <!-- Thẻ nổi khi đang kéo thành viên thoại -->
+          <ng-template cdkDragPreview>
+            <div class="voice-member-drag-preview" [style.width.px]="dragPreviewWidth - 24">
+              <app-avatar [name]="m.name" [src]="m.avatarUrl || null" size="xs" ring="surface" class="shrink-0" />
+              <span class="voice-member-drag-preview-title">{{ m.name }}</span>
+            </div>
+          </ng-template>
+
+          <!-- Member Identity (Avatar + Name with safe truncation) -->
+          <div class="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+            <app-avatar [name]="m.name" [src]="m.avatarUrl || null" size="xs" ring="surface" class="shrink-0" />
+            <app-overflow-marquee class="min-w-0 flex-1 text-micro font-medium text-ink" [class.text-primary]="m.isSpeaking" [text]="m.name" />
+            @if (m.isLocal) {
+              <span class="text-[10px] text-primary/80 font-bold shrink-0">(Bạn)</span>
+            }
+          </div>
+
+          <!-- Indicators & Action Badges -->
+          <div class="flex items-center gap-1 shrink-0">
+            <!-- Speaking pulse indicator -->
+            @if (m.isSpeaking) {
+              <span class="size-1.5 rounded-full bg-primary animate-pulse" matTooltip="Đang nói"></span>
+            }
+
+            <!-- Mic Muted Icon -->
+            @if (m.isMuted) {
+              <mat-icon class="!size-3.5 !text-xs text-danger" matTooltip="Đã tắt mic">mic_off</mat-icon>
+            }
+
+            <!-- Camera On Icon -->
+            @if (m.isCameraOn) {
+              <mat-icon class="!size-3.5 !text-xs text-primary" matTooltip="Đang bật camera">videocam</mat-icon>
+            }
+
+            <!-- Live Stream Badge & Watch Button (Clean, compact, vibrant colors) -->
+            @if (m.isScreenSharing) {
+              <div class="flex items-center gap-1.5 shrink-0">
+                <!-- Compact vibrant red LIVE badge -->
+                <span class="voice-live-badge">
+                  <span class="voice-live-badge__dot"></span>
+                  <span>LIVE</span>
+                </span>
+
+                <!-- Sleek Watch Stream Button -->
+                <button
+                  type="button"
+                  (click)="onWatchStream($event, channel, m)"
+                  matTooltip="Xem Stream của {{ m.name }}"
+                  class="voice-watch-stream-btn"
+                >
+                  <mat-icon>live_tv</mat-icon>
+                  <span>Xem Stream</span>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
   }
-</div>
+</ng-template>
 
 <!-- Hidden Context Menu Trigger Anchors -->
 <div
@@ -170,22 +321,40 @@
   #channelMenuTrigger="matMenuTrigger"
 ></div>
 
+<div
+  style="visibility: hidden; position: fixed; pointer-events: none"
+  [style.left.px]="contextMenuPosition().x"
+  [style.top.px]="contextMenuPosition().y"
+  [matMenuTriggerFor]="voiceMemberContextMenu"
+  #memberMenuTrigger="matMenuTrigger"
+></div>
+
 <!-- 1. Category Context Menu (Chuột phải vào nhóm danh mục) -->
 <mat-menu #categoryContextMenu="matMenu" class="nexus-context-menu">
   <!-- Đánh dấu đã đọc -->
   <button mat-menu-item type="button" (click)="markGroupAsRead()" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">done_all</mat-icon>
-    <span class="context-menu-label text-ink">Đánh dấu đã đọc</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Đánh dấu đã đọc" />
   </button>
 
   <!-- Thu gọn danh mục (với checkbox) -->
   @if (selectedGroup(); as group) {
     <button mat-menu-item type="button" (click)="toggleGroup(group.id)" class="context-menu-item context-menu-item--checkbox">
       <mat-icon class="context-menu-icon text-steel">unfold_less</mat-icon>
-      <span class="context-menu-label text-ink flex-1">Thu gọn danh mục</span>
+      <app-overflow-marquee class="context-menu-label text-ink flex-1" text="Thu gọn danh mục" />
       <div class="context-menu-checkbox" [class.context-menu-checkbox--checked]="isGroupCollapsed(group.id)">
         @if (isGroupCollapsed(group.id)) {
-          <mat-icon class="!size-3 !text-xs !text-on-primary">check</mat-icon>
+          <svg
+            class="context-menu-checkbox-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
         }
       </div>
     </button>
@@ -194,7 +363,7 @@
   <!-- Thu gọn tất cả danh mục -->
   <button mat-menu-item type="button" (click)="collapseAllGroups()" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">compress</mat-icon>
-    <span class="context-menu-label text-ink">Thu gọn tất cả danh mục</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Thu gọn tất cả danh mục" />
   </button>
 
   <div class="context-menu-divider" role="separator"></div>
@@ -202,14 +371,14 @@
   <!-- Tắt âm danh mục (Submenu) -->
   <button mat-menu-item type="button" [matMenuTriggerFor]="categoryMuteSubmenu" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">volume_off</mat-icon>
-    <span class="context-menu-label text-ink flex-1">Tắt âm danh mục</span>
+    <app-overflow-marquee class="context-menu-label text-ink flex-1" text="Tắt âm danh mục" />
     <mat-icon class="context-submenu-chevron text-steel">chevron_right</mat-icon>
   </button>
 
   <!-- Cài đặt thông báo (Submenu) -->
   <button mat-menu-item type="button" [matMenuTriggerFor]="categoryNotificationSubmenu" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">notifications</mat-icon>
-    <span class="context-menu-label text-ink flex-1">Cài đặt thông báo</span>
+    <app-overflow-marquee class="context-menu-label text-ink flex-1" text="Cài đặt thông báo" />
     <mat-icon class="context-submenu-chevron text-steel">chevron_right</mat-icon>
   </button>
 
@@ -218,44 +387,44 @@
   <!-- Chỉnh sửa danh mục -->
   <button mat-menu-item type="button" (click)="onActionSeam('edit-category', selectedGroup())" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">edit</mat-icon>
-    <span class="context-menu-label text-ink">Chỉnh sửa danh mục</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Chỉnh sửa danh mục" />
   </button>
 
   <!-- Xóa danh mục -->
   <button mat-menu-item type="button" (click)="onActionSeam('delete-category', selectedGroup())" class="context-menu-item context-menu-item--danger">
     <mat-icon class="context-menu-icon !text-danger">delete</mat-icon>
-    <span class="context-menu-label font-semibold text-danger">Xóa danh mục</span>
+    <app-overflow-marquee class="context-menu-label font-semibold text-danger" text="Xóa danh mục" />
   </button>
 </mat-menu>
 
 <!-- Submenus cho Category -->
 <mat-menu #categoryMuteSubmenu="matMenu" class="nexus-context-menu nexus-submenu">
   <button mat-menu-item type="button" (click)="onActionSeam('mute-15m', selectedGroup())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Trong 15 phút</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Trong 15 phút" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('mute-1h', selectedGroup())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Trong 1 giờ</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Trong 1 giờ" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('mute-8h', selectedGroup())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Trong 8 giờ</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Trong 8 giờ" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('mute-24h', selectedGroup())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Trong 24 giờ</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Trong 24 giờ" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('mute-until-on', selectedGroup())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Đến khi tôi bật lại</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Đến khi tôi bật lại" />
   </button>
 </mat-menu>
 
 <mat-menu #categoryNotificationSubmenu="matMenu" class="nexus-context-menu nexus-submenu">
   <button mat-menu-item type="button" (click)="onActionSeam('notify-all', selectedGroup())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Tất cả tin nhắn</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Tất cả tin nhắn" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('notify-mentions', selectedGroup())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Chỉ &#64;mentions</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Chỉ &#64;mentions" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('notify-nothing', selectedGroup())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Không có gì</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Không có gì" />
   </button>
 </mat-menu>
 
@@ -264,25 +433,25 @@
   <!-- Đánh dấu đã đọc -->
   <button mat-menu-item type="button" (click)="markChannelAsRead()" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">done_all</mat-icon>
-    <span class="context-menu-label text-ink">Đánh dấu đã đọc</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Đánh dấu đã đọc" />
   </button>
 
   <!-- Mời vào kênh -->
   <button mat-menu-item type="button" (click)="onActionSeam('invite-channel', selectedChannel())" class="context-menu-item">
     <mat-icon class="context-menu-icon text-primary">person_add</mat-icon>
-    <span class="context-menu-label font-semibold text-primary">Mời vào kênh</span>
+    <app-overflow-marquee class="context-menu-label font-semibold text-primary" text="Mời vào kênh" />
   </button>
 
   <!-- Ghim kênh lên đầu -->
   <button mat-menu-item type="button" (click)="onActionSeam('pin-channel', selectedChannel())" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">push_pin</mat-icon>
-    <span class="context-menu-label text-ink">Ghim kênh lên đầu</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Ghim kênh lên đầu" />
   </button>
 
   <!-- Sao chép liên kết -->
   <button mat-menu-item type="button" (click)="copyChannelLink()" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">link</mat-icon>
-    <span class="context-menu-label text-ink">Sao chép liên kết</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Sao chép liên kết" />
   </button>
 
   <div class="context-menu-divider" role="separator"></div>
@@ -290,14 +459,14 @@
   <!-- Tắt âm kênh (Submenu) -->
   <button mat-menu-item type="button" [matMenuTriggerFor]="channelMuteSubmenu" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">volume_off</mat-icon>
-    <span class="context-menu-label text-ink flex-1">Tắt âm kênh</span>
+    <app-overflow-marquee class="context-menu-label text-ink flex-1" text="Tắt âm kênh" />
     <mat-icon class="context-submenu-chevron text-steel">chevron_right</mat-icon>
   </button>
 
   <!-- Cài đặt thông báo (Submenu) -->
   <button mat-menu-item type="button" [matMenuTriggerFor]="channelNotificationSubmenu" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">notifications</mat-icon>
-    <span class="context-menu-label text-ink flex-1">Cài đặt thông báo</span>
+    <app-overflow-marquee class="context-menu-label text-ink flex-1" text="Cài đặt thông báo" />
     <mat-icon class="context-submenu-chevron text-steel">chevron_right</mat-icon>
   </button>
 
@@ -306,19 +475,19 @@
   <!-- Chỉnh sửa kênh -->
   <button mat-menu-item type="button" (click)="onActionSeam('edit-channel', selectedChannel())" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">settings</mat-icon>
-    <span class="context-menu-label text-ink">Chỉnh sửa kênh</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Chỉnh sửa kênh" />
   </button>
 
   <!-- Trùng lặp kênh -->
   <button mat-menu-item type="button" (click)="onActionSeam('duplicate-channel', selectedChannel())" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">content_copy</mat-icon>
-    <span class="context-menu-label text-ink">Trùng lặp kênh</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Trùng lặp kênh" />
   </button>
 
   <!-- Tạo kênh mới cùng loại -->
   <button mat-menu-item type="button" (click)="createChannelOfSameType()" class="context-menu-item">
     <mat-icon class="context-menu-icon text-steel">add_circle</mat-icon>
-    <span class="context-menu-label text-ink">Tạo kênh mới cùng loại</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Tạo kênh mới cùng loại" />
   </button>
 
   <div class="context-menu-divider" role="separator"></div>
@@ -326,42 +495,138 @@
   <!-- Xóa kênh -->
   <button mat-menu-item type="button" (click)="onActionSeam('delete-channel', selectedChannel())" class="context-menu-item context-menu-item--danger">
     <mat-icon class="context-menu-icon !text-danger">delete</mat-icon>
-    <span class="context-menu-label font-semibold text-danger">Xóa kênh</span>
+    <app-overflow-marquee class="context-menu-label font-semibold text-danger" text="Xóa kênh" />
   </button>
 </mat-menu>
 
 <!-- Submenus cho Channel -->
 <mat-menu #channelMuteSubmenu="matMenu" class="nexus-context-menu nexus-submenu">
   <button mat-menu-item type="button" (click)="onActionSeam('mute-15m', selectedChannel())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Trong 15 phút</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Trong 15 phút" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('mute-1h', selectedChannel())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Trong 1 giờ</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Trong 1 giờ" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('mute-8h', selectedChannel())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Trong 8 giờ</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Trong 8 giờ" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('mute-24h', selectedChannel())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Trong 24 giờ</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Trong 24 giờ" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('mute-until-on', selectedChannel())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Đến khi tôi bật lại</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Đến khi tôi bật lại" />
   </button>
 </mat-menu>
 
 <mat-menu #channelNotificationSubmenu="matMenu" class="nexus-context-menu nexus-submenu">
   <button mat-menu-item type="button" (click)="onActionSeam('notify-default', selectedChannel())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Sử dụng mặc định danh mục</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Sử dụng mặc định danh mục" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('notify-all', selectedChannel())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Tất cả tin nhắn</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Tất cả tin nhắn" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('notify-mentions', selectedChannel())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Chỉ &#64;mentions</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Chỉ &#64;mentions" />
   </button>
   <button mat-menu-item type="button" (click)="onActionSeam('notify-nothing', selectedChannel())" class="context-menu-item">
-    <span class="context-menu-label text-ink">Không có gì</span>
+    <app-overflow-marquee class="context-menu-label text-ink" text="Không có gì" />
   </button>
 </mat-menu>
 
+<!-- 3. Voice Member Context Menu (Chuột phải vào thành viên phòng thoại) -->
+<mat-menu #voiceMemberContextMenu="matMenu" class="nexus-context-menu nexus-member-menu">
+  @if (selectedMember(); as member) {
+    <!-- Member Header Card -->
+    <div class="px-3.5 py-2.5 border-b border-surface-border/40 flex items-center gap-2.5 select-none pointer-events-none">
+      <app-avatar [name]="member.name" [src]="member.avatarUrl || null" size="sm" ring="surface" />
+      <div class="flex flex-col min-w-0">
+        <app-overflow-marquee class="text-body-sm-bold text-ink" [text]="member.name" />
+        <span class="text-[11px] text-steel">
+          {{ member.isLocal ? 'Chính bạn' : isOwner() ? 'Thành viên máy chủ' : 'Thành viên thoại' }}
+        </span>
+      </div>
+    </div>
 
+    <!-- Xem hồ sơ -->
+    <button mat-menu-item type="button" (click)="onViewMemberProfile(member)" class="context-menu-item">
+      <mat-icon class="context-menu-icon text-steel">account_circle</mat-icon>
+      <app-overflow-marquee class="context-menu-label text-ink" text="Xem hồ sơ" />
+    </button>
+
+    @if (!member.isLocal) {
+      <div class="context-menu-divider" role="separator"></div>
+
+      <!-- Âm lượng người dùng (User Volume Slider 0% - 200%) -->
+      <div class="px-3.5 py-2 flex flex-col gap-1.5" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between text-caption font-semibold">
+          <span class="text-steel text-[11px]">Âm lượng người dùng</span>
+          <span class="text-primary font-mono text-xs">{{ voiceRoom.getUserVolume(member.userId) }}%</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <mat-icon class="!size-4 !text-base text-steel">volume_down</mat-icon>
+          <input
+            type="range"
+            min="0"
+            max="200"
+            step="1"
+            [value]="voiceRoom.getUserVolume(member.userId)"
+            (input)="onMemberVolumeChange(member.userId, $event)"
+            class="w-full h-1.5 bg-surface-feature rounded-lg appearance-none cursor-pointer accent-primary"
+          />
+          <mat-icon class="!size-4 !text-base text-steel">volume_up</mat-icon>
+        </div>
+      </div>
+
+      <!-- Tắt tiếng cục bộ (Local Mute) -->
+      <button mat-menu-item type="button" (click)="voiceRoom.toggleLocalMute(member.userId)" class="context-menu-item">
+        <mat-icon class="context-menu-icon" [class.text-danger]="voiceRoom.isLocalMuted(member.userId)" [class.text-steel]="!voiceRoom.isLocalMuted(member.userId)">
+          {{ voiceRoom.isLocalMuted(member.userId) ? 'volume_off' : 'volume_up' }}
+        </mat-icon>
+        <span class="context-menu-label text-ink flex-1">
+          {{ voiceRoom.isLocalMuted(member.userId) ? 'Bật tiếng cho bạn' : 'Tắt tiếng cho bạn' }}
+        </span>
+      </button>
+
+      <!-- DÀNH CHO CHỦ SERVER / ADMIN -->
+      @if (isOwner()) {
+        <div class="context-menu-divider" role="separator"></div>
+
+        <!-- Chuyển sang kênh thoại khác (Submenu) -->
+        @let otherChannels = otherVoiceChannels(selectedMemberChannel()?.id);
+        @if (otherChannels.length > 0) {
+          <button mat-menu-item type="button" [matMenuTriggerFor]="moveVoiceChannelSubmenu" class="context-menu-item">
+            <mat-icon class="context-menu-icon text-primary">move_to_inbox</mat-icon>
+            <app-overflow-marquee class="context-menu-label text-ink flex-1" text="Chuyển sang kênh thoại" />
+            <mat-icon class="context-submenu-chevron text-steel">chevron_right</mat-icon>
+          </button>
+        }
+
+        <!-- Tắt mic trên máy chủ (Server Mute) -->
+        <button mat-menu-item type="button" (click)="onToggleServerMute(member.userId, member.isMuted)" class="context-menu-item">
+          <mat-icon class="context-menu-icon text-warning">mic_off</mat-icon>
+          <span class="context-menu-label text-ink">
+            {{ member.isMuted ? 'Bỏ tắt mic trên server' : 'Tắt mic trên server' }}
+          </span>
+        </button>
+
+        <!-- Ngắt kết nối / Đá khỏi phòng thoại -->
+        <button mat-menu-item type="button" (click)="onKickVoiceMember(member.userId)" class="context-menu-item context-menu-item--danger">
+          <mat-icon class="context-menu-icon !text-danger">phone_disabled</mat-icon>
+          <app-overflow-marquee class="context-menu-label font-semibold text-danger" text="Ngắt kết nối phòng thoại" />
+        </button>
+      }
+    }
+  }
+</mat-menu>
+
+<!-- Submenu Chuyển Kênh Thoại -->
+<mat-menu #moveVoiceChannelSubmenu="matMenu" class="nexus-context-menu nexus-submenu">
+  @if (selectedMember(); as member) {
+    @for (vc of otherVoiceChannels(selectedMemberChannel()?.id); track vc.id) {
+      <button mat-menu-item type="button" (click)="onMoveMemberToChannel(member.userId, vc.id)" class="context-menu-item">
+        <mat-icon class="context-menu-icon text-primary">volume_up</mat-icon>
+        <app-overflow-marquee class="context-menu-label text-ink" [text]="vc.name" />
+      </button>
+    }
+  }
+</mat-menu>

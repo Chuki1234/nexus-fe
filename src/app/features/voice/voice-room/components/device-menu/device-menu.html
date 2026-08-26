@@ -1,4 +1,4 @@
-<mat-menu #menu="matMenu" class="nexus-device-menu !rounded-2xl !border !border-hairline !bg-surface shadow-modal">
+<mat-menu #menu="matMenu" yPosition="above" [overlapTrigger]="false" class="nexus-device-menu !rounded-2xl !border !border-hairline !bg-surface shadow-modal">
   @switch (kind()) {
     @case ('audio') {
       <div class="px-3 py-2 text-micro-uppercase font-semibold text-steel">Chọn Micro</div>

@@ -9,6 +9,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   CdkDrag,
   CdkDragPreview,
@@ -35,8 +36,8 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Subscription, filter, map } from 'rxjs';
 import { CommandCenterService } from '../../services/command-center.service';
 
 export function trimmedMinLength(min: number) {
@@ -89,13 +90,20 @@ export interface ParsedCommandQuery {
   searchTerm: string;
 }
 
+import {
+  ConversationsApiService,
+  type ConversationResponseDto,
+} from '../../../../core/api/conversations-api.service';
+
 export interface CommandResult {
   id: string;
   icon: string;
   kind: 'server' | 'text-channel' | 'voice-channel' | 'conversation';
   label: string;
   context: string;
-  link: string[];
+  link?: string[];
+  userId?: string;
+  conversationId?: string;
   searchableText: string;
 }
 
@@ -115,6 +123,7 @@ export type RailItem =
     };
 
 import { ServerCapabilitiesService } from '../../../../core/servers/server-capabilities.service';
+import { ServerInvitationsStore } from '../../../../core/servers/server-invitations.store';
 import { ServersStore } from '../../../../core/servers/servers.store';
 
 /**
@@ -152,6 +161,8 @@ import { ServersStore } from '../../../../core/servers/servers.store';
 export class ServerRail implements OnDestroy {
   private readonly serversStore = inject(ServersStore);
   private readonly friendsStore = inject(FriendsStore);
+  private readonly invitationsStore = inject(ServerInvitationsStore);
+  private readonly conversationsApi = inject(ConversationsApiService);
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
   private readonly dialog = inject(MatDialog);
   private readonly serversApi = inject(ServersApiService);
@@ -159,6 +170,39 @@ export class ServerRail implements OnDestroy {
   private readonly commandCenterService = inject(CommandCenterService);
   private readonly commandDialog = viewChild.required<TemplateRef<unknown>>('commandDialog');
   private readonly subs = new Subscription();
+  private readonly dmConversations = signal<ConversationResponseDto[]>([]);
+
+  protected readonly totalDmUnreadCount = computed(() => {
+    const pendingFriendRequests = this.friendsStore.incomingRequests().length;
+    const pendingServerInvites = this.invitationsStore.pendingCount();
+    const unreadDmMessages = this.dmConversations().reduce(
+      (acc, c) => acc + (c.unreadCount || 0),
+      0,
+    );
+    return pendingFriendRequests + pendingServerInvites + unreadDmMessages;
+  });
+
+  private readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      map(() => this.router.url),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  protected isServerActive(serverId: string): boolean {
+    if (this.serversStore.activeServerId() === serverId) {
+      return true;
+    }
+    const url = this.currentUrl() ?? this.router.url;
+    const pathWithoutQuery = url.split('?')[0].split('#')[0];
+    const segments = pathWithoutQuery.split('/');
+    return segments[1] === 'channels' && segments[2] === serverId;
+  }
+
+  protected isGroupActive(servers: ServerSummary[]): boolean {
+    return servers.some((s) => this.isServerActive(s.id));
+  }
 
   constructor() {
     this.subs.add(
@@ -528,11 +572,29 @@ export class ServerRail implements OnDestroy {
     const channelItems = servers.flatMap((server) =>
       this.serversStore.channelsOf(server.id).map((channel) => this.channelCommand(server, channel)),
     );
-    const conversationItems = this.friendsStore
-      .friends()
-      .map((friend) => this.conversationCommand(friend));
+    const friends = this.friendsStore.friends();
+    const friendIds = new Set(friends.map((f) => f.id));
+    const friendItems = friends.map((friend) => this.conversationCommand(friend));
 
-    return [...conversationItems, ...serverItems, ...channelItems];
+    const extraConvItems = this.dmConversations()
+      .filter((c) => !c.recipient?.id || !friendIds.has(c.recipient.id))
+      .map((conv) => {
+        const displayName =
+          conv.recipient?.displayName || conv.recipient?.username || conv.name || 'Người dùng';
+        return {
+          id: `conversation-${conv.id}`,
+          icon: 'alternate_email',
+          kind: 'conversation' as const,
+          label: displayName,
+          context: conv.recipient?.statusMessage ?? 'Mở cuộc trò chuyện',
+          link: ['/channels', '@me', conv.id],
+          conversationId: conv.id,
+          userId: conv.recipient?.id,
+          searchableText: `${displayName} ${conv.recipient?.username ?? ''} ${conv.recipient?.statusMessage ?? ''} bạn bè tin nhắn dm`,
+        };
+      });
+
+    return [...friendItems, ...extraConvItems, ...serverItems, ...channelItems];
   });
 
   protected readonly commandResults = computed(() => {
@@ -726,6 +788,7 @@ export class ServerRail implements OnDestroy {
   protected openCommandCenter(template: TemplateRef<unknown> = this.commandDialog()): void {
     this.commandQuery.set('');
     this.activeResultIndex.set(0);
+    this.loadDmConversations();
     this.dialog.open(template, {
       ariaLabel: 'Điều hướng nhanh trong NexusCord',
       autoFocus: '.command-center__input',
@@ -735,6 +798,19 @@ export class ServerRail implements OnDestroy {
       restoreFocus: true,
       width: 'calc(100vw - 2rem)',
     });
+  }
+
+  private loadDmConversations(): void {
+    this.conversationsApi
+      .listConversations()
+      .then((list) => {
+        if (list) {
+          this.dmConversations.set(list);
+        }
+      })
+      .catch((err) => {
+        console.warn('Không thể nạp danh sách cuộc trò chuyện cho Quick Switcher:', err);
+      });
   }
 
   protected handleGlobalShortcut(event: KeyboardEvent): void {
@@ -758,7 +834,13 @@ export class ServerRail implements OnDestroy {
   }
 
   protected updateCommandQuery(event: Event): void {
-    this.commandQuery.set((event.target as HTMLInputElement | null)?.value ?? '');
+    const input = event.target as HTMLInputElement | null;
+    this.commandQuery.set(input?.value ?? '');
+    this.activeResultIndex.set(0);
+  }
+
+  protected clearCommandQuery(): void {
+    this.commandQuery.set('');
     this.activeResultIndex.set(0);
   }
 
@@ -798,15 +880,39 @@ export class ServerRail implements OnDestroy {
       event.preventDefault();
       const activeItem = results[this.activeResultIndex()];
       if (activeItem) {
-        this.selectResult(activeItem);
+        void this.selectResult(activeItem);
       }
       return;
     }
   }
 
-  protected async selectResult(result: CommandResult): Promise<void> {
+  protected async selectResult(result: CommandResult, event?: Event): Promise<void> {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     this.dialog.closeAll();
-    await this.router.navigate(result.link);
+
+    if (result.kind === 'conversation') {
+      if (result.conversationId) {
+        await this.router.navigate(['/channels', '@me', result.conversationId]);
+        return;
+      }
+      if (result.userId) {
+        try {
+          const conv = await this.conversationsApi.getOrCreateDm(result.userId);
+          await this.router.navigate(['/channels', '@me', conv.id]);
+        } catch (err) {
+          console.error('Không thể mở cuộc trò chuyện DM:', err);
+          await this.router.navigate(['/channels', '@me']);
+        }
+        return;
+      }
+    }
+
+    if (result.link) {
+      await this.router.navigate(result.link);
+    }
   }
 
   protected commandScopeLabel(scope: CommandScope): string {
@@ -885,16 +991,22 @@ export class ServerRail implements OnDestroy {
     };
   }
 
-  private conversationCommand(conversation: any): CommandResult {
-    const displayName = conversation.name || conversation.displayName || conversation.username || 'Người dùng';
+  private conversationCommand(friend: any): CommandResult {
+    const displayName = friend.name || friend.displayName || friend.username || 'Người dùng';
+    const existingConv = this.dmConversations().find(
+      (c) => c.recipient?.id === friend.id,
+    );
+
     return {
-      id: `conversation-${conversation.id}`,
+      id: `conversation-${friend.id}`,
       icon: 'alternate_email',
       kind: 'conversation',
       label: displayName,
-      context: conversation.statusMessage ?? 'Mở cuộc trò chuyện',
-      link: ['/channels', '@me', conversation.id],
-      searchableText: `${displayName} ${conversation.statusMessage ?? ''} bạn bè tin nhắn dm`,
+      context: friend.statusMessage ?? (existingConv ? 'Mở cuộc trò chuyện' : 'Sẵn sàng kết nối'),
+      link: existingConv ? ['/channels', '@me', existingConv.id] : undefined,
+      userId: friend.id,
+      conversationId: existingConv?.id,
+      searchableText: `${displayName} ${friend.username ?? ''} ${friend.statusMessage ?? ''} bạn bè tin nhắn dm`,
     };
   }
 

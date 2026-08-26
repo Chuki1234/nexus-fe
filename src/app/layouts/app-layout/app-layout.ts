@@ -16,7 +16,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { filter, map } from 'rxjs';
+import { Subscription, filter, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ServersApiService } from '../../core/api/servers-api.service';
 import { ServersStore } from '../../core/servers/servers.store';
@@ -86,6 +86,7 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   readonly shellContainer = viewChild<ElementRef<HTMLElement>>('dashboardShell');
   private resizeObserver: ResizeObserver | null = null;
   private isHydrating = false;
+  private readonly subs = new Subscription();
 
   /**
    * Dưới `lg` (1024px) hoặc khi container không đủ không gian chứa main minimum 560px
@@ -105,6 +106,16 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     void this.hydrateServers();
     void this.directCallCoordinator.restoreActiveCall();
+
+    this.subs.add(
+      this.router.events
+        .pipe(filter((event) => event instanceof NavigationEnd))
+        .subscribe(() => {
+          const sId = this.readServerId();
+          const cId = this.readChannelId();
+          this.serversStore.setActive(sId, cId);
+        }),
+    );
   }
 
   ngAfterViewInit(): void {
@@ -127,6 +138,7 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+    this.subs.unsubscribe();
   }
 
   startNavResize(event: PointerEvent): void {
@@ -242,6 +254,18 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
     let route: ActivatedRoute | null = this.route;
     while (route) {
       const id = route.snapshot?.paramMap.get('serverId');
+      if (id) {
+        return id;
+      }
+      route = route.firstChild;
+    }
+    return null;
+  }
+
+  private readChannelId(): string | null {
+    let route: ActivatedRoute | null = this.route;
+    while (route) {
+      const id = route.snapshot?.paramMap.get('channelId');
       if (id) {
         return id;
       }

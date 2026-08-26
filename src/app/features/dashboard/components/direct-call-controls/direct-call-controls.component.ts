@@ -216,6 +216,15 @@ import { MediaDeviceService } from '../../../voice/services/media-device.service
           inset 0 1px 0 rgba(255, 255, 255, 0.1);
         z-index: 100;
         user-select: none;
+        transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 1;
+      }
+
+      :host.hidden-controls .call-controls-bar,
+      .call-controls-bar.hidden-controls {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+        pointer-events: none;
       }
 
       /* Split Capsule Buttons for Mic / Camera */

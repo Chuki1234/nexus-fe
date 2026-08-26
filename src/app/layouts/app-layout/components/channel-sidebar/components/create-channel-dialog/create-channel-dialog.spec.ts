@@ -119,11 +119,50 @@ describe('CreateChannelDialog', () => {
     );
     expect(serversStore.channelsOf('server-1')).toContainEqual({
       ...mockCreated,
-      categoryId: 'cat-text',
+      categoryId: null,
     });
     expect(mockDialogRef.close).toHaveBeenCalledWith({
       ...mockCreated,
-      categoryId: 'cat-text',
+      categoryId: null,
+    });
+  });
+
+  it('khi tạo kênh có categoryId truyền vào thì gán đúng categoryId đó', async () => {
+    await mount({
+      serverId: 'server-1',
+      serverName: 'ITSS Lab',
+      defaultType: 'voice',
+      categoryId: 'cat-custom-1',
+      categoryName: 'Phòng học tập',
+    });
+
+    const mockCreated = {
+      id: 'c-voice-1',
+      name: 'Phòng ôn thi',
+      type: 'voice' as const,
+      topic: null,
+      unread: false,
+      mentionCount: 0,
+    };
+    mockServersApi.createChannel.mockResolvedValue(mockCreated);
+
+    const nameInput = fixture.nativeElement.querySelector('#create-channel-name-input') as HTMLInputElement;
+    nameInput.value = 'Phòng ôn thi';
+    nameInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(serversStore.channelsOf('server-1')).toContainEqual({
+      ...mockCreated,
+      categoryId: 'cat-custom-1',
+    });
+    expect(mockDialogRef.close).toHaveBeenCalledWith({
+      ...mockCreated,
+      categoryId: 'cat-custom-1',
     });
   });
 

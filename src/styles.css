@@ -1772,6 +1772,17 @@ app-dashboard-shell
 }
 
 /* ==========================================================================
+   NEXUS VOICE CONTROLS DROPDOWN MENUS (FLOATING ABOVE TOOLBAR)
+   ========================================================================== */
+.nexus-device-menu.mat-mdc-menu-panel {
+  margin-bottom: 14px !important;
+  min-width: 240px;
+  max-width: 320px;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ==========================================================================
    GHI CHÚ CHO TEAM
 
    1. Font tự host qua @fontsource (manrope, source-code-pro) + material-icons.

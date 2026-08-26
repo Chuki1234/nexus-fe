@@ -6,6 +6,7 @@ import {
   CANONICAL_SERVER_TEMPLATES,
   ServersApiService,
 } from '../../../../core/api/servers-api.service';
+import { ConversationsApiService } from '../../../../core/api/conversations-api.service';
 import { ServersStore } from '../../../../core/servers/servers.store';
 import { FriendsStore } from '../../../../features/dashboard/friends/services/friends-store';
 import { ServerRail } from './server-rail';
@@ -15,6 +16,10 @@ describe('ServerRail', () => {
     getTemplates: ReturnType<typeof vi.fn>;
     createServer: ReturnType<typeof vi.fn>;
     listServers: ReturnType<typeof vi.fn>;
+  };
+  let mockConversationsApi: {
+    listConversations: ReturnType<typeof vi.fn>;
+    getOrCreateDm: ReturnType<typeof vi.fn>;
   };
 
   const mount = async (setupGroupedData = false) => {
@@ -36,11 +41,17 @@ describe('ServerRail', () => {
       listServers: vi.fn().mockResolvedValue([]),
     };
 
+    mockConversationsApi = {
+      listConversations: vi.fn().mockResolvedValue([]),
+      getOrCreateDm: vi.fn().mockResolvedValue({ id: 'conv-123' }),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ServerRail],
       providers: [
         provideRouter([{ path: '**', component: class {} }]),
         { provide: ServersApiService, useValue: mockServersApi },
+        { provide: ConversationsApiService, useValue: mockConversationsApi },
       ],
     }).compileComponents();
 

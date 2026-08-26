@@ -7,10 +7,15 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { PresenceService } from '../../../core/presence/presence.service';
 import { ThemeService } from '../../../core/theme/theme.service';
+import { UserSettingsService } from '../../settings/services/user-settings.service';
+import { Avatar } from '../../../shared/ui/avatar/avatar';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { SearchField } from '../../../shared/ui/search-field/search-field';
 import { SectionLabel } from '../../../shared/ui/section-label/section-label';
@@ -40,6 +45,7 @@ type FriendsContextView = 'activity';
   imports: [
     ActivityPanel,
     AddFriendForm,
+    Avatar,
     ContextPanel,
     DashboardState,
     EmptyState,
@@ -57,10 +63,17 @@ type FriendsContextView = 'activity';
   styleUrl: './friends.css',
 })
 export class FriendsPage implements OnInit {
+  private readonly breakpoints = inject(BreakpointObserver);
   private readonly themeService = inject(ThemeService);
   private readonly uiState = inject(DashboardUiState);
   private readonly friendsStore = inject(FriendsStore);
   private readonly presenceService = inject(PresenceService);
+
+  // Màn hình rộng (>= 1280px) thì mở Activity Panel; màn hình nhỏ/tablet/mobile thì đóng để không che danh sách
+  protected readonly isLargeScreen = toSignal(
+    this.breakpoints.observe('(min-width: 1280px)').pipe(map((state) => state.matches)),
+    { initialValue: typeof window !== 'undefined' ? window.innerWidth >= 1280 : true },
+  );
 
   protected readonly tab = signal<FriendsTab>('all');
   protected readonly query = signal('');
@@ -85,6 +98,9 @@ export class FriendsPage implements OnInit {
     }),
   );
 
+  private readonly userSettings = inject(UserSettingsService);
+  protected readonly blockedUsers = this.userSettings.blockedUsers;
+
   protected readonly visible = computed(() => {
     const needle = this.query().trim().toLowerCase();
     const people = this.tab() === 'online' ? this.onlineFriends() : this.allFriends();
@@ -97,16 +113,38 @@ export class FriendsPage implements OnInit {
     });
   });
 
+  protected readonly visibleBlocked = computed(() => {
+    const needle = this.query().trim().toLowerCase();
+    return this.blockedUsers().filter((user) => {
+      if (!needle) return true;
+      return (
+        user.displayName.toLowerCase().includes(needle) ||
+        user.username.toLowerCase().includes(needle)
+      );
+    });
+  });
+
   protected readonly pendingCount = computed(
     () => this.incomingRequests().length + this.outgoingRequests().length,
   );
 
-  protected readonly sectionLabel = computed(
-    () => `${this.tab() === 'online' ? 'Trực tuyến' : 'Tất cả bạn bè'} — ${this.visible().length}`,
-  );
+  protected readonly sectionLabel = computed(() => {
+    const currentTab = this.tab();
+    if (currentTab === 'online') {
+      return `Trực tuyến — ${this.visible().length}`;
+    }
+    if (currentTab === 'blocked') {
+      return `Đã chặn — ${this.visibleBlocked().length}`;
+    }
+    return `Tất cả bạn bè — ${this.visible().length}`;
+  });
 
   protected readonly contextOpen = computed(() => this.contextView() !== null);
   protected readonly activityExpanded = computed(() => this.contextView() === 'activity');
+
+  protected unblockUser(id: string): void {
+    this.userSettings.unblockUser(id);
+  }
 
   constructor() {
     effect(() => {

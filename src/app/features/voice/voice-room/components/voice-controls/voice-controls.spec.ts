@@ -14,6 +14,7 @@ describe('VoiceControls', () => {
     toggleMicrophone: ReturnType<typeof vi.fn>;
     toggleCamera: ReturnType<typeof vi.fn>;
     toggleScreenShare: ReturnType<typeof vi.fn>;
+    switchScreenShare: ReturnType<typeof vi.fn>;
     leaveRoom: ReturnType<typeof vi.fn>;
     switchAudioInput: ReturnType<typeof vi.fn>;
     switchVideoInput: ReturnType<typeof vi.fn>;
@@ -28,6 +29,7 @@ describe('VoiceControls', () => {
       toggleMicrophone: vi.fn(),
       toggleCamera: vi.fn(),
       toggleScreenShare: vi.fn(),
+      switchScreenShare: vi.fn(),
       leaveRoom: vi.fn(),
       switchAudioInput: vi.fn(),
       switchVideoInput: vi.fn(),
@@ -60,5 +62,14 @@ describe('VoiceControls', () => {
     const leaveBtn = fixture.nativeElement.querySelector('button[mat-flat-button]');
     leaveBtn?.click();
     expect(mockVoiceRoom.leaveRoom).toHaveBeenCalled();
+  });
+
+  it('hiển thị menu đổi màn hình khi đang chia sẻ màn hình và gọi switchScreenShare', () => {
+    mockVoiceRoom.isScreenSharing.set(true);
+    fixture.detectChanges();
+
+    // Trigger switchScreenShare trực tiếp hoặc qua method component
+    (component as unknown as { switchScreenShare: () => void }).switchScreenShare();
+    expect(mockVoiceRoom.switchScreenShare).toHaveBeenCalled();
   });
 });

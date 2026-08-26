@@ -2,10 +2,12 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   ViewChild,
   computed,
   inject,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DirectCallStore } from '../../../../core/calls/direct-call.store';
@@ -25,6 +27,9 @@ export class DirectCallStageComponent implements AfterViewInit, OnDestroy {
   readonly store = inject(DirectCallStore);
   readonly coordinator = inject(DirectCallCoordinatorService);
   readonly mediaService = inject(DirectCallMediaService);
+
+  readonly isControlsVisible = signal<boolean>(true);
+  private hideTimer: any = null;
 
   @ViewChild('remoteVideo') set remoteVideoElement(ref: ElementRef<HTMLVideoElement> | undefined) {
     if (ref?.nativeElement) {
@@ -60,11 +65,32 @@ export class DirectCallStageComponent implements AfterViewInit, OnDestroy {
     }
   });
 
+  @HostListener('mousemove')
+  @HostListener('touchstart')
+  @HostListener('click')
+  onUserActivity(): void {
+    this.showControls();
+  }
+
+  showControls(): void {
+    this.isControlsVisible.set(true);
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer);
+    }
+    if (this.store.isConnected()) {
+      this.hideTimer = setTimeout(() => {
+        this.isControlsVisible.set(false);
+      }, 3500);
+    }
+  }
+
   ngAfterViewInit(): void {
     // Initial bindings handled via setters
   }
 
   ngOnDestroy(): void {
-    // cleanup
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer);
+    }
   }
 }

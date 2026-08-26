@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import type { ConversationSummary } from '../../../../core/conversations/conversation.models';
 import { ConversationsApiService } from '../../../../core/api/conversations-api.service';
+import { DirectCallCoordinatorService } from '../../../../core/calls/direct-call-coordinator.service';
 import { FriendRow } from './friend-row';
 
 const NGUOI: ConversationSummary = {
@@ -24,6 +25,7 @@ class Host {
 
 describe('FriendRow', () => {
   let mockConversationsApi: { getOrCreateDm: any };
+  let mockDirectCallCoordinator: { startCall: any };
   let router: Router;
 
   beforeEach(() => {
@@ -36,6 +38,9 @@ describe('FriendRow', () => {
         createdAt: new Date().toISOString(),
       }),
     };
+    mockDirectCallCoordinator = {
+      startCall: vi.fn().mockResolvedValue(undefined),
+    };
   });
 
   const mount = async () => {
@@ -44,6 +49,7 @@ describe('FriendRow', () => {
       providers: [
         provideRouter([]),
         { provide: ConversationsApiService, useValue: mockConversationsApi },
+        { provide: DirectCallCoordinatorService, useValue: mockDirectCallCoordinator },
       ],
     }).compileComponents();
 
@@ -161,13 +167,12 @@ describe('FriendRow', () => {
     ) as HTMLElement;
     expect(menu).toBeTruthy();
     expect(menu.textContent).toContain('ho_be');
-    expect(menu.textContent).toContain('Bản xem trước · chờ kết nối');
     expect(menu.textContent).toContain('Gọi thoại');
     expect(menu.textContent).toContain('Tắt thông báo');
     expect(menu.textContent).toContain('Xóa khỏi danh sách bạn');
   });
 
-  it('chỉ bật hành động xóa bạn thuộc Phase Friends, các action khác vẫn khóa', async () => {
+  it('menu tùy chọn hiển thị đầy đủ các hành động gọi điện, thông báo, ghi chú, xóa bạn và chặn', async () => {
     const fixture = await mount();
     const trigger = fixture.nativeElement.querySelector(
       'button[aria-label="Tùy chọn cho ho_be"]',
@@ -183,7 +188,7 @@ describe('FriendRow', () => {
       ),
     ) as HTMLButtonElement[];
     expect(actions).toHaveLength(6);
-    expect(actions.filter((action) => action.disabled)).toHaveLength(5);
+    expect(actions.filter((action) => !action.disabled)).toHaveLength(6);
     expect(
       actions.find((action) =>
         action.textContent?.includes('Xóa khỏi danh sách bạn'),

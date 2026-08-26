@@ -19,6 +19,7 @@ describe('ChannelChatStore', () => {
   let reactionUpdated$: Subject<any>;
   let typingUpdated$: Subject<any>;
   let messageRead$: Subject<any>;
+  let messageHiddenForUser$: Subject<any>;
 
   const mockUser = {
     id: 'user-1',
@@ -30,6 +31,7 @@ describe('ChannelChatStore', () => {
     messageCreated$ = new Subject();
     messageUpdated$ = new Subject();
     messageDeleted$ = new Subject();
+    messageHiddenForUser$ = new Subject();
     reactionUpdated$ = new Subject();
     typingUpdated$ = new Subject();
     messageRead$ = new Subject();
@@ -62,6 +64,8 @@ describe('ChannelChatStore', () => {
       sendChannelMessage: vi.fn(),
       editMessage: vi.fn(),
       deleteMessage: vi.fn(),
+      hideMessage: vi.fn().mockResolvedValue({ id: '101', hidden: true, scope: 'for_me' }),
+      recallMessage: vi.fn().mockResolvedValue({ id: '101', deleted: true, scope: 'everyone' }),
       setChannelReaction: vi.fn(),
       markChannelAsRead: vi.fn(),
     };
@@ -79,6 +83,7 @@ describe('ChannelChatStore', () => {
       messageCreated$,
       messageUpdated$,
       messageDeleted$,
+      messageHiddenForUser$,
       reactionUpdated$,
       typingUpdated$,
       messageRead$,
@@ -268,6 +273,57 @@ describe('ChannelChatStore', () => {
       const msg = store.messages().find((m) => m.id === '101');
       expect(msg?.deletedAt).toBeTruthy();
       expect(msg?.content).toBeNull();
+      expect(msg?.attachments).toEqual([]);
+      expect(msg?.reactions).toEqual([]);
+    });
+
+    it('nhận messageHiddenForUser$ và ẩn tin nhắn khỏi danh sách hiển thị của user', () => {
+      expect(store.messages().some((m) => m.id === '101')).toBe(true);
+
+      messageHiddenForUser$.next({
+        channelId: 'chan-1',
+        messageId: '101',
+        userId: 'user-1',
+        hiddenAt: new Date().toISOString(),
+      });
+
+      expect(store.messages().some((m) => m.id === '101')).toBe(false);
+    });
+
+    it('hideMessage: ẩn optimistic và gọi API hideMessage', async () => {
+      await store.hideMessage('101');
+
+      expect(mockMessagesApi.hideMessage).toHaveBeenCalledWith('101');
+      expect(store.messages().some((m) => m.id === '101')).toBe(false);
+    });
+
+    it('hideMessage thất bại: rollback lại message tại đúng vị trí', async () => {
+      mockMessagesApi.hideMessage.mockRejectedValueOnce(new Error('Lỗi server'));
+
+      await expect(store.hideMessage('101')).rejects.toThrow('Lỗi server');
+
+      const target = store.messages().find((m) => m.id === '101');
+      expect(target?.id).toBe('101');
+      expect(target?.content).toBe('Hello channel!');
+    });
+
+    it('recallMessage: redact optimistic và gọi API recallMessage', async () => {
+      await store.recallMessage('101');
+
+      expect(mockMessagesApi.recallMessage).toHaveBeenCalledWith('101');
+      const target = store.messages().find((m) => m.id === '101');
+      expect(target?.content).toBeNull();
+      expect(target?.deletedAt).toBeTruthy();
+    });
+
+    it('recallMessage thất bại: rollback lại nguyên trạng', async () => {
+      mockMessagesApi.recallMessage.mockRejectedValueOnce(new Error('Lỗi server khi recall'));
+
+      await expect(store.recallMessage('101')).rejects.toThrow('Lỗi server khi recall');
+
+      const target = store.messages().find((m) => m.id === '101');
+      expect(target?.content).toBe('Hello channel!');
+      expect(target?.deletedAt).toBeNull();
     });
 
     it('nhận reactionUpdated$ và cập nhật reactions của message', () => {

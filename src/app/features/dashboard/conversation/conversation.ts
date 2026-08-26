@@ -51,6 +51,7 @@ import { ProfilePanel } from '../../profile/components/profile-panel/profile-pan
 import { Avatar } from '../../../shared/ui/avatar/avatar';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { ForwardMessageModal } from '../components/forward-message-modal/forward-message-modal';
+import { DeleteMessageModal } from '../components/delete-message-modal/delete-message-modal';
 import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.service';
 import type { LightboxMediaItem } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.types';
 import { extractErrorMessage } from '../../../core/utils/error.util';
@@ -194,6 +195,7 @@ export interface StreamMessageViewModel {
 }
 
 import { DirectCallCoordinatorService } from '../../../core/calls/direct-call-coordinator.service';
+import { UserSettingsService } from '../../settings/services/user-settings.service';
 
 /**
  * Trang chi tiết cuộc trò chuyện Direct Message — `/channels/@me/:conversationId`.
@@ -209,6 +211,7 @@ import { DirectCallCoordinatorService } from '../../../core/calls/direct-call-co
     ChatToolbar,
     ContextPanel,
     DashboardState,
+    DeleteMessageModal,
     EmptyState,
     ForwardMessageModal,
     GiphyMessageEmbedComponent,
@@ -232,6 +235,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
+  private readonly userSettings = inject(UserSettingsService);
   readonly activeChatStore = inject(ActiveChatStore);
   private readonly uiState = inject(DashboardUiState);
   private readonly destroyRef = inject(DestroyRef);
@@ -266,6 +270,19 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   readonly newMessagesBelowCount = signal<number>(0);
   readonly isNearBottom = this.scrollController.isNearBottom;
   readonly toastMessage = signal<string | null>(null);
+
+  protected readonly isRecipientBlocked = computed(() => {
+    const details = this.conversationDetails();
+    if (!details?.recipient?.id) return false;
+    return this.userSettings.isUserBlocked(details.recipient.id);
+  });
+
+  protected unblockRecipient(): void {
+    const details = this.conversationDetails();
+    if (details?.recipient?.id) {
+      this.userSettings.unblockUser(details.recipient.id);
+    }
+  }
 
   // ID của tin nhắn chưa đọc đầu tiên được capture khi mở conversation
   readonly initialUnreadBoundaryId = signal<string | null>(null);
@@ -1177,9 +1194,34 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     this.closeForwardModal();
   }
 
+  readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
+  readonly deleteModalMessage = signal<ChatUiMessage | null>(null);
+  readonly isDeletingMessage = signal<boolean>(false);
+
+  closeDeleteModal(): void {
+    this.deleteModalMessage.set(null);
+  }
+
+  async onConfirmDelete(scope: 'for_me' | 'everyone'): Promise<void> {
+    const msg = this.deleteModalMessage();
+    if (!msg) return;
+    this.isDeletingMessage.set(true);
+    try {
+      await this.activeChatStore.deleteMessage(msg.id, scope);
+      this.closeDeleteModal();
+    } catch {
+      // Handled by store
+    } finally {
+      this.isDeletingMessage.set(false);
+    }
+  }
+
   onMessageAction(action: MessageComposerContext): void {
     if (action.kind === 'delete' && action.messageId) {
-      void this.activeChatStore.deleteMessage(action.messageId);
+      const msg = this.messages().find((m) => m.id === action.messageId);
+      if (msg) {
+        this.deleteModalMessage.set(msg);
+      }
     } else if (action.kind === 'forward' && action.messageId) {
       const msg = this.messages().find((m) => m.id === action.messageId);
       if (msg) {

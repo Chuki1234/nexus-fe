@@ -106,7 +106,7 @@ export class CreateChannelDialog {
 
       const channelWithCategory: ChannelSummary = {
         ...createdChannel,
-        categoryId: this.data.categoryId ?? (this.channelType() === 'voice' ? 'cat-voice' : 'cat-text'),
+        categoryId: this.data.categoryId ?? null,
       };
 
       // Cập nhật live state trong ServersStore

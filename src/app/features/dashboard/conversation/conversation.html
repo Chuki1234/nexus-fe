@@ -749,15 +749,31 @@
         </button>
       }
 
-      <app-message-composer
-        [target]="'@' + recipientName()"
-        [disabled]="loadingInitial() || storeError() !== null"
-        [context]="composerContext()"
-        (send)="onSendMessage($event)"
-        (typing)="onTyping()"
-        (stoppedTyping)="onStoppedTyping()"
-        (contextClosed)="composerContext.set(null)"
-      />
+      @if (isRecipientBlocked()) {
+        <div class="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-surface-feature/80 border border-hairline text-body-sm text-steel">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <mat-icon class="text-danger !size-5 !text-xl shrink-0">block</mat-icon>
+            <span class="text-ink">Bạn không thể gửi tin nhắn vì đã chặn người dùng này.</span>
+          </div>
+          <button
+            type="button"
+            (click)="unblockRecipient()"
+            class="px-3.5 py-1.5 rounded-xl border border-hairline hover:border-primary text-body-sm font-semibold text-ink hover:text-primary hover:bg-primary/10 transition-all cursor-pointer shrink-0"
+          >
+            Bỏ chặn
+          </button>
+        </div>
+      } @else {
+        <app-message-composer
+          [target]="'@' + recipientName()"
+          [disabled]="loadingInitial() || storeError() !== null"
+          [context]="composerContext()"
+          (send)="onSendMessage($event)"
+          (typing)="onTyping()"
+          (stoppedTyping)="onStoppedTyping()"
+          (contextClosed)="composerContext.set(null)"
+        />
+      }
     </div>
 
     <!-- Forward Message Modal -->
@@ -767,6 +783,17 @@
         [currentConversationId]="conversationId()"
         (close)="closeForwardModal()"
         (forwardSuccess)="onForwardSuccess($event)"
+      />
+    }
+
+    <!-- Delete / Recall Message Modal -->
+    @if (deleteModalMessage(); as delMsg) {
+      <app-delete-message-modal
+        [message]="delMsg"
+        [canRecall]="delMsg.authorId === currentUserId()"
+        [isSubmitting]="isDeletingMessage()"
+        (close)="closeDeleteModal()"
+        (confirm)="onConfirmDelete($event)"
       />
     }
   </div>

@@ -1,6 +1,10 @@
 <app-friends-toolbar
   [(tab)]="tab"
   [(theme)]="theme"
+  [pendingCount]="pendingCount()"
+  [showActivityToggle]="true"
+  [activityOpen]="activityExpanded()"
+  (toggleActivity)="toggleActivity()"
 />
 
 @if (connectionState(); as state) {
@@ -125,6 +129,57 @@
                 message="Bạn không còn lời mời kết bạn nào đang chờ."
               />
             }
+          } @else if (tab() === 'blocked') {
+            <app-search-field placeholder="Tìm người dùng đã chặn" [(value)]="query" />
+
+            @if (visibleBlocked().length > 0) {
+              <app-section-label class="mt-6 block" [text]="sectionLabel()" />
+
+              <div class="friends-list-well mt-3 rounded-2xl p-2">
+                <ul class="flex flex-col gap-2" aria-label="Danh sách người dùng đã chặn">
+                  @for (user of visibleBlocked(); track user.id) {
+                    <li class="flex items-center justify-between p-3 rounded-xl hover:bg-surface-feature/50 border border-hairline/40 transition-colors">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <app-avatar
+                          [name]="user.displayName"
+                          presence="offline"
+                          size="md"
+                          ring="surface"
+                        />
+                        <div class="flex flex-col min-w-0">
+                          <span class="text-body-sm-bold text-ink truncate">{{ user.displayName }}</span>
+                          <span class="text-caption text-steel truncate">&#64;{{ user.username }} · Đã bị chặn</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        (click)="unblockUser(user.id)"
+                        matTooltip="Bỏ chặn"
+                        class="px-3 py-1.5 rounded-xl border border-hairline hover:border-primary text-body-sm font-medium text-steel hover:text-primary hover:bg-primary/10 flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <mat-icon class="!size-4 !text-base">lock_open</mat-icon>
+                        <span>Bỏ chặn</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              </div>
+            } @else if (query()) {
+              <app-empty-state
+                class="mt-6 flex min-h-0 flex-1"
+                icon="person_search"
+                title="Không tìm thấy người phù hợp"
+                [message]="'Không có ai bị chặn khớp với “' + query() + '”.'"
+              />
+            } @else {
+              <app-empty-state
+                class="mt-6 flex min-h-0 flex-1"
+                icon="block"
+                title="Không có ai bị chặn"
+                message="Bạn chưa chặn bất kỳ ai. Người dùng bạn chặn sẽ hiển thị ở đây và không thể gửi tin nhắn cho bạn."
+              />
+            }
           } @else {
             <app-add-friend-form
               [pending]="sendingRequest()"
@@ -139,8 +194,9 @@
 
     <app-context-panel
       title="Đang hoạt động"
-      [open]="true"
-      [showClose]="false"
+      [open]="activityExpanded()"
+      [showClose]="true"
+      (closed)="closeContext()"
     >
       <app-activity-panel [people]="onlineFriends()" />
     </app-context-panel>

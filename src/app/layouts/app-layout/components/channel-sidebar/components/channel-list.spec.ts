@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChannelSummary } from '../../../../../core/servers/server.models';
 import { ServerCapabilitiesService } from '../../../../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../../../../core/servers/servers.store';
+import { ServerVoiceStatesStore } from '../../../../../core/servers/server-voice-states.store';
 import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
 import { ChannelList } from './channel-list';
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
@@ -457,6 +458,149 @@ describe('ChannelList', () => {
     const groupEl = fixture.nativeElement.querySelector('#channel-group-cat-hoc-tap');
     expect(groupEl.textContent).toContain('tai-lieu');
     expect(groupEl.textContent).toContain('Thảo Luận Nhóm');
+  });
+
+  it('hiển thị danh sách thành viên trong kênh voice khi người dùng đứng ngoài kênh kèm icon mic/cam và nút Xem Stream', async () => {
+    const fixture = await mount('lofi', true);
+    const voiceStatesStore = TestBed.inject(ServerVoiceStatesStore);
+
+    voiceStatesStore.voiceStatesByServer.set({
+      lofi: [
+        {
+          userId: 'user-streamer',
+          channelId: 'phong-hop',
+          serverId: 'lofi',
+          name: 'Minh Tài Streamer',
+          username: 'minhtai',
+          displayName: 'Minh Tài Streamer',
+          avatarUrl: null,
+          isMuted: true,
+          isCameraOn: true,
+          isScreenSharing: true,
+          joinedAt: '2026-08-25T14:00:00.000Z',
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    const voiceChannelRow = fixture.nativeElement.querySelector('.voice-channel-members');
+    expect(voiceChannelRow).toBeTruthy();
+    expect(voiceChannelRow.textContent).toContain('Minh Tài Streamer');
+    expect(voiceChannelRow.textContent).toContain('LIVE');
+    expect(voiceChannelRow.textContent).toContain('Xem Stream');
+
+    // Kiểm tra icon mic_off và videocam
+    const micOffIcon = voiceChannelRow.querySelector('mat-icon');
+    expect(micOffIcon).toBeTruthy();
+  });
+
+  it('onWatchStream: điều hướng và kết nối vào kênh khi bấm Xem Stream', async () => {
+    const fixture = await mount('lofi', true);
+    const voiceStatesStore = TestBed.inject(ServerVoiceStatesStore);
+    const voiceRoom = TestBed.inject(VoiceRoomService);
+    const router = TestBed.inject(Router);
+
+    const joinRoomSpy = vi.spyOn(voiceRoom, 'joinRoom').mockResolvedValue(undefined);
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    voiceStatesStore.voiceStatesByServer.set({
+      lofi: [
+        {
+          userId: 'user-streamer',
+          channelId: 'phong-hop',
+          serverId: 'lofi',
+          name: 'Streamer Pro',
+          username: 'streamer',
+          displayName: 'Streamer Pro',
+          avatarUrl: null,
+          isMuted: false,
+          isCameraOn: true,
+          isScreenSharing: true,
+          joinedAt: '2026-08-25T14:00:00.000Z',
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    const watchBtn = fixture.nativeElement.querySelector(
+      '.voice-member-row button',
+    ) as HTMLButtonElement;
+    expect(watchBtn).toBeTruthy();
+
+    watchBtn.click();
+    fixture.detectChanges();
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/channels', 'lofi', 'phong-hop']);
+    expect(joinRoomSpy).toHaveBeenCalledWith('lofi', 'phong-hop', 'Phòng họp');
+  });
+
+  it('kênh không thuộc danh mục nào luôn hiển thị ở ĐẦU TIÊN (trên các danh mục)', async () => {
+    const fixture = await mount('custom-server', false);
+    const serversStore = TestBed.inject(ServersStore);
+
+    serversStore.setCategories('custom-server', [
+      { id: 'cat-tai', name: 'tài' },
+      { id: 'cat-gaming', name: 'gaming' },
+    ]);
+
+    serversStore.setChannels('custom-server', [
+      { id: 'c-tai-1', name: 'tim-đồng-đội', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-tai' },
+      { id: 'c-top', name: 'kênh-mới-ở-top', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: null },
+      { id: 'c-gaming-1', name: 'lol-gameplay', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-gaming' },
+    ]);
+
+    fixture.detectChanges();
+
+    const groups = fixture.componentInstance['groups']();
+    expect(groups.length).toBe(3);
+    // Nhóm 1: uncategorized ở đầu tiên
+    expect(groups[0].id).toBe('cat-uncategorized');
+    expect(groups[0].channels.map((c) => c.id)).toEqual(['c-top']);
+
+    // Nhóm 2 & 3: các danh mục
+    expect(groups[1].id).toBe('cat-tai');
+    expect(groups[2].id).toBe('cat-gaming');
+
+    // Kiểm tra DOM: Kênh uncategorized render trước header danh mục 'tài'
+    const textContent = fixture.nativeElement.textContent;
+    const topChannelIndex = textContent.indexOf('kênh-mới-ở-top');
+    const taiCatIndex = textContent.indexOf('tài');
+    expect(topChannelIndex).toBeLessThan(taiCatIndex);
+  });
+
+  it('kéo thả sắp xếp danh mục (onCategoryDrop) và bảo toàn các kênh con của danh mục đó', async () => {
+    const fixture = await mount('custom-server', false);
+    const serversStore = TestBed.inject(ServersStore);
+
+    serversStore.setCategories('custom-server', [
+      { id: 'cat-1', name: 'Danh mục 1' },
+      { id: 'cat-2', name: 'Danh mục 2' },
+    ]);
+
+    serversStore.setChannels('custom-server', [
+      { id: 'c-1', name: 'kênh-1', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-1' },
+      { id: 'c-2', name: 'kênh-2', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-2' },
+    ]);
+
+    fixture.detectChanges();
+
+    // Kéo Danh mục 2 lên trước Danh mục 1
+    fixture.componentInstance['onCategoryDrop']({
+      previousIndex: 1,
+      currentIndex: 0,
+    } as any);
+
+    fixture.detectChanges();
+
+    const categories = serversStore.categoriesOf('custom-server');
+    expect(categories[0].id).toBe('cat-2');
+    expect(categories[1].id).toBe('cat-1');
+
+    const groups = fixture.componentInstance['groups']();
+    expect(groups[0].id).toBe('cat-2');
+    expect(groups[0].channels.map((c) => c.name)).toEqual(['kênh-2']);
+    expect(groups[1].id).toBe('cat-1');
+    expect(groups[1].channels.map((c) => c.name)).toEqual(['kênh-1']);
   });
 });
 

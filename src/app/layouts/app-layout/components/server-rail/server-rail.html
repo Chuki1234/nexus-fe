@@ -17,8 +17,17 @@
   <span
     class="server-pill-indicator"
     [class.server-pill-indicator--active]="dmLink.isActive"
+    [class.server-pill-indicator--unread]="!dmLink.isActive && totalDmUnreadCount() > 0"
     aria-hidden="true"
   ></span>
+
+  @if (totalDmUnreadCount() > 0) {
+    <app-unread-badge
+      class="pointer-events-none absolute -right-1 -bottom-1"
+      [count]="totalDmUnreadCount()"
+      label="thông báo chưa đọc"
+    />
+  }
 </div>
 
 <hr class="my-1 w-8 border-t border-hairline" aria-hidden="true" />
@@ -58,14 +67,12 @@
             (cdkDragStarted)="startServerDrag(item.id)"
             (cdkDragEnded)="finishServerDrag()"
             [routerLink]="linkFor(item.id)"
-            routerLinkActive
-            #serverLink="routerLinkActive"
             [matTooltip]="item.server.name"
             matTooltipPosition="right"
-            [attr.aria-current]="serverLink.isActive ? 'page' : null"
+            [attr.aria-current]="isServerActive(item.id) ? 'page' : null"
             [attr.data-server-id]="item.id"
             class="server-tile nexus-icon-control"
-            [class.server-tile--active]="serverLink.isActive"
+            [class.server-tile--active]="isServerActive(item.id)"
             [class.server-tile--merge-active]="isMergeActive(item.id)"
             [class.server-drag-source]="draggingServerId() === item.id"
           >
@@ -94,8 +101,8 @@
 
           <span
             class="server-pill-indicator"
-            [class.server-pill-indicator--active]="serverLink.isActive"
-            [class.server-pill-indicator--unread]="!serverLink.isActive && item.server.unread"
+            [class.server-pill-indicator--active]="isServerActive(item.id)"
+            [class.server-pill-indicator--unread]="!isServerActive(item.id) && item.server.unread"
             aria-hidden="true"
           ></span>
 
@@ -147,8 +154,13 @@
               </span>
             </button>
 
-            <!-- Pill indicator for folder with unreads -->
-            @if (groupHasUnread(item.servers)) {
+            <!-- Pill indicator for folder with unreads or active -->
+            @if (isGroupActive(item.servers)) {
+              <span
+                class="server-pill-indicator server-pill-indicator--active"
+                aria-hidden="true"
+              ></span>
+            } @else if (groupHasUnread(item.servers)) {
               <span
                 class="server-pill-indicator server-pill-indicator--unread"
                 aria-hidden="true"
@@ -207,14 +219,12 @@
                     (cdkDragStarted)="startServerDrag(server.id)"
                     (cdkDragEnded)="finishServerDrag()"
                     [routerLink]="linkFor(server.id)"
-                    routerLinkActive
-                    #folderServerLink="routerLinkActive"
                     [matTooltip]="server.name"
                     matTooltipPosition="right"
-                    [attr.aria-current]="folderServerLink.isActive ? 'page' : null"
+                    [attr.aria-current]="isServerActive(server.id) ? 'page' : null"
                     [attr.data-server-id]="server.id"
                     class="server-tile nexus-icon-control"
-                    [class.server-tile--active]="folderServerLink.isActive"
+                    [class.server-tile--active]="isServerActive(server.id)"
                     [class.server-tile--merge-active]="isMergeActive(server.id)"
                     [class.server-drag-source]="draggingServerId() === server.id"
                   >
@@ -447,11 +457,9 @@
               [id]="'result-opt-' + result.id"
               role="option"
               [attr.aria-selected]="index === activeResultIndex()"
-              [routerLink]="result.link"
-              mat-dialog-close
-              (click)="selectResult(result)"
+              (click)="selectResult(result, $event)"
               (mouseenter)="activeResultIndex.set(index)"
-              class="command-result group flex min-h-15 items-center gap-3 rounded-lg px-3 py-2"
+              class="command-result group flex min-h-15 items-center gap-3 rounded-lg px-3 py-2 cursor-pointer"
               [class.command-result--active]="index === activeResultIndex()"
               [attr.data-command-result]="result.kind"
             >

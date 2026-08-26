@@ -26,10 +26,12 @@ import { ChatSocketService } from '../../../../../core/realtime/chat-socket.serv
 import { PresenceService } from '../../../../../core/presence/presence.service';
 import { ActiveChatStore } from '../../../../../features/dashboard/services/active-chat.store';
 import { ServerInvitationsStore } from '../../../../../core/servers/server-invitations.store';
+import { FriendsStore } from '../../../../../features/dashboard/friends/services/friends-store';
 import { ProfileAvatar } from '../../../../../features/profile/components/profile-avatar/profile-avatar';
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
 import { UnreadBadge } from '../../../../../shared/ui/unread-badge/unread-badge';
+import { OverflowMarquee } from '../../../../../shared/ui/overflow-marquee/overflow-marquee';
 
 /**
  * Danh sách tin nhắn riêng — nội dung cột 2 khi ở khu `/channels/@me`.
@@ -49,6 +51,7 @@ import { UnreadBadge } from '../../../../../shared/ui/unread-badge/unread-badge'
     RouterLinkActive,
     SectionLabel,
     UnreadBadge,
+    OverflowMarquee,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
@@ -62,9 +65,14 @@ export class ConversationList implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly activeChatStore = inject(ActiveChatStore);
   protected readonly invitationsStore = inject(ServerInvitationsStore);
+  protected readonly friendsStore = inject(FriendsStore);
   private readonly subs = new Subscription();
 
   readonly query = input('');
+
+  protected readonly pendingFriendRequestsCount = computed(
+    () => this.friendsStore.incomingRequests().length,
+  );
 
   readonly realConversations = signal<ConversationResponseDto[]>([]);
   readonly loading = signal<boolean>(false);

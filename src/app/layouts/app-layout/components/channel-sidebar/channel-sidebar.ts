@@ -14,6 +14,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 
+import { OverflowMarquee } from '../../../../shared/ui/overflow-marquee/overflow-marquee';
+
 import { ServerCapabilitiesService } from '../../../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../../../core/servers/servers.store';
 import {
@@ -41,6 +43,7 @@ import { LeaveServerDialog } from './components/leave-server-dialog/leave-server
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
+    OverflowMarquee,
     ChannelList,
     ConversationList,
     UserPanel,
@@ -125,6 +128,8 @@ export class ChannelSidebar {
         serverId: id,
         serverName: this.title(),
         defaultType: 'text',
+        categoryId: null,
+        categoryName: null,
       },
       panelClass: 'nexus-dialog-overlay',
       autoFocus: false,

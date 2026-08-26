@@ -51,6 +51,15 @@
   z-index: 60;
   display: flex;
   align-items: center;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stage-header.hidden-controls {
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
 }
 
 .header-glass-card {

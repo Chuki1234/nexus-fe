@@ -7,7 +7,9 @@
       class="channel-sidebar__server-header flex h-12 w-full items-center justify-between px-4 text-left font-bold text-ink hover:bg-surface-feature transition-colors group cursor-pointer shadow-2xs select-none"
     >
       <div class="flex items-center gap-1.5 min-w-0 flex-1">
-        <h2 class="truncate text-body-md font-bold text-ink m-0">{{ title() }}</h2>
+        <h2 class="min-w-0 flex-1 text-body-md font-bold text-ink m-0">
+          <app-overflow-marquee [text]="title()" />
+        </h2>
         <mat-icon
           class="server-header-chevron text-steel group-hover:text-ink"
           [class.server-header-chevron--open]="serverMenuTrigger.menuOpen || isMenuOpen()"
@@ -47,7 +49,7 @@
         >
           <mat-icon class="server-menu-icon text-primary">person_add</mat-icon>
           <div class="server-menu-label-box">
-            <span class="server-menu-label font-semibold text-primary">Mời vào máy chủ</span>
+            <app-overflow-marquee class="server-menu-label font-semibold text-primary" text="Mời vào máy chủ" />
           </div>
         </button>
       }
@@ -61,7 +63,7 @@
         >
           <mat-icon class="server-menu-icon text-steel">settings</mat-icon>
           <div class="server-menu-label-box">
-            <span class="server-menu-label text-ink">Cài đặt máy chủ</span>
+            <app-overflow-marquee class="server-menu-label text-ink" text="Cài đặt máy chủ" />
           </div>
         </button>
       }
@@ -75,7 +77,7 @@
         >
           <mat-icon class="server-menu-icon text-steel">add_circle</mat-icon>
           <div class="server-menu-label-box">
-            <span class="server-menu-label text-ink">Tạo kênh</span>
+            <app-overflow-marquee class="server-menu-label text-ink" text="Tạo kênh" />
           </div>
         </button>
 
@@ -87,7 +89,7 @@
         >
           <mat-icon class="server-menu-icon text-steel">create_new_folder</mat-icon>
           <div class="server-menu-label-box">
-            <span class="server-menu-label text-ink">Tạo danh mục</span>
+            <app-overflow-marquee class="server-menu-label text-ink" text="Tạo danh mục" />
           </div>
         </button>
       }
@@ -103,7 +105,7 @@
       >
         <mat-icon class="server-menu-icon text-steel">notifications</mat-icon>
         <div class="server-menu-label-box">
-          <span class="server-menu-label text-ink">Cài đặt thông báo</span>
+          <app-overflow-marquee class="server-menu-label text-ink" text="Cài đặt thông báo" />
         </div>
       </button>
 
@@ -115,7 +117,7 @@
       >
         <mat-icon class="server-menu-icon text-steel">security</mat-icon>
         <div class="server-menu-label-box">
-          <span class="server-menu-label text-ink">Cài đặt bảo mật</span>
+          <app-overflow-marquee class="server-menu-label text-ink" text="Cài đặt bảo mật" />
         </div>
       </button>
 
@@ -130,7 +132,7 @@
       >
         <mat-icon class="server-menu-icon text-steel">edit</mat-icon>
         <div class="server-menu-label-box">
-          <span class="server-menu-label text-ink">Chỉnh sửa hồ sơ theo máy chủ</span>
+          <app-overflow-marquee class="server-menu-label text-ink" text="Chỉnh sửa hồ sơ theo máy chủ" />
         </div>
       </button>
 
@@ -142,7 +144,7 @@
       >
         <mat-icon class="server-menu-icon text-steel">visibility_off</mat-icon>
         <div class="server-menu-label-box">
-          <span class="server-menu-label text-ink">Ẩn các kênh đã tắt thông báo</span>
+          <app-overflow-marquee class="server-menu-label text-ink" text="Ẩn các kênh đã tắt thông báo" />
         </div>
         <div
           class="menu-checkbox"
@@ -150,7 +152,17 @@
           [class.menu-checkbox--checked]="hideMutedChannels()"
         >
           @if (hideMutedChannels()) {
-            <mat-icon class="!size-3 !text-xs !text-on-primary">check</mat-icon>
+            <svg
+              class="menu-checkbox-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
           }
         </div>
       </button>
@@ -166,7 +178,7 @@
         >
           <mat-icon class="server-menu-icon !text-danger">delete_forever</mat-icon>
           <div class="server-menu-label-box">
-            <span class="server-menu-label font-semibold text-danger">Xóa máy chủ</span>
+            <app-overflow-marquee class="server-menu-label font-semibold text-danger" text="Xóa máy chủ" />
           </div>
         </button>
       } @else {
@@ -178,7 +190,7 @@
         >
           <mat-icon class="server-menu-icon !text-danger">logout</mat-icon>
           <div class="server-menu-label-box">
-            <span class="server-menu-label font-semibold text-danger">Rời khỏi máy chủ</span>
+            <app-overflow-marquee class="server-menu-label font-semibold text-danger" text="Rời khỏi máy chủ" />
           </div>
         </button>
       }

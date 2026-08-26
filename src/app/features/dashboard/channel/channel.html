@@ -433,3 +433,14 @@
     (close)="forwardModalMessage.set(null)"
   />
 }
+
+<!-- Delete / Recall Message Modal -->
+@if (deleteModalMessage(); as delMsg) {
+  <app-delete-message-modal
+    [message]="delMsg"
+    [canRecall]="delMsg.authorId === currentUserId() || permissions().canManageMessages"
+    [isSubmitting]="isDeletingMessage()"
+    (close)="closeDeleteModal()"
+    (confirm)="onConfirmDelete($event)"
+  />
+}

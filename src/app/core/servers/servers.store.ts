@@ -232,58 +232,7 @@ export class ServersStore {
     this.pruneServerGroups();
   }
 
-  /**
-   * Thêm hoặc cập nhật một kênh mới vào live state của server.
-   */
-  addChannel(serverId: string, channel: ChannelSummary): void {
-    if (channel.categoryId) {
-      this.setChannelCategory(channel.id, channel.categoryId);
-    }
-    this.channelsByServer.update((current) => {
-      const existing = current[serverId] ?? [];
-      const alreadyExists = existing.some((c) => c.id === channel.id);
-      if (alreadyExists) {
-        return {
-          ...current,
-          [serverId]: existing.map((c) => (c.id === channel.id ? channel : c)),
-        };
-      }
-      return {
-        ...current,
-        [serverId]: [...existing, channel],
-      };
-    });
-  }
 
-  /**
-   * Cập nhật thông tin của một kênh.
-   */
-  updateChannel(serverId: string, channel: ChannelSummary): void {
-    this.channelsByServer.update((current) => {
-      const existing = current[serverId] ?? [];
-      return {
-        ...current,
-        [serverId]: existing.map((c) => (c.id === channel.id ? channel : c)),
-      };
-    });
-  }
-
-  /**
-   * Xóa một kênh khỏi live state của server.
-   */
-  removeChannel(serverId: string, channelId: string): void {
-    this.channelsByServer.update((current) => {
-      const existing = current[serverId] ?? [];
-      return {
-        ...current,
-        [serverId]: existing.filter((c) => c.id !== channelId),
-      };
-    });
-
-    if (this.activeChannelId() === channelId) {
-      this.activeChannelId.set(null);
-    }
-  }
 
   /**
    * Lấy thông tin server theo ID.
@@ -364,6 +313,71 @@ export class ServersStore {
   /**
    * Gán một kênh vào một category cụ thể và lưu vào storage.
    */
+  addChannel(serverId: string, channel: ChannelSummary): void {
+    if (channel.categoryId) {
+      this.setChannelCategory(channel.id, channel.categoryId);
+    } else {
+      this.setChannelCategory(channel.id, null);
+    }
+    this.channelsByServer.update((current) => {
+      const existing = current[serverId] ?? [];
+      const alreadyExists = existing.some((c) => c.id === channel.id);
+      if (alreadyExists) {
+        return {
+          ...current,
+          [serverId]: existing.map((c) => (c.id === channel.id ? channel : c)),
+        };
+      }
+      // Kênh mới không có danh mục được chèn lên ĐẦU TIÊN (trên các danh mục)
+      if (!channel.categoryId) {
+        return {
+          ...current,
+          [serverId]: [channel, ...existing],
+        };
+      }
+      return {
+        ...current,
+        [serverId]: [...existing, channel],
+      };
+    });
+  }
+
+  /**
+   * Cập nhật thông tin của một kênh.
+   */
+  updateChannel(serverId: string, channel: ChannelSummary): void {
+    this.channelsByServer.update((current) => {
+      const existing = current[serverId] ?? [];
+      return {
+        ...current,
+        [serverId]: existing.map((c) => (c.id === channel.id ? channel : c)),
+      };
+    });
+  }
+
+  /**
+   * Xóa một kênh khỏi danh sách.
+   */
+  removeChannel(serverId: string, channelId: string): void {
+    this.channelCategories.update((current) => {
+      const next = { ...current };
+      delete next[channelId];
+      return next;
+    });
+    this.persistCategoriesToStorage();
+
+    this.channelsByServer.update((current) => {
+      const existing = current[serverId] ?? [];
+      return {
+        ...current,
+        [serverId]: existing.filter((c) => c.id !== channelId),
+      };
+    });
+  }
+
+  /**
+   * Gán một kênh vào một category cụ thể và lưu vào storage.
+   */
   setChannelCategory(channelId: string, categoryId: string | null | undefined): void {
     this.channelCategories.update((current) => {
       if (!categoryId) {
@@ -388,7 +402,9 @@ export class ServersStore {
     targetCategoryId: string | null | undefined,
     targetIndex: number,
   ): void {
-    this.setChannelCategory(channelId, targetCategoryId);
+    const isUncategorized = !targetCategoryId || targetCategoryId === 'cat-uncategorized';
+    const effectiveTargetCategoryId = isUncategorized ? null : targetCategoryId;
+    this.setChannelCategory(channelId, effectiveTargetCategoryId);
 
     this.channelsByServer.update((current) => {
       const existing = current[serverId] ?? [];
@@ -397,7 +413,7 @@ export class ServersStore {
 
       const targetChannel: ChannelSummary = {
         ...existing[channelIndex],
-        categoryId: targetCategoryId ?? null,
+        categoryId: effectiveTargetCategoryId,
       };
 
       // Tách kênh cần di chuyển ra khỏi danh sách
@@ -408,17 +424,19 @@ export class ServersStore {
       const otherChannels: ChannelSummary[] = [];
 
       for (const c of withoutTarget) {
-        const effectiveCat =
-          c.categoryId ??
-          this.channelCategories()[c.id] ??
-          (c.type === 'voice' ? 'cat-voice' : 'cat-text');
-        const effectiveTargetCat =
-          targetCategoryId ??
-          (targetChannel.type === 'voice' ? 'cat-voice' : 'cat-text');
-        if (effectiveCat === effectiveTargetCat) {
-          targetCategoryChannels.push(c);
+        const cCat = c.categoryId ?? this.channelCategories()[c.id] ?? null;
+        if (isUncategorized) {
+          if (!cCat || cCat === 'cat-uncategorized') {
+            targetCategoryChannels.push(c);
+          } else {
+            otherChannels.push(c);
+          }
         } else {
-          otherChannels.push(c);
+          if (cCat === effectiveTargetCategoryId) {
+            targetCategoryChannels.push(c);
+          } else {
+            otherChannels.push(c);
+          }
         }
       }
 
@@ -429,7 +447,18 @@ export class ServersStore {
       );
       targetCategoryChannels.splice(clampedIndex, 0, targetChannel);
 
-      // Ghép lại toàn bộ danh sách kênh theo thứ tự danh mục của server
+      // Ghép lại toàn bộ danh sách kênh:
+      // 1. Kênh không thuộc danh mục nào luôn ở ĐẦU TIÊN
+      const uncategorizedList: ChannelSummary[] = isUncategorized
+        ? targetCategoryChannels
+        : otherChannels.filter((c) => {
+            const cat = c.categoryId ?? this.channelCategories()[c.id] ?? null;
+            return !cat || cat === 'cat-uncategorized';
+          });
+
+      const mergedList: ChannelSummary[] = [...uncategorizedList];
+
+      // 2. Tiếp theo là các kênh gom theo từng danh mục
       const customCategories = this.categoriesOf(serverId);
       const defaultCategories: ServerCategorySummary[] = [
         { id: 'cat-text', name: 'Kênh chữ' },
@@ -438,23 +467,18 @@ export class ServersStore {
       const allCategories =
         customCategories.length > 0 ? customCategories : defaultCategories;
 
-      const mergedList: ChannelSummary[] = [];
       for (const cat of allCategories) {
-        const effectiveTargetCat =
-          targetCategoryId ??
-          (targetChannel.type === 'voice' ? 'cat-voice' : 'cat-text');
-        if (
-          cat.id === targetCategoryId ||
-          cat.id === effectiveTargetCat
-        ) {
+        if (!isUncategorized && cat.id === effectiveTargetCategoryId) {
           mergedList.push(...targetCategoryChannels);
         } else {
           const catChannels = otherChannels.filter((c) => {
-            const effectiveCat =
-              c.categoryId ??
-              this.channelCategories()[c.id] ??
-              (c.type === 'voice' ? 'cat-voice' : 'cat-text');
-            return effectiveCat === cat.id;
+            const catId = c.categoryId ?? this.channelCategories()[c.id];
+            if (catId) return catId === cat.id;
+            if (customCategories.length === 0) {
+              if (cat.id === 'cat-voice') return c.type === 'voice';
+              if (cat.id === 'cat-text') return c.type !== 'voice';
+            }
+            return false;
           });
           mergedList.push(...catChannels);
         }

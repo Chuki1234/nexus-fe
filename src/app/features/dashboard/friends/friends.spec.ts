@@ -152,8 +152,13 @@ describe('FriendsPage', () => {
 
   it('tab Thêm bạn thay danh sách bằng form', async () => {
     const fixture = await mount();
-    const buttons = fixture.nativeElement.querySelectorAll('[role=group] button');
-    (buttons[3] as HTMLButtonElement).click();
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('[role=group] button'),
+    ) as HTMLButtonElement[];
+    const addFriendButton = buttons.find((btn) =>
+      btn.textContent?.includes('Thêm bạn'),
+    );
+    addFriendButton?.click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('app-add-friend-form')).toBeTruthy();
@@ -172,17 +177,23 @@ describe('FriendsPage', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 
-  it('activity panel luôn mở cố định, có thanh co giãn và không có nút đóng X', async () => {
+  it('activity panel hỗ trợ co giãn và đóng mở linh hoạt', async () => {
     const fixture = await mount();
 
     const panel = fixture.nativeElement.querySelector('app-context-panel aside') as HTMLElement;
     expect(panel.classList.contains('context-panel--open')).toBe(true);
 
-    // Không có nút X đóng
-    expect(fixture.nativeElement.querySelector('.context-panel__close')).toBeNull();
+    // Có nút đóng
+    expect(fixture.nativeElement.querySelector('.context-panel__close')).toBeTruthy();
 
     // Có thanh co giãn
     expect(fixture.nativeElement.querySelector('.pane-resize-handle--member')).toBeTruthy();
+
+    // Nhấn nút đóng thì panel thu gọn
+    const closeBtn = fixture.nativeElement.querySelector('.context-panel__close') as HTMLButtonElement;
+    closeBtn.click();
+    fixture.detectChanges();
+    expect(panel.classList.contains('context-panel--open')).toBe(false);
   });
 
   it('không dựng hồ sơ nhanh thuộc ownership của trang Profile', async () => {
