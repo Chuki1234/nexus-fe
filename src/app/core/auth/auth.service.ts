@@ -25,6 +25,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
 
   private readonly currentSession = signal<Session | null>(null);
+  readonly blockedGoogleAttempt = signal<{ email: string; disabledInfo: any } | null>(null);
 
   /**
    * Restoring a session from storage is async, so anything that reads
@@ -42,7 +43,8 @@ export class AuthService {
       const email = session?.user?.email;
       const disabled = email ? this.accountDisabled.getDisabledAccount(email) : this.accountDisabled.currentDisabled();
       if (disabled && session) {
-        // Tài khoản đang vô hiệu hóa: xóa phiên cục bộ ngay
+        // Tài khoản đang vô hiệu hóa: lưu trạng thái và xóa phiên cục bộ ngay
+        this.blockedGoogleAttempt.set({ email: email || disabled.email || '', disabledInfo: disabled });
         this.currentSession.set(null);
         void this.supabase.client.auth.signOut({ scope: 'local' });
         return;

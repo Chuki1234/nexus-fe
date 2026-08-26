@@ -53,20 +53,45 @@ export class LoginPage implements OnInit {
   protected readonly modal2faSubmitting = signal(false);
   protected readonly modal2faError = signal<string | null>(null);
 
-  ngOnInit(): void {
-    const isBlockedGoogle = this.route.snapshot.queryParamMap.get('blockedGoogle') === 'true';
-    const emailParam = this.route.snapshot.queryParamMap.get('email');
-
-    if (isBlockedGoogle) {
-      if (emailParam) {
-        this.form.controls.identifier.setValue(emailParam);
+  constructor() {
+    effect(() => {
+      const blocked = this.auth.blockedGoogleAttempt();
+      if (blocked) {
+        if (blocked.email) {
+          this.form.controls.identifier.setValue(blocked.email);
+        }
+        this.disabledInfo.set(blocked.disabledInfo);
+        this.modal2faCode.set('');
+        this.modal2faError.set(null);
+        this.showDisabledModal.set(true);
       }
-      const disabledAcc = this.accountDisabled.getDisabledAccount(emailParam || undefined) || this.accountDisabled.currentDisabled();
-      this.disabledInfo.set(disabledAcc);
-      this.modal2faCode.set('');
-      this.modal2faError.set(null);
-      this.showDisabledModal.set(true);
-    }
+    });
+  }
+
+  ngOnInit(): void {
+    this.route.queryParamMap.subscribe((params) => {
+      const isBlockedGoogle = params.get('blockedGoogle') === 'true';
+      const emailParam = params.get('email');
+      const blockedFromAuth = this.auth.blockedGoogleAttempt();
+
+      if (isBlockedGoogle || blockedFromAuth) {
+        const email = emailParam || blockedFromAuth?.email || '';
+        if (email) {
+          this.form.controls.identifier.setValue(email);
+        }
+        const disabledAcc =
+          (email ? this.accountDisabled.getDisabledAccount(email) : null) ||
+          blockedFromAuth?.disabledInfo ||
+          this.accountDisabled.currentDisabled();
+
+        if (disabledAcc) {
+          this.disabledInfo.set(disabledAcc);
+          this.modal2faCode.set('');
+          this.modal2faError.set(null);
+          this.showDisabledModal.set(true);
+        }
+      }
+    });
   }
 
   protected togglePasswordVisibility(): void {

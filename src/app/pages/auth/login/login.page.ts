@@ -60,20 +60,40 @@ export class LoginPage implements OnInit {
     if (isPlatformBrowser(inject(PLATFORM_ID))) {
       void this.auth.isProviderEnabled('google').then((enabled) => this.googleEnabled.set(enabled));
     }
+    effect(() => {
+      const blocked = this.auth.blockedGoogleAttempt();
+      if (blocked) {
+        if (blocked.email) {
+          this.form.controls.email.setValue(blocked.email);
+        }
+        this.disabledInfo.set(blocked.disabledInfo);
+        this.showGoogleBlockedModal.set(true);
+      }
+    });
   }
 
   ngOnInit(): void {
-    const isBlockedGoogle = this.route.snapshot.queryParamMap.get('blockedGoogle') === 'true';
-    const emailParam = this.route.snapshot.queryParamMap.get('email');
+    this.route.queryParamMap.subscribe((params) => {
+      const isBlockedGoogle = params.get('blockedGoogle') === 'true';
+      const emailParam = params.get('email');
+      const blockedFromAuth = this.auth.blockedGoogleAttempt();
 
-    if (isBlockedGoogle) {
-      if (emailParam) {
-        this.form.controls.email.setValue(emailParam);
+      if (isBlockedGoogle || blockedFromAuth) {
+        const email = emailParam || blockedFromAuth?.email || '';
+        if (email) {
+          this.form.controls.email.setValue(email);
+        }
+        const disabledAcc =
+          (email ? this.accountDisabled.getDisabledAccount(email) : null) ||
+          blockedFromAuth?.disabledInfo ||
+          this.accountDisabled.currentDisabled();
+
+        if (disabledAcc) {
+          this.disabledInfo.set(disabledAcc);
+          this.showGoogleBlockedModal.set(true);
+        }
       }
-      const disabledAcc = this.accountDisabled.getDisabledAccount(emailParam || undefined) || this.accountDisabled.currentDisabled();
-      this.disabledInfo.set(disabledAcc);
-      this.showGoogleBlockedModal.set(true);
-    }
+    });
   }
 
   protected togglePasswordVisibility(): void {
