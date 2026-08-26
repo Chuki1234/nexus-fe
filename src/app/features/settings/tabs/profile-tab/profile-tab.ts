@@ -10,7 +10,6 @@ import { EARLIEST_BIRTH_YEAR, MIN_AGE_YEARS } from '../../../auth/models/birthda
 import { ProfileStore } from '../../../profile/profile-store';
 import { linkIconFor } from '../../../profile/components/link-icon';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
-import { ProfileWidgetsEditor } from '../../../profile/components/profile-widgets-editor/profile-widgets-editor';
 
 /** Tên gọi cho từng màu trong `ACCENT_COLORS`, cùng thứ tự. */
 const ACCENT_COLOR_LABELS = [
@@ -33,7 +32,6 @@ const ACCENT_COLOR_LABELS = [
     MatButtonModule,
     MatTooltipModule,
     Avatar,
-    ProfileWidgetsEditor,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './profile-tab.html',
@@ -107,36 +105,12 @@ export class ProfileTab {
     label: ACCENT_COLOR_LABELS[index],
   }));
 
-  protected readonly avatarPresets = [
-    { label: 'Cyber Bot', url: 'https://api.dicebear.com/7.x/bottts/png?seed=Nexus1' },
-    { label: 'Pixel Cat', url: 'https://api.dicebear.com/7.x/bottts/png?seed=CatGamer' },
-    { label: 'Anime Hero', url: 'https://api.dicebear.com/7.x/adventurer/png?seed=Alex' },
-    { label: 'Cosmic Star', url: 'https://api.dicebear.com/7.x/adventurer/png?seed=CosmicNexus' },
-    { label: 'Neon Coder', url: 'https://api.dicebear.com/7.x/bottts/png?seed=CoderX' },
-    { label: 'Cyber Spirit', url: 'https://api.dicebear.com/7.x/identicon/png?seed=NexusPrime' },
-  ];
-
-  protected readonly serverList = [
-    { id: 's1', name: 'Nexus Developers Hub' },
-    { id: 's2', name: 'Gaming Lounge VN' },
-    { id: 's3', name: 'Anime & Manga Cafe' },
-  ];
-
-  protected readonly selectedServerId = signal<string>('s1');
-
   protected selectBannerColor(color: string): void {
     this.settingsService.editBannerColor.set(color);
   }
 
-  /** Lỗi khi chọn ảnh (sai định dạng, quá nặng, tải preset hỏng). */
+  /** Lỗi khi chọn ảnh (sai định dạng, quá nặng). */
   protected readonly avatarError = signal<string | null>(null);
-
-  /** URL của các ảnh mẫu tải hỏng — để vẽ icon thay cho vòng tròn rỗng. */
-  protected readonly brokenPresets = signal<ReadonlySet<string>>(new Set());
-
-  protected markPresetBroken(url: string): void {
-    this.brokenPresets.update((set) => new Set(set).add(url));
-  }
 
   /**
    * Giữ chính `File` chứ không đọc thành data URL.
@@ -161,33 +135,6 @@ export class ProfileTab {
     this.stage(file);
     // Xoá giá trị input để chọn LẠI đúng file vừa gỡ vẫn kích hoạt `change`.
     input.value = '';
-  }
-
-  /**
-   * Ảnh mẫu vẫn phải đi qua đường tải lên như ảnh tự chọn.
-   *
-   * Trước đây chỉ gán thẳng URL dicebear vào hồ sơ — backend không có trường
-   * nhận avatar dạng URL nên chọn xong bấm Lưu là mất. Tải về thành `File` rồi
-   * đẩy lên thì ảnh nằm trong storage của Nexus, không phụ thuộc dicebear còn
-   * sống hay không.
-   */
-  protected async selectAvatarPreset(url: string): Promise<void> {
-    this.avatarError.set(null);
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(String(response.status));
-      const blob = await response.blob();
-      const file = new File([blob], 'avatar.png', { type: blob.type || 'image/png' });
-
-      const problem = validateImageFile(file);
-      if (problem) {
-        this.avatarError.set(problem);
-        return;
-      }
-      this.stage(file);
-    } catch {
-      this.avatarError.set('Không tải được ảnh mẫu. Kiểm tra mạng rồi thử lại.');
-    }
   }
 
   private stage(file: File): void {
