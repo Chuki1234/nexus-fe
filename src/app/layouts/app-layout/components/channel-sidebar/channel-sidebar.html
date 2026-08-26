@@ -156,21 +156,9 @@
         </div>
       </button>
 
-      <!-- Nhóm 5: Rời hoặc Xóa máy chủ -->
-      <div class="server-menu-divider" role="separator"></div>
-      @if (isOwner()) {
-        <button
-          mat-menu-item
-          type="button"
-          (click)="openDeleteServerDialog()"
-          class="server-menu-item server-menu-item--danger"
-        >
-          <mat-icon class="server-menu-icon !text-danger">delete_forever</mat-icon>
-          <div class="server-menu-label-box">
-            <app-overflow-marquee class="server-menu-label font-semibold text-danger" text="Xóa máy chủ" />
-          </div>
-        </button>
-      } @else {
+      <!-- Nhóm 5: Rời máy chủ (Chỉ dành cho thành viên, chủ server xóa trong Cài Đặt Máy Chủ) -->
+      @if (!isOwner()) {
+        <div class="server-menu-divider" role="separator"></div>
         <button
           mat-menu-item
           type="button"
