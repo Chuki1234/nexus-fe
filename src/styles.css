@@ -1852,6 +1852,31 @@ app-dashboard-shell
     transform: translateY(-1px);
   }
 
+  .input-base {
+    display: block;
+    width: 100%;
+    height: 48px;
+    min-height: 48px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background-color: var(--color-canvas, #001e2b);
+    border: 1px solid var(--color-hairline-strong, #5c7883);
+    color: var(--color-ink, #ffffff);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .input-base:focus {
+    border-color: var(--color-primary, #00ed64);
+    box-shadow: 0 0 0 2px rgba(0, 237, 100, 0.2);
+  }
+  .input-base::placeholder {
+    color: var(--color-muted, #5c6c7a);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .btn-pill,
     .btn-outline {
