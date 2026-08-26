@@ -14,7 +14,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
-import { ServersStore } from '../../core/servers/servers.store';
 import { DeleteServerDialog } from '../../layouts/app-layout/components/channel-sidebar/components/delete-server-dialog/delete-server-dialog';
 import { ConnectedAppsService } from '../profile/connected-apps.service';
 import { CUSTOM_LINK_COLOR, tint } from '../profile/connected-apps';
@@ -235,7 +234,6 @@ export class SettingsModal {
   });
 
   private readonly dialog = inject(MatDialog);
-  private readonly serversStore = inject(ServersStore);
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -327,15 +325,14 @@ export class SettingsModal {
         serverId: sId,
         serverName: serverName,
       },
-      width: '440px',
-      panelClass: 'nexus-dialog-panel',
+      panelClass: 'nexus-dialog-overlay',
+      autoFocus: false,
     });
 
     ref.afterClosed().subscribe((deleted) => {
       if (deleted) {
         this.settingsService.close();
-        this.serversStore.selectServer(null);
-        this.router.navigate(['/dashboard']);
+        void this.router.navigate(['/channels/@me']);
       }
     });
   }
