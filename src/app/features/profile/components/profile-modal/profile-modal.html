@@ -1,21 +1,28 @@
-@if (loading()) {
-  <div class="animate-pulse">
-    <div class="h-40 w-full bg-surface-soft"></div>
-    <div class="space-y-3 px-6 pb-6 pt-4">
-      <div class="h-6 w-40 rounded-sm bg-surface-soft"></div>
-      <div class="h-4 w-24 rounded-sm bg-surface-soft"></div>
-      <div class="h-20 w-full rounded-lg bg-surface-soft"></div>
+<!-- `.mat-mdc-dialog-surface` cắt góc bằng `overflow: hidden` (styles.css) nên
+     tự nó không cuộn được — hồ sơ dài (giới thiệu nhiều dòng, nhiều liên kết,
+     nhiều máy chủ...) sẽ bị cắt cụt mất phần dưới. Bọc riêng một lớp cuộn ở
+     đây, giới hạn đúng bằng `maxHeight` đã truyền cho `MatDialogConfig` trong
+     `profile-dialog.service.ts` — hai chỗ phải khớp nhau. -->
+<div class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[inherit]">
+  @if (loading()) {
+    <div class="animate-pulse">
+      <div class="h-40 w-full bg-surface-soft"></div>
+      <div class="space-y-3 px-6 pb-6 pt-4">
+        <div class="h-6 w-40 rounded-sm bg-surface-soft"></div>
+        <div class="h-4 w-24 rounded-sm bg-surface-soft"></div>
+        <div class="h-20 w-full rounded-lg bg-surface-soft"></div>
+      </div>
     </div>
-  </div>
-  <p aria-live="polite" class="sr-only">Đang tải hồ sơ.</p>
-} @else if (profile(); as person) {
-  <app-profile-card [profile]="person" surface="surface" bannerHeight="lg" />
-} @else {
-  <div role="alert" class="px-6 py-10 text-center">
-    <mat-icon aria-hidden="true" class="text-danger">error_outline</mat-icon>
-    <p class="mt-2 text-body-sm text-charcoal">{{ errorMessage() }}</p>
-  </div>
-}
+    <p aria-live="polite" class="sr-only">Đang tải hồ sơ.</p>
+  } @else if (profile(); as person) {
+    <app-profile-card [profile]="person" surface="surface" bannerHeight="lg" />
+  } @else {
+    <div role="alert" class="px-6 py-10 text-center">
+      <mat-icon aria-hidden="true" class="text-danger">error_outline</mat-icon>
+      <p class="mt-2 text-body-sm text-charcoal">{{ errorMessage() }}</p>
+    </div>
+  }
+</div>
 
 <!-- Nút đóng dùng nền ĐỤC chứ không trong suốt: nó nằm trên ảnh bìa do người
      dùng tải lên, để trong suốt thì độ tương phản phụ thuộc vào chính tấm ảnh

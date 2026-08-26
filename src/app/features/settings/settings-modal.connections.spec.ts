@@ -14,6 +14,8 @@ const PROFILE: OwnProfile = {
   id: 'u1', username: 'testduoc', displayName: 'testduoc',
   avatarUrl: null, bannerUrl: null, statusMessage: null, bio: null, location: null,
   links: [{ label: 'YouTube', url: 'https://www.youtube.com/@ipostforfun6356' }],
+  games: [],
+  mutualFriends: [], mutualServers: [],
   accentColor: null, createdAt: '2026-08-01T00:00:00.000Z', isSelf: true, birthdate: '2001-11-03',
 };
 

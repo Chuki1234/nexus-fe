@@ -26,7 +26,6 @@ import { ToastService } from '../../core/toast/toast.service';
 import { SettingsModal } from '../../features/settings/settings-modal';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
-import { SettingsModal } from '../../features/settings/settings-modal';
 
 import {
   DashboardLayoutService,

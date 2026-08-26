@@ -48,6 +48,7 @@ import { ServerRealtimeCoordinator } from '../../../core/servers/server-realtime
 import { PresenceService } from '../../../core/presence/presence.service';
 import type { PresenceStatus } from '../../../../shared/dto/common';
 import { Avatar } from '../../../shared/ui/avatar/avatar';
+import { ProfileTrigger } from '../../profile/profile-trigger';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { ChannelSettingsModal } from '../../settings/modals/channel-settings-modal/channel-settings-modal';
 import { ForwardMessageModal } from '../components/forward-message-modal/forward-message-modal';
@@ -84,6 +85,7 @@ import type { AttachmentResponseDto } from '../../../core/api/messages-api.servi
     MatTooltipModule,
     MessageActions,
     MessageComposer,
+    ProfileTrigger,
     VoiceRoom,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

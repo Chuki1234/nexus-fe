@@ -158,6 +158,7 @@ const DEMO_CONVERSATIONS: ConversationSummary[] = [
   {
     id: 'mon',
     name: 'Phan Thế Mon',
+    username: null,
     statusMessage: null,
     presence: 'online',
     unread: false,
@@ -165,6 +166,7 @@ const DEMO_CONVERSATIONS: ConversationSummary[] = [
   {
     id: 'ho-be',
     name: 'ho_be',
+    username: null,
     statusMessage: 'shut the fckup',
     presence: 'dnd',
     unread: true,
@@ -172,22 +174,17 @@ const DEMO_CONVERSATIONS: ConversationSummary[] = [
   {
     id: 'minh-tai',
     name: 'NguyenMinhTai',
+    username: null,
     statusMessage: null,
     presence: 'online',
     unread: false,
   },
-  { id: 'binh', name: "bình'", statusMessage: null, presence: 'idle', unread: false },
-  { id: 'cyrus', name: 'Cyrus', statusMessage: null, presence: 'offline', unread: false },
+  { id: 'binh', name: "bình'", username: null, statusMessage: null, presence: 'idle', unread: false },
+  { id: 'cyrus', name: 'Cyrus', username: null, statusMessage: null, presence: 'offline', unread: false },
   {
     id: 'lofi-bot',
     name: 'Lofi',
-    statusMessage: 'Đang phát nhạc',
-    presence: 'online',
-    unread: false,
-  },
-  {
-    id: 'lofi-bot',
-    name: 'Lofi',
+    // Bot không có hồ sơ Nexus để tra — bấm avatar sẽ không mở thẻ hồ sơ.
     username: null,
     statusMessage: 'Đang phát nhạc',
     presence: 'online',

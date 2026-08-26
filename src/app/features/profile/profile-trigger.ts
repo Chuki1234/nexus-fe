@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { ProfilePopover } from './components/profile-popover/profile-popover';
 import { ProfileLookup } from './profile-lookup';
+import type { PublicProfile } from '../../../shared';
 
 /**
  * Biến một phần tử bất kỳ (thường là avatar) thành nút mở thẻ hồ sơ nổi.
@@ -43,30 +44,55 @@ export class ProfileTrigger {
   private readonly lookup = inject(ProfileLookup);
 
   private overlayRef: OverlayRef | null = null;
+  /** Chặn bấm dồn trong lúc chờ mạng — nếu không sẽ mở chồng nhiều thẻ. */
+  private opening = false;
+  private destroyed = false;
 
   constructor() {
     // Overlay sống ngoài cây component nên Angular không tự dọn — rời trang mà
     // còn thẻ đang mở thì nó kẹt lại giữa màn hình, không cách nào đóng.
-    inject(DestroyRef).onDestroy(() => this.close());
+    inject(DestroyRef).onDestroy(() => {
+      this.destroyed = true;
+      this.close();
+    });
   }
 
-  protected open(): void {
+  protected async open(): Promise<void> {
     if (this.overlayRef) {
       this.close();
       return;
     }
 
     const username = this.appProfileTrigger();
-    if (!username) {
+    if (!username || this.opening) {
       return;
     }
 
-    // Qua cache dùng chung: avatar của người này thường đã được tra sẵn để
-    // hiện ảnh, nên mở thẻ là có ngay, không phải chờ thêm một vòng mạng.
-    const profile = this.lookup.profileFor(username)();
+    // Qua cache dùng chung: avatar của người này thường đã được tra sẵn để hiện
+    // ảnh, nên mở thẻ là có ngay. Chưa có thì CHỜ tải xong — đọc signal ngay
+    // lúc bấm sẽ ra `null` vì request còn đang bay, im lặng bỏ qua thì cú bấm
+    // đầu tiên vào một người lạ trông như nút hỏng.
+    this.opening = true;
+    let profile: PublicProfile | null;
+    try {
+      profile = await this.lookup.ensure(username);
+    } finally {
+      this.opening = false;
+    }
+
+    // Người dùng bấm lần nữa (hoặc rời trang) trong lúc chờ mạng.
+    if (this.overlayRef || this.destroyed) {
+      return;
+    }
+
     if (!profile) {
-      // Chưa tải xong, hoặc người này chưa có hồ sơ Nexus — im lặng bỏ qua thay
-      // vì mở ra một thẻ rỗng khó hiểu.
+      // Không có hồ sơ để hiện thì mở ra một thẻ rỗng còn khó hiểu hơn. Nhưng
+      // im lặng hoàn toàn thì không phân biệt được với "tính năng hỏng", nên
+      // để lại dấu vết trong console cho người phát triển.
+      console.warn(
+        `[ProfileTrigger] Không tra được hồ sơ "${username}" nên không mở thẻ. ` +
+          `Kiểm tra GET /api/profiles/${username}.`,
+      );
       return;
     }
 
@@ -100,7 +126,7 @@ export class ProfileTrigger {
   /** Space cuộn trang nếu không chặn — người dùng bấm mở thẻ mà trang nhảy xuống. */
   protected openFromKey(event: Event): void {
     event.preventDefault();
-    this.open();
+    void this.open();
   }
 
   private close(): void {

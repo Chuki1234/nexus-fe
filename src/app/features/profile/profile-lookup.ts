@@ -31,6 +31,8 @@ export class ProfileLookup {
 
   private readonly cache = new Map<string, ReturnType<typeof signal<LookupEntry>>>();
   private readonly pending = new Set<string>();
+  /** Lời gọi đang bay, để `ensure()` chờ đúng lần tải đó thay vì gọi thêm. */
+  private readonly inFlight = new Map<string, Promise<void>>();
 
   /**
    * Hồ sơ của `username`, `null` khi chưa tải xong hoặc người này không có hồ sơ.
@@ -62,10 +64,34 @@ export class ProfileLookup {
 
     if (key && !this.pending.has(key)) {
       this.pending.add(key);
-      void this.load(key);
+      this.inFlight.set(key, this.load(key));
     }
 
     return entry.asReadonly();
+  }
+
+  /**
+   * Như `profileFor()` nhưng CHỜ tải xong rồi mới trả về.
+   *
+   * Dành cho thao tác do người dùng chủ động — bấm vào avatar để mở thẻ hồ sơ.
+   * Đọc signal ngay sau lần gọi đầu luôn ra `null` vì request còn đang bay, nên
+   * cú bấm đầu tiên vào một người chưa tra bao giờ sẽ không có gì xảy ra, phải
+   * bấm lần hai mới mở — trông y như nút bị hỏng.
+   */
+  async ensure(username: string): Promise<PublicProfile | null> {
+    const key = username.trim().toLowerCase();
+    if (!key) {
+      return null;
+    }
+
+    const entry = this.profileFor(username);
+    const cached = entry();
+    if (cached) {
+      return cached;
+    }
+
+    await this.inFlight.get(key);
+    return entry();
   }
 
   /** Đường dẫn ảnh đại diện, `null` khi chưa có hoặc người này chưa tải ảnh. */
@@ -95,6 +121,7 @@ export class ProfileLookup {
   reset(): void {
     this.cache.clear();
     this.pending.clear();
+    this.inFlight.clear();
   }
 
   private async load(username: string): Promise<void> {
@@ -107,6 +134,9 @@ export class ProfileLookup {
       // Mạng lỗi hay không có hồ sơ đều xử như nhau: chốt `missing` để nơi gọi
       // thôi chờ và vẽ bằng dữ liệu sẵn có, thay vì treo ở khung xám.
       this.cache.get(username)?.set({ status: 'missing', profile: null });
+    } finally {
+      // Dọn lời gọi đã xong để `ensure()` không chờ một promise đã hoàn tất.
+      this.inFlight.delete(username);
     }
   }
 }

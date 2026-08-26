@@ -3,6 +3,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { bannerColorFor, profileDisplayName, type PublicProfile } from '../../../../../shared';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import { OpenDm } from '../../open-dm';
 import { linkIconFor } from '../link-icon';
 
 /**
@@ -20,6 +21,7 @@ import { linkIconFor } from '../link-icon';
 @Component({
   selector: 'app-profile-popover',
   imports: [Avatar, MatIconModule, RouterLink],
+  providers: [OpenDm],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block w-80 overflow-hidden rounded-lg border border-hairline bg-surface shadow-modal' },
   templateUrl: './profile-popover.html',
@@ -44,5 +46,13 @@ export class ProfilePopover {
 
   protected iconFor(url: string): string {
     return linkIconFor(url);
+  }
+
+  private readonly dm = inject(OpenDm);
+  protected readonly openingDm = this.dm.opening;
+  protected readonly dmError = this.dm.errorMessage;
+
+  protected openDm(): void {
+    void this.dm.open(this.profile().id);
   }
 }

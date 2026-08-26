@@ -1,0 +1,171 @@
+<div class="space-y-3.5 rounded-2xl border border-hairline bg-surface p-3.5 shadow-2xs">
+  <!-- Thanh tab: Bảng | Hoạt động | Danh Sách -->
+  <div class="flex items-center justify-between border-b border-hairline pb-2">
+    <div class="flex items-center gap-2" role="tablist">
+      @for (tab of tabs; track tab.id) {
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="activeTab() === tab.id"
+          (click)="activeTab.set(tab.id)"
+          class="cursor-pointer text-[11.5px] font-extrabold transition-colors"
+          [class.text-primary]="activeTab() === tab.id"
+          [class.text-steel]="activeTab() !== tab.id"
+        >
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @switch (activeTab()) {
+    @case ('board') {
+      <!-- 1. Trò chơi luân phiên -->
+      <section class="space-y-2">
+        <div>
+          <span class="block text-caption font-extrabold leading-tight text-ink">
+            {{ kindLabels.rotation }}
+          </span>
+          <span class="text-[10px] text-steel">Trò chơi đang chơi gần đây</span>
+        </div>
+
+        @if (rotatingGames().length) {
+          <div class="space-y-2">
+            @for (game of rotatingGames(); track game.id) {
+              <div
+                class="group flex items-center gap-2.5 rounded-xl border border-hairline bg-canvas p-2 shadow-2xs transition-colors hover:bg-surface-feature/40"
+              >
+                <div class="h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-hairline bg-surface-feature shadow-xs">
+                  <img
+                    [src]="coverOf(game)"
+                    [alt]="game.title"
+                    decoding="async"
+                    (error)="onImageError($event, game.title)"
+                    class="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+
+                <div class="min-w-0 flex-1 space-y-1">
+                  <span class="block truncate text-caption font-extrabold leading-tight text-ink">
+                    {{ game.title }}
+                  </span>
+                  <div class="flex flex-wrap items-center gap-1">
+                    @for (tag of game.tags; track tag) {
+                      <span
+                        class="inline-flex items-center rounded-md border border-hairline bg-surface px-1.5 py-0.5 text-[9.5px] font-bold text-steel shadow-2xs"
+                      >
+                        {{ tag }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="rounded-xl border border-dashed border-hairline px-3 py-4 text-center text-caption text-muted">
+            {{ ownerName() }} chưa khoe trò chơi nào.
+          </p>
+        }
+      </section>
+
+      <!-- 2. Trò chơi yêu thích — chỉ một tựa, nên trình bày to hơn -->
+      @if (favoriteGame(); as favorite) {
+        <section class="space-y-2">
+          <span class="block text-caption font-extrabold leading-tight text-ink">
+            {{ kindLabels.favorite }}
+          </span>
+          <div class="flex items-center gap-2.5 rounded-xl border border-primary/40 bg-canvas p-2 shadow-2xs">
+            <div class="h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-hairline bg-surface-feature shadow-xs">
+              <img
+                [src]="coverOf(favorite)"
+                [alt]="favorite.title"
+                decoding="async"
+                (error)="onImageError($event, favorite.title)"
+                class="size-full object-cover"
+              />
+            </div>
+            <span class="min-w-0 flex-1 truncate text-caption font-extrabold text-ink">
+              {{ favorite.title }}
+            </span>
+          </div>
+        </section>
+      }
+
+      <!-- 3. Trò chơi tôi thích -->
+      <section class="space-y-2">
+        <div>
+          <span class="block text-caption font-extrabold leading-tight text-ink">
+            {{ kindLabels.like }}
+          </span>
+          <span class="text-[10px] text-steel">Bộ sưu tập ảnh bìa</span>
+        </div>
+
+        @if (likedGames().length) {
+          <div class="grid grid-cols-4 gap-1.5">
+            @for (game of likedGames(); track game.id) {
+              <div
+                class="group aspect-3/4 overflow-hidden rounded-lg border border-hairline bg-surface-feature shadow-xs"
+                [matTooltip]="game.title"
+              >
+                <img
+                  [src]="coverOf(game)"
+                  [alt]="game.title"
+                  decoding="async"
+                  (error)="onImageError($event, game.title)"
+                  class="size-full object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="rounded-xl border border-dashed border-hairline px-3 py-4 text-center text-caption text-muted">
+            Chưa có trò chơi yêu thích nào.
+          </p>
+        }
+      </section>
+    }
+
+    <!-- Tab "Danh Sách" giờ có nguồn dữ liệu thật: widget "Muốn Chơi". -->
+    @case ('wishlist') {
+      <section class="space-y-2">
+        <div>
+          <span class="block text-caption font-extrabold leading-tight text-ink">
+            {{ kindLabels.wishlist }}
+          </span>
+          <span class="text-[10px] text-steel">Trò chơi đang muốn chơi</span>
+        </div>
+
+        @if (wishlistGames().length) {
+          <div class="grid grid-cols-4 gap-1.5">
+            @for (game of wishlistGames(); track game.id) {
+              <div
+                class="group aspect-3/4 overflow-hidden rounded-lg border border-hairline bg-surface-feature shadow-xs"
+                [matTooltip]="game.title"
+              >
+                <img
+                  [src]="coverOf(game)"
+                  [alt]="game.title"
+                  decoding="async"
+                  (error)="onImageError($event, game.title)"
+                  class="size-full object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="rounded-xl border border-dashed border-hairline px-3 py-4 text-center text-caption text-muted">
+            {{ ownerName() }} chưa thêm trò chơi nào muốn chơi.
+          </p>
+        }
+      </section>
+    }
+
+    <!-- Chưa có nguồn dữ liệu nào ở backend cho nhật ký hoạt động. -->
+    @case ('activity') {
+      <p class="rounded-xl border border-dashed border-hairline px-3 py-6 text-center text-caption text-muted">
+        Nhật ký hoạt động chưa dùng được.
+      </p>
+    }
+  }
+</div>

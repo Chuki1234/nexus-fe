@@ -6,37 +6,6 @@
   <h2 class="settings-section-heading" id="account-info-heading">Thông Tin Tài Khoản</h2>
 
   <div class="settings-row-group" aria-labelledby="account-info-heading">
-    <!-- Ảnh đại diện & Hồ sơ (Ảnh 1) -->
-    <div class="settings-row">
-      <div class="flex items-center gap-3.5">
-        <app-avatar
-          [name]="displayName()"
-          [src]="settingsService.editAvatarUrl()"
-          size="md"
-          presence="online"
-          ring="surface"
-        />
-        <div class="settings-row-label">
-          <span class="settings-row-title">Ảnh đại diện &amp; Hồ sơ</span>
-          <span class="settings-row-value">{{ displayName() }}</span>
-        </div>
-      </div>
-      <label
-        for="account-avatar-file-upload"
-        class="settings-row-btn cursor-pointer inline-flex items-center gap-1.5"
-      >
-        <mat-icon class="!w-4 !h-4 !text-[16px]">photo_camera</mat-icon>
-        <span>Đổi avatar</span>
-      </label>
-      <input
-        id="account-avatar-file-upload"
-        type="file"
-        accept="image/png, image/jpeg, image/webp, image/gif"
-        (change)="onAvatarFileSelected($event)"
-        class="hidden"
-      />
-    </div>
-
     <!-- Tên đăng nhập (Ảnh 1: Chỉnh sửa trực tiếp tại chỗ) -->
     <div class="settings-row">
       <div class="settings-row-label flex-1 min-w-0">
