@@ -58,7 +58,7 @@ export const environment: AppEnvironment = {
 fs.writeFileSync(envLocalTsPath, fileContent, 'utf8');
 console.log('✔ Đã tạo thành công src/environments/environment.local.ts (untracked) từ .env.local / env vars.');
 if (giphyKey) {
-  console.log(`✔ Đã inject GIPHY_API_KEY: ${giphyKey.slice(0, 4)}...${giphyKey.slice(-4)}`);
+  console.log('✔ GIPHY_API_KEY đã được cấu hình cho môi trường local.');
 } else {
   console.log('ℹ GIPHY_API_KEY đang để trống. Bạn có thể thêm GIPHY_API_KEY=... vào file nexus-fe/.env.local');
 }
