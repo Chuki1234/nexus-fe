@@ -1,11 +1,12 @@
 import { TestBed } from '@angular/core/testing';
-import type { ConversationSummary } from '../../../../../core/api/shell-data';
+import type { ConversationSummary } from '../../../../../core/conversations/conversation.models';
 import { ActivityPanel } from './activity-panel';
 
 describe('ActivityPanel', () => {
   const ONLINE: ConversationSummary = {
     id: 'will',
     name: 'Will',
+    username: null,
     statusMessage: 'Đang học Angular',
     presence: 'online',
     unread: false,

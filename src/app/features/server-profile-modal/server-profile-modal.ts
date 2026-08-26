@@ -3,7 +3,6 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserSettingsService } from '../settings/services/user-settings.service';
-import { ShellData } from '../../core/api/shell-data';
 
 export interface GameRotatingItem {
   title: string;
@@ -26,7 +25,6 @@ export interface GameFavoriteItem {
 })
 export class ServerProfileModal {
   protected readonly settingsService = inject(UserSettingsService);
-  private readonly shell = inject(ShellData);
 
   readonly serverId = input.required<string>();
   readonly close = output<void>();
@@ -90,7 +88,7 @@ export class ServerProfileModal {
 
   protected readonly serverData = computed(() => {
     const sId = this.serverId();
-    return this.settingsService.serverDataMap()[sId] ?? this.settingsService.serverDataMap()['itss'];
+    return this.settingsService.serverDataMap()[sId] ?? { name: 'Máy chủ', initials: 'MC' };
   });
 
   protected readonly serverName = computed(() => this.serverData().name);

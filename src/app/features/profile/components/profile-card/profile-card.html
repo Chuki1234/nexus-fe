@@ -34,40 +34,60 @@
       [class.ring-surface]="surface() === 'surface'"
       [name]="name()"
       [src]="person.avatarUrl"
+      [userId]="person.id"
+      [presence]="presence()"
       size="xl"
       [ring]="surface()"
     />
 
     <div class="flex flex-wrap gap-2">
       @if (person.isSelf) {
-        <a
-          routerLink="/settings"
-          class="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-button-md text-on-primary transition-colors hover:bg-primary-soft"
+        <button
+          type="button"
+          (click)="editProfile()"
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-button-md text-on-primary transition-colors hover:bg-primary-soft"
         >
           <mat-icon aria-hidden="true" class="size-4! text-[16px]!">edit</mat-icon>
           Chỉnh sửa hồ sơ
-        </a>
+        </button>
       } @else {
-        <a
-          [routerLink]="['/channels/@me', person.username]"
-          class="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-button-md text-on-primary transition-colors hover:bg-primary-soft"
+        <!-- Nút chứ không phải link: route là `@me/:conversationId`, phải hỏi
+             backend lấy id cuộc trò chuyện trước. Trỏ thẳng username vào đó chỉ
+             ra màn hình "Không tìm thấy cuộc trò chuyện này". -->
+        <button
+          type="button"
+          (click)="openDm()"
+          [disabled]="openingDm()"
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-button-md text-on-primary transition-colors hover:bg-primary-soft disabled:cursor-default disabled:opacity-60"
         >
           <mat-icon aria-hidden="true" class="size-4! text-[16px]!">chat</mat-icon>
-          Nhắn tin
-        </a>
+          {{ openingDm() ? 'Đang mở…' : 'Nhắn tin' }}
+        </button>
       }
+
+      <!-- Nút riêng của TRANG /u/:username (xem dạng cửa sổ nổi, chép liên kết).
+           Chiếu từ ngoài vào chứ không dựng ở đây: cửa sổ hồ sơ nổi cũng render
+           thẻ này, mà nút "xem dạng cửa sổ nổi" thì vô nghĩa khi đang đứng
+           trong chính cửa sổ đó — profile-modal không chiếu gì nên nút tự vắng.
+           Để thẻ tự mở dialog thì phải inject ProfileDialogService, tạo vòng
+           import profile-card → profile-dialog.service → profile-modal → profile-card. -->
+      <ng-content select="[slot=action]" />
     </div>
   </div>
+
+  @if (dmError(); as message) {
+    <p role="alert" class="mb-3 text-caption text-danger">{{ message }}</p>
+  }
 
   <h2 class="text-heading-4 text-ink">{{ name() }}</h2>
   <p class="text-body-sm text-steel">&commat;{{ person.username }}</p>
 
   @if (person.statusMessage; as status) {
     <p
-      class="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-hairline bg-surface-soft px-3 py-1"
+      class="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-hairline bg-surface-soft px-3.5 py-1.5 shadow-2xs"
     >
-      <span aria-hidden="true" class="size-2 shrink-0 rounded-full bg-primary"></span>
-      <span class="truncate text-caption text-charcoal">{{ status }}</span>
+      <mat-icon aria-hidden="true" class="size-4! text-[16px]! shrink-0 text-primary">chat_bubble</mat-icon>
+      <span class="truncate text-caption-medium text-charcoal">{{ status }}</span>
     </p>
   }
 
@@ -81,6 +101,15 @@
         </dd>
       </div>
     }
+    @if (birthdateFormatted(); as bday) {
+      <div>
+        <dt class="text-micro-uppercase text-stone">Ngày sinh</dt>
+        <dd class="mt-1 flex items-center gap-1.5 text-body-sm text-charcoal">
+          <mat-icon aria-hidden="true" class="size-4! text-[16px]! text-steel">cake</mat-icon>
+          {{ bday }}
+        </dd>
+      </div>
+    }
     <div>
       <dt class="text-micro-uppercase text-stone">Thành viên từ</dt>
       <dd class="mt-1 flex items-center gap-1.5 text-body-sm text-charcoal">
@@ -89,6 +118,33 @@
       </dd>
     </div>
   </dl>
+
+  <!-- Thanh tóm tắt chỉ số nhanh (Stats summary strip) -->
+  <div class="mt-5 flex flex-wrap items-center gap-2.5 border-t border-hairline pt-4">
+    <div
+      class="flex items-center gap-2 rounded-xl border border-hairline bg-surface-soft/60 px-3.5 py-2 text-body-sm transition-colors hover:bg-surface-soft"
+    >
+      <mat-icon aria-hidden="true" class="size-4! text-[16px]! text-primary">group</mat-icon>
+      <span class="text-body-sm-bold text-ink">{{ friendsCount() }}</span>
+      <span class="text-caption text-steel">{{ person.isSelf ? 'Bạn bè' : 'Bạn chung' }}</span>
+    </div>
+
+    <div
+      class="flex items-center gap-2 rounded-xl border border-hairline bg-surface-soft/60 px-3.5 py-2 text-body-sm transition-colors hover:bg-surface-soft"
+    >
+      <mat-icon aria-hidden="true" class="size-4! text-[16px]! text-accent">dns</mat-icon>
+      <span class="text-body-sm-bold text-ink">{{ serversCount() }}</span>
+      <span class="text-caption text-steel">{{ person.isSelf ? 'Máy chủ tham gia' : 'Máy chủ chung' }}</span>
+    </div>
+
+    <div
+      class="flex items-center gap-2 rounded-xl border border-hairline bg-surface-soft/60 px-3.5 py-2 text-body-sm transition-colors hover:bg-surface-soft"
+    >
+      <mat-icon aria-hidden="true" class="size-4! text-[16px]! text-secondary">sports_esports</mat-icon>
+      <span class="text-body-sm-bold text-ink">{{ gamesCount() }}</span>
+      <span class="text-caption text-steel">Trò chơi</span>
+    </div>
+  </div>
 
   <section class="mt-5 border-t border-hairline pt-4">
     <h3 class="text-micro-uppercase text-stone">Giới thiệu</h3>
@@ -133,4 +189,81 @@
       </p>
     }
   </section>
+
+  <!-- Mục Danh Sách Máy Chủ -->
+  @if (serversList().length) {
+    <section class="mt-5 border-t border-hairline pt-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-micro-uppercase text-stone">
+          {{ person.isSelf ? 'Máy Chủ Tham Gia' : 'Máy Chủ Chung' }} — {{ serversCount() }}
+        </h3>
+      </div>
+      <ul class="mt-2 grid gap-2 sm:grid-cols-2">
+        @for (server of serversList(); track server.id) {
+          <li class="flex items-center gap-2.5 rounded-lg border border-hairline px-3 py-2 transition-colors hover:bg-surface-soft/40">
+            <div
+              class="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-soft text-caption-bold text-steel"
+              aria-hidden="true"
+            >
+              @if (server.iconUrl; as icon) {
+                <img [src]="icon" alt="" decoding="async" class="size-full object-cover" />
+              } @else {
+                {{ server.name.charAt(0).toUpperCase() }}
+              }
+            </div>
+            <span class="min-w-0 flex-1 truncate text-body-sm-medium text-ink">{{ server.name }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <!-- Mục Danh Sách Bạn Bè -->
+  @if (friendsList().length) {
+    <section class="mt-5 border-t border-hairline pt-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-micro-uppercase text-stone">
+          {{ person.isSelf ? 'Danh Sách Bạn Bè' : 'Bạn Chung' }} — {{ friendsCount() }}
+        </h3>
+      </div>
+      <ul class="mt-2 grid gap-2 sm:grid-cols-2">
+        @for (friend of friendsList(); track friend.id) {
+          <li class="flex items-center gap-2.5 rounded-lg border border-hairline px-3 py-2 transition-colors hover:bg-surface-soft/40">
+            <app-avatar
+              [name]="friend.displayName || friend.username"
+              [src]="friend.avatarUrl"
+              [userId]="friend.id"
+              size="sm"
+              [ring]="surface()"
+            />
+            <span class="min-w-0 flex-1 truncate text-body-sm-medium text-ink">
+              {{ friend.displayName || friend.username }}
+            </span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (!person.isSelf) {
+    <!-- Ghi chú CỦA NGƯỜI XEM — chỉ mình thấy, người khác xem hồ sơ này không thấy. -->
+    <section class="mt-5 border-t border-hairline pt-4">
+      <h3 class="text-micro-uppercase text-stone">Ghi Chú</h3>
+      <textarea
+        aria-label="Ghi chú riêng về người này"
+        class="mt-2 w-full resize-none rounded-lg border border-hairline bg-canvas px-3 py-2 text-body-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none disabled:opacity-60"
+        rows="2"
+        [attr.maxlength]="noteMax"
+        [disabled]="note.loading() || note.saving()"
+        [value]="note.text()"
+        (blur)="saveNote($any($event.target).value)"
+        placeholder="Chỉ mình bạn thấy được ghi chú này…"
+      ></textarea>
+      @if (note.saving()) {
+        <p class="mt-1 text-caption text-steel">Đang lưu…</p>
+      } @else if (note.errorMessage(); as noteError) {
+        <p role="alert" class="mt-1 text-caption text-danger">{{ noteError }}</p>
+      }
+    </section>
+  }
 </div>

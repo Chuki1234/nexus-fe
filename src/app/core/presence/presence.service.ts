@@ -10,9 +10,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   PRESENCE_LABEL,
   type PresenceStatus,
+  type UserPresenceDto,
 } from '../../../shared/dto/common';
 import type { PresenceSyncPayload, PresenceUpdatedPayload } from '../../../shared/socket-events';
 import { ChatSocketService } from '../realtime/chat-socket.service';
+import { TimeAgoService } from '../utils/time-ago.service';
 
 export interface UserPresenceInfo {
   status: PresenceStatus;
@@ -24,6 +26,7 @@ export interface UserPresenceInfo {
 })
 export class PresenceService {
   private readonly chatSocket = inject(ChatSocketService);
+  private readonly timeAgoService = inject(TimeAgoService);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Map lưu trữ trạng thái hiện diện realtime của bạn bè và DM peers */
@@ -84,12 +87,38 @@ export class PresenceService {
   }
 
   /**
+   * Lấy chuỗi mô tả thời gian tương đối "Hoạt động ... trước"
+   */
+  getLastSeenLabel(userId: string | null | undefined): Signal<string | null> {
+    return computed(() => {
+      if (!userId) return null;
+      const lastSeen = this.getLastSeenAt(userId)();
+      return this.timeAgoService.formatLastSeen(lastSeen);
+    });
+  }
+
+  /**
    * Lấy nhãn tiếng Việt của trạng thái hiện diện (cho tooltip & aria-label)
    */
   getPresenceLabel(userId: string | null | undefined): Signal<string> {
     return computed(() => {
       const status = this.getPresence(userId)();
       return PRESENCE_LABEL[status] ?? 'Ngoại tuyến';
+    });
+  }
+
+  /**
+   * Lấy DTO presence đầy đủ
+   */
+  getPresenceDto(userId: string | null | undefined): Signal<UserPresenceDto> {
+    return computed(() => {
+      const uId = userId ?? '';
+      const item = this.presenceMap().get(uId);
+      return {
+        userId: uId,
+        status: item?.status ?? 'offline',
+        lastSeenAt: item?.lastSeenAt ?? null,
+      };
     });
   }
 
@@ -112,7 +141,7 @@ export class PresenceService {
    * Đồng bộ toàn bộ snapshot ban đầu
    */
   setSnapshot(
-    presences: Record<string, { status: PresenceStatus; lastSeenAt: string | null }>,
+    presences: Record<string, UserPresenceDto | { status: PresenceStatus; lastSeenAt: string | null }>,
   ): void {
     this.presenceMap.update((current) => {
       const next = new Map(current);

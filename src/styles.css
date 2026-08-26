@@ -1181,165 +1181,6 @@ app-dashboard-shell
   }
 }
 
-/* Server group là một surface liên tục khi mở. Interaction grouping dùng target
-   phình/halo; drop line chỉ còn mang nghĩa reorder; vùng Ra ngoài chỉ xuất hiện
-   cho server đang thuộc group. Scope giữ tuyệt đối trong app-server-rail. */
-app-server-rail .server-group-shell {
-  position: relative;
-  width: 3.75rem;
-  padding-block: 0.25rem;
-  background: transparent;
-  box-shadow: 0 0 0 1px transparent inset;
-  transition:
-    background-color var(--motion-base) var(--ease-nexus-out),
-    box-shadow var(--motion-base) var(--ease-nexus-out);
-}
-
-app-server-rail .server-group-shell--expanded {
-  background: transparent;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-hairline-strong) 24%, transparent) inset;
-}
-
-app-server-rail .server-group-shell--expanded:hover {
-  background: var(--nexus-surface-hover);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 68%, transparent) inset;
-}
-
-app-server-rail .server-group-shell--expanded::before {
-  position: absolute;
-  top: 3.75rem;
-  bottom: 0.75rem;
-  left: 0.25rem;
-  width: 2px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-primary) 42%, var(--color-hairline));
-  content: '';
-  opacity: 0.78;
-}
-
-app-server-rail .server-group-members {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  padding-bottom: 0.125rem;
-}
-
-app-server-rail .server-group-caption {
-  display: flex;
-  min-height: 1.125rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.125rem;
-  color: var(--color-steel);
-  font-size: 0.625rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-app-server-rail .server-group-caption .mat-icon {
-  width: 0.75rem;
-  height: 0.75rem;
-  font-size: 0.75rem;
-}
-
-app-server-rail .server-group-tile--expanded {
-  background: transparent;
-  color: var(--color-ink);
-}
-
-app-server-rail :is(.server-drop-target, .server-group-dropzone) {
-  transform-origin: center;
-  transition:
-    box-shadow var(--motion-base) var(--ease-nexus-out),
-    transform var(--motion-base) var(--ease-nexus-out);
-}
-
-app-server-rail :is(.server-drop-target--group-active, .server-group-dropzone--group-active) {
-  z-index: 4;
-  transform: scale(1.12);
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--color-primary) 32%, transparent),
-    var(--shadow-card);
-}
-
-app-server-rail .server-drop-target--group-active .server-tile,
-app-server-rail .server-group-dropzone--group-active .server-group-tile {
-  background: var(--color-surface-feature);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 52%, transparent) inset;
-}
-
-app-server-rail .server-ungroup-zone {
-  display: flex;
-  width: 3.25rem;
-  height: 0;
-  min-height: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 0.125rem;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-soft);
-  color: var(--color-steel);
-  font-size: 0.5625rem;
-  font-weight: 600;
-  line-height: 1;
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(0.86);
-  visibility: hidden;
-  box-shadow: 0 0 0 1px var(--color-hairline-strong) inset;
-  transition:
-    background-color var(--motion-fast) var(--ease-nexus-out),
-    box-shadow var(--motion-fast) var(--ease-nexus-out),
-    color var(--motion-fast) var(--ease-nexus-out),
-    height var(--motion-base) var(--ease-nexus-out),
-    margin var(--motion-base) var(--ease-nexus-out),
-    opacity var(--motion-fast) var(--ease-nexus-out),
-    transform var(--motion-base) var(--ease-nexus-out);
-}
-
-app-server-rail .server-ungroup-zone .mat-icon {
-  width: 1rem;
-  height: 1rem;
-  font-size: 1rem;
-}
-
-app-server-rail .server-ungroup-zone--visible {
-  height: 2.25rem;
-  min-height: 2.25rem;
-  margin: 0.125rem 0 0.5rem;
-  opacity: 1;
-  pointer-events: auto;
-  transform: scale(1);
-  visibility: visible;
-}
-
-app-server-rail .server-ungroup-zone--active {
-  background: var(--color-surface-feature);
-  color: var(--color-ink);
-  transform: scale(1.08);
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--color-primary) 28%, transparent),
-    0 0 0 1px var(--color-primary) inset;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  app-server-rail
-    :is(.server-drop-target, .server-group-dropzone, .server-group-shell, .server-ungroup-zone) {
-    transition: none;
-  }
-
-  app-server-rail
-    :is(
-      .server-drop-target--group-active,
-      .server-group-dropzone--group-active,
-      .server-ungroup-zone,
-      .server-ungroup-zone--active
-    ) {
-    transform: none;
-  }
-}
-
 /* Command Center render qua CDK overlay ngoài app-server-rail, nên scope bằng đúng
    panel class của dialog thay vì để rule toàn cục trôi sang modal khác. */
 .nexus-add-server-dialog .command-center {
@@ -1931,6 +1772,17 @@ app-server-rail .server-ungroup-zone--active {
 }
 
 /* ==========================================================================
+   NEXUS VOICE CONTROLS DROPDOWN MENUS (FLOATING ABOVE TOOLBAR)
+   ========================================================================== */
+.nexus-device-menu.mat-mdc-menu-panel {
+  margin-bottom: 14px !important;
+  min-width: 240px;
+  max-width: 320px;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ==========================================================================
    GHI CHÚ CHO TEAM
 
    1. Font tự host qua @fontsource (manrope, source-code-pro) + material-icons.
@@ -1949,3 +1801,65 @@ app-server-rail .server-ungroup-zone--active {
    5. Light mode đổi token trong `html[data-theme='light']`; geometry và semantic state
       phải dùng chung với dark mode, không tách hai bộ component.
    ========================================================================== */
+
+/* ===========================================================================
+   LANDING — nút pill dùng chung cho trang giới thiệu công khai
+   Chỉ dùng token thiết kế; pill (rounded-full) theo luật NexusCord.
+   ========================================================================== */
+@layer components {
+  .btn-pill,
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font: inherit;
+    font-size: var(--text-button-md);
+    font-weight: var(--text-button-md--font-weight);
+    line-height: var(--text-button-md--line-height);
+    padding: 12px 22px;
+    border-radius: var(--radius-full);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    cursor: pointer;
+    text-decoration: none;
+    transition:
+      transform var(--motion-fast) var(--ease-nexus-out),
+      background-color var(--motion-fast) var(--ease-nexus-out),
+      border-color var(--motion-fast) var(--ease-nexus-out);
+  }
+
+  .btn-pill {
+    background-color: var(--color-brand-green);
+    color: var(--color-on-primary);
+  }
+  .btn-pill:hover {
+    background-color: var(--color-primary-soft);
+    transform: translateY(-1px);
+  }
+  .btn-pill:active {
+    background-color: var(--color-primary-pressed);
+    transform: translateY(0);
+  }
+
+  .btn-outline {
+    background-color: transparent;
+    color: var(--color-on-dark);
+    border-color: var(--color-hairline-strong);
+  }
+  .btn-outline:hover {
+    border-color: var(--color-on-dark);
+    transform: translateY(-1px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-pill,
+    .btn-outline {
+      transition: none;
+    }
+    .btn-pill:hover,
+    .btn-outline:hover {
+      transform: none;
+    }
+  }
+}

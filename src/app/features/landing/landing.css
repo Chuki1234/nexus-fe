@@ -1,0 +1,54 @@
+:host {
+  display: block;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+.landing {
+  position: relative;
+  isolation: isolate;
+  overflow-x: clip;
+}
+
+/* Lớp 1 — quầng sáng teal/green đặt có chủ đích, tạo chiều sâu (không haze rộng). */
+.landing::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      42% 30% at 78% 4%,
+      color-mix(in srgb, var(--color-brand-green) 20%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      50% 26% at 12% 2%,
+      color-mix(in srgb, var(--color-surface-feature) 60%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      46% 24% at 88% 84%,
+      color-mix(in srgb, var(--color-brand-green) 12%, transparent),
+      transparent 74%
+    );
+}
+
+/* Lớp 2 — lưới chấm mờ (texture kỹ thuật, motif mạng lưới). Mép trên/dưới tan dần. */
+.landing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle at center,
+    color-mix(in srgb, var(--color-brand-green) 55%, transparent) 1px,
+    transparent 1.6px
+  );
+  background-size: 34px 34px;
+  opacity: 0.05;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent);
+}

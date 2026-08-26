@@ -20,8 +20,8 @@ describe('PresenceService (Frontend Canonical Presence Store)', () => {
       presenceSync$: mockPresenceSync$.asObservable(),
       getPresenceSnapshot: vi.fn().mockResolvedValue({
         presences: {
-          'user-alice': { status: 'online', lastSeenAt: null },
-          'user-bob': { status: 'idle', lastSeenAt: null },
+          'user-alice': { userId: 'user-alice', status: 'online', lastSeenAt: null },
+          'user-bob': { userId: 'user-bob', status: 'idle', lastSeenAt: null },
         },
       }),
     };
@@ -48,8 +48,9 @@ describe('PresenceService (Frontend Canonical Presence Store)', () => {
     const bobLabel = service.getPresenceLabel('user-bob');
 
     expect(bobPresence()).toBe('offline');
+    expect(bobLabel()).toBe('Ngoại tuyến');
 
-    // Bob kết nối -> online
+    // Bob online
     mockPresenceUpdated$.next({
       userId: 'user-bob',
       status: 'online',
@@ -69,15 +70,15 @@ describe('PresenceService (Frontend Canonical Presence Store)', () => {
     expect(bobPresence()).toBe('dnd');
     expect(bobLabel()).toBe('Không làm phiền');
 
-    // Bob disconnect
+    // Bob disconnect kèm lastSeenAt (5 phút 2 giây trước)
     mockPresenceUpdated$.next({
       userId: 'user-bob',
       status: 'offline',
-      lastSeenAt: '2026-08-23T14:40:00Z',
+      lastSeenAt: new Date(Date.now() - (5 * 60 + 2) * 1000).toISOString(),
     });
 
     expect(bobPresence()).toBe('offline');
-    expect(service.getLastSeenAt('user-bob')()).toBe('2026-08-23T14:40:00Z');
+    expect(service.getLastSeenLabel('user-bob')()).toBe('Hoạt động 5 phút trước');
   });
 
   it('đồng bộ toàn bộ snapshot ban đầu khi nhận presenceSync$', () => {
@@ -86,8 +87,8 @@ describe('PresenceService (Frontend Canonical Presence Store)', () => {
 
     mockPresenceSync$.next({
       presences: {
-        'user-alice': { status: 'online', lastSeenAt: null },
-        'user-charlie': { status: 'idle', lastSeenAt: null },
+        'user-alice': { userId: 'user-alice', status: 'online', lastSeenAt: null },
+        'user-charlie': { userId: 'user-charlie', status: 'idle', lastSeenAt: null },
       },
     });
 
@@ -101,6 +102,16 @@ describe('PresenceService (Frontend Canonical Presence Store)', () => {
     expect(mockChatSocketService.getPresenceSnapshot).toHaveBeenCalled();
     expect(service.getPresence('user-alice')()).toBe('online');
     expect(service.getPresence('user-bob')()).toBe('idle');
+  });
+
+  it('getPresenceDto trả về đối tượng UserPresenceDto đầy đủ', () => {
+    service.setPresence('user-alice', 'online', null);
+    const dto = service.getPresenceDto('user-alice')();
+    expect(dto).toEqual({
+      userId: 'user-alice',
+      status: 'online',
+      lastSeenAt: null,
+    });
   });
 
   it('clear xóa sạch dữ liệu presence trong store khi logout', () => {

@@ -5,22 +5,19 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { ThemeMode } from '../../../../core/theme/theme.service';
 
-export type FriendsTab = 'online' | 'all' | 'pending' | 'add';
+export type FriendsTab = 'online' | 'all' | 'pending' | 'blocked' | 'add';
 export type { ThemeMode } from '../../../../core/theme/theme.service';
 
 const TABS: { id: FriendsTab; label: string }[] = [
   { id: 'online', label: 'Trực tuyến' },
   { id: 'all', label: 'Tất cả' },
   { id: 'pending', label: 'Chờ duyệt' },
+  { id: 'blocked', label: 'Đã chặn' },
   { id: 'add', label: 'Thêm bạn' },
 ];
 
 /**
  * Thanh trên cùng trang Bạn bè: tiêu đề, bộ lọc, nút thêm bạn.
- *
- * Bộ lọc dùng nút + `aria-pressed` chứ không phải `MatTabs`: đây là lọc trên
- * cùng một danh sách, không phải chuyển giữa nhiều panel nội dung. Dùng tablist
- * sẽ báo sai ngữ nghĩa cho trình đọc màn hình.
  */
 @Component({
   selector: 'app-friends-toolbar',
@@ -33,12 +30,12 @@ const TABS: { id: FriendsTab; label: string }[] = [
 export class FriendsToolbar {
   readonly tab = model.required<FriendsTab>();
   readonly theme = model.required<ThemeMode>();
+  readonly pendingCount = input<number>(0);
   readonly canAddFriend = input<boolean>(false);
   readonly activityOpen = input<boolean>(false);
-  readonly demoEnabled = input<boolean>(false);
+  readonly showActivityToggle = input<boolean>(false);
 
   readonly toggleActivity = output<void>();
-  readonly toggleDemo = output<void>();
 
   protected readonly tabs = TABS;
 

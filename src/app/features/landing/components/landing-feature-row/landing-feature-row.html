@@ -1,0 +1,57 @@
+@let f = feature();
+
+<section class="row" [class.row--reverse]="f.reverse" [id]="f.anchor">
+  <div class="row__copy">
+    <p class="eyebrow">{{ f.eyebrow }}</p>
+    <h2 class="row__title">{{ f.title }}</h2>
+    <p class="row__body">{{ f.body }}</p>
+    <ul class="row__bullets">
+      @for (b of f.bullets; track b) {
+        <li class="row__bullet">
+          <span class="row__check" aria-hidden="true"></span>{{ b }}
+        </li>
+      }
+    </ul>
+  </div>
+
+  <div class="row__art">
+    <div class="art" [attr.data-variant]="f.variant" aria-hidden="true">
+      @switch (f.variant) {
+        @case ('channels') {
+          <div class="art__list">
+            <span class="art__cat">KÊNH VĂN BẢN</span>
+            <span class="art__chan art__chan--on"># chung</span>
+            <span class="art__chan"># thông-báo</span>
+            <span class="art__chan"># ngẫu-hứng</span>
+            <span class="art__cat">KÊNH THOẠI</span>
+            <span class="art__chan art__chan--voice">🔊 Phòng họp</span>
+          </div>
+        }
+        @case ('realtime') {
+          <div class="art__stack">
+            <span class="art__bubble art__bubble--a">Đang gửi…</span>
+            <span class="art__bubble art__bubble--b">Đã gửi ✓</span>
+            <span class="art__bubble art__bubble--c">Đã đọc ✓✓</span>
+            <span class="art__wire">socket · client_nonce</span>
+          </div>
+        }
+        @case ('voice') {
+          <div class="art__voice">
+            <span class="art__speaker art__speaker--live">MT</span>
+            <span class="art__speaker">TD</span>
+            <span class="art__speaker">TG</span>
+            <span class="art__wave"><i></i><i></i><i></i><i></i><i></i></span>
+          </div>
+        }
+        @case ('rbac') {
+          <div class="art__roles">
+            <span class="art__role art__role--owner">Owner</span>
+            <span class="art__role art__role--admin">Admin</span>
+            <span class="art__role">Thành viên</span>
+            <span class="art__perm">ADMINISTRATOR · MANAGE_CHANNELS · KICK</span>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</section>

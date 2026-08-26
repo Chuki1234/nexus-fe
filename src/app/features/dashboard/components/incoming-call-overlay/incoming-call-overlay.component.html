@@ -1,0 +1,62 @@
+@if (store.showIncomingOverlay()) {
+  <aside
+    class="incoming-overlay-card"
+    role="dialog"
+    aria-label="Cuộc gọi đến"
+    tabindex="-1"
+  >
+    <!-- Left: Caller Avatar & Pulse Ring -->
+    <div class="avatar-container">
+      <div class="avatar-ring"></div>
+      @if (caller()?.avatarUrl) {
+        <img [src]="caller()?.avatarUrl" [alt]="caller()?.displayName || caller()?.username" class="caller-avatar" />
+      } @else {
+        <div class="caller-avatar-fallback">
+          {{ (caller()?.displayName || caller()?.username || 'U').charAt(0).toUpperCase() }}
+        </div>
+      }
+    </div>
+
+    <!-- Center: Caller Info & Mode -->
+    <div class="caller-info">
+      <div class="caller-name">{{ caller()?.displayName || caller()?.username }}</div>
+      <div class="caller-mode">
+        <span class="material-icons mode-icon">
+          {{ initialMode() === 'video' ? 'videocam' : 'call' }}
+        </span>
+        <span class="mode-text">
+          {{ initialMode() === 'video' ? 'Cuộc gọi video đến...' : 'Cuộc gọi thoại đến...' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Right: Action Buttons -->
+    <div class="action-buttons">
+      <!-- Decline Button (Crimson) -->
+      <button
+        #declineBtn
+        type="button"
+        class="call-btn decline-btn"
+        (click)="onDecline()"
+        aria-label="Từ chối cuộc gọi"
+        title="Từ chối (Esc)"
+      >
+        <span class="material-icons">call_end</span>
+      </button>
+
+      <!-- Accept Button (Emerald) -->
+      <button
+        #acceptBtn
+        type="button"
+        class="call-btn accept-btn"
+        (click)="onAccept()"
+        aria-label="Chấp nhận cuộc gọi"
+        title="Chấp nhận"
+      >
+        <span class="material-icons">
+          {{ initialMode() === 'video' ? 'videocam' : 'call' }}
+        </span>
+      </button>
+    </div>
+  </aside>
+}

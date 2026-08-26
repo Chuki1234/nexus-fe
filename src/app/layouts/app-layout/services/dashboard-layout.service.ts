@@ -7,13 +7,15 @@ export const SERVER_RAIL_WIDTH = 72;
 export const NAV_DEFAULT_WIDTH = 280;
 export const NAV_MIN_WIDTH = 240;
 export const NAV_MAX_WIDTH = 380;
-export const MAIN_MIN_WIDTH = 560;
+export const MAIN_MIN_WIDTH = 360;
 
 export const MEMBER_DEFAULT_WIDTH = 280;
 export const MEMBER_MIN_WIDTH = 240;
 export const MEMBER_MAX_WIDTH = 360;
 
 export const LAYOUT_GAP_AND_PADDING = 32;
+export const MOBILE_BREAKPOINT = 768;
+export const MOBILE_BREAKPOINT_QUERY = '(max-width: 767.98px)';
 
 export interface DashboardLayoutPreferences {
   navWidth: number;
@@ -34,10 +36,15 @@ export class DashboardLayoutService {
 
   /**
    * Tính toán max width thực tế cho navigation pane dựa trên không gian container thật,
-   * luôn đảm bảo main content không bị ép dưới MAIN_MIN_WIDTH (560px).
+   * luôn đảm bảo main content không bị ép dưới MAIN_MIN_WIDTH (360px).
+   * Trên màn hình >= 1280px, member pane chiếm không gian trong dòng (in-flow),
+   * còn dưới 1280px member pane là fixed overlay nên không chiếm flex space của container.
    */
   readonly effectiveMaxNavWidth = computed(() => {
-    const extraPanes = this.isMemberOpen() ? this.memberWidth() : 0;
+    const extraPanes =
+      this.containerWidth() >= 1280 && this.isMemberOpen()
+        ? this.memberWidth()
+        : 0;
     const available =
       this.containerWidth() -
       SERVER_RAIL_WIDTH -
@@ -45,15 +52,15 @@ export class DashboardLayoutService {
       extraPanes -
       LAYOUT_GAP_AND_PADDING;
 
-    return Math.min(NAV_MAX_WIDTH, Math.floor(available));
+    return Math.max(NAV_MIN_WIDTH, Math.min(NAV_MAX_WIDTH, Math.floor(available)));
   });
 
   /**
-   * Nếu container không đủ chỗ để chứa (Server Rail + Min Nav 240px + Min Main 560px + Gaps),
-   * layout tự động chuyển sang compact/drawer mode để bảo vệ trải nghiệm.
+   * Chỉ kích hoạt compact mode khi containerWidth nhỏ hơn breakpoint mobile 768px.
+   * Tablet (>= 768px) và laptop/desktop luôn giữ desktop navigation layout.
    */
   readonly shouldForceCompact = computed(() => {
-    return this.effectiveMaxNavWidth() < NAV_MIN_WIDTH;
+    return this.containerWidth() < MOBILE_BREAKPOINT;
   });
 
   constructor() {

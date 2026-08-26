@@ -12,7 +12,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ServersApiService } from '../../../../core/api/servers-api.service';
-import { ChannelSummary, ShellData } from '../../../../core/api/shell-data';
+import { ChannelSummary } from '../../../../core/servers/server.models';
 import { ServersStore } from '../../../../core/servers/servers.store';
 import { extractErrorMessage } from '../../../../core/utils/error.util';
 
@@ -38,7 +38,6 @@ export class ChannelSettingsModal {
   readonly dialogRef = inject(MatDialogRef<ChannelSettingsModal>);
   private readonly serversApi = inject(ServersApiService, { optional: true });
   private readonly serversStore = inject(ServersStore, { optional: true });
-  private readonly shell = inject(ShellData, { optional: true });
 
   readonly activeTab = signal<ChannelSettingsTab>('overview');
 
@@ -91,10 +90,6 @@ export class ChannelSettingsModal {
     this.isSaving.set(true);
     this.errorMessage.set(null);
 
-    this.shell?.updateChannel(this.data.serverId, this.data.channel.id, {
-      name: rawName,
-      topic: this.channelTopic().trim() || null,
-    });
     this.saveNotice.set('Đã lưu thay đổi cài đặt kênh!');
     setTimeout(() => {
       this.saveNotice.set(null);
@@ -120,7 +115,7 @@ export class ChannelSettingsModal {
       if (err?.status === 409) {
         this.saveNotice.set(null);
         this.errorMessage.set('Tên kênh đã tồn tại trong máy chủ này.');
-      } else if (!this.shell) {
+      } else {
         this.saveNotice.set(null);
         this.errorMessage.set(extractErrorMessage(err, 'Lỗi lưu thay đổi kênh.'));
       }
@@ -143,7 +138,6 @@ export class ChannelSettingsModal {
     }
 
     this.isDeleting.set(true);
-    this.shell?.removeChannel(this.data.serverId, this.data.channel.id);
     this.serversStore?.removeChannel(this.data.serverId, this.data.channel.id);
 
     try {

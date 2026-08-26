@@ -1,0 +1,123 @@
+@if (store.showStage()) {
+  <main
+    class="direct-call-stage"
+    role="region"
+    aria-label="Khung cuộc gọi trực tiếp"
+  >
+    <!-- Background Ambient Glow Canvas -->
+    <div class="stage-ambient-glow" [ngClass]="store.callState()"></div>
+
+    <!-- 1. Top Header: User Name & Call Status -->
+    <header class="stage-header" [class.hidden-controls]="!isControlsVisible()">
+      <div class="header-glass-card">
+        @if (remoteUser()?.avatarUrl) {
+          <img
+            [src]="remoteUser()?.avatarUrl"
+            [alt]="remoteUser()?.displayName || remoteUser()?.username"
+            class="header-avatar"
+          />
+        } @else {
+          <div class="header-avatar-placeholder">
+            {{ (remoteUser()?.displayName || remoteUser()?.username || 'U').charAt(0).toUpperCase() }}
+          </div>
+        }
+        <div class="header-meta">
+          <h1 class="header-name">{{ remoteUser()?.displayName || remoteUser()?.username }}</h1>
+          <div class="header-status">
+            <span class="status-indicator-dot" [ngClass]="store.callState()"></span>
+            <span class="status-text">{{ statusText() }}</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. Main Stage Content -->
+    <section class="stage-content">
+      @if (isLocalVideoPrimary() && !store.isVideoMuted()) {
+        <video
+          #primaryLocalVideo
+          class="remote-video local-primary-video"
+          [class.mirrored]="store.isSelfViewMirrored()"
+          [ngClass]="store.remoteVideoFit()"
+          autoplay
+          playsinline
+          muted
+          aria-label="Video của bạn đang được phóng lớn"
+        ></video>
+      } @else {
+        <!-- Giữ element trong layout kể cả trước khi track tới để adaptiveStream
+             có thể đánh giá đúng kích thước video cần subscribe. -->
+        <video
+          #remoteVideo
+          class="remote-video"
+          [class.remote-video--unavailable]="!store.isRemoteVideoAvailable()"
+          [ngClass]="store.remoteVideoFit()"
+          autoplay
+          playsinline
+          aria-label="Video của người bên kia"
+        ></video>
+      }
+
+      @if (!isLocalVideoPrimary() && !store.isRemoteVideoAvailable()) {
+        <!-- Avatar Fallback View for Audio Call or Remote Camera Off -->
+        <div class="avatar-fallback-wrapper">
+          <div class="avatar-sonar-container">
+            @if (store.callState() === 'outgoing_ringing' || store.callState() === 'connecting' || store.isRemoteSpeaking()) {
+              <div class="sonar-ring ring-1"></div>
+              <div class="sonar-ring ring-2"></div>
+              <div class="sonar-ring ring-3"></div>
+            }
+            <div
+              class="avatar-fallback-ring"
+              [class.speaking]="store.isRemoteSpeaking()"
+              [class.ringing]="store.callState() === 'outgoing_ringing'"
+            >
+              @if (remoteUser()?.avatarUrl) {
+                <img
+                  [src]="remoteUser()?.avatarUrl"
+                  [alt]="remoteUser()?.displayName || remoteUser()?.username"
+                  class="stage-avatar"
+                />
+              } @else {
+                <div class="stage-avatar-placeholder">
+                  {{ (remoteUser()?.displayName || remoteUser()?.username || 'U').charAt(0).toUpperCase() }}
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="fallback-info-block">
+            <h2 class="fallback-user-name">{{ remoteUser()?.displayName || remoteUser()?.username }}</h2>
+            <div class="fallback-status-badge" [ngClass]="store.callState()">
+              @if (store.callState() === 'outgoing_ringing') {
+                <span class="calling-pulse"></span>
+                <span>Đang đổ chuông...</span>
+              } @else if (store.callState() === 'connecting') {
+                <span class="calling-pulse"></span>
+                <span>Đang kết nối LiveKit...</span>
+              } @else if (store.isRemoteCameraOff()) {
+                <span class="material-icons text-xs">videocam_off</span>
+                <span>Máy ảnh của {{ remoteUser()?.displayName || remoteUser()?.username }} đang tắt</span>
+              } @else {
+                <span class="material-icons text-xs">mic</span>
+                <span>Cuộc gọi thoại</span>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Draggable Local Self View (Camera Picture-in-Picture) -->
+      <app-draggable-self-view
+        [source]="isLocalVideoPrimary() ? 'remote' : 'local'"
+        (activate)="swapPrimaryVideo()"
+      />
+    </section>
+
+    <!-- 3. Bottom Controls Bar -->
+    <app-direct-call-controls [class.hidden-controls]="!isControlsVisible()" />
+
+    <!-- 4. Hidden Remote Audio Element -->
+    <audio #remoteAudio autoplay playsinline class="hidden"></audio>
+  </main>
+}

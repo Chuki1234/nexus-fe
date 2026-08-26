@@ -1,0 +1,94 @@
+:host {
+  display: block;
+  /* Dải surface tách khối — tạo nhịp/tầng lớp giữa các mảng nền tối. */
+  background-color: color-mix(in srgb, var(--color-surface) 70%, var(--color-canvas));
+  border-block: 1px solid var(--color-hairline-soft);
+}
+.bento {
+  max-inline-size: var(--container-band);
+  margin-inline: auto;
+  padding: 88px 24px;
+}
+.bento__head {
+  text-align: center;
+  margin-block-end: 48px;
+}
+.eyebrow {
+  display: inline-block;
+  font-size: var(--text-micro-uppercase);
+  font-weight: var(--text-micro-uppercase--font-weight);
+  letter-spacing: var(--text-micro-uppercase--letter-spacing);
+  text-transform: uppercase;
+  color: var(--color-brand-green);
+  margin-block-end: 14px;
+}
+.bento__title {
+  margin: 0;
+  font-size: var(--text-heading-2);
+  line-height: var(--text-heading-2--line-height);
+  letter-spacing: var(--text-heading-2--letter-spacing);
+  font-weight: var(--text-heading-2--font-weight);
+  color: var(--color-ink);
+}
+
+.bento__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.card {
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-hairline);
+  transition:
+    transform var(--motion-base) var(--ease-nexus-out),
+    border-color var(--motion-base) var(--ease-nexus-out);
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-hairline-strong);
+}
+.card__icon {
+  font-size: 26px;
+  color: var(--color-brand-green);
+  inline-size: 46px;
+  block-size: 46px;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in srgb, var(--color-brand-green) 12%, transparent);
+  margin-block-end: 18px;
+}
+.card__title {
+  margin: 0 0 8px;
+  font-size: var(--text-heading-5);
+  font-weight: var(--text-heading-5--font-weight);
+  color: var(--color-ink);
+}
+.card__body {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  color: var(--color-slate);
+}
+
+@media (max-width: 900px) {
+  .bento__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .bento__grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+  .card:hover {
+    transform: none;
+  }
+}

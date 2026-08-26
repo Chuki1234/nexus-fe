@@ -1,0 +1,80 @@
+<section class="hero" id="top">
+  <div class="hero__copy">
+    <p class="eyebrow">Nền tảng cộng đồng thời gian thực</p>
+
+    <h1 class="hero__title">
+      Nơi cộng đồng của bạn<br />
+      trò chuyện <span class="hero__accent">theo thời gian thực</span>.
+    </h1>
+
+    <p class="hero__subtitle">
+      Máy chủ, kênh, tin nhắn, thoại và quyền hạn — tất cả trong một không gian
+      mở tức thì. Nexus giữ mọi người cùng một nhịp, ngay khoảnh khắc họ gõ phím.
+    </p>
+
+    <div class="hero__actions">
+      <a class="btn-pill" routerLink="/register">Tạo máy chủ miễn phí</a>
+      <a class="btn-outline" href="#features">Xem tính năng</a>
+    </div>
+
+    <p class="hero__note">Miễn phí để bắt đầu · Không cần thẻ tín dụng</p>
+  </div>
+
+  <div class="hero__stage">
+  <!-- Signature: cửa sổ channel Nexus, tin nhắn trôi vào tuần tự khi tải trang -->
+  <div class="mock" role="img" aria-label="Xem trước một kênh Nexus với tin nhắn đến theo thời gian thực">
+    <div class="mock__bar" aria-hidden="true">
+      <span class="mock__dot"></span>
+      <span class="mock__dot"></span>
+      <span class="mock__dot"></span>
+    </div>
+
+    <div class="mock__body">
+      <aside class="mock__rail" aria-hidden="true">
+        <span class="mock__server mock__server--active">N</span>
+        <span class="mock__server">D</span>
+        <span class="mock__server">G</span>
+        <span class="mock__server mock__server--add">+</span>
+      </aside>
+
+      <div class="mock__channel">
+        <div class="mock__head" aria-hidden="true">
+          <span class="mock__hash">#</span>
+          <span class="mock__chan">chung</span>
+          <span class="mock__presence"><i class="dot"></i> 4 đang online</span>
+        </div>
+
+        <div class="mock__stream">
+          @for (m of messages; track m.author; let i = $index) {
+            <div class="msg" [style.--i]="i">
+              <span class="msg__avatar" [style.background]="m.hue" aria-hidden="true">
+                {{ m.initials }}
+              </span>
+              <div class="msg__content">
+                <span class="msg__meta">
+                  <b class="msg__author">{{ m.author }}</b>
+                  <span class="msg__time">{{ m.time }}</span>
+                </span>
+                <p class="msg__text">{{ m.text }}</p>
+              </div>
+            </div>
+          }
+
+          <div class="typing" aria-hidden="true">
+            <span class="typing__avatar"></span>
+            <span class="typing__bubble"><i></i><i></i><i></i></span>
+            <span class="typing__label">Trường Giang đang gõ…</span>
+          </div>
+        </div>
+
+        <div class="mock__composer" aria-hidden="true">
+          <span class="mock__input">Nhắn tới #chung</span>
+          <span class="mock__send"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <app-landing-mascot class="hero__mascot" [waving]="true" label="Nexi — linh vật Nexus vẫy chào" />
+  </div>
+</section>

@@ -179,6 +179,111 @@
   color: var(--color-steel);
 }
 
+/* Bộ icon media đồng nhất: đơn sắc khi nghỉ, dùng màu thương hiệu khi tương tác. */
+.composer-media-action {
+  color: var(--color-steel);
+  border-radius: var(--radius-md, 0.5rem);
+  transition:
+    color var(--motion-fast) var(--ease-nexus-out),
+    background-color var(--motion-fast) var(--ease-nexus-out),
+    transform var(--motion-fast) var(--ease-nexus-out);
+}
+
+.composer-media-action:hover:not(:disabled) {
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  transform: translateY(-1px);
+}
+
+.composer-media-action.active {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.composer-media-action:disabled {
+  color: var(--color-steel);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.composer-media-icon {
+  display: block;
+  width: 1.4rem;
+  height: 1.4rem;
+  overflow: visible;
+}
+
+.composer-icon-fill {
+  fill: currentColor;
+}
+
+.composer-icon-cutout-fill {
+  fill: var(--color-canvas);
+}
+
+.composer-icon-cutout-stroke {
+  fill: none;
+  stroke: var(--color-canvas);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+.composer-gif-icon {
+  display: inline-grid;
+  width: 1.55rem;
+  height: 1.25rem;
+  place-items: center;
+  border-radius: 0.25rem;
+  background: currentColor;
+  user-select: none;
+}
+
+.composer-gif-icon > span {
+  color: var(--color-canvas);
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.composer-sticker-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-media-action {
+    transition: none;
+  }
+
+  .composer-media-action:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+.composer-picker-popover {
+  position: absolute;
+  right: 0.25rem;
+  bottom: calc(100% + 0.625rem);
+  z-index: 100;
+  margin: 0;
+  max-width: 100%;
+  transform-origin: bottom right;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 639.98px) {
+  .composer-picker-popover {
+    right: 0;
+    left: 0;
+    margin-inline: auto;
+    bottom: calc(100% + 0.5rem);
+    max-width: 100%;
+    justify-content: center;
+  }
+}
+
 .composer-shell.drag-over {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
@@ -249,10 +354,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.composer-hint {
-  text-wrap: pretty;
 }
 
 @media (max-width: 39.999rem), (pointer: coarse) {

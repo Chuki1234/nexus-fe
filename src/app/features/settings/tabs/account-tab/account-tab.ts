@@ -6,12 +6,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProfileService } from '../../../../core/profile/profile.service';
 import { UserSettingsService } from '../../services/user-settings.service';
 import { TwoFactorService } from '../../services/two-factor.service';
-import { Avatar } from '../../../../shared/ui/avatar/avatar';
 
 @Component({
   selector: 'app-account-tab',
   standalone: true,
-  imports: [FormsModule, MatIconModule, MatButtonModule, MatTooltipModule, Avatar],
+  imports: [FormsModule, MatIconModule, MatButtonModule, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './account-tab.html',
   styleUrl: './account-tab.css',
@@ -50,9 +49,6 @@ export class AccountTab implements OnInit {
   protected confirmPassword = '';
 
   protected readonly profile = computed(() => this.profileService.current());
-  protected readonly displayName = computed(
-    () => this.settingsService.editDisplayName() || this.profile()?.displayName || this.profile()?.username || 'Nghiện Khó Phai',
-  );
   protected readonly username = computed(
     () => this.settingsService.editUsername() || this.profile()?.username || 'nghienkhophai',
   );
@@ -70,21 +66,6 @@ export class AccountTab implements OnInit {
 
   ngOnInit(): void {
     void this.tfa.loadStatus();
-  }
-
-  // ══ AVATAR IN-PLACE UPLOAD (Ảnh 1) ══
-  protected onAvatarFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        this.settingsService.editAvatarUrl.set(dataUrl);
-        this.profileService.updateProfile({ avatarUrl: dataUrl });
-      };
-      reader.readAsDataURL(file);
-    }
   }
 
   // ══ USERNAME IN-PLACE EDITING (Ảnh 1) ══

@@ -8,13 +8,16 @@ import {
   ElementRef,
   HostListener,
   inject,
+  Injector,
   OnDestroy,
   OnInit,
+  PLATFORM_ID,
   signal,
   untracked,
   viewChild,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,8 +25,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChatToolbar } from '../components/chat-toolbar/chat-toolbar';
-import type { PresenceStatus } from '../../../../shared/dto/common';
+import { MOBILE_BREAKPOINT_QUERY } from '../../../layouts/app-layout/services/dashboard-layout.service';
+import { PRESENCE_LABEL, type PresenceStatus } from '../../../../shared/dto/common';
 import { PresenceService } from '../../../core/presence/presence.service';
+import { ChatScrollController } from '../../../core/utils/chat-scroll.controller';
 import {
   MessageComposer,
   type MessageComposerContext,
@@ -48,9 +53,14 @@ import { ProfilePanel } from '../../profile/components/profile-panel/profile-pan
 import { Avatar } from '../../../shared/ui/avatar/avatar';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { ForwardMessageModal } from '../components/forward-message-modal/forward-message-modal';
+import { DeleteMessageModal } from '../components/delete-message-modal/delete-message-modal';
 import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.service';
 import type { LightboxMediaItem } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.types';
 import { extractErrorMessage } from '../../../core/utils/error.util';
+import { GiphyMessageEmbedComponent } from '../components/giphy-message-embed/giphy-message-embed.component';
+import { InlineMessageEditor } from '../components/inline-message-editor/inline-message-editor';
+import { MessageClockService } from '../../../core/utils/message-clock.service';
+import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import {
   parseMessageContent,
   type MessageContentToken,
@@ -81,8 +91,9 @@ export function getMessagePresentationVariant(
   const hasText = Boolean(msg.content && msg.content.trim().length > 0);
   const attachments = msg.attachments ?? [];
   const hasAttachments = attachments.length > 0;
+  const hasExternalMedia = Boolean(msg.externalMedia);
 
-  if (!hasAttachments) {
+  if (!hasAttachments && !hasExternalMedia) {
     return 'text-only';
   }
 
@@ -93,7 +104,7 @@ export function getMessagePresentationVariant(
     (att) => !att.mimeType || !att.mimeType.startsWith('image/'),
   );
 
-  const hasImages = imageAttachments.length > 0;
+  const hasImages = imageAttachments.length > 0 || hasExternalMedia;
   const hasFiles = fileAttachments.length > 0;
 
   if (hasImages && !hasFiles && !hasText) {
@@ -115,95 +126,26 @@ export function getMessagePresentationVariant(
   return 'mixed';
 }
 
-/**
- * Parse chuỗi ISO timestamp an toàn thành Date. Trả về null nếu invalid/missing.
- */
-export function parseTimestamp(iso: string | null | undefined): Date | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? null : d;
-}
+export {
+  VI_WEEKDAYS_SHORT,
+  parseTimestamp,
+  getLocalDateKey,
+  isSameCalendarDay,
+  formatDateDividerLabel,
+  formatCompactTime,
+  formatMessageTimestamp,
+  formatFullTimestamp,
+} from '../../../core/utils/date-format.util';
 
-/**
- * Trích xuất calendar date key theo local timezone của client (YYYY-MM-DD).
- */
-export function getLocalDateKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = (date.getMonth() + 1).toString().padStart(2, '0');
-  const d = date.getDate().toString().padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-/**
- * Kiểm tra xem 2 Date có thuộc cùng một calendar day theo local timezone không.
- */
-export function isSameCalendarDay(d1: Date | null, d2: Date | null): boolean {
-  if (!d1 || !d2) return false;
-  return (
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate()
-  );
-}
-
-/**
- * Tạo nhãn hiển thị thông minh cho Date Divider ("Hôm nay", "Hôm qua", hoặc "D tháng M, YYYY").
- */
-export function formatDateDividerLabel(
-  dateInput: Date | string | null | undefined,
-  now = new Date(),
-): string {
-  const d = typeof dateInput === 'string' ? parseTimestamp(dateInput) : dateInput;
-  if (!d) return '';
-
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-  if (target.getTime() === today.getTime()) {
-    return 'Hôm nay';
-  }
-  if (target.getTime() === yesterday.getTime()) {
-    return 'Hôm qua';
-  }
-
-  const day = d.getDate();
-  const month = d.getMonth() + 1;
-  const year = d.getFullYear();
-
-  return `${day} tháng ${month}, ${year}`;
-}
-
-/**
- * Định dạng giờ ngắn gọn: HH:mm (ví dụ 18:45).
- */
-export function formatCompactTime(dateInput: Date | string | null | undefined): string {
-  const d = typeof dateInput === 'string' ? parseTimestamp(dateInput) : dateInput;
-  if (!d) return '--:--';
-  const hours = d.getHours().toString().padStart(2, '0');
-  const minutes = d.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
-}
-
-/**
- * Định dạng thời gian chi tiết cho aria-label và tooltip.
- */
-export function formatFullTimestamp(dateInput: Date | string | null | undefined): string {
-  const d = typeof dateInput === 'string' ? parseTimestamp(dateInput) : dateInput;
-  if (!d) return 'Thời gian không xác định';
-  try {
-    return d.toLocaleString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  } catch {
-    return 'Thời gian không xác định';
-  }
-}
+import {
+  parseTimestamp,
+  getLocalDateKey,
+  isSameCalendarDay,
+  formatDateDividerLabel,
+  formatCompactTime,
+  formatMessageTimestamp,
+  formatFullTimestamp,
+} from '../../../core/utils/date-format.util';
 
 /**
  * So sánh 2 Message ID dạng chuỗi BigInt để kiểm tra msgId có nằm sau lastReadId hay không.
@@ -257,13 +199,15 @@ export interface StreamMessageViewModel {
   accessibleTimeFormatted: string;
 }
 
+import { DirectCallCoordinatorService } from '../../../core/calls/direct-call-coordinator.service';
+import { UserSettingsService } from '../../settings/services/user-settings.service';
+
 /**
  * Trang chi tiết cuộc trò chuyện Direct Message — `/channels/@me/:conversationId`.
  *
  * Kết nối trực tiếp với ActiveChatStore và ConversationsApiService,
  * hiển thị realtime tin nhắn, optimistic UI, smart auto-scroll,
  * pagination cuộn ngược, và typing indicator.
- * Hoàn toàn cô lập khỏi dữ liệu demo shell-data.ts.
  */
 @Component({
   selector: 'app-conversation-page',
@@ -272,8 +216,11 @@ export interface StreamMessageViewModel {
     ChatToolbar,
     ContextPanel,
     DashboardState,
+    DeleteMessageModal,
     EmptyState,
     ForwardMessageModal,
+    GiphyMessageEmbedComponent,
+    InlineMessageEditor,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -284,6 +231,7 @@ export interface StreamMessageViewModel {
     ProfilePanel,
     RouterLink,
   ],
+  providers: [MessageClockService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col relative' },
   templateUrl: './conversation.html',
@@ -293,12 +241,35 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
   private readonly conversationsApi = inject(ConversationsApiService);
+  private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
+  private readonly userSettings = inject(UserSettingsService);
   readonly activeChatStore = inject(ActiveChatStore);
+  readonly messageClock = inject(MessageClockService);
   private readonly uiState = inject(DashboardUiState);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly injector = inject(Injector);
+
+  readonly editingMessageId = signal<string | null>(null);
+  readonly editingSaving = signal<boolean>(false);
+  readonly editingError = signal<string | null>(null);
 
   readonly chatHistoryRef = viewChild<ElementRef<HTMLElement>>('chatHistory');
   readonly composerWrapperRef = viewChild<ElementRef<HTMLElement>>('composerWrapper');
+
+  readonly scrollController = new ChatScrollController({
+    getContainer: () => this.chatHistoryRef()?.nativeElement,
+    getContentWrapper: () =>
+      (this.chatHistoryRef()?.nativeElement.firstElementChild as HTMLElement) ||
+      this.chatHistoryRef()?.nativeElement,
+    injector: this.injector,
+    platformId: this.platformId,
+    threshold: 120,
+    onPillChange: (show, count) => {
+      this.showNewMessagesPill.set(show);
+      this.newMessagesBelowCount.set(count);
+    },
+  });
 
   protected readonly composerContext = signal<MessageComposerContext | null>(null);
   protected readonly blockingState = this.uiState.blockingState;
@@ -309,8 +280,21 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   readonly detailsError = signal<ConversationHttpError | null>(null);
   readonly showNewMessagesPill = signal<boolean>(false);
   readonly newMessagesBelowCount = signal<number>(0);
-  readonly isNearBottom = signal<boolean>(true);
+  readonly isNearBottom = this.scrollController.isNearBottom;
   readonly toastMessage = signal<string | null>(null);
+
+  protected readonly isRecipientBlocked = computed(() => {
+    const details = this.conversationDetails();
+    if (!details?.recipient?.id) return false;
+    return this.userSettings.isUserBlocked(details.recipient.id);
+  });
+
+  protected unblockRecipient(): void {
+    const details = this.conversationDetails();
+    if (details?.recipient?.id) {
+      this.userSettings.unblockUser(details.recipient.id);
+    }
+  }
 
   // ID của tin nhắn chưa đọc đầu tiên được capture khi mở conversation
   readonly initialUnreadBoundaryId = signal<string | null>(null);
@@ -348,6 +332,12 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     () => this.conversationDetails()?.recipient?.username ?? null,
   );
 
+  private readonly breakpoints = inject(BreakpointObserver);
+  protected readonly isMobile = toSignal(
+    this.breakpoints.observe(MOBILE_BREAKPOINT_QUERY).pipe(map((state) => state.matches)),
+    { initialValue: typeof window !== 'undefined' ? window.innerWidth < 768 : false },
+  );
+
   /** Cột hồ sơ bên phải đang mở hay không (nút "hồ sơ" trên thanh tiêu đề). */
   protected readonly profilePanelOpen = signal(false);
 
@@ -370,6 +360,20 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
       (this.conversationDetails()?.recipient?.presence as PresenceStatus) ||
       'offline'
     );
+  });
+
+  protected readonly recipientStatusSubtitle = computed(() => {
+    const customStatus = this.conversationDetails()?.recipient?.statusMessage;
+    if (customStatus) {
+      return customStatus;
+    }
+    const recipientId = this.conversationDetails()?.recipient?.id;
+    const presence = this.recipientPresence();
+    if (presence === 'offline' && recipientId) {
+      const lastSeenText = this.presenceService.getLastSeenLabel(recipientId)();
+      return lastSeenText ?? PRESENCE_LABEL['offline'];
+    }
+    return PRESENCE_LABEL[presence] ?? null;
   });
 
   protected readonly hasValidConversation = computed(() => {
@@ -481,7 +485,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
         message: msg,
         isGrouped,
         variant: getMessagePresentationVariant(msg),
-        timeFormatted: formatCompactTime(msgDate),
+        timeFormatted: formatMessageTimestamp(msgDate),
         hoverTimeFormatted: formatCompactTime(msgDate),
         accessibleTimeFormatted: formatFullTimestamp(msgDate),
         contentTokens: parseMessageContent(msg.content || '', itemKey),
@@ -517,7 +521,20 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private lastActiveKey: string | null = null;
   private detailsGeneration = 0;
 
+  private previousIsMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+
   constructor() {
+    // Khi viewport chuyển từ desktop sang mobile (có nút hamburger), tự động đóng profile panel
+    effect(() => {
+      const mobile = this.isMobile();
+      if (mobile && !this.previousIsMobile) {
+        untracked(() => {
+          this.profilePanelOpen.set(false);
+        });
+      }
+      this.previousIsMobile = mobile;
+    });
+
     // Tự động kích hoạt phòng chat khi URL param thay đổi hoặc session hoàn tất
     // Sử dụng untracked() và dedupe theo userId:conversationId để ngăn chặn reactive loop
     effect(() => {
@@ -535,6 +552,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
           if (this.lastActiveKey !== activationKey) {
             this.lastActiveKey = activationKey;
             this.resetConversationState();
+            this.scrollController.reset(id);
             void this.activeChatStore.setActiveConversation(id);
             void this.loadConversationDetails(id);
           }
@@ -542,15 +560,16 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
       });
     });
 
-    // Smart-Scroll State Machine & Unread Boundary Capture
+    // Smart-Scroll State Machine & Unread Boundary Capture (Phân biệt Initial History vs Realtime)
     effect(() => {
       const msgs = this.messages();
       const myId = this.currentUser()?.id;
       const loadingInitial = this.loadingInitial();
       const loadingMore = this.loadingMore();
+      const id = this.conversationId();
 
       untracked(() => {
-        if (loadingInitial || loadingMore) {
+        if (!id || loadingInitial || loadingMore) {
           return;
         }
 
@@ -562,7 +581,19 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
-        // 2. Phân loại tin nhắn mới nhận
+        // 2. Initial History Load: thực hiện đúng 1 lần instant scroll xuống đáy
+        if (!this.scrollController.hasScrolledInitial) {
+          for (const m of msgs) {
+            const key = m.id || m.clientNonce;
+            if (key) {
+              this.processedMessageIds.add(key);
+            }
+          }
+          this.scrollController.handleInitialRender(id, this.scrollController.generation);
+          return;
+        }
+
+        // 3. Realtime Messages: chỉ xử lý những tin chưa có trong processedMessageIds
         const newMsgs: ChatUiMessage[] = [];
         for (const m of msgs) {
           const key = m.id || m.clientNonce;
@@ -576,30 +607,28 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
-        // 3. Xử lý cuộn cho tin nhắn mới
+        // Chụp trạng thái Near-Bottom TRƯỚC KHI render/mutation (canonical từ controller)
+        const { wasNearBottom } = this.scrollController.capturePreMutationState();
         const hasOwnMessage = newMsgs.some((m) => m.authorId === myId);
-        const hasOthersMessage = newMsgs.some((m) => m.authorId !== myId && m.status === 'persisted');
+        const inboundCount = newMsgs.filter(
+          (m) => m.authorId !== myId && m.status === 'persisted',
+        ).length;
 
-        if (hasOwnMessage) {
-          // Tin nhắn của chính mình: lập tức cuộn xuống đáy và xóa pill
-          this.scrollToBottom(true);
-          this.newMessagesBelowCount.set(0);
-          this.showNewMessagesPill.set(false);
-        } else if (hasOthersMessage) {
-          if (this.isNearBottom()) {
-            this.scrollToBottom(true);
-          } else {
-            // Đang cuộn ở phía trên: tăng counter và hiển thị pill
-            const inboundCount = newMsgs.filter((m) => m.authorId !== myId && m.status === 'persisted').length;
-            this.newMessagesBelowCount.update((c) => c + inboundCount);
-            this.showNewMessagesPill.set(true);
-          }
-        }
+        this.scrollController.handleRealtimeAppend(
+          id,
+          this.scrollController.generation,
+          {
+            isMine: hasOwnMessage,
+            wasNearBottom,
+            count: inboundCount,
+          },
+        );
       });
     });
   }
 
   private resetConversationState(): void {
+    this.scrollController.reset(null);
     this.activeChatStore.clear();
     this.conversationDetails.set(null);
     this.detailsError.set(null);
@@ -679,6 +708,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.resetConversationState();
+    this.scrollController.destroy();
     if (this.composerResizeObserver) {
       this.composerResizeObserver.disconnect();
       this.composerResizeObserver = null;
@@ -801,59 +831,53 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     const el = event.target as HTMLElement;
     if (!el) return;
 
-    // Kiểm tra xem người dùng có ở gần đáy không (< 120px)
-    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const near = distanceToBottom < 120;
-    this.isNearBottom.set(near);
-    if (near) {
-      this.showNewMessagesPill.set(false);
-      this.newMessagesBelowCount.set(0);
+    this.scrollController.onScroll();
 
-      // Khi người dùng cuộn tới đáy và tab đang active:
-      // Tìm tin nhắn inbound cuối cùng đã persisted để đánh dấu đã đọc
-      if (typeof document === 'undefined' || document.visibilityState !== 'hidden') {
-        const rawList = this.messages();
-        const myId = this.currentUser()?.id;
-        for (let i = rawList.length - 1; i >= 0; i--) {
-          const m = rawList[i];
-          if (m.status === 'persisted' && m.authorId !== myId && /^\d+$/.test(m.id)) {
-            this.scheduleMarkRead(m.id);
-            break;
-          }
-        }
-      }
+    if (this.scrollController.isNearBottom()) {
+      this.markLatestInboundAsRead();
     }
 
     // Infinite scroll up khi cuộn lên gần đỉnh (< 80px)
     if (el.scrollTop < 80 && this.hasMore() && !this.loadingMore()) {
       const prevScrollHeight = el.scrollHeight;
       const prevScrollTop = el.scrollTop;
+      const currentId = this.conversationId();
+      const currentGen = this.scrollController.generation;
 
       await this.activeChatStore.loadOlderMessages();
 
-      // Bảo toàn vị trí cuộn mượt mà sau khi prepend
-      requestAnimationFrame(() => {
-        const newScrollHeight = el.scrollHeight;
-        el.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
-      });
+      if (currentId) {
+        this.scrollController.preserveScrollOnPrepend(
+          prevScrollHeight,
+          prevScrollTop,
+          currentId,
+          currentGen,
+        );
+      }
     }
   }
 
-  scrollToBottom(smooth = true): void {
-    const el = this.chatHistoryRef()?.nativeElement;
-    if (el) {
-      if (typeof el.scrollTo === 'function') {
-        el.scrollTo({
-          top: el.scrollHeight,
-          behavior: smooth ? 'smooth' : 'auto',
-        });
-      } else {
-        el.scrollTop = el.scrollHeight;
+  markLatestInboundAsRead(): void {
+    if (typeof document === 'undefined' || document.visibilityState !== 'hidden') {
+      const rawList = this.messages();
+      const myId = this.currentUser()?.id;
+      for (let i = rawList.length - 1; i >= 0; i--) {
+        const m = rawList[i];
+        if (m.status === 'persisted' && m.authorId !== myId && /^\d+$/.test(m.id)) {
+          this.scheduleMarkRead(m.id);
+          break;
+        }
       }
-      this.showNewMessagesPill.set(false);
-      this.newMessagesBelowCount.set(0);
-      this.isNearBottom.set(true);
     }
+  }
+
+  scrollToLatest(smooth = true): void {
+    this.scrollController.scrollToLatest(smooth ? 'smooth' : 'auto');
+    this.markLatestInboundAsRead();
+  }
+
+  scrollToBottom(smooth = true): void {
+    this.scrollToLatest(smooth);
   }
 
   private setupIntersectionObserver(): void {
@@ -1188,11 +1212,8 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
         content: payload.content,
         files: payload.files,
         replyToId: payload.replyToId,
+        externalMedia: payload.externalMedia,
       });
-      // Tự động cuộn xuống cuối cùng ngay khi người dùng gửi tin nhắn mới
-      this.isNearBottom.set(true);
-      this.showNewMessagesPill.set(false);
-      setTimeout(() => this.scrollToBottom(true), 60);
     }
   }
 
@@ -1218,9 +1239,66 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     this.closeForwardModal();
   }
 
+  readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
+  readonly deleteModalMessage = signal<ChatUiMessage | null>(null);
+  readonly isDeletingMessage = signal<boolean>(false);
+
+  closeDeleteModal(): void {
+    this.deleteModalMessage.set(null);
+  }
+
+  async onConfirmDelete(scope: 'for_me' | 'everyone'): Promise<void> {
+    const msg = this.deleteModalMessage();
+    if (!msg) return;
+    this.isDeletingMessage.set(true);
+    try {
+      await this.activeChatStore.deleteMessage(msg.id, scope);
+      this.closeDeleteModal();
+    } catch {
+      // Handled by store
+    } finally {
+      this.isDeletingMessage.set(false);
+    }
+  }
+
+  canEdit(msg: ChatUiMessage): boolean {
+    return canEditMessage(msg, this.currentUserId(), this.messageClock.now());
+  }
+
+  startEdit(msg: ChatUiMessage): void {
+    this.editingMessageId.set(msg.id);
+    this.editingError.set(null);
+  }
+
+  cancelInlineEdit(): void {
+    this.editingMessageId.set(null);
+    this.editingError.set(null);
+  }
+
+  async saveInlineEdit(messageId: string, newContent: string): Promise<void> {
+    try {
+      this.editingSaving.set(true);
+      this.editingError.set(null);
+      await this.activeChatStore.editMessage(messageId, newContent);
+      this.editingMessageId.set(null);
+    } catch (err: unknown) {
+      this.editingError.set(extractErrorMessage(err, 'Lỗi khi chỉnh sửa tin nhắn.'));
+    } finally {
+      this.editingSaving.set(false);
+    }
+  }
+
   onMessageAction(action: MessageComposerContext): void {
-    if (action.kind === 'delete' && action.messageId) {
-      void this.activeChatStore.deleteMessage(action.messageId);
+    if (action.kind === 'edit' && action.messageId) {
+      const msg = this.messages().find((m) => m.id === action.messageId);
+      if (msg) {
+        this.startEdit(msg);
+      }
+    } else if (action.kind === 'delete' && action.messageId) {
+      const msg = this.messages().find((m) => m.id === action.messageId);
+      if (msg) {
+        this.deleteModalMessage.set(msg);
+      }
     } else if (action.kind === 'forward' && action.messageId) {
       const msg = this.messages().find((m) => m.id === action.messageId);
       if (msg) {
@@ -1384,6 +1462,20 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
           this.toastMessage.set(null);
         }, 3000);
       }
+    }
+  }
+
+  onStartAudioCall(): void {
+    const convId = this.conversationId();
+    if (convId) {
+      void this.directCallCoordinator.startCall(convId, 'audio');
+    }
+  }
+
+  onStartVideoCall(): void {
+    const convId = this.conversationId();
+    if (convId) {
+      void this.directCallCoordinator.startCall(convId, 'video');
     }
   }
 

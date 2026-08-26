@@ -1,107 +1,132 @@
 <div
-  class="participant-tile relative flex size-full min-h-[140px] items-center justify-center overflow-hidden rounded-2xl bg-surface-feature/70 transition-all duration-200"
-  [class.participant-tile--speaking]="participant().isSpeaking"
+  class="participant-tile group relative flex size-full min-h-[140px] items-center justify-center overflow-hidden rounded-2xl transition-all duration-200"
+  [class.bg-black]="isScreenShare() && !isFocused()"
+  [class.bg-transparent]="isFocused()"
+  [class.bg-surface-feature/70]="!isScreenShare() && !isFocused()"
+  [class.participant-tile--speaking]="!isScreenShare() && participant().isSpeaking"
+  [class.participant-tile--stream]="isScreenShare() && !isFocused()"
+  [class.participant-tile--focused]="isFocused()"
   [attr.data-participant-id]="participant().identity"
 >
-  <!-- Live Badge if Screen Sharing in Grid view -->
-  @if (!isScreenShare() && (participant().isScreenSharing || participant().screenSharePublication)) {
-    <div class="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-md bg-danger px-2 py-0.5 text-micro font-bold text-white shadow-glow">
-      <span class="size-1.5 rounded-full bg-white animate-pulse"></span>
-      <span>TRỰC TIẾP</span>
-    </div>
-  }
+  @if (isScreenShare()) {
+    <!-- ==================== STREAM TILE (PREVIEW REALTIME / FOCUSED) ==================== -->
+    @if (!isFocused()) {
+      <!-- Live Badge in Grid -->
+      <div class="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded bg-[#ed4245] px-2 py-0.5 font-sans text-[10px] font-extrabold tracking-wider text-white shadow-glow leading-none uppercase">
+        <span class="size-1.5 rounded-full bg-white animate-pulse"></span>
+        <span>LIVE</span>
+      </div>
+    }
 
-  <!-- Video stream element -->
-  @if ((isScreenShare() && participant().screenSharePublication) || (!isScreenShare() && participant().isCameraOn && participant().videoPublication)) {
-    <video
-      #videoElement
-      autoplay
-      playsinline
-      [muted]="participant().isLocal"
-      class="size-full"
-      [class.object-cover]="!isScreenShare()"
-      [class.screen-share-video]="isScreenShare()"
-    ></video>
-  } @else {
-    <!-- Avatar Fallback when camera is OFF -->
-    <div class="flex flex-col items-center justify-center gap-3">
-      <app-avatar [name]="participant().name" size="xl" ring="surface" />
+    <!-- Realtime Screen Video Stream -->
+    <div class="relative flex size-full items-center justify-center overflow-hidden">
+      <video
+        #videoElement
+        autoplay
+        playsinline
+        [muted]="participant().isLocal"
+        class="max-w-full max-h-full object-contain"
+        [class.rounded-xl]="isFocused()"
+        [class.shadow-2xl]="isFocused()"
+      ></video>
     </div>
-  }
 
-  <!-- Watch Stream Button Overlay for Screen Sharer in Grid -->
-  @if (!isScreenShare() && (participant().isScreenSharing || participant().screenSharePublication)) {
-    <div class="watch-stream-overlay absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity z-10 backdrop-blur-[2px]">
-      <button
-        type="button"
+    @if (!isFocused()) {
+      <!-- Hover Overlay with 'Xem Stream' button (Grid Mode only) -->
+      <div
+        class="watch-stream-overlay absolute inset-0 z-20 flex items-center justify-center bg-black/45 opacity-0 transition-all duration-150 backdrop-blur-[2px] cursor-pointer"
         (click)="watchStream.emit(participant().identity)"
-        class="watch-stream-btn flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-body-sm font-bold text-on-primary shadow-modal transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
       >
-        <mat-icon class="!size-4 !text-base">tv</mat-icon>
-        <span>Xem Stream</span>
-      </button>
+        <button
+          type="button"
+          class="watch-stream-btn pointer-events-none flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-body-sm font-bold text-on-primary shadow-modal transition-all transform hover:scale-105"
+        >
+          <mat-icon class="!size-4 !text-base">tv</mat-icon>
+          <span>Xem Stream</span>
+        </button>
+      </div>
+
+      <!-- Bottom Info Pill for Stream Tile in Grid -->
+      <div class="participant-tile__overlay pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between p-3">
+        <div class="flex items-center gap-1.5 rounded-lg bg-canvas/80 px-2.5 py-1 backdrop-blur-xs">
+          <mat-icon class="!size-4 !text-base text-primary">screen_share</mat-icon>
+          <span class="max-w-[160px] truncate text-body-sm-medium text-ink font-semibold">
+            {{ participant().name }} (Màn hình)
+          </span>
+          @if (participant().isLocal) {
+            <span class="rounded-full bg-primary/25 px-1.5 py-0.5 text-micro-uppercase font-bold text-primary">
+              Bạn
+            </span>
+          }
+        </div>
+      </div>
+    }
+  } @else {
+    <!-- ==================== PARTICIPANT TILE (CAMERA / AVATAR) ==================== -->
+    <!-- Camera Video Element (if camera ON) -->
+    @if (participant().isCameraOn && participant().videoPublication) {
+      <video
+        #videoElement
+        autoplay
+        playsinline
+        [muted]="participant().isLocal"
+        class="size-full object-cover"
+      ></video>
+    } @else {
+      <!-- Avatar Fallback when camera is OFF -->
+      <div class="flex flex-col items-center justify-center gap-3">
+        <app-avatar [name]="participant().name" [src]="participant().avatarUrl || null" size="xl" ring="surface" />
+      </div>
+    }
+
+    <!-- Bottom Info Overlay -->
+    <div class="participant-tile__overlay pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between p-3">
+      <div class="flex items-center gap-2 rounded-lg bg-canvas/80 px-2.5 py-1 backdrop-blur-xs">
+        <span class="max-w-[140px] truncate text-body-sm-medium text-ink">
+          {{ participant().name }}
+        </span>
+        @if (participant().isLocal) {
+          <span class="rounded-full bg-primary/25 px-1.5 py-0.5 text-micro-uppercase font-bold text-primary">
+            Bạn
+          </span>
+        }
+      </div>
+
+      <!-- Status Icons -->
+      <div class="flex items-center gap-1.5 rounded-lg bg-canvas/80 px-2 py-1 backdrop-blur-xs">
+        @if (participant().isMuted) {
+          <mat-icon
+            class="!size-4 !text-base text-danger"
+            matTooltip="Đang tắt mic"
+            aria-label="Micro đang tắt"
+          >
+            mic_off
+          </mat-icon>
+        }
+
+        @if (!participant().isCameraOn) {
+          <mat-icon
+            class="!size-4 !text-base text-steel"
+            matTooltip="Camera đang tắt"
+            aria-label="Camera đang tắt"
+          >
+            videocam_off
+          </mat-icon>
+        }
+
+        <!-- Connection Quality -->
+        <mat-icon
+          class="!size-4 !text-base"
+          [class.text-primary]="participant().connectionQuality === 'excellent'"
+          [class.text-amber-400]="participant().connectionQuality === 'good'"
+          [class.text-danger]="participant().connectionQuality === 'poor'"
+          [class.text-stone]="participant().connectionQuality === 'unknown'"
+          [matTooltip]="'Tín hiệu: ' + participant().connectionQuality"
+          aria-label="Chất lượng kết nối"
+        >
+          signal_cellular_alt
+        </mat-icon>
+      </div>
     </div>
   }
-
-  <!-- Bottom Info Overlay -->
-  <div
-    class="participant-tile__overlay pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between p-3"
-  >
-    <div class="flex items-center gap-2 rounded-lg bg-canvas/80 px-2.5 py-1 backdrop-blur-xs">
-      <span class="max-w-[140px] truncate text-body-sm-medium text-ink">
-        {{ participant().name }}
-      </span>
-      @if (participant().isLocal) {
-        <span class="rounded-full bg-primary/25 px-1.5 py-0.5 text-micro-uppercase font-bold text-primary">
-          Bạn
-        </span>
-      }
-    </div>
-
-    <!-- Status Icons -->
-    <div class="flex items-center gap-1.5 rounded-lg bg-canvas/80 px-2 py-1 backdrop-blur-xs">
-      @if (participant().isMuted) {
-        <mat-icon
-          class="!size-4 !text-base text-danger"
-          matTooltip="Đang tắt mic"
-          aria-label="Micro đang tắt"
-        >
-          mic_off
-        </mat-icon>
-      }
-
-      @if (!participant().isCameraOn && !isScreenShare()) {
-        <mat-icon
-          class="!size-4 !text-base text-steel"
-          matTooltip="Camera đang tắt"
-          aria-label="Camera đang tắt"
-        >
-          videocam_off
-        </mat-icon>
-      }
-
-      @if (isScreenShare()) {
-        <mat-icon
-          class="!size-4 !text-base text-primary"
-          matTooltip="Đang chia sẻ màn hình"
-          aria-label="Đang chia sẻ màn hình"
-        >
-          screen_share
-        </mat-icon>
-      }
-
-      <!-- Connection Quality -->
-      <mat-icon
-        class="!size-4 !text-base"
-        [class.text-primary]="participant().connectionQuality === 'excellent'"
-        [class.text-amber-400]="participant().connectionQuality === 'good'"
-        [class.text-danger]="participant().connectionQuality === 'poor'"
-        [class.text-stone]="participant().connectionQuality === 'unknown'"
-        [matTooltip]="'Tín hiệu: ' + participant().connectionQuality"
-        aria-label="Chất lượng kết nối"
-      >
-        signal_cellular_alt
-      </mat-icon>
-    </div>
-  </div>
 </div>

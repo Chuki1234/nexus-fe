@@ -1,5 +1,7 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
 import { VoiceApiService } from '../../../core/api/voice-api.service';
 import { ProfileService } from '../../../core/profile/profile.service';
 import { MediaDeviceService } from './media-device.service';
@@ -9,6 +11,7 @@ describe('VoiceRoomService', () => {
   let service: VoiceRoomService;
   let mockVoiceApi: { getVoiceToken: ReturnType<typeof vi.fn> };
   let mockMediaDevice: {
+    isTestingMic: ReturnType<typeof signal<boolean>>;
     selectedAudioInputId: ReturnType<typeof vi.fn>;
     selectedVideoInputId: ReturnType<typeof vi.fn>;
     selectedAudioOutputId: ReturnType<typeof vi.fn>;
@@ -32,6 +35,7 @@ describe('VoiceRoomService', () => {
     };
 
     mockMediaDevice = {
+      isTestingMic: signal(false),
       selectedAudioInputId: vi.fn().mockReturnValue('default'),
       selectedVideoInputId: vi.fn().mockReturnValue('default'),
       selectedAudioOutputId: vi.fn().mockReturnValue('default'),
@@ -49,12 +53,18 @@ describe('VoiceRoomService', () => {
       }),
     };
 
+    const mockChatSocket = {
+      updateVoiceState: vi.fn(),
+      getServerVoiceStates: vi.fn().mockResolvedValue({ serverId: 'srv-1', states: [] }),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         VoiceRoomService,
         { provide: VoiceApiService, useValue: mockVoiceApi },
         { provide: MediaDeviceService, useValue: mockMediaDevice },
         { provide: ProfileService, useValue: mockProfile },
+        { provide: ChatSocketService, useValue: mockChatSocket },
       ],
     });
 
@@ -113,5 +123,9 @@ describe('VoiceRoomService', () => {
 
     service.toggleChatDrawer();
     expect(service.isChatDrawerOpen()).toBe(false);
+  });
+
+  it('switchScreenShare xử lý an toàn khi chưa kết nối phòng', async () => {
+    await expect(service.switchScreenShare()).resolves.toBeUndefined();
   });
 });

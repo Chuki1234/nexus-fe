@@ -1,18 +1,20 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ChannelSummary } from '../../../../core/api/shell-data';
-import { ShellData } from '../../../../core/api/shell-data';
+import type { ChannelSummary } from '../../../../core/servers/server.models';
+import { ServersStore } from '../../../../core/servers/servers.store';
+import { ServersApiService } from '../../../../core/api/servers-api.service';
 import { ChannelSettingsModal, ChannelSettingsModalData } from './channel-settings-modal';
 
 describe('ChannelSettingsModal', () => {
   let component: ChannelSettingsModal;
   let fixture: ComponentFixture<ChannelSettingsModal>;
   let mockDialogRef: { close: ReturnType<typeof vi.fn> };
-  let mockShellData: {
+  let mockServersApi: {
     updateChannel: ReturnType<typeof vi.fn>;
-    removeChannel: ReturnType<typeof vi.fn>;
+    deleteChannel: ReturnType<typeof vi.fn>;
   };
+  let serversStore: ServersStore;
 
   const mockChannel: ChannelSummary = {
     id: 'chn-1',
@@ -30,19 +32,28 @@ describe('ChannelSettingsModal', () => {
 
   beforeEach(async () => {
     mockDialogRef = { close: vi.fn() };
-    mockShellData = {
-      updateChannel: vi.fn(),
-      removeChannel: vi.fn(),
+    mockServersApi = {
+      updateChannel: vi.fn().mockResolvedValue({
+        id: 'chn-1',
+        name: 'tuitentai-pro',
+        type: 'text',
+        topic: 'Chủ đề mới',
+      }),
+      deleteChannel: vi.fn().mockResolvedValue(undefined),
     };
 
     await TestBed.configureTestingModule({
       imports: [ChannelSettingsModal],
       providers: [
+        ServersStore,
         { provide: MAT_DIALOG_DATA, useValue: mockData },
         { provide: MatDialogRef, useValue: mockDialogRef },
-        { provide: ShellData, useValue: mockShellData },
+        { provide: ServersApiService, useValue: mockServersApi },
       ],
     }).compileComponents();
+
+    serversStore = TestBed.inject(ServersStore);
+    serversStore.setChannels('srv-1', [mockChannel]);
 
     fixture = TestBed.createComponent(ChannelSettingsModal);
     component = fixture.componentInstance;
@@ -70,12 +81,12 @@ describe('ChannelSettingsModal', () => {
     expect(component.isDirty()).toBe(false);
   });
 
-  it('saveChanges gọi shell.updateChannel và lưu thông tin mới', () => {
+  it('saveChanges gọi serversApi.updateChannel và cập nhật ServersStore', async () => {
     component.channelName.set('tuitentai-pro');
     component.channelTopic.set('Chủ đề mới');
-    component.saveChanges();
+    await component.saveChanges();
 
-    expect(mockShellData.updateChannel).toHaveBeenCalledWith('srv-1', 'chn-1', {
+    expect(mockServersApi.updateChannel).toHaveBeenCalledWith('srv-1', 'chn-1', {
       name: 'tuitentai-pro',
       topic: 'Chủ đề mới',
     });

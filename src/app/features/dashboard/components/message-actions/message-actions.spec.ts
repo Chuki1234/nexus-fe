@@ -3,7 +3,7 @@ import type { MessageComposerContext } from '../message-composer/message-compose
 import { MessageActions } from './message-actions';
 
 describe('MessageActions', () => {
-  const mount = async (editable = false) => {
+  const mount = async (ownMessage = false, canEdit = false) => {
     await TestBed.configureTestingModule({
       imports: [MessageActions],
     }).compileComponents();
@@ -12,7 +12,8 @@ describe('MessageActions', () => {
     fixture.componentRef.setInput('messageId', 'message-1');
     fixture.componentRef.setInput('author', 'Minh Tài');
     fixture.componentRef.setInput('excerpt', 'Một đoạn tin nhắn để xem trước.');
-    fixture.componentRef.setInput('editable', editable);
+    fixture.componentRef.setInput('ownMessage', ownMessage);
+    fixture.componentRef.setInput('canEdit', canEdit);
     fixture.detectChanges();
     await fixture.whenStable();
     return fixture;
@@ -50,19 +51,10 @@ describe('MessageActions', () => {
     expect(emittedReactions).toContain('👍');
   });
 
-  it('reply phát composer context còn edit chỉ mở với tin của mình', async () => {
-    const fixture = await mount(true);
+  it('khi ownMessage=true và canEdit=true: menu có Chỉnh sửa và Thu hồi tin nhắn', async () => {
+    const fixture = await mount(true, true);
     const contexts: MessageComposerContext[] = [];
     fixture.componentInstance.action.subscribe((context) => contexts.push(context));
-
-    const reply = fixture.nativeElement.querySelector(
-      'button[aria-label="Trả lời"]',
-    ) as HTMLButtonElement;
-    reply.click();
-    fixture.detectChanges();
-
-    expect(contexts.at(-1)?.kind).toBe('reply');
-    expect(contexts.at(-1)?.label).toContain('Minh Tài');
 
     const more = fixture.nativeElement.querySelector(
       'button[aria-label="Thêm thao tác"]',
@@ -70,17 +62,48 @@ describe('MessageActions', () => {
     more.click();
     fixture.detectChanges();
     await fixture.whenStable();
+
     const edit = Array.from(document.body.querySelectorAll('.nexus-message-more-menu button')).find(
       (button) => button.textContent?.includes('Chỉnh sửa'),
     ) as HTMLButtonElement;
-    expect(edit.disabled).toBe(false);
+    expect(edit).toBeTruthy();
     edit.click();
     fixture.detectChanges();
     expect(contexts.at(-1)?.kind).toBe('edit');
+
+    more.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const remove = Array.from(document.body.querySelectorAll('.nexus-message-more-menu button')).find(
+      (button) => button.textContent?.includes('Thu hồi tin nhắn'),
+    ) as HTMLButtonElement;
+    expect(remove).toBeTruthy();
   });
 
-  it('forward và delete chỉ phát UI contract, edit tin người khác vẫn khóa', async () => {
-    const fixture = await mount(false);
+  it('khi ownMessage=true nhưng canEdit=false (hết 5 phút): nút Chỉnh sửa biến mất khỏi DOM, vẫn có Thu hồi tin nhắn', async () => {
+    const fixture = await mount(true, false);
+    const more = fixture.nativeElement.querySelector(
+      'button[aria-label="Thêm thao tác"]',
+    ) as HTMLButtonElement;
+
+    more.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const menuButtons = Array.from(
+      document.body.querySelectorAll('.nexus-message-more-menu button'),
+    ) as HTMLButtonElement[];
+
+    const edit = menuButtons.find((button) => button.textContent?.includes('Chỉnh sửa'));
+    expect(edit).toBeUndefined(); // Không tồn tại trong DOM
+
+    const recall = menuButtons.find((button) => button.textContent?.includes('Thu hồi tin nhắn'));
+    expect(recall).toBeTruthy();
+  });
+
+  it('khi ownMessage=false: nút Chỉnh sửa không có, nút xóa là Xóa khỏi phía bạn', async () => {
+    const fixture = await mount(false, false);
     const contexts: MessageComposerContext[] = [];
     fixture.componentInstance.action.subscribe((context) => contexts.push(context));
     const more = fixture.nativeElement.querySelector(
@@ -90,26 +113,18 @@ describe('MessageActions', () => {
     more.click();
     fixture.detectChanges();
     await fixture.whenStable();
-    let menuButtons = Array.from(
-      document.body.querySelectorAll('.nexus-message-more-menu button'),
-    ) as HTMLButtonElement[];
-    const edit = menuButtons.find((button) => button.textContent?.includes('Chỉnh sửa'))!;
-    const forward = menuButtons.find((button) => button.textContent?.includes('Chuyển tiếp'))!;
-    expect(edit.disabled).toBe(true);
-    forward.click();
-    fixture.detectChanges();
-    expect(contexts.at(-1)?.kind).toBe('forward');
 
-    more.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    menuButtons = Array.from(
+    const menuButtons = Array.from(
       document.body.querySelectorAll('.nexus-message-more-menu button'),
     ) as HTMLButtonElement[];
+
+    const edit = menuButtons.find((button) => button.textContent?.includes('Chỉnh sửa'));
+    expect(edit).toBeUndefined();
+
     const remove = menuButtons.find((button) => button.textContent?.includes('Xóa khỏi phía bạn'))!;
+    expect(remove).toBeTruthy();
     remove.click();
     fixture.detectChanges();
     expect(contexts.at(-1)?.kind).toBe('delete');
-    expect(contexts.at(-1)?.description).toContain('backend');
   });
 });

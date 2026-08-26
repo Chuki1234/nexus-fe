@@ -13,7 +13,7 @@ import {
 import { ServerMemberDto } from '../../../shared/dto/server-members.dto';
 export type { ServerMemberDto };
 import { AuthService } from '../auth/auth.service';
-import type { ChannelSummary, ServerSummary } from './shell-data';
+import type { ChannelSummary, ServerSummary } from '../servers/server.models';
 
 export type ServerTemplateId =
   | 'custom'
@@ -232,6 +232,21 @@ export class ServersApiService {
 
     return firstValueFrom(
       this.http.get<ServerWithChannels[]>(`${environment.apiUrl}/servers`, { headers }),
+    );
+  }
+
+  /**
+   * Lấy danh sách toàn bộ kênh của một máy chủ: GET /api/servers/:serverId/channels
+   */
+  async listChannels(serverId: string): Promise<ChannelSummary[]> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.get<ChannelSummary[]>(
+        `${environment.apiUrl}/servers/${serverId}/channels`,
+        { headers },
+      ),
     );
   }
 

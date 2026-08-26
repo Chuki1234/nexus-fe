@@ -15,6 +15,8 @@ describe('ActiveChatStore', () => {
     sendMessage: any;
     editMessage: any;
     deleteMessage: any;
+    hideMessage: any;
+    recallMessage: any;
     markAsRead: any;
     getAttachmentSignedUrl: any;
     setReaction: any;
@@ -27,6 +29,7 @@ describe('ActiveChatStore', () => {
     messageCreated$: Subject<any>;
     messageUpdated$: Subject<any>;
     messageDeleted$: Subject<any>;
+    messageHiddenForUser$: Subject<any>;
     reactionUpdated$: Subject<any>;
     messageRead$: Subject<any>;
     typingUpdated$: Subject<any>;
@@ -49,6 +52,7 @@ describe('ActiveChatStore', () => {
       editedAt: null,
       deletedAt: null,
       isForwarded: false,
+      externalMedia: null,
       createdAt: '2026-08-22T10:00:00Z',
     },
     {
@@ -63,6 +67,7 @@ describe('ActiveChatStore', () => {
       editedAt: null,
       deletedAt: null,
       isForwarded: false,
+      externalMedia: null,
       createdAt: '2026-08-22T10:05:00Z',
     },
   ];
@@ -77,6 +82,8 @@ describe('ActiveChatStore', () => {
       sendMessage: vi.fn(),
       editMessage: vi.fn(),
       deleteMessage: vi.fn(),
+      hideMessage: vi.fn().mockResolvedValue({ id: '100', hidden: true, scope: 'for_me' }),
+      recallMessage: vi.fn().mockResolvedValue({ id: '100', deleted: true, scope: 'everyone' }),
       markAsRead: vi.fn().mockResolvedValue({ success: true }),
       getAttachmentSignedUrl: vi.fn().mockResolvedValue({
         signedUrl: 'https://storage.supabase.co/signed/fresh-url.png',
@@ -96,6 +103,7 @@ describe('ActiveChatStore', () => {
       messageCreated$: new Subject(),
       messageUpdated$: new Subject(),
       messageDeleted$: new Subject(),
+      messageHiddenForUser$: new Subject(),
       reactionUpdated$: new Subject(),
       messageRead$: new Subject(),
       typingUpdated$: new Subject(),
@@ -160,6 +168,7 @@ describe('ActiveChatStore', () => {
         editedAt: null,
         deletedAt: null,
         isForwarded: false,
+        externalMedia: null,
         createdAt: '2026-08-22T09:00:00Z',
       };
 
@@ -197,6 +206,7 @@ describe('ActiveChatStore', () => {
         editedAt: null,
         deletedAt: null,
         isForwarded: false,
+        externalMedia: null,
         createdAt: '2026-08-22T10:10:00Z',
       };
 
@@ -535,14 +545,16 @@ describe('ActiveChatStore', () => {
   });
 
   describe('Optimistic Rollback & Helpers (Hardening Tests)', () => {
-    it('editMessage thất bại: rollback lại nội dung và editedAt snapshot ban đầu', async () => {
+    it('editMessage thất bại: rollback lại nội dung và editedAt snapshot ban đầu và re-throw error', async () => {
       await store.setActiveConversation('conv-1');
 
       messagesApiMock.editMessage.mockRejectedValue(
         new Error('Lỗi server khi sửa'),
       );
 
-      await store.editMessage('100', 'Nội dung sửa thất bại');
+      await expect(
+        store.editMessage('100', 'Nội dung sửa thất bại'),
+      ).rejects.toThrow('Lỗi server khi sửa');
 
       const target = store.messages().find((m) => m.id === '100');
       expect(target?.content).toBe('Hello 100');
@@ -550,19 +562,73 @@ describe('ActiveChatStore', () => {
       expect(store.error()).toBe('Lỗi server khi sửa');
     });
 
-    it('deleteMessage thất bại: rollback lại trạng thái chưa xoá', async () => {
+    it('hideMessage thành công: xoá optimistic và gọi messagesApi.hideMessage', async () => {
       await store.setActiveConversation('conv-1');
 
-      messagesApiMock.deleteMessage.mockRejectedValue(
-        new Error('Lỗi server khi xoá'),
+      await store.hideMessage('100');
+
+      expect(messagesApiMock.hideMessage).toHaveBeenCalledWith('100');
+      const target = store.messages().find((m) => m.id === '100');
+      expect(target).toBeUndefined();
+    });
+
+    it('hideMessage thất bại: rollback lại message tại đúng vị trí canonical', async () => {
+      await store.setActiveConversation('conv-1');
+
+      messagesApiMock.hideMessage.mockRejectedValue(
+        new Error('Lỗi server khi ẩn tin nhắn'),
       );
 
-      await store.deleteMessage('100');
+      await expect(store.hideMessage('100')).rejects.toThrow('Lỗi server khi ẩn tin nhắn');
+
+      const target = store.messages().find((m) => m.id === '100');
+      expect(target?.id).toBe('100');
+      expect(target?.content).toBe('Hello 100');
+      expect(store.error()).toBe('Lỗi server khi ẩn tin nhắn');
+    });
+
+    it('recallMessage thành công: redact optimistic và gọi messagesApi.recallMessage', async () => {
+      await store.setActiveConversation('conv-1');
+
+      await store.recallMessage('100');
+
+      expect(messagesApiMock.recallMessage).toHaveBeenCalledWith('100');
+      const target = store.messages().find((m) => m.id === '100');
+      expect(target?.content).toBeNull();
+      expect(target?.deletedAt).toBeDefined();
+      expect(target?.attachments).toEqual([]);
+      expect(target?.reactions).toEqual([]);
+    });
+
+    it('recallMessage thất bại: rollback lại trạng thái trước khi thu hồi', async () => {
+      await store.setActiveConversation('conv-1');
+
+      messagesApiMock.recallMessage.mockRejectedValue(
+        new Error('Lỗi server khi thu hồi'),
+      );
+
+      await expect(store.recallMessage('100')).rejects.toThrow('Lỗi server khi thu hồi');
 
       const target = store.messages().find((m) => m.id === '100');
       expect(target?.content).toBe('Hello 100');
       expect(target?.deletedAt).toBeNull();
-      expect(store.error()).toBe('Lỗi server khi xoá');
+      expect(store.error()).toBe('Lỗi server khi thu hồi');
+    });
+
+    it('nhận socket messageHiddenForUser: tự động xoá tin nhắn bị ẩn trên các tab khác của chính user', async () => {
+      await store.setActiveConversation('conv-1');
+
+      expect(store.messages().some((m) => m.id === '100')).toBe(true);
+
+      chatSocketMock.messageHiddenForUser$.next({
+        conversationId: 'conv-1',
+        channelId: null,
+        messageId: '100',
+        userId: 'user-me',
+        hiddenAt: new Date().toISOString(),
+      });
+
+      expect(store.messages().some((m) => m.id === '100')).toBe(false);
     });
 
     it('retryMessage giữ nguyên clientNonce ban đầu', async () => {
@@ -766,6 +832,7 @@ describe('ActiveChatStore', () => {
           editedAt: null,
           deletedAt: null,
           isForwarded: false,
+          externalMedia: null,
           attachments: [
             {
               id: 'att-expired',

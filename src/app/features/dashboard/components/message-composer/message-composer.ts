@@ -16,6 +16,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
 import { ATTACHMENT_LIMITS } from '../../../../core/constants/attachments.constant';
+import { ExternalMediaDto, GiphyMediaDto } from '../../../../../shared/dto/messages.dto';
+import { GiphyPickerComponent } from '../giphy-picker/giphy-picker.component';
+import { StipopPickerComponent } from '../stipop-picker/stipop-picker.component';
 
 export type MessageComposerContextKind =
   | 'reply'
@@ -43,6 +46,7 @@ export interface SendMessagePayload {
   editMessageId?: string;
   files?: File[];
   attachments?: PendingAttachmentItem[];
+  externalMedia?: GiphyMediaDto;
 }
 
 export interface PendingFileItem {
@@ -146,7 +150,14 @@ function formatFileSize(bytes: number): string {
  */
 @Component({
   selector: 'app-message-composer',
-  imports: [FormsModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    GiphyPickerComponent,
+    StipopPickerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'block shrink-0 px-4 pb-6',
@@ -178,6 +189,8 @@ export class MessageComposer implements OnDestroy {
   readonly pendingFiles = signal<PendingFileItem[]>([]);
   readonly isDraggingOver = signal<boolean>(false);
   readonly showEmojiPicker = signal<boolean>(false);
+  readonly showGiphyPicker = signal<boolean>(false);
+  readonly showStipopPicker = signal<boolean>(false);
   readonly activeEmojiCategoryIndex = signal<number>(0);
   readonly fileErrorMessage = signal<string | null>(null);
   dragEnterCounter = 0;
@@ -194,6 +207,7 @@ export class MessageComposer implements OnDestroy {
             this.pendingFiles.set([]);
             this.fileErrorMessage.set(null);
             this.text.set(ctx.description || '');
+            this.showGiphyPicker.set(false);
           }
           // Tự động focus ngay vào ô nhập liệu khi chọn Trả lời / Chỉnh sửa / Chuyển tiếp
           setTimeout(() => {
@@ -224,11 +238,31 @@ export class MessageComposer implements OnDestroy {
     ) {
       this.showEmojiPicker.set(false);
     }
+    if (
+      this.showGiphyPicker() &&
+      !target.closest('.giphy-picker-container') &&
+      !target.closest('.gif-toggle-btn')
+    ) {
+      this.showGiphyPicker.set(false);
+    }
+    if (
+      this.showStipopPicker() &&
+      !target.closest('.stipop-picker-container') &&
+      !target.closest('.sticker-toggle-btn')
+    ) {
+      this.showStipopPicker.set(false);
+    }
   }
 
   onEscape(): void {
     if (this.showEmojiPicker()) {
       this.showEmojiPicker.set(false);
+    }
+    if (this.showGiphyPicker()) {
+      this.showGiphyPicker.set(false);
+    }
+    if (this.showStipopPicker()) {
+      this.showStipopPicker.set(false);
     }
   }
 
@@ -410,7 +444,75 @@ export class MessageComposer implements OnDestroy {
 
   toggleEmojiPicker(): void {
     if (this.disabled()) return;
+    this.showGiphyPicker.set(false);
+    this.showStipopPicker.set(false);
     this.showEmojiPicker.update((v) => !v);
+  }
+
+  toggleGiphyPicker(): void {
+    if (this.disabled() || this.context()?.kind === 'edit') return;
+    this.showEmojiPicker.set(false);
+    this.showStipopPicker.set(false);
+    this.showGiphyPicker.update((v) => !v);
+  }
+
+  toggleStipopPicker(): void {
+    if (this.disabled() || this.context()?.kind === 'edit') return;
+    this.showEmojiPicker.set(false);
+    this.showGiphyPicker.set(false);
+    this.showStipopPicker.update((v) => !v);
+  }
+
+  onGifSelected(gif: GiphyMediaDto): void {
+    const currentContext = this.context();
+    const isEditMode = currentContext?.kind === 'edit';
+    if (isEditMode) return;
+
+    const payload: SendMessagePayload = {
+      content: '',
+      externalMedia: gif,
+      replyToId:
+        currentContext?.kind === 'reply'
+          ? currentContext.replyToId
+          : undefined,
+    };
+
+    this.send.emit(payload);
+
+    this.showGiphyPicker.set(false);
+    this.showStipopPicker.set(false);
+    this.showEmojiPicker.set(false);
+    this.stoppedTyping.emit();
+
+    if (currentContext) {
+      this.contextClosed.emit();
+    }
+  }
+
+  onStickerSelected(sticker: ExternalMediaDto): void {
+    const currentContext = this.context();
+    const isEditMode = currentContext?.kind === 'edit';
+    if (isEditMode) return;
+
+    const payload: SendMessagePayload = {
+      content: '',
+      externalMedia: sticker,
+      replyToId:
+        currentContext?.kind === 'reply'
+          ? currentContext.replyToId
+          : undefined,
+    };
+
+    this.send.emit(payload);
+
+    this.showStipopPicker.set(false);
+    this.showGiphyPicker.set(false);
+    this.showEmojiPicker.set(false);
+    this.stoppedTyping.emit();
+
+    if (currentContext) {
+      this.contextClosed.emit();
+    }
   }
 
   selectEmojiCategory(index: number): void {
@@ -505,6 +607,8 @@ export class MessageComposer implements OnDestroy {
     this.pendingFiles.set([]);
     this.fileErrorMessage.set(null);
     this.showEmojiPicker.set(false);
+    this.showGiphyPicker.set(false);
+    this.showStipopPicker.set(false);
     this.stoppedTyping.emit();
 
     const textarea = this.textareaEl()?.nativeElement;

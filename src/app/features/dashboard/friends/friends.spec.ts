@@ -1,8 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import type { ConversationSummary } from '../../../core/api/shell-data';
-import { ShellData } from '../../../core/api/shell-data';
+import type { ConversationSummary } from '../../../core/conversations/conversation.models';
 import {
   DashboardUiState,
   type DashboardBlockingState,
@@ -17,6 +16,7 @@ describe('FriendsPage', () => {
     {
       id: 'mai',
       name: 'Mai',
+      username: null,
       statusMessage: 'Đang học Angular',
       presence: 'online',
       unread: false,
@@ -24,6 +24,7 @@ describe('FriendsPage', () => {
     {
       id: 'nam',
       name: 'Nam',
+      username: null,
       statusMessage: null,
       presence: 'offline',
       unread: false,
@@ -32,18 +33,8 @@ describe('FriendsPage', () => {
 
   const mount = async (
     people: ConversationSummary[] = [],
-    shellOverride?: ShellData,
     uiState: DashboardUiStateName = 'ready',
   ) => {
-    const conversations = signal(people).asReadonly();
-    const demoEnabled = signal(false);
-    const shell =
-      shellOverride ??
-      ({
-        conversations,
-        demoEnabled: demoEnabled.asReadonly(),
-        toggleDemoData: () => demoEnabled.update((enabled) => !enabled),
-      } as ShellData);
     const blockingState = signal<DashboardBlockingState | null>(
       uiState === 'loading' ||
         uiState === 'error' ||
@@ -65,9 +56,10 @@ describe('FriendsPage', () => {
       error: signal<string | null>(null).asReadonly(),
       feedback: signal<string | null>(null).asReadonly(),
       load: vi.fn().mockResolvedValue(undefined),
-      sendRequest: vi.fn().mockResolvedValue(true),
-      acceptRequest: vi.fn().mockResolvedValue(undefined),
-      deleteRequest: vi.fn().mockResolvedValue(undefined),
+      sendFriendRequest: vi.fn().mockResolvedValue(true),
+      acceptFriendRequest: vi.fn().mockResolvedValue(undefined),
+      declineFriendRequest: vi.fn().mockResolvedValue(undefined),
+      cancelFriendRequest: vi.fn().mockResolvedValue(undefined),
       removeFriend: vi.fn().mockResolvedValue(undefined),
       clearFeedback: vi.fn(),
     };
@@ -75,7 +67,6 @@ describe('FriendsPage', () => {
       imports: [FriendsPage],
       providers: [
         provideRouter([]),
-        { provide: ShellData, useValue: shell },
         { provide: FriendsStore, useValue: friendStore },
         {
           provide: DashboardUiState,
@@ -117,31 +108,7 @@ describe('FriendsPage', () => {
       fixture.nativeElement
         .querySelector('app-context-panel aside')
         ?.classList.contains('context-panel--open'),
-    ).toBe(true);
-  });
-
-  it('nút demo bật danh sách mẫu và tắt lại về empty-state ngay trong runtime', async () => {
-    const shell = new ShellData();
-    const fixture = await mount([], shell);
-    const demoButton = fixture.nativeElement.querySelector(
-      'button[aria-label="Bật dữ liệu demo"]',
-    ) as HTMLButtonElement;
-
-    expect(fixture.nativeElement.querySelectorAll('app-friend-row').length).toBe(0);
-
-    demoButton.click();
-    fixture.detectChanges();
-
-    expect(demoButton.getAttribute('aria-pressed')).toBe('true');
-    expect(fixture.nativeElement.querySelectorAll('app-friend-row').length).toBe(6);
-    expect(fixture.nativeElement.textContent).toContain('Phan Thế Mon');
-
-    demoButton.click();
-    fixture.detectChanges();
-
-    expect(demoButton.getAttribute('aria-pressed')).toBe('false');
-    expect(fixture.nativeElement.querySelectorAll('app-friend-row').length).toBe(0);
-    expect(fixture.nativeElement.textContent).toContain('Danh sách đang trống');
+    ).toBe(false);
   });
 
   it('lọc theo tên khi gõ vào ô tìm kiếm', async () => {
@@ -187,8 +154,13 @@ describe('FriendsPage', () => {
 
   it('tab Thêm bạn thay danh sách bằng form', async () => {
     const fixture = await mount();
-    const buttons = fixture.nativeElement.querySelectorAll('[role=group] button');
-    (buttons[3] as HTMLButtonElement).click();
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('[role=group] button'),
+    ) as HTMLButtonElement[];
+    const addFriendButton = buttons.find((btn) =>
+      btn.textContent?.includes('Thêm bạn'),
+    );
+    addFriendButton?.click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('app-add-friend-form')).toBeTruthy();
@@ -207,33 +179,33 @@ describe('FriendsPage', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 
-  it('nút toolbar mở và đóng activity panel', async () => {
+  it('activity panel hỗ trợ co giãn và đóng mở linh hoạt', async () => {
     const fixture = await mount();
-    const button = fixture.nativeElement.querySelector(
-      'button[aria-label="Ẩn hoạt động bạn bè"], button[aria-label="Hiện hoạt động bạn bè"]',
-    ) as HTMLButtonElement;
-
-    button.click();
+    const component = fixture.componentInstance;
+    component['contextView'].set('activity');
     fixture.detectChanges();
 
-    expect(
-      fixture.nativeElement
-        .querySelector('app-context-panel aside')
-        ?.classList.contains('context-panel--open'),
-    ).toBe(false);
+    const panel = fixture.nativeElement.querySelector('app-context-panel aside') as HTMLElement;
+    expect(panel.classList.contains('context-panel--open')).toBe(true);
 
-    button.click();
+    // Có nút đóng
+    expect(fixture.nativeElement.querySelector('.context-panel__close')).toBeTruthy();
+
+    // Có thanh co giãn
+    expect(fixture.nativeElement.querySelector('.pane-resize-handle--member')).toBeTruthy();
+
+    // Nhấn nút đóng thì panel thu gọn
+    const closeBtn = fixture.nativeElement.querySelector('.context-panel__close') as HTMLButtonElement;
+    closeBtn.click();
     fixture.detectChanges();
-
-    expect(
-      fixture.nativeElement
-        .querySelector('app-context-panel aside')
-        ?.classList.contains('context-panel--open'),
-    ).toBe(true);
+    expect(panel.classList.contains('context-panel--open')).toBe(false);
   });
 
   it('không dựng hồ sơ nhanh thuộc ownership của trang Profile', async () => {
     const fixture = await mount(PEOPLE);
+    const component = fixture.componentInstance;
+    component['contextView'].set('activity');
+    fixture.detectChanges();
 
     const panel = fixture.nativeElement.querySelector('app-context-panel') as HTMLElement;
     expect(fixture.nativeElement.querySelector('button[aria-label^="Xem hồ sơ nhanh"]')).toBeNull();
@@ -242,7 +214,7 @@ describe('FriendsPage', () => {
   });
 
   it('loading thay danh sách bằng skeleton đúng ngữ cảnh', async () => {
-    const fixture = await mount(PEOPLE, undefined, 'loading');
+    const fixture = await mount(PEOPLE, 'loading');
 
     expect(fixture.nativeElement.querySelector('[data-dashboard-state="loading"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[data-skeleton-layout="list"]')).toBeTruthy();
@@ -250,9 +222,38 @@ describe('FriendsPage', () => {
   });
 
   it('offline chỉ thêm banner và vẫn giữ danh sách đang xem', async () => {
-    const fixture = await mount(PEOPLE, undefined, 'offline');
+    const fixture = await mount(PEOPLE, 'offline');
 
     expect(fixture.nativeElement.querySelector('[data-dashboard-state="offline"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelectorAll('app-friend-row')).toHaveLength(2);
+  });
+
+  it('khi chuyển tab thì gọi clearFeedback để không hiển thị lỗi của tab cũ', async () => {
+    const fixture = await mount(PEOPLE);
+    const friendStore = TestBed.inject(FriendsStore);
+
+    // Chuyển sang tab 'add'
+    fixture.componentInstance['tab'].set('add');
+    fixture.detectChanges();
+
+    expect(friendStore.clearFeedback).toHaveBeenCalled();
+  });
+
+  it('người dùng có thể chủ động bấm nút toggle để mở lại activity panel', async () => {
+    const fixture = await mount(PEOPLE);
+    const component = fixture.componentInstance;
+    component['contextView'].set(null);
+    fixture.detectChanges();
+
+    const panel = fixture.nativeElement.querySelector('app-context-panel aside') as HTMLElement;
+    expect(panel.classList.contains('context-panel--open')).toBe(false);
+
+    // Bấm nút toggle trên toolbar
+    const toggleBtn = fixture.nativeElement.querySelector('button[aria-label="Hiện hoạt động bạn bè"]') as HTMLButtonElement;
+    expect(toggleBtn).toBeTruthy();
+    toggleBtn.click();
+    fixture.detectChanges();
+
+    expect(panel.classList.contains('context-panel--open')).toBe(true);
   });
 });

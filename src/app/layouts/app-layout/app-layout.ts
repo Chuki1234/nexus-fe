@@ -1,4 +1,4 @@
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -13,22 +13,29 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { filter, map } from 'rxjs';
+import { Subscription, filter, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ServersApiService } from '../../core/api/servers-api.service';
 import { ServersStore } from '../../core/servers/servers.store';
-import { ShellData } from '../../core/api/shell-data';
+import { ChatSocketService } from '../../core/realtime/chat-socket.service';
+import { ServerRealtimeCoordinator } from '../../core/servers/server-realtime-coordinator.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { SettingsModal } from '../../features/settings/settings-modal';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
+import { IncomingCallOverlayComponent } from '../../features/dashboard/components/incoming-call-overlay/incoming-call-overlay.component';
+import { DirectCallStageComponent } from '../../features/dashboard/components/direct-call-stage/direct-call-stage.component';
+import { DirectCallCoordinatorService } from '../../core/calls/direct-call-coordinator.service';
+
+import { UserActivityTrackerService } from '../../core/presence/user-activity-tracker.service';
 
 import {
   DashboardLayoutService,
+  MOBILE_BREAKPOINT_QUERY,
   NAV_DEFAULT_WIDTH,
   NAV_MAX_WIDTH,
   NAV_MIN_WIDTH,
@@ -41,7 +48,7 @@ import {
  *
  * Trên Desktop (!isCompact): Bố cục Flex pane tự nhiên, cho phép resize Navigation Sidebar
  * mà không bao giờ bị overlay hoặc lệch content margin.
- * Trên Mobile / Tablet (isCompact): Sử dụng Angular Material MatSidenav với mode="over" và backdrop.
+ * Trên Mobile (isCompact, <768px): Sử dụng Angular Material MatSidenav với mode="over" và backdrop.
  */
 @Component({
   selector: 'app-dashboard-shell',
@@ -54,6 +61,8 @@ import {
     RouterOutlet,
     ServerRail,
     SettingsModal,
+    IncomingCallOverlayComponent,
+    DirectCallStageComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './app-layout.css',
@@ -66,7 +75,10 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly serversApi = inject(ServersApiService);
   private readonly serversStore = inject(ServersStore);
-  private readonly shell = inject(ShellData);
+  private readonly chatSocket = inject(ChatSocketService);
+  private readonly coordinator = inject(ServerRealtimeCoordinator);
+  private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
+  private readonly activityTracker = inject(UserActivityTrackerService);
   protected readonly layoutService = inject(DashboardLayoutService);
   protected readonly theme = inject(ThemeService).mode;
   protected readonly toastService = inject(ToastService);
@@ -76,16 +88,18 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   protected readonly serverRailWidth = SERVER_RAIL_WIDTH;
 
   readonly shellContainer = viewChild<ElementRef<HTMLElement>>('dashboardShell');
+  readonly drawer = viewChild<MatSidenav>('drawer');
   private resizeObserver: ResizeObserver | null = null;
   private isHydrating = false;
+  private readonly subs = new Subscription();
 
   /**
-   * Dưới `lg` (1024px) hoặc khi container không đủ không gian chứa main minimum 560px
-   * thì hai cột trái thu vào drawer.
+   * Chỉ kích hoạt compact mode khi viewport nhỏ hơn 768px (mức điện thoại).
+   * Tablet (>= 768px) và laptop/desktop luôn giữ desktop navigation.
    */
   private readonly compact = toSignal(
     this.breakpoints
-      .observe([Breakpoints.XSmall, Breakpoints.Small, Breakpoints.Medium])
+      .observe([MOBILE_BREAKPOINT_QUERY])
       .pipe(map((state) => state.matches)),
     { initialValue: false },
   );
@@ -96,6 +110,20 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     void this.hydrateServers();
+    void this.directCallCoordinator.restoreActiveCall();
+    this.activityTracker.start();
+
+    this.subs.add(
+      this.router.events
+        .pipe(filter((event) => event instanceof NavigationEnd))
+        .subscribe(() => {
+          const sId = this.readServerId();
+          const cId = this.readChannelId();
+          this.serversStore.setActive(sId, cId);
+          // Đóng drawer trên mobile khi chuyển route
+          this.drawer()?.close();
+        }),
+    );
   }
 
   ngAfterViewInit(): void {
@@ -118,6 +146,7 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+    this.subs.unsubscribe();
   }
 
   startNavResize(event: PointerEvent): void {
@@ -205,11 +234,10 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
       if (!this.auth.isAuthenticated()) {
         return;
       }
-      const servers = await this.serversApi.listServers();
-      if (servers.length > 0) {
-        this.serversStore.hydrateServers(servers);
-        this.shell.hydrateServers(servers);
-      }
+      const user = this.auth.user();
+      this.serversStore.setActiveUser(user?.id ?? null);
+      this.chatSocket.connect();
+      await this.coordinator.hydrateAndJoinAll();
     } catch {
       // Giữ live state rỗng nếu không kết nối được
     } finally {
@@ -234,6 +262,18 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
     let route: ActivatedRoute | null = this.route;
     while (route) {
       const id = route.snapshot?.paramMap.get('serverId');
+      if (id) {
+        return id;
+      }
+      route = route.firstChild;
+    }
+    return null;
+  }
+
+  private readChannelId(): string | null {
+    let route: ActivatedRoute | null = this.route;
+    while (route) {
+      const id = route.snapshot?.paramMap.get('channelId');
       if (id) {
         return id;
       }

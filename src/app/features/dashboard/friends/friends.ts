@@ -2,15 +2,21 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   OnInit,
   signal,
+  untracked,
 } from '@angular/core';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { ShellData } from '../../../core/api/shell-data';
 import { PresenceService } from '../../../core/presence/presence.service';
 import { ThemeService } from '../../../core/theme/theme.service';
+import { UserSettingsService } from '../../settings/services/user-settings.service';
+import { Avatar } from '../../../shared/ui/avatar/avatar';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { SearchField } from '../../../shared/ui/search-field/search-field';
 import { SectionLabel } from '../../../shared/ui/section-label/section-label';
@@ -28,6 +34,11 @@ import {
   type FriendRequestPerson,
 } from './services/friends-store';
 
+import {
+  DashboardLayoutService,
+  MOBILE_BREAKPOINT_QUERY,
+} from '../../../layouts/app-layout/services/dashboard-layout.service';
+
 type FriendsContextView = 'activity';
 
 /**
@@ -40,6 +51,7 @@ type FriendsContextView = 'activity';
   imports: [
     ActivityPanel,
     AddFriendForm,
+    Avatar,
     ContextPanel,
     DashboardState,
     EmptyState,
@@ -57,17 +69,27 @@ type FriendsContextView = 'activity';
   styleUrl: './friends.css',
 })
 export class FriendsPage implements OnInit {
-  private readonly shell = inject(ShellData);
+  private readonly breakpoints = inject(BreakpointObserver);
   private readonly themeService = inject(ThemeService);
   private readonly uiState = inject(DashboardUiState);
   private readonly friendsStore = inject(FriendsStore);
   private readonly presenceService = inject(PresenceService);
 
+  // Màn hình rộng (>= 1280px) thì mở Activity Panel; màn hình nhỏ/tablet/mobile thì đóng để không che danh sách
+  protected readonly isLargeScreen = toSignal(
+    this.breakpoints.observe('(min-width: 1280px)').pipe(map((state) => state.matches)),
+    { initialValue: typeof window !== 'undefined' ? window.innerWidth >= 1280 : true },
+  );
+
+  protected readonly isMobile = toSignal(
+    this.breakpoints.observe(MOBILE_BREAKPOINT_QUERY).pipe(map((state) => state.matches)),
+    { initialValue: typeof window !== 'undefined' ? window.innerWidth < 768 : false },
+  );
+
   protected readonly tab = signal<FriendsTab>('all');
   protected readonly query = signal('');
   protected readonly theme = this.themeService.mode;
-  protected readonly demoEnabled = this.shell.demoEnabled;
-  protected readonly contextView = signal<FriendsContextView | null>('activity');
+  protected readonly contextView = signal<FriendsContextView | null>(null);
   protected readonly blockingState = this.uiState.blockingState;
   protected readonly connectionState = this.uiState.connectionState;
   protected readonly friendsLoading = this.friendsStore.loading;
@@ -78,20 +100,17 @@ export class FriendsPage implements OnInit {
   protected readonly incomingRequests = this.friendsStore.incomingRequests;
   protected readonly outgoingRequests = this.friendsStore.outgoingRequests;
 
-  protected readonly allFriends = computed<readonly FriendListPerson[]>(() =>
-    this.demoEnabled()
-      ? this.shell.conversations()
-      : this.friendsStore.friends(),
-  );
+  protected readonly allFriends = this.friendsStore.friends;
 
   protected readonly onlineFriends = computed(() =>
     this.allFriends().filter((person) => {
-      const presence = this.demoEnabled()
-        ? person.presence
-        : this.presenceService.getPresence(person.id)();
+      const presence = this.presenceService.getPresence(person.id)();
       return presence !== 'offline';
     }),
   );
+
+  private readonly userSettings = inject(UserSettingsService);
+  protected readonly blockedUsers = this.userSettings.blockedUsers;
 
   protected readonly visible = computed(() => {
     const needle = this.query().trim().toLowerCase();
@@ -105,16 +124,59 @@ export class FriendsPage implements OnInit {
     });
   });
 
+  protected readonly visibleBlocked = computed(() => {
+    const needle = this.query().trim().toLowerCase();
+    return this.blockedUsers().filter((user) => {
+      if (!needle) return true;
+      return (
+        user.displayName.toLowerCase().includes(needle) ||
+        user.username.toLowerCase().includes(needle)
+      );
+    });
+  });
+
   protected readonly pendingCount = computed(
     () => this.incomingRequests().length + this.outgoingRequests().length,
   );
 
-  protected readonly sectionLabel = computed(
-    () => `${this.tab() === 'online' ? 'Trực tuyến' : 'Tất cả bạn bè'} — ${this.visible().length}`,
-  );
+  protected readonly sectionLabel = computed(() => {
+    const currentTab = this.tab();
+    if (currentTab === 'online') {
+      return `Trực tuyến — ${this.visible().length}`;
+    }
+    if (currentTab === 'blocked') {
+      return `Đã chặn — ${this.visibleBlocked().length}`;
+    }
+    return `Tất cả bạn bè — ${this.visible().length}`;
+  });
 
   protected readonly contextOpen = computed(() => this.contextView() !== null);
   protected readonly activityExpanded = computed(() => this.contextView() === 'activity');
+
+  private previousIsMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+
+  constructor() {
+    effect(() => {
+      // Khi chuyển tab, xóa feedback và lỗi của các thao tác trước để không rò rỉ sang tab khác
+      this.tab();
+      this.friendsStore.clearFeedback();
+    });
+
+    effect(() => {
+      const mobile = this.isMobile();
+      // Chỉ tự động đóng khi vừa chuyển từ desktop sang mobile (khi resize co nhỏ)
+      if (mobile && !this.previousIsMobile) {
+        untracked(() => {
+          this.contextView.set(null);
+        });
+      }
+      this.previousIsMobile = mobile;
+    });
+  }
+
+  protected unblockUser(id: string): void {
+    this.userSettings.unblockUser(id);
+  }
 
   ngOnInit(): void {
     void this.friendsStore.load();
@@ -128,44 +190,31 @@ export class FriendsPage implements OnInit {
     this.contextView.set('activity');
   }
 
-  protected toggleDemoData(): void {
-    const wasDemo = this.demoEnabled();
-    this.shell.toggleDemoData();
-    this.friendsStore.clearFeedback();
-    if (wasDemo) {
-      void this.friendsStore.load(true);
-    }
-  }
-
   protected closeContext(): void {
     this.contextView.set(null);
   }
 
-  protected retryFriends(): void {
-    void this.friendsStore.load(true);
+  protected onSendRequest(targetUsername: string): void {
+    void this.friendsStore.sendRequest(targetUsername);
   }
 
-  protected sendFriendRequest(username: string): void {
-    if (this.demoEnabled()) return;
-    void this.friendsStore.sendRequest(username);
-  }
-
-  protected acceptRequest(userId: string): void {
+  protected onAccept(userId: string): void {
     void this.friendsStore.acceptRequest(userId);
   }
 
-  protected deleteRequest(
-    request: FriendRequestPerson,
-  ): void {
-    void this.friendsStore.deleteRequest(request.id, request.direction);
+  protected onDecline(userId: string): void {
+    void this.friendsStore.deleteRequest(userId, 'incoming');
   }
 
-  protected removeFriend(userId: string): void {
-    if (this.demoEnabled()) return;
-    void this.friendsStore.removeFriend(userId);
+  protected onCancel(userId: string): void {
+    void this.friendsStore.deleteRequest(userId, 'outgoing');
   }
 
-  protected clearUiState(): void {
-    void this.uiState.clearPreview();
+  protected onRemoveFriend(personId: string): void {
+    void this.friendsStore.removeFriend(personId);
+  }
+
+  protected onRetry(): void {
+    void this.friendsStore.load(true);
   }
 }

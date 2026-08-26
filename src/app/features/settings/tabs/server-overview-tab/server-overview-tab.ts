@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserSettingsService } from '../../services/user-settings.service';
-import { ShellData } from '../../../../core/api/shell-data';
+import { ServersStore } from '../../../../core/servers/servers.store';
 
 @Component({
   selector: 'app-server-overview-tab',
@@ -15,7 +15,7 @@ import { ShellData } from '../../../../core/api/shell-data';
 })
 export class ServerOverviewTab {
   protected readonly settingsService = inject(UserSettingsService);
-  private readonly shellData = inject(ShellData);
+  private readonly serversStore = inject(ServersStore);
 
   protected readonly serverData = this.settingsService.currentServerData;
   protected readonly serverName = computed(() => this.serverData().name);
@@ -33,7 +33,7 @@ export class ServerOverviewTab {
 
   protected readonly availableChannels = computed(() => {
     const sId = this.settingsService.currentServerId();
-    return this.shellData.channelsOf(sId);
+    return this.serversStore.channelsOf(sId);
   });
 
   protected readonly savedNotice = signal<boolean>(false);

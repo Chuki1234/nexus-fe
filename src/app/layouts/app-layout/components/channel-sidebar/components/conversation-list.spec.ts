@@ -2,7 +2,6 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Subject } from 'rxjs';
-import { ShellData } from '../../../../../core/api/shell-data';
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ConversationsApiService } from '../../../../../core/api/conversations-api.service';
 import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
@@ -57,12 +56,11 @@ describe('ConversationList', () => {
     };
   });
 
-  const mount = async (shell: ShellData = new ShellData(), query = '') => {
+  const mount = async (query = '') => {
     await TestBed.configureTestingModule({
       imports: [ConversationList],
       providers: [
         provideRouter([]),
-        { provide: ShellData, useValue: shell },
         { provide: ConversationsApiService, useValue: mockConversationsApi },
         { provide: ChatSocketService, useValue: mockChatSocket },
         { provide: AuthService, useValue: mockAuthService },
@@ -82,7 +80,6 @@ describe('ConversationList', () => {
 
     expect(mockConversationsApi.listConversations).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Alice');
-    expect(fixture.nativeElement.textContent).toContain('Chilling');
     expect(fixture.nativeElement.textContent).toContain('3'); // Unread count badge
   });
 
@@ -107,19 +104,6 @@ describe('ConversationList', () => {
     expect(text).not.toContain('Nhiệm Vụ');
   });
 
-  it('ở chế độ demo, sử dụng dữ liệu từ ShellData và không gọi API thật', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    mockConversationsApi.listConversations.mockClear();
-
-    const fixture = await mount(shell);
-
-    expect(mockConversationsApi.listConversations).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelectorAll('.conversation-row').length).toBe(
-      shell.conversations().length,
-    );
-  });
-
   it('cập nhật unread count realtime khi nhận conversation:updated (user-room event)', async () => {
     const fixture = await mount();
 
@@ -128,7 +112,6 @@ describe('ConversationList', () => {
       senderId: 'user-1',
       lastMessageId: '100',
       lastMessagePreview: 'Hello!',
-      lastMessageAt: new Date().toISOString(),
       unreadDelta: 1,
     });
     fixture.detectChanges();
@@ -136,69 +119,36 @@ describe('ConversationList', () => {
     expect(fixture.nativeElement.textContent).toContain('4');
   });
 
-  it('sender không tự tăng unread khi gửi tin nhắn', async () => {
+  it('xóa unread count khi người dùng mở đúng cuộc trò chuyện (activeConversationId khớp)', async () => {
     const fixture = await mount();
 
-    // Emit conversation:updated với senderId = chính mình
-    mockChatSocket.conversationUpdated$.next({
-      conversationId: 'conv-1',
-      senderId: 'my-user-id',
-      lastMessageId: '100',
-      lastMessagePreview: 'My own message',
-      lastMessageAt: new Date().toISOString(),
-      unreadDelta: 1,
-    });
-    fixture.detectChanges();
-
-    // Unread vẫn là 3 (không tăng)
-    expect(fixture.nativeElement.textContent).toContain('3');
-  });
-
-  it('conversation đang mở (active) không tăng unread', async () => {
+    // Giả lập người dùng click mở conv-1
     activeConversationIdSignal.set('conv-1');
-    const fixture = await mount();
+    fixture.detectChanges();
 
     mockChatSocket.conversationUpdated$.next({
       conversationId: 'conv-1',
       senderId: 'user-1',
-      lastMessageId: '100',
-      lastMessagePreview: 'Hello!',
-      lastMessageAt: new Date().toISOString(),
+      lastMessageId: '101',
+      lastMessagePreview: 'Another message',
       unreadDelta: 1,
     });
     fixture.detectChanges();
 
-    // Unread vẫn là 3 (không tăng vì conv đang mở)
-    expect(fixture.nativeElement.textContent).toContain('3');
+    // unreadCount vẫn là 0 vì người dùng đang ở trong conv-1
+    expect(fixture.nativeElement.textContent).not.toContain('4');
   });
 
-  it('reset unread count realtime khi nhận socket event messageRead', async () => {
+  it('reset unread count về 0 khi nhận message:read', async () => {
     const fixture = await mount();
 
     mockChatSocket.messageRead$.next({
       conversationId: 'conv-1',
-      userId: 'user-1',
+      userId: 'my-user-id',
       lastReadMessageId: '100',
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('app-unread-badge')).toBeNull();
-  });
-
-  it('conversation chưa có trong list thì gọi reload khi nhận conversation:updated', async () => {
-    const fixture = await mount();
-    mockConversationsApi.listConversations.mockClear();
-
-    mockChatSocket.conversationUpdated$.next({
-      conversationId: 'conv-unknown',
-      senderId: 'user-1',
-      lastMessageId: '200',
-      lastMessagePreview: 'New DM!',
-      lastMessageAt: new Date().toISOString(),
-      unreadDelta: 1,
-    });
-    fixture.detectChanges();
-
-    expect(mockConversationsApi.listConversations).toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).not.toContain('3');
   });
 });

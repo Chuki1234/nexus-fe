@@ -13,26 +13,30 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { PRESENCE_LABEL } from '../../../../../shared/dto/common';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import type { FriendListPerson } from '../services/friends-store';
 import { ConversationsApiService } from '../../../../core/api/conversations-api.service';
-import { ShellData } from '../../../../core/api/shell-data';
 import { PresenceService } from '../../../../core/presence/presence.service';
+import { DirectCallCoordinatorService } from '../../../../core/calls/direct-call-coordinator.service';
+import { UserSettingsService } from '../../../settings/services/user-settings.service';
+import { FriendNoteDialog } from './friend-note-dialog/friend-note-dialog';
 import type { PresenceStatus } from '../../../../../shared/dto/common';
 import { extractErrorMessage } from '../../../../core/utils/error.util';
 
 /**
  * Một hàng trong danh sách bạn bè.
  *
- * Cả hàng là một vùng bấm kích hoạt mở cuộc trò chuyện DM thật (hoặc demo khi bật demo).
+ * Cả hàng là một vùng bấm kích hoạt mở cuộc trò chuyện DM thật.
  */
 @Component({
   selector: 'app-friend-row',
   imports: [
     Avatar,
     MatButtonModule,
+    MatDialogModule,
     MatIconModule,
     MatMenuModule,
     MatProgressSpinnerModule,
@@ -46,8 +50,10 @@ import { extractErrorMessage } from '../../../../core/utils/error.util';
 export class FriendRow {
   private readonly router = inject(Router);
   private readonly conversationsApi = inject(ConversationsApiService);
-  private readonly shell = inject(ShellData);
   private readonly presenceService = inject(PresenceService);
+  private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
+  private readonly userSettingsService = inject(UserSettingsService);
+  private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
 
   private isDestroyed = false;
@@ -61,15 +67,20 @@ export class FriendRow {
   readonly errorMessage = signal<string | null>(null);
 
   protected readonly effectivePresence = computed<PresenceStatus>(() => {
-    if (this.shell.demoEnabled()) {
-      return this.person().presence;
-    }
     const id = this.person().id;
     if (this.presenceService.hasPresence(id)) {
       return this.presenceService.getPresence(id)();
     }
     return this.person().presence || 'offline';
   });
+
+  protected readonly isMuted = computed(() =>
+    this.userSettingsService.isFriendMuted(this.person().id),
+  );
+
+  protected readonly note = computed(() =>
+    this.userSettingsService.getFriendNote(this.person().id),
+  );
 
   constructor() {
     this.destroyRef.onDestroy(() => {
@@ -78,22 +89,22 @@ export class FriendRow {
     });
   }
 
-  /** Ưu tiên câu trạng thái người dùng tự đặt; không có thì hiện trạng thái hệ thống. */
+  /** Ưu tiên câu trạng thái người dùng tự đặt; không có thì hiện thời gian hoạt động cuối (nếu offline) hoặc trạng thái hệ thống. */
   protected readonly subtitle = computed(() => {
     const person = this.person();
-    return person.statusMessage ?? PRESENCE_LABEL[this.effectivePresence()];
+    if (person.statusMessage) {
+      return person.statusMessage;
+    }
+    const presence = this.effectivePresence();
+    if (presence === 'offline') {
+      const lastSeenText = this.presenceService.getLastSeenLabel(person.id)();
+      return lastSeenText ?? PRESENCE_LABEL['offline'];
+    }
+    return PRESENCE_LABEL[presence];
   });
 
   async onOpenDm(): Promise<void> {
     if (this.openingDm() || this.busy() || this.isDestroyed) {
-      return;
-    }
-
-    if (this.shell.demoEnabled()) {
-      const ok = await this.router.navigate(['/channels/@me', this.person().id]);
-      if (!ok && !this.isDestroyed) {
-        this.errorMessage.set('Không thể chuyển đến cuộc trò chuyện demo.');
-      }
       return;
     }
 
@@ -119,6 +130,72 @@ export class FriendRow {
         this.openingDm.set(false);
       }
     }
+  }
+
+  async onStartAudioCall(): Promise<void> {
+    if (this.busy() || this.isDestroyed) return;
+    this.errorMessage.set(null);
+    try {
+      const conv = await this.conversationsApi.getOrCreateDm(this.person().id);
+      if (this.isDestroyed) return;
+      void this.directCallCoordinator.startCall(conv.id, 'audio');
+      await this.router.navigate(['/channels/@me', conv.id]);
+    } catch (err: unknown) {
+      if (!this.isDestroyed) {
+        this.errorMessage.set(
+          extractErrorMessage(err, 'Không thể bắt đầu cuộc gọi thoại.'),
+        );
+      }
+    }
+  }
+
+  async onStartVideoCall(): Promise<void> {
+    if (this.busy() || this.isDestroyed) return;
+    this.errorMessage.set(null);
+    try {
+      const conv = await this.conversationsApi.getOrCreateDm(this.person().id);
+      if (this.isDestroyed) return;
+      void this.directCallCoordinator.startCall(conv.id, 'video');
+      await this.router.navigate(['/channels/@me', conv.id]);
+    } catch (err: unknown) {
+      if (!this.isDestroyed) {
+        this.errorMessage.set(
+          extractErrorMessage(err, 'Không thể bắt đầu cuộc gọi video.'),
+        );
+      }
+    }
+  }
+
+  onToggleMute(): void {
+    this.userSettingsService.toggleMuteFriend(this.person().id);
+  }
+
+  onEditNote(): void {
+    const dialogRef = this.dialog.open(FriendNoteDialog, {
+      data: {
+        friendId: this.person().id,
+        friendName: this.person().name,
+        initialNote: this.note(),
+      },
+      panelClass: 'nexus-dialog-surface',
+      hasBackdrop: true,
+    });
+
+    dialogRef.afterClosed().subscribe((result: string | null | undefined) => {
+      if (typeof result === 'string') {
+        this.userSettingsService.setFriendNote(this.person().id, result);
+      }
+    });
+  }
+
+  onBlockUser(): void {
+    const p = this.person();
+    this.userSettingsService.blockUser({
+      id: p.id,
+      username: p.username || p.name,
+      displayName: p.name,
+    });
+    this.removed.emit(p.id);
   }
 
   clearError(): void {

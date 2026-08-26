@@ -54,3 +54,11 @@ NEXUSCORD_MERGE_AUDIT.md
 .agents/
 skills-lock.json
 
+# Local untracked environment configs & keys
+.env
+.env.*
+.env.local
+.env.*.local
+src/environments/environment.local.ts
+src/environments/environment.*.local.ts
+

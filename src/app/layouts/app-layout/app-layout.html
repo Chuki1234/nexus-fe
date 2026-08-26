@@ -42,7 +42,7 @@
       </main>
     </div>
   } @else {
-    <!-- Tablet / Mobile Mode: Native Angular Material MatSidenav Overlay with Backdrop -->
+    <!-- Mobile Mode (<768px): Native Angular Material MatSidenav Overlay with Backdrop -->
     <mat-sidenav-container class="dashboard-mobile-container h-full w-full" [hasBackdrop]="true">
       <mat-sidenav
         #drawer
@@ -51,24 +51,30 @@
       >
         <div class="dashboard-nav-shell flex h-full w-full gap-2 overflow-hidden p-2 relative">
           <app-server-rail />
-          <app-channel-sidebar [serverId]="serverId()" />
+          <app-channel-sidebar
+            [serverId]="serverId()"
+            class="w-60 sm:w-72 max-w-[calc(100vw-5.5rem)]"
+            [style.width.px]="layoutService.navWidth()"
+          />
         </div>
       </mat-sidenav>
 
       <mat-sidenav-content class="dashboard-content h-full min-h-0 p-2">
-        <button
-          mat-icon-button
-          type="button"
-          (click)="drawer.toggle()"
-          matTooltip="Mở danh sách kênh"
-          class="nexus-icon-control absolute top-3 left-3 z-10 bg-surface shadow-card"
-        >
-          <mat-icon>menu</mat-icon>
-          <span class="sr-only">Mở danh sách kênh</span>
-        </button>
         <main
-          class="dashboard-workspace flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl"
+          class="dashboard-workspace relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl"
         >
+          <!-- Hamburger menu trigger nằm trọn trong header của workspace -->
+          <button
+            mat-icon-button
+            type="button"
+            (click)="drawer.toggle()"
+            matTooltip="Mở danh sách kênh"
+            aria-label="Mở danh sách kênh"
+            class="dashboard-mobile-menu-trigger nexus-icon-control"
+          >
+            <mat-icon>menu</mat-icon>
+            <span class="sr-only">Mở danh sách kênh</span>
+          </button>
           <router-outlet />
         </main>
       </mat-sidenav-content>
@@ -108,4 +114,8 @@
   <!-- User/Server Settings modal (Setting của Giang). Tự ẩn/hiện qua
        settingsService.isOpen() nên mount thẳng, không cần bọc @if. -->
   <app-settings-modal />
+
+  <!-- Global Direct Call Subsystem Overlays -->
+  <app-incoming-call-overlay />
+  <app-direct-call-stage />
 </div>

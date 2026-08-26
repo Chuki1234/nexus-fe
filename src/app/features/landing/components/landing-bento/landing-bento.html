@@ -1,0 +1,16 @@
+<section class="bento">
+  <div class="bento__head">
+    <p class="eyebrow">Và mọi thứ để vận hành một cộng đồng</p>
+    <h2 class="bento__title">Đầy đủ tính năng, không rườm rà.</h2>
+  </div>
+
+  <ul class="bento__grid">
+    @for (card of cards; track card.title) {
+      <li class="card">
+        <span class="card__icon material-icons" aria-hidden="true">{{ card.icon }}</span>
+        <h3 class="card__title">{{ card.title }}</h3>
+        <p class="card__body">{{ card.body }}</p>
+      </li>
+    }
+  </ul>
+</section>

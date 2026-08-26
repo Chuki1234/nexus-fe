@@ -1,49 +1,35 @@
 <div class="min-h-dvh bg-canvas">
   <header class="sticky top-0 z-10 border-b border-hairline bg-canvas/85 backdrop-blur-md">
-    <div class="mx-auto flex max-w-2xl items-center justify-between gap-4 px-4 py-3">
+    <!-- Thanh này CỐ TÌNH không có `mx-auto max-w-7xl` như <main> bên dưới:
+         hai đầu phải chạm sát mép cửa sổ, nên trên màn hình rộng nó sẽ không
+         thẳng hàng với mép thẻ hồ sơ. Giữ `px-4` chứ không bỏ hẳn đệm — viền
+         focus rộng 4px (outline 2px + offset 2px, styles.css) sẽ bị xén mất. -->
+    <div class="flex items-center justify-between gap-4 px-4 py-3">
+      <!-- `aria-label` vì dưới 640px phần chữ bị `hidden` (display:none), lúc đó
+           link chỉ còn icon và sẽ không có tên khả truy cập. `py-2` cho vùng bấm
+           đủ cao theo WCAG 2.5.8, không phải chỉ cao bằng dòng chữ. -->
       <a
         routerLink="/channels/@me"
-        class="inline-flex shrink-0 items-center gap-2 text-body-sm text-steel transition-colors hover:text-ink"
+        aria-label="Quay lại Nexus"
+        class="inline-flex shrink-0 items-center gap-2 rounded-full py-2 text-body-sm text-steel transition-colors hover:text-ink"
       >
         <mat-icon aria-hidden="true" class="size-5! text-[20px]!">arrow_back</mat-icon>
         <span class="hidden sm:inline">Quay lại Nexus</span>
       </a>
 
       <!-- Tìm người ngay tại đây: hồ sơ chỉ tới được bằng link chia sẻ hoặc gõ
-           tay URL, không có ô này thì muốn xem ai phải biết trước username. -->
-      <app-profile-search class="min-w-0 flex-1 sm:max-w-xs" />
-
-      @if (profile()) {
-        <div class="flex items-center gap-1">
-          <button
-            type="button"
-            (click)="openAsDialog()"
-            class="nexus-icon-control"
-            matTooltip="Xem dạng cửa sổ nổi"
-          >
-            <mat-icon aria-hidden="true">open_in_full</mat-icon>
-            <span class="sr-only">Xem hồ sơ dạng cửa sổ nổi</span>
-          </button>
-
-          <button
-            type="button"
-            (click)="copyLink()"
-            class="nexus-icon-control"
-            [matTooltip]="copied() ? 'Đã chép liên kết' : 'Sao chép liên kết hồ sơ'"
-          >
-            <mat-icon aria-hidden="true">{{ copied() ? 'check' : 'link' }}</mat-icon>
-            <span class="sr-only">Sao chép liên kết hồ sơ</span>
-          </button>
-        </div>
-      }
+           tay URL, không có ô này thì muốn xem ai phải biết trước username.
+           Không `flex-1`: chỉ còn hai con nên `justify-between` tự đẩy ô này
+           sát mép phải, còn `flex-1` sẽ kéo nó giãn hết khoảng trống. -->
+      <app-profile-search class="min-w-0 w-full max-w-xs" />
     </div>
   </header>
 
-  <main class="mx-auto max-w-2xl px-4 py-6">
+  <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
     @if (loading()) {
       <!-- Khung xám giữ đúng hình dạng để trang không nhảy khi tải xong. -->
-      <div class="animate-pulse overflow-hidden rounded-lg border border-hairline bg-surface">
-        <div class="h-40 w-full bg-surface-soft"></div>
+      <div class="animate-pulse overflow-hidden rounded-2xl border border-hairline bg-surface">
+        <div class="h-48 w-full bg-surface-soft"></div>
         <div class="space-y-3 px-6 pb-6 pt-4">
           <div class="h-6 w-40 rounded-sm bg-surface-soft"></div>
           <div class="h-4 w-24 rounded-sm bg-surface-soft"></div>
@@ -52,9 +38,53 @@
       </div>
       <p aria-live="polite" class="sr-only">Đang tải hồ sơ.</p>
     } @else if (profile(); as person) {
-      <article class="overflow-hidden rounded-lg border border-hairline bg-surface shadow-card">
-        <app-profile-card [profile]="person" surface="surface" bannerHeight="lg" />
-      </article>
+      <!-- Grid 12 cột mở rộng cân đối: hồ sơ chiếm 7-8 phần, cột widget 4-5 phần. -->
+      <div class="grid items-start gap-6 lg:grid-cols-12">
+        <article class="overflow-hidden rounded-2xl border border-hairline bg-surface shadow-card lg:col-span-7 xl:col-span-8">
+          <!-- Hai nút này đứng cạnh "Chỉnh sửa hồ sơ" / "Nhắn tin" trong thẻ,
+               không còn nằm trên thanh header. `size-9` là bắt buộc:
+               `.nexus-icon-control` chỉ cấp màu và hiệu ứng, không cấp kích
+               thước, mà hàng cha là flex nên thiếu size sẽ bị kéo méo. -->
+          <app-profile-card [profile]="person" surface="surface" bannerHeight="lg">
+            <div slot="action" class="flex items-center gap-1">
+              <button
+                type="button"
+                (click)="openAsDialog()"
+                class="nexus-icon-control inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full"
+                matTooltip="Xem dạng cửa sổ nổi"
+              >
+                <mat-icon aria-hidden="true" class="size-5! text-[20px]!">open_in_full</mat-icon>
+                <span class="sr-only">Xem hồ sơ dạng cửa sổ nổi</span>
+              </button>
+
+              <button
+                type="button"
+                (click)="copyLink()"
+                class="nexus-icon-control inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full"
+                [matTooltip]="copied() ? 'Đã chép liên kết' : 'Sao chép liên kết hồ sơ'"
+              >
+                <mat-icon aria-hidden="true" class="size-5! text-[20px]!">{{ copied() ? 'check' : 'link' }}</mat-icon>
+                <span class="sr-only">Sao chép liên kết hồ sơ</span>
+              </button>
+
+              <!-- Tooltip đổi chữ thì trình đọc màn hình không đọc lại, nên báo
+                   "đã chép" bằng một vùng aria-live riêng. -->
+              <p aria-live="polite" class="sr-only">{{ copied() ? 'Đã sao chép liên kết hồ sơ.' : '' }}</p>
+            </div>
+          </app-profile-card>
+        </article>
+
+        <div class="lg:col-span-5 xl:col-span-4">
+          <app-profile-widgets
+            class="block sticky top-20"
+            [ownerName]="person.displayName || person.username"
+            [rotatingGames]="rotatingGames()"
+            [favoriteGame]="favoriteGame()"
+            [likedGames]="likedGames()"
+            [wishlistGames]="wishlistGames()"
+          />
+        </div>
+      </div>
     } @else {
       <div
         role="alert"

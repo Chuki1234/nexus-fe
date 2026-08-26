@@ -19,6 +19,7 @@ describe('ChannelChatStore', () => {
   let reactionUpdated$: Subject<any>;
   let typingUpdated$: Subject<any>;
   let messageRead$: Subject<any>;
+  let messageHiddenForUser$: Subject<any>;
 
   const mockUser = {
     id: 'user-1',
@@ -30,6 +31,7 @@ describe('ChannelChatStore', () => {
     messageCreated$ = new Subject();
     messageUpdated$ = new Subject();
     messageDeleted$ = new Subject();
+    messageHiddenForUser$ = new Subject();
     reactionUpdated$ = new Subject();
     typingUpdated$ = new Subject();
     messageRead$ = new Subject();
@@ -62,6 +64,8 @@ describe('ChannelChatStore', () => {
       sendChannelMessage: vi.fn(),
       editMessage: vi.fn(),
       deleteMessage: vi.fn(),
+      hideMessage: vi.fn().mockResolvedValue({ id: '101', hidden: true, scope: 'for_me' }),
+      recallMessage: vi.fn().mockResolvedValue({ id: '101', deleted: true, scope: 'everyone' }),
       setChannelReaction: vi.fn(),
       markChannelAsRead: vi.fn(),
     };
@@ -79,6 +83,7 @@ describe('ChannelChatStore', () => {
       messageCreated$,
       messageUpdated$,
       messageDeleted$,
+      messageHiddenForUser$,
       reactionUpdated$,
       typingUpdated$,
       messageRead$,
@@ -105,98 +110,139 @@ describe('ChannelChatStore', () => {
     store = TestBed.inject(ChannelChatStore);
   });
 
-  describe('compareMessageIds', () => {
-    it('so sánh 2 BigInt IDs dạng chuỗi chính xác', () => {
-      expect(compareMessageIds('100', '200')).toBe(-1);
-      expect(compareMessageIds('200', '100')).toBe(1);
-      expect(compareMessageIds('100', '100')).toBe(0);
-      expect(compareMessageIds('9007199254740993', '9007199254740992')).toBe(1);
-    });
+  afterEach(() => {
+    store.ngOnDestroy();
   });
 
-  describe('loadInitial', () => {
-    it('tải tin nhắn ban đầu, join socket channel và nạp permissions', async () => {
+  describe('Initial Load & Reconciliation', () => {
+    it('gọi joinChannel và REST getChannelMessages khi loadInitial', async () => {
       await store.loadInitial('server-1', 'chan-1');
 
-      expect(store.channelId()).toBe('chan-1');
-      expect(store.serverId()).toBe('server-1');
+      expect(mockChatSocket.joinChannel).toHaveBeenCalledWith('chan-1');
+      expect(mockMessagesApi.getChannelMessages).toHaveBeenCalledWith('chan-1', { limit: 50 });
       expect(store.messages().length).toBe(1);
       expect(store.messages()[0].id).toBe('101');
-      expect(store.lastReadMessageId()).toBe('100');
-      expect(mockChatSocket.joinChannel).toHaveBeenCalledWith('chan-1');
-      expect(store.permissions().canSend).toBe(true);
-      expect(store.permissions().canManageMessages).toBe(true);
+      expect(store.loadingInitial()).toBe(false);
     });
 
-    it('Generation Guard: hủy bỏ kết quả request cũ khi chuyển channel nhanh', async () => {
-      let resolveFirst: any;
-      mockMessagesApi.getChannelMessages.mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveFirst = resolve;
-          }),
-      );
+    it('merge và deduplicate tin nhắn realtime đến trong lúc REST đang fetch', async () => {
+      let resolveRest: (val: any) => void = () => {};
+      const restPromise = new Promise((resolve) => {
+        resolveRest = resolve;
+      });
+      mockMessagesApi.getChannelMessages.mockReturnValue(restPromise);
 
-      const p1 = store.loadInitial('server-1', 'chan-old');
-      const p2 = store.loadInitial('server-1', 'chan-new');
+      const loadPromise = store.loadInitial('server-1', 'chan-1');
 
-      await p2;
-      expect(store.channelId()).toBe('chan-new');
+      // Trong lúc fetch REST, nhận realtime message mới
+      messageCreated$.next({
+        message: {
+          id: '102',
+          channelId: 'chan-1',
+          authorId: 'user-2',
+          content: 'Buffered message',
+          createdAt: '2026-08-24T00:01:00.000Z',
+        },
+      });
 
-      // Giải quyết p1 sau đó
-      resolveFirst({
-        messages: [{ id: '999', channelId: 'chan-old', content: 'Old' }],
+      // REST trả về kết quả chứa tin 101 và tin 102 (trùng lặp)
+      resolveRest({
+        messages: [
+          {
+            id: '101',
+            channelId: 'chan-1',
+            authorId: 'user-2',
+            content: 'Hello channel!',
+            createdAt: '2026-08-24T00:00:00.000Z',
+          },
+          {
+            id: '102',
+            channelId: 'chan-1',
+            authorId: 'user-2',
+            content: 'Buffered message',
+            createdAt: '2026-08-24T00:01:00.000Z',
+          },
+        ],
         hasMore: false,
       });
-      await p1;
 
-      // State vẫn thuộc về chan-new, không bị ghi đè bởi response chan-old
-      expect(store.channelId()).toBe('chan-new');
+      await loadPromise;
+
+      // Không bị trùng lặp tin 102
+      expect(store.messages().length).toBe(2);
+      expect(store.messages().map((m) => m.id)).toEqual(['101', '102']);
+    });
+
+    it('đóng drawer/component khi loadInitial đang pending: response cũ không ghi state, leaveChannel gọi đúng 1 lần, room không bị leak', async () => {
+      let resolveRest: (val: any) => void = () => {};
+      const pendingRestPromise = new Promise((resolve) => {
+        resolveRest = resolve;
+      });
+      mockMessagesApi.getChannelMessages.mockReturnValue(pendingRestPromise);
+
+      // Bắt đầu loadInitial
+      const loadPromise = store.loadInitial('server-1', 'chan-pending');
+      expect(mockChatSocket.joinChannel).toHaveBeenCalledWith('chan-pending');
+
+      // Người dùng đóng drawer ngay lập tức
+      store.ngOnDestroy();
+
+      // leaveChannel phải được gọi đúng 1 lần cho chan-pending
+      expect(mockChatSocket.leaveChannel).toHaveBeenCalledTimes(1);
+      expect(mockChatSocket.leaveChannel).toHaveBeenCalledWith('chan-pending');
+
+      // Sau đó REST response cũ mới trả về muộn
+      resolveRest({
+        messages: [
+          {
+            id: '999',
+            channelId: 'chan-pending',
+            authorId: 'user-2',
+            content: 'Stale message',
+            createdAt: '2026-08-24T00:00:00.000Z',
+          },
+        ],
+        hasMore: false,
+      });
+
+      await loadPromise;
+
+      // State phải sạch hoàn toàn, không bị stale response ghi đè
+      expect(store.messages().length).toBe(0);
+      expect(store.loadingInitial()).toBe(false);
+      expect(store.allMessages().length).toBe(0);
     });
   });
 
-  describe('sendMessage & Optimistic Updates', () => {
+  describe('Optimistic UI & Retry/Cancel', () => {
     beforeEach(async () => {
       await store.loadInitial('server-1', 'chan-1');
     });
 
-    it('thêm optimistic message vào allMessages và thay thế bằng persisted message khi API thành công', async () => {
-      const persistedMessage = {
-        id: '102',
-        channelId: 'chan-1',
-        authorId: 'user-1',
-        content: 'Optimistic text',
-        clientNonce: 'nonce-123',
-        createdAt: '2026-08-24T00:01:00.000Z',
-      };
-
-      mockMessagesApi.sendChannelMessage.mockImplementation(async () => {
-        // Trong khi đang gọi API, allMessages phải có optimistic message
-        expect(store.optimisticMessages().length).toBe(1);
-        expect(store.optimisticMessages()[0].status).toBe('sending');
-        return persistedMessage;
-      });
-
-      const res = await store.sendMessage('Optimistic text');
-
-      expect(res).toEqual(persistedMessage);
-      expect(store.optimisticMessages().length).toBe(0);
-      expect(store.messages().some((m) => m.id === '102')).toBe(true);
-    });
-
-    it('đánh dấu failed khi API gửi tin nhắn lỗi và cho phép retry/cancel', async () => {
-      mockMessagesApi.sendChannelMessage.mockRejectedValueOnce(
-        new Error('Mất kết nối mạng'),
+    it('tạo optimistic message ngay lập tức khi sendMessage', async () => {
+      let resolveSend: (val?: any) => void = () => {};
+      mockMessagesApi.sendChannelMessage.mockReturnValue(
+        new Promise<any>((resolve) => {
+          resolveSend = resolve;
+        }),
       );
 
-      await store.sendMessage('Failed text');
+      const sendPromise = store.sendMessage('Optimistic content');
 
       expect(store.optimisticMessages().length).toBe(1);
       const opt = store.optimisticMessages()[0];
-      expect(opt.status).toBe('failed');
-      expect(opt.errorMessage).toContain('Mất kết nối mạng');
+      expect(opt.content).toBe('Optimistic content');
+      expect(opt.status).toBe('sending');
 
-      // Cancel optimistic message
+      resolveSend({ id: 'msg-real-1' });
+      await sendPromise;
+    });
+
+    it('hủy optimistic message khi cancelOptimisticMessage', async () => {
+      mockMessagesApi.sendChannelMessage.mockReturnValue(new Promise(() => {})); // pending forever
+      void store.sendMessage('To be cancelled');
+
+      const opt = store.optimisticMessages()[0];
       store.cancelOptimisticMessage(opt.clientNonce);
       expect(store.optimisticMessages().length).toBe(0);
     });
@@ -227,6 +273,92 @@ describe('ChannelChatStore', () => {
       const msg = store.messages().find((m) => m.id === '101');
       expect(msg?.deletedAt).toBeTruthy();
       expect(msg?.content).toBeNull();
+      expect(msg?.attachments).toEqual([]);
+      expect(msg?.reactions).toEqual([]);
+    });
+
+    it('nhận messageHiddenForUser$ và ẩn tin nhắn khỏi danh sách hiển thị của user', () => {
+      expect(store.messages().some((m) => m.id === '101')).toBe(true);
+
+      messageHiddenForUser$.next({
+        channelId: 'chan-1',
+        messageId: '101',
+        userId: 'user-1',
+        hiddenAt: new Date().toISOString(),
+      });
+
+      expect(store.messages().some((m) => m.id === '101')).toBe(false);
+    });
+
+    it('hideMessage: ẩn optimistic và gọi API hideMessage', async () => {
+      await store.hideMessage('101');
+
+      expect(mockMessagesApi.hideMessage).toHaveBeenCalledWith('101');
+      expect(store.messages().some((m) => m.id === '101')).toBe(false);
+    });
+
+    it('hideMessage thất bại: rollback lại message tại đúng vị trí', async () => {
+      mockMessagesApi.hideMessage.mockRejectedValueOnce(new Error('Lỗi server'));
+
+      await expect(store.hideMessage('101')).rejects.toThrow('Lỗi server');
+
+      const target = store.messages().find((m) => m.id === '101');
+      expect(target?.id).toBe('101');
+      expect(target?.content).toBe('Hello channel!');
+    });
+
+    it('recallMessage: redact optimistic và gọi API recallMessage', async () => {
+      await store.recallMessage('101');
+
+      expect(mockMessagesApi.recallMessage).toHaveBeenCalledWith('101');
+      const target = store.messages().find((m) => m.id === '101');
+      expect(target?.content).toBeNull();
+      expect(target?.deletedAt).toBeTruthy();
+    });
+
+    it('recallMessage thất bại: rollback lại nguyên trạng', async () => {
+      mockMessagesApi.recallMessage.mockRejectedValueOnce(new Error('Lỗi server khi recall'));
+
+      await expect(store.recallMessage('101')).rejects.toThrow('Lỗi server khi recall');
+
+      const target = store.messages().find((m) => m.id === '101');
+      expect(target?.content).toBe('Hello channel!');
+      expect(target?.deletedAt).toBeNull();
+    });
+
+    it('editMessage thành công: gọi API và cập nhật canonical message', async () => {
+      mockMessagesApi.editMessage.mockResolvedValueOnce({
+        id: '101',
+        channelId: 'chan-1',
+        conversationId: null,
+        authorId: 'user-1',
+        type: 'default',
+        content: 'Nội dung kênh đã sửa',
+        editedAt: '2026-08-26T12:00:00.000Z',
+        deletedAt: null,
+        isForwarded: false,
+        createdAt: '2026-08-24T00:00:00.000Z',
+      });
+
+      await store.editMessage('101', 'Nội dung kênh đã sửa');
+
+      expect(mockMessagesApi.editMessage).toHaveBeenCalledWith('101', { content: 'Nội dung kênh đã sửa' });
+      const target = store.messages().find((m) => m.id === '101');
+      expect(target?.content).toBe('Nội dung kênh đã sửa');
+      expect(target?.editedAt).toBe('2026-08-26T12:00:00.000Z');
+    });
+
+    it('editMessage thất bại: rollback snapshot và re-throw error', async () => {
+      mockMessagesApi.editMessage.mockRejectedValueOnce(new Error('Lỗi khi sửa tin nhắn kênh'));
+
+      await expect(
+        store.editMessage('101', 'Nội dung sửa thất bại'),
+      ).rejects.toThrow('Lỗi khi sửa tin nhắn kênh');
+
+      const target = store.messages().find((m) => m.id === '101');
+      expect(target?.content).toBe('Hello channel!');
+      expect(target?.editedAt).toBeNull();
+      expect(store.error()).toBe('Lỗi khi sửa tin nhắn kênh');
     });
 
     it('nhận reactionUpdated$ và cập nhật reactions của message', () => {

@@ -1,0 +1,73 @@
+@let hasLabel = label().length > 0;
+
+<svg
+  class="mascot"
+  [class.mascot--purple]="variant() === 'purple'"
+  [class.mascot--orange]="variant() === 'orange'"
+  [class.mascot--waving]="waving()"
+  viewBox="0 0 240 235"
+  [attr.role]="hasLabel ? 'img' : null"
+  [attr.aria-label]="hasLabel ? label() : null"
+  [attr.aria-hidden]="hasLabel ? null : true"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Đuôi xoắn ốc — nét nhận diện của tắc kè (vẽ sau lưng thân) -->
+  <path
+    class="m-tail"
+    d="M150 170
+       C 196 176 222 154 220 122
+       C 218 96 194 86 178 100
+       C 166 110 170 130 186 130
+       C 196 130 200 120 196 114"
+  />
+
+  <!-- Chân sau (sau thân) -->
+  <ellipse class="m-body" cx="90" cy="198" rx="17" ry="12" />
+  <ellipse class="m-body" cx="150" cy="198" rx="17" ry="12" />
+
+  <!-- Chân trước trái (đệm ngón bám) -->
+  <path class="m-limb" d="M96 156 C 84 172 76 178 70 184" />
+  <circle class="m-body" cx="66" cy="188" r="11" />
+  <circle class="m-body" cx="58" cy="196" r="4.5" />
+  <circle class="m-body" cx="67" cy="199" r="4.5" />
+  <circle class="m-body" cx="76" cy="196" r="4.5" />
+
+  <!-- Thân + bụng sáng -->
+  <ellipse class="m-body" cx="120" cy="160" rx="46" ry="44" />
+  <ellipse class="m-belly" cx="120" cy="170" rx="27" ry="28" />
+
+  <!-- Đầu -->
+  <ellipse class="m-body" cx="120" cy="92" rx="58" ry="50" />
+
+  <!-- Chân trước phải: vẫy chào khi waving, đứng yên khi không -->
+  @if (waving()) {
+    <g class="m-wave">
+      <path class="m-limb" d="M150 150 C 176 140 192 120 190 100" />
+      <circle class="m-body" cx="190" cy="96" r="12" />
+      <circle class="m-body" cx="182" cy="88" r="4.5" />
+      <circle class="m-body" cx="192" cy="84" r="4.5" />
+      <circle class="m-body" cx="200" cy="90" r="4.5" />
+    </g>
+  } @else {
+    <path class="m-limb" d="M144 156 C 156 172 164 178 170 184" />
+    <circle class="m-body" cx="174" cy="188" r="11" />
+    <circle class="m-body" cx="166" cy="196" r="4.5" />
+    <circle class="m-body" cx="175" cy="199" r="4.5" />
+    <circle class="m-body" cx="184" cy="196" r="4.5" />
+  }
+
+  <!-- Mắt to lồi (đặc trưng tắc kè) -->
+  <circle class="m-eyewhite" cx="96" cy="60" r="23" />
+  <circle class="m-eyewhite" cx="144" cy="60" r="23" />
+  <circle class="m-face" cx="100" cy="64" r="12" />
+  <circle class="m-face" cx="140" cy="64" r="12" />
+  <circle class="m-spark" cx="104" cy="59" r="4.5" />
+  <circle class="m-spark" cx="144" cy="59" r="4.5" />
+
+  <!-- Lỗ mũi + má hồng + miệng cười -->
+  <circle class="m-face" cx="112" cy="102" r="2.6" />
+  <circle class="m-face" cx="128" cy="102" r="2.6" />
+  <circle class="m-cheek" cx="84" cy="108" r="9" />
+  <circle class="m-cheek" cx="156" cy="108" r="9" />
+  <path class="m-smile" d="M104 112 Q120 128 136 112" />
+</svg>

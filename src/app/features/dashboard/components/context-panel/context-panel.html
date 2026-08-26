@@ -1,12 +1,14 @@
-<button
-  type="button"
-  class="context-panel__backdrop"
-  [class.context-panel__backdrop--open]="open()"
-  [attr.aria-hidden]="open() ? null : 'true'"
-  [attr.tabindex]="open() ? 0 : -1"
-  [attr.aria-label]="'Đóng ' + title()"
-  (click)="requestClose()"
-></button>
+@if (showClose()) {
+  <button
+    type="button"
+    class="context-panel__backdrop"
+    [class.context-panel__backdrop--open]="open()"
+    [attr.aria-hidden]="open() ? null : 'true'"
+    [attr.tabindex]="open() ? 0 : -1"
+    [attr.aria-label]="'Đóng ' + title()"
+    (click)="requestClose()"
+  ></button>
+}
 
 <aside
   class="context-panel flex h-full min-h-0 flex-col bg-surface relative"
@@ -39,15 +41,17 @@
   <header class="context-panel__header flex min-h-14 shrink-0 items-center gap-2 px-4 py-2">
     <h2 class="min-w-0 flex-1 truncate text-heading-5 text-charcoal">{{ title() }}</h2>
 
-    <button
-      mat-icon-button
-      type="button"
-      class="context-panel__close nexus-icon-control !size-10"
-      [attr.aria-label]="'Đóng ' + title()"
-      (click)="requestClose()"
-    >
-      <mat-icon aria-hidden="true">close</mat-icon>
-    </button>
+    @if (showClose()) {
+      <button
+        mat-icon-button
+        type="button"
+        class="context-panel__close nexus-icon-control !size-10"
+        [attr.aria-label]="'Đóng ' + title()"
+        (click)="requestClose()"
+      >
+        <mat-icon aria-hidden="true">close</mat-icon>
+      </button>
+    }
   </header>
 
   <div class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto">

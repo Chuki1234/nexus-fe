@@ -1,12 +1,18 @@
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { ProfileService } from '../../../core/profile/profile.service';
+import { ACCENT_COLORS } from '../../../../shared';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ProfilePendingImages } from '../../profile/pending-images';
+import { ConnectedAppsService } from '../../profile/connected-apps.service';
+import { ProfileGamesService } from '../../profile/profile-games.service';
+import { ProfileStore } from '../../profile/profile-store';
+import { ProfilesApiService } from '../../../core/api/profiles-api.service';
+import { formatApiError } from '../../../core/api/servers-api.service';
 
 export type SettingsTab =
   | 'account'
   | 'profile'
   | 'privacy'
-  | 'messages'
   | 'notifications'
   | 'voice-video'
   | 'appearance'
@@ -358,6 +364,11 @@ const STORAGE_KEY = 'nexus_user_preferences_v2';
 export class UserSettingsService {
   private readonly profileService = inject(ProfileService);
   private readonly authService = inject(AuthService, { optional: true });
+  private readonly pendingImages = inject(ProfilePendingImages);
+  private readonly connectedApps = inject(ConnectedAppsService);
+  private readonly profileGames = inject(ProfileGamesService);
+  private readonly profilesApi = inject(ProfilesApiService);
+  private readonly profileStore = inject(ProfileStore);
 
   private getEffectiveUsername(): string {
     const fromProfile = this.profileService.current()?.username;
@@ -1054,24 +1065,50 @@ export class UserSettingsService {
   readonly editDisplayName = signal<string>('');
   readonly editUsername = signal<string>('');
   readonly editBio = signal<string>('');
-  readonly editPronouns = signal<string>('');
-  readonly editBannerColor = signal<string>('#003d4f');
+  readonly editBannerColor = signal<string>(ACCENT_COLORS[0]);
   readonly editCustomStatus = signal<string>('Sẵn sàng kết nối');
   readonly editProfileTag = signal<string>('0001');
   readonly editAvatarUrl = signal<string | null>(null);
+  /** `YYYY-MM-DD`. Đi API riêng `setBirthdate()` khi lưu — xem `saveChanges()`. */
+  readonly editBirthdate = signal<string>('');
+
+  /**
+   * Ảnh đại diện đang chờ tải lên. `editAvatarUrl` chỉ là ảnh XEM TRƯỚC.
+   *
+   * Backend không có đường nào nhận avatar dưới dạng URL hay chuỗi base64 —
+   * `POST /profiles/me/avatar` là multipart. Nhét data URL vào thân JSON như
+   * trước vừa không lưu được, vừa làm body phình quá `limit` 100KB của backend
+   * (ảnh 115KB là đủ để nhận `PayloadTooLargeError`).
+   */
+  private readonly pendingAvatarFile = signal<File | null>(null);
+  /** Người dùng đã bấm "Gỡ avatar" và chưa lưu. */
+  private readonly avatarRemovalStaged = signal<boolean>(false);
+
+  /**
+   * Ảnh bìa: `null` = đang dùng màu chủ đạo, có URL = đang dùng ảnh.
+   *
+   * Ảnh luôn ĐÈ LÊN màu — màu chỉ là nền dự phòng khi chưa có ảnh, giống cách
+   * `bannerColorFor()` băm màu từ username cho người chưa chọn gì.
+   */
+  readonly editBannerUrl = signal<string | null>(null);
+  private baselineBannerUrl: string | null = null;
+  private readonly pendingBannerFile = signal<File | null>(null);
+  private readonly bannerRemovalStaged = signal<boolean>(false);
 
   // Baseline snapshots to detect unsaved changes
   private baselineDisplayName = '';
   private baselineUsername = '';
   private baselineBio = '';
-  private baselinePronouns = '';
-  private baselineBannerColor = '#003d4f';
+  private baselineBannerColor: string = ACCENT_COLORS[0];
   private baselineCustomStatus = 'Sẵn sàng kết nối';
   private baselineProfileTag = '0001';
   private baselineAvatarUrl: string | null = null;
+  private baselineBirthdate = '';
 
   readonly isSaving = signal<boolean>(false);
   readonly saveSuccessNotice = signal<boolean>(false);
+  /** Lỗi của lần lưu gần nhất. Hiện lên thay vì im lặng nuốt như trước. */
+  readonly saveErrorMessage = signal<string | null>(null);
 
   // Live mic testing state
   readonly isTestingMic = signal<boolean>(false);
@@ -1185,20 +1222,46 @@ export class UserSettingsService {
   ]);
 
   // Blocked users list
-  readonly blockedUsers = signal<{ id: string; username: string; displayName: string }[]>([
-    { id: 'b1', username: 'spammer_bot99', displayName: 'Free Nitro Bot' },
-    { id: 'b2', username: 'toxic_player01', displayName: 'Toxic User' },
+  readonly blockedUsers = signal<{ id: string; username: string; displayName: string; avatarUrl?: string | null }[]>([
+    { id: 'b1', username: 'spammer_bot99', displayName: 'Free Nitro Bot', avatarUrl: null },
+    { id: 'b2', username: 'toxic_player01', displayName: 'Toxic User', avatarUrl: null },
   ]);
+
+  // Friend Notes map: Record<friendId, string>
+  readonly friendNotes = signal<Record<string, string>>((() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = localStorage.getItem('nexuscord-friend-notes');
+        if (raw) return JSON.parse(raw);
+      }
+    } catch {}
+    return {};
+  })());
+
+  // Muted Friends list: string[] (user IDs)
+  readonly mutedFriends = signal<string[]>((() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = localStorage.getItem('nexuscord-muted-friends');
+        if (raw) return JSON.parse(raw);
+      }
+    } catch {}
+    return [];
+  })());
 
   constructor() {
     effect(() => {
       const p = this.profileService.current();
+      // Theo dõi cả hồ sơ đầy đủ: nó về sau `/auth/me` nên form phải nạp lại khi
+      // có, nếu không các ô bio / trạng thái / màu vẫn rỗng dù dữ liệu đã tới.
+      this.profileStore.profile();
       if (p) {
-        this.initProfileDraft(
-          p.displayName ?? p.username ?? '',
-          p.username ?? '',
-          p.avatarUrl ?? null,
-        );
+        // `untracked`: đọc các ô đang sửa để biết có nên nạp đè hay không, nhưng
+        // KHÔNG biến chúng thành phụ thuộc — nếu không thì mỗi ký tự người dùng
+        // gõ lại kích hoạt effect này.
+        if (!untracked(() => this.hasUnsavedChanges())) {
+          this.initProfileDraft();
+        }
         const uname = (p.username || '').toLowerCase();
         const sId = this.currentServerId();
         const currentServer = this.serverDataMap()[sId];
@@ -1245,9 +1308,23 @@ export class UserSettingsService {
     this.currentTab.set(tab);
     this.searchQuery.set('');
     this.isOpen.set(true);
-    const p = this.profileService.current();
-    if (p && !this.editUsername()) {
-      this.initProfileDraft(p.displayName ?? p.username ?? '', p.username ?? '');
+    void this.seedProfileDraft();
+  }
+
+  /**
+   * Chờ hồ sơ thật về rồi mới nạp vào form.
+   *
+   * Không nạp thì các ô giữ giá trị mặc định, bấm Lưu là ghi đè hồ sơ thật bằng
+   * chúng. Chỉ nạp khi chưa có thay đổi dở dang — người dùng gõ nửa chừng rồi
+   * đóng/mở lại tab không nên bị nuốt mất phần đang gõ.
+   */
+  private async seedProfileDraft(): Promise<void> {
+    if (this.hasUnsavedChanges()) {
+      return;
+    }
+    await this.profileStore.ensureLoaded();
+    if (!this.hasUnsavedChanges()) {
+      this.initProfileDraft();
     }
   }
 
@@ -1255,6 +1332,21 @@ export class UserSettingsService {
     this.stopMicTest();
     this.isTestingVideo.set(false);
     this.isColorStudioOpen.set(false);
+    // Ảnh chọn dở mà không bỏ đi thì lần mở cài đặt sau vẫn còn nằm đó kèm thanh
+    // "chưa lưu", trong khi người dùng đã đóng modal tức là đã bỏ ý định.
+    //
+    // Phải gọi CẢ HAI: tab Hồ Sơ xếp ảnh chờ vào chính service này
+    // (`stageAvatarFile`), còn `ProfilePendingImages` là đường của component
+    // `app-profile-images`. Trước đây chỉ gọi `pendingImages.discard()` nên ảnh
+    // chọn từ tab Hồ Sơ không hề bị bỏ — đóng rồi mở lại vẫn thấy ảnh lạ.
+    this.discardStagedImages();
+    this.pendingImages.discard();
+    // Popup nhập tên tài khoản đang mở cũng vậy — đóng modal giữa chừng thì lần
+    // sau mở lại không nên thấy ô nhập dở của lần trước.
+    this.connectedApps.cancelConnect();
+    // Ô nhập trò chơi / nhãn cũng vậy: đóng modal giữa chừng thì lần sau mở lại
+    // không nên thấy thứ gõ dở của lần trước.
+    this.profileGames.cancelAll();
     this.isOpen.set(false);
   }
 
@@ -1279,6 +1371,7 @@ export class UserSettingsService {
     this.currentTab.set(tab);
     this.searchQuery.set('');
     this.isOpen.set(true);
+    void this.seedProfileDraft();
   }
 
   addServerRole(name: string, color: string): void {
@@ -1802,6 +1895,53 @@ export class UserSettingsService {
     this.blockedUsers.update((users) => users.filter((u) => u.id !== id));
   }
 
+  blockUser(user: { id: string; username: string; displayName: string }): void {
+    this.blockedUsers.update((users) => {
+      if (users.some((u) => u.id === user.id)) return users;
+      return [...users, user];
+    });
+  }
+
+  isUserBlocked(userId: string): boolean {
+    return this.blockedUsers().some((u) => u.id === userId);
+  }
+
+  getFriendNote(friendId: string): string {
+    return this.friendNotes()[friendId] || '';
+  }
+
+  setFriendNote(friendId: string, note: string): void {
+    this.friendNotes.update((notes) => {
+      const updated = { ...notes, [friendId]: note.trim() };
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem('nexuscord-friend-notes', JSON.stringify(updated));
+        }
+      } catch {}
+      return updated;
+    });
+  }
+
+  isFriendMuted(friendId: string): boolean {
+    return this.mutedFriends().includes(friendId);
+  }
+
+  toggleMuteFriend(friendId: string): boolean {
+    let nowMuted = false;
+    this.mutedFriends.update((list) => {
+      const isMuted = list.includes(friendId);
+      nowMuted = !isMuted;
+      const updated = isMuted ? list.filter((id) => id !== friendId) : [...list, friendId];
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem('nexuscord-muted-friends', JSON.stringify(updated));
+        }
+      } catch {}
+      return updated;
+    });
+    return nowMuted;
+  }
+
   revokeSession(id: string): void {
     this.activeSessions.update((sessions) => sessions.filter((s) => s.id !== id));
   }
@@ -1811,72 +1951,191 @@ export class UserSettingsService {
       this.editDisplayName() !== this.baselineDisplayName ||
       this.editUsername() !== this.baselineUsername ||
       this.editBio() !== this.baselineBio ||
-      this.editPronouns() !== this.baselinePronouns ||
       this.editBannerColor() !== this.baselineBannerColor ||
       this.editCustomStatus() !== this.baselineCustomStatus ||
-      this.editAvatarUrl() !== this.baselineAvatarUrl
+      this.editAvatarUrl() !== this.baselineAvatarUrl ||
+      this.editBannerUrl() !== this.baselineBannerUrl ||
+      this.editBirthdate() !== this.baselineBirthdate
     );
   }
 
+  /**
+   * Bỏ ảnh đang chờ tải lên, trả ô xem trước về ảnh đã lưu.
+   *
+   * CHỈ đụng tới ảnh, không đụng các ô chữ: gõ dở tên/giới thiệu rồi đóng mở
+   * lại khung cài đặt thì phần đang gõ phải còn (xem `seedProfileDraft`), còn
+   * ảnh chọn dở thì đóng modal nghĩa là đã bỏ ý định.
+   */
+  private discardStagedImages(): void {
+    this.pendingAvatarFile.set(null);
+    this.avatarRemovalStaged.set(false);
+    this.pendingBannerFile.set(null);
+    this.bannerRemovalStaged.set(false);
+    this.editAvatarUrl.set(this.baselineAvatarUrl);
+    this.editBannerUrl.set(this.baselineBannerUrl);
+  }
+
+  /** Chọn ảnh đại diện mới — chỉ xem trước, tải lên khi bấm Lưu thay đổi. */
+  stageAvatarFile(file: File, previewUrl: string): void {
+    this.pendingAvatarFile.set(file);
+    this.avatarRemovalStaged.set(false);
+    this.editAvatarUrl.set(previewUrl);
+  }
+
+  /** Hẹn gỡ ảnh đại diện khi lưu. */
+  stageAvatarRemoval(): void {
+    this.pendingAvatarFile.set(null);
+    this.avatarRemovalStaged.set(true);
+    this.editAvatarUrl.set(null);
+  }
+
+  /** Chọn ảnh bìa mới — chỉ xem trước, tải lên khi bấm Lưu thay đổi. */
+  stageBannerFile(file: File, previewUrl: string): void {
+    this.pendingBannerFile.set(file);
+    this.bannerRemovalStaged.set(false);
+    this.editBannerUrl.set(previewUrl);
+  }
+
+  /** Hẹn gỡ ảnh bìa khi lưu — quay về dùng màu chủ đạo. */
+  stageBannerRemoval(): void {
+    this.pendingBannerFile.set(null);
+    this.bannerRemovalStaged.set(true);
+    this.editBannerUrl.set(null);
+  }
+
   resetChanges(): void {
+    this.pendingAvatarFile.set(null);
+    this.avatarRemovalStaged.set(false);
+    this.pendingBannerFile.set(null);
+    this.bannerRemovalStaged.set(false);
+    this.editBannerUrl.set(this.baselineBannerUrl);
+    this.saveErrorMessage.set(null);
     this.editDisplayName.set(this.baselineDisplayName);
     this.editUsername.set(this.baselineUsername);
     this.editBio.set(this.baselineBio);
-    this.editPronouns.set(this.baselinePronouns);
     this.editBannerColor.set(this.baselineBannerColor);
     this.editCustomStatus.set(this.baselineCustomStatus);
     this.editAvatarUrl.set(this.baselineAvatarUrl);
+    this.editBirthdate.set(this.baselineBirthdate);
   }
 
+  /**
+   * Lưu hồ sơ qua ĐÚNG đường của backend.
+   *
+   * Bản trước gọi `PATCH /auth/profile` — route đó không tồn tại (xem danh sách
+   * route của AuthController), nên mọi lần lưu đều nhận 404. Lỗi lại bị nuốt
+   * bằng `console.warn` rồi vẫn bật thông báo "Đã lưu thành công", và
+   * `ProfileStore` — nguồn mà thanh người dùng dưới đáy đọc — không hề được cập
+   * nhật. Kết quả: đổi avatar xong màn cài đặt hiện ảnh mới còn góc dưới trái
+   * vẫn ảnh cũ, mà không ai biết là đã hỏng.
+   *
+   * Ném lại lỗi để nơi gọi biết đừng xoá dấu "chưa lưu".
+   */
   async saveChanges(): Promise<void> {
     this.isSaving.set(true);
+    this.saveErrorMessage.set(null);
     try {
-      try {
-        await this.profileService.updateProfile({
-          displayName: this.editDisplayName(),
-          avatarUrl: this.editAvatarUrl(),
-          bannerColor: this.editBannerColor(),
-          customStatus: this.editCustomStatus(),
-        });
-      } catch (err) {
-        console.warn('Could not sync profile to backend:', err);
+      // Chữ nghĩa đi một lời gọi; ảnh đi đường multipart riêng. Tuần tự chứ
+      // không song song: mỗi lời gọi trả về TOÀN BỘ hồ sơ mới, chạy song song
+      // thì phản hồi về sau ghi đè mất thay đổi của phản hồi về trước.
+      let updated = await this.profilesApi.update({
+        displayName: this.editDisplayName(),
+        bio: this.editBio(),
+        statusMessage: this.editCustomStatus(),
+        accentColor: this.editBannerColor(),
+      });
+
+      const avatarFile = this.pendingAvatarFile();
+      if (avatarFile) {
+        updated = await this.profilesApi.uploadImage('avatar', avatarFile);
+      } else if (this.avatarRemovalStaged()) {
+        updated = await this.profilesApi.removeImage('avatar');
       }
+
+      const bannerFile = this.pendingBannerFile();
+      if (bannerFile) {
+        updated = await this.profilesApi.uploadImage('banner', bannerFile);
+      } else if (this.bannerRemovalStaged()) {
+        updated = await this.profilesApi.removeImage('banner');
+      }
+
+      // Ngày sinh đi API riêng (`setBirthdate`) — xem ghi chú ở `UpdateProfileDto`.
+      if (this.editBirthdate() !== this.baselineBirthdate) {
+        updated = await this.profilesApi.setBirthdate(this.editBirthdate());
+      }
+
+      // Một nguồn duy nhất cho ảnh: thanh dưới đáy, thẻ hồ sơ và tab cài đặt
+      // đều đọc ProfileStore. Không set ở đây thì chúng giữ ảnh cũ.
+      this.profileStore.set(updated);
+      this.pendingAvatarFile.set(null);
+      this.avatarRemovalStaged.set(false);
+      this.pendingBannerFile.set(null);
+      this.bannerRemovalStaged.set(false);
+      this.editAvatarUrl.set(updated.avatarUrl ?? null);
+      this.editBannerUrl.set(updated.bannerUrl ?? null);
+      this.editBirthdate.set(updated.birthdate ?? '');
 
       this.baselineDisplayName = this.editDisplayName();
       this.baselineUsername = this.editUsername();
       this.baselineBio = this.editBio();
-      this.baselinePronouns = this.editPronouns();
       this.baselineBannerColor = this.editBannerColor();
       this.baselineCustomStatus = this.editCustomStatus();
       this.baselineAvatarUrl = this.editAvatarUrl();
+      this.baselineBannerUrl = this.editBannerUrl();
+      this.baselineBirthdate = this.editBirthdate();
 
       this.saveSuccessNotice.set(true);
       setTimeout(() => {
         this.saveSuccessNotice.set(false);
       }, 2500);
+    } catch (error) {
+      this.saveErrorMessage.set(formatApiError(error));
+      throw error;
     } finally {
       this.isSaving.set(false);
     }
   }
 
-  initProfileDraft(displayName: string, username: string, avatarUrl: string | null = null): void {
-    this.baselineDisplayName = displayName || 'Nghiện Khó Phai';
-    this.baselineUsername = username || 'nghienkhophai';
-    this.baselineBio = 'Lập trình viên & đam mê xây dựng cộng đồng Nexus ✨';
-    this.baselinePronouns = 'anh ấy / he/him';
-    this.baselineBannerColor = '#003d4f';
-    this.baselineCustomStatus = 'Sẵn sàng kết nối';
+  /**
+   * Nạp form từ hồ sơ THẬT của người đang đăng nhập.
+   *
+   * Bản trước điền sẵn chuỗi cứng ("Nghiện Khó Phai", "Lập trình viên & đam mê
+   * xây dựng cộng đồng Nexus ✨", màu `#003d4f`) và chỉ ghi đè mỗi tên hiển
+   * thị. Ai mở Cài đặt rồi bấm Lưu là ghi nguyên mớ chữ mẫu đó đè lên hồ sơ
+   * thật của mình — mà `#003d4f` lại nằm ngoài `ACCENT_COLORS` nên request bị
+   * chặn ngay từ validate, không lưu nổi gì cả.
+   */
+  initProfileDraft(): void {
+    const p = this.profileStore.profile();
+    const fallbackUsername = this.profileService.current()?.username ?? '';
+
+    this.baselineDisplayName = p?.displayName ?? p?.username ?? fallbackUsername;
+    this.baselineUsername = p?.username ?? fallbackUsername;
+    this.baselineBio = p?.bio ?? '';
+    this.baselineCustomStatus = p?.statusMessage ?? '';
+    // `accentColor` null nghĩa là chưa chọn — để nguyên màu hợp lệ đầu bảng chứ
+    // không bịa một mã ngoài bảng.
+    this.baselineBannerColor = p?.accentColor ?? ACCENT_COLORS[0];
+    this.baselineAvatarUrl = p?.avatarUrl ?? null;
+    this.baselineBannerUrl = p?.bannerUrl ?? null;
+    this.baselineBirthdate = p?.birthdate ?? '';
+    // Trường này backend chưa có chỗ chứa, giữ cục bộ trong phiên.
     this.baselineProfileTag = '0001';
-    this.baselineAvatarUrl = avatarUrl;
+
+    this.pendingAvatarFile.set(null);
+    this.avatarRemovalStaged.set(false);
+    this.pendingBannerFile.set(null);
+    this.bannerRemovalStaged.set(false);
 
     this.editDisplayName.set(this.baselineDisplayName);
     this.editUsername.set(this.baselineUsername);
     this.editBio.set(this.baselineBio);
-    this.editPronouns.set(this.baselinePronouns);
     this.editBannerColor.set(this.baselineBannerColor);
     this.editCustomStatus.set(this.baselineCustomStatus);
     this.editProfileTag.set(this.baselineProfileTag);
     this.editAvatarUrl.set(this.baselineAvatarUrl);
+    this.editBannerUrl.set(this.baselineBannerUrl);
+    this.editBirthdate.set(this.baselineBirthdate);
   }
 
   private loadPreferences(): AppPreferences {

@@ -18,13 +18,26 @@ import {
   formatApiError,
   ServersApiService,
 } from '../../../../../../core/api/servers-api.service';
-import { ChannelSummary, ShellData } from '../../../../../../core/api/shell-data';
+import { ChannelSummary } from '../../../../../../core/servers/server.models';
+import { ServersStore } from '../../../../../../core/servers/servers.store';
 import { ServerCapabilitiesService } from '../../../../../../core/servers/server-capabilities.service';
 
 export interface CreateChannelDialogData {
   serverId: string;
   serverName?: string;
   defaultType?: 'text' | 'voice';
+  categoryId?: string;
+  categoryName?: string;
+}
+
+function formatChannelNameInput(raw: string, type: 'text' | 'voice'): string {
+  if (type === 'text') {
+    return raw
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-_àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
+  }
+  return raw.trim();
 }
 
 @Component({
@@ -44,26 +57,19 @@ export class CreateChannelDialog {
   readonly dialogRef = inject(MatDialogRef<CreateChannelDialog, ChannelSummary | null>);
   readonly data = inject<CreateChannelDialogData>(MAT_DIALOG_DATA);
   private readonly serversApi = inject(ServersApiService);
-  private readonly shellData = inject(ShellData);
+  private readonly serversStore = inject(ServersStore, { optional: true });
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
 
+  protected readonly rawChannelName = signal('');
   protected readonly channelType = signal<'text' | 'voice'>(
     this.data.defaultType ?? 'text',
   );
-  protected readonly rawChannelName = signal('');
   protected readonly channelTopic = signal('');
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly formattedChannelName = computed(() => {
-    const raw = this.rawChannelName();
-    if (this.channelType() === 'text') {
-      return raw
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-_àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
-    }
-    return raw.trim();
+    return formatChannelNameInput(this.rawChannelName(), this.channelType());
   });
 
   protected readonly isNameValid = computed(() => {
@@ -76,7 +82,7 @@ export class CreateChannelDialog {
     this.errorMessage.set(null);
   }
 
-  protected updateName(value: string): void {
+  protected onNameInput(value: string): void {
     this.rawChannelName.set(value);
     this.errorMessage.set(null);
   }
@@ -98,10 +104,15 @@ export class CreateChannelDialog {
         this.channelTopic().trim() || undefined,
       );
 
-      // Cập nhật live state trong ShellData để sidebar hiển thị ngay
-      this.shellData.addChannel(this.data.serverId, createdChannel);
+      const channelWithCategory: ChannelSummary = {
+        ...createdChannel,
+        categoryId: this.data.categoryId ?? null,
+      };
 
-      this.dialogRef.close(createdChannel);
+      // Cập nhật live state trong ServersStore
+      this.serversStore?.addChannel(this.data.serverId, channelWithCategory);
+
+      this.dialogRef.close(channelWithCategory);
     } catch (err: any) {
       const formatted = formatApiError(err);
       this.errorMessage.set(formatted);

@@ -45,7 +45,12 @@
     }
   </div>
 
-  <!-- ══ 3-COLUMN MAIN LAYOUT (Chuẩn Ảnh 3: Thiết lập | Thẻ hồ sơ | Hoạt động Trò chơi) ══ -->
+  <!-- ══ 3-COLUMN MAIN LAYOUT (Chuẩn Ảnh 3: Thiết lập | Thẻ hồ sơ | Hoạt động Trò chơi) ══
+       CHỈ hiện ở tab "Hồ Sơ Chính". Các ô dưới đây ghi thẳng vào hồ sơ CHÍNH,
+       nên để chúng hiện ở tab "Hồ Sơ Theo Máy Chủ" là bẫy người dùng: chọn một
+       máy chủ trong ô thả xuống rồi sửa "Tên hiển thị" và bấm Lưu sẽ đổi tên
+       trên TOÀN Nexus chứ không riêng máy chủ đó. -->
+  @if (activeProfileSection() === 'main') {
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
     <!-- ══ CỘT 1: THIẾT LẬP HỒ SƠ (Left 4 cols) ══ -->
     <div class="lg:col-span-4 space-y-3">
@@ -67,12 +72,19 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <div class="relative w-11 h-11 rounded-full overflow-hidden bg-surface-feature border border-hairline shadow-xs shrink-0">
-            @if (settingsService.editAvatarUrl()) {
-              <img [src]="settingsService.editAvatarUrl()" alt="Avatar" class="w-full h-full object-cover" />
-            } @else {
-              <app-avatar [name]="settingsService.editDisplayName() || 'Nexus'" size="md" />
-            }
+          <!-- Căn giữa nội dung: ảnh thật phủ kín 44px bằng w-full h-full, còn
+               chữ cái dự phòng chỉ là app-avatar size="md" (36px). Không căn thì
+               36px nằm dính góc trên trái, gỡ ảnh xong chữ cái lệch hẳn ra khỏi
+               tâm vòng tròn. -->
+          <!-- Luôn đi qua app-avatar chứ không dùng <img> trần: component này tự
+               rơi về chữ cái khi ảnh tải hỏng. Dùng <img> thì link chết hay mạng
+               chớp một nhịp là hiện icon ảnh vỡ kèm chữ "Avatar". -->
+          <div class="relative flex items-center justify-center w-11 h-11 rounded-full overflow-hidden bg-surface-feature border border-hairline shadow-xs shrink-0">
+            <app-avatar
+              [name]="settingsService.editDisplayName() || 'Nexus'"
+              [src]="settingsService.editAvatarUrl()"
+              size="lg"
+            />
           </div>
 
           <div class="flex-1 min-w-0 space-y-1">
@@ -90,6 +102,9 @@
               (change)="onAvatarFileSelected($event)"
               class="hidden"
             />
+            @if (avatarError(); as message) {
+              <p role="alert" class="text-micro text-danger">{{ message }}</p>
+            }
           </div>
         </div>
 
@@ -100,19 +115,31 @@
               type="button"
               (click)="selectAvatarPreset(preset.url)"
               [matTooltip]="preset.label"
-              class="w-6.5 h-6.5 rounded-full border-2 overflow-hidden transition-transform hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+              class="w-6.5 h-6.5 flex items-center justify-center rounded-full border-2 overflow-hidden transition-transform hover:scale-110 active:scale-95 cursor-pointer shrink-0 bg-surface-feature"
               [class.border-primary]="settingsService.editAvatarUrl() === preset.url"
               [class.ring-2]="settingsService.editAvatarUrl() === preset.url"
               [class.ring-primary/40]="settingsService.editAvatarUrl() === preset.url"
               [class.border-hairline]="settingsService.editAvatarUrl() !== preset.url"
             >
-              <img [src]="preset.url" [alt]="preset.label" class="w-full h-full object-cover bg-surface" />
+              <!-- Ảnh mẫu lấy từ dicebear.com. Tải hỏng thì hiện icon thay vì để
+                   lại một vòng tròn rỗng không ai đoán được là cái gì. -->
+              @if (brokenPresets().has(preset.url)) {
+                <mat-icon aria-hidden="true" class="!w-3.5 !h-3.5 !text-[14px] text-stone">broken_image</mat-icon>
+                <span class="sr-only">{{ preset.label }} — không tải được</span>
+              } @else {
+                <img
+                  [src]="preset.url"
+                  [alt]="preset.label"
+                  (error)="markPresetBroken(preset.url)"
+                  class="w-full h-full object-cover bg-surface"
+                />
+              }
             </button>
           }
         </div>
       </div>
 
-      <!-- 2. Display Name & Pronouns -->
+      <!-- 2. Display Name & Status -->
       <div class="p-3.5 rounded-2xl bg-surface border border-hairline shadow-2xs space-y-2.5">
         <div>
           <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="p-display-name">
@@ -130,17 +157,17 @@
         </div>
 
         <div>
-          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="p-pronouns">
-            DANH XƯNG / PRONOUNS
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="p-birthdate">
+            NGÀY SINH
           </label>
           <input
-            id="p-pronouns"
-            type="text"
-            [ngModel]="settingsService.editPronouns()"
-            (ngModelChange)="settingsService.editPronouns.set($event)"
-            maxlength="24"
-            placeholder="Ví dụ: he/him"
-            class="w-full bg-canvas border border-hairline rounded-xl px-3 py-1.5 text-caption font-medium text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
+            id="p-birthdate"
+            type="date"
+            [ngModel]="settingsService.editBirthdate()"
+            (ngModelChange)="settingsService.editBirthdate.set($event)"
+            [attr.max]="birthdateMax"
+            [attr.min]="birthdateMin"
+            class="w-full bg-canvas border border-hairline rounded-xl px-3 py-1.5 text-caption font-bold text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
           />
         </div>
 
@@ -178,36 +205,87 @@
         </div>
       </div>
 
-      <!-- 3. Banner Color Palette -->
-      <div class="p-3.5 rounded-2xl bg-surface border border-hairline shadow-2xs space-y-2">
-        <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
-          MÀU BANNER CHỦ ĐẠO
-        </label>
-        <div class="flex flex-wrap gap-2 items-center">
-          @for (preset of colorPresets; track preset.hex) {
+      <!-- 3. Banner: ảnh đè lên màu, màu là nền dự phòng khi chưa có ảnh -->
+      <div class="p-3.5 rounded-2xl bg-surface border border-hairline shadow-2xs space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
+            ẢNH BÌA
+          </label>
+          @if (settingsService.editBannerUrl()) {
             <button
               type="button"
-              (click)="selectBannerColor(preset.hex)"
-              [matTooltip]="preset.label"
-              class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
-              [style.backgroundColor]="preset.hex"
-              [class.border-primary]="settingsService.editBannerColor() === preset.hex"
-              [class.ring-2]="settingsService.editBannerColor() === preset.hex"
-              [class.ring-primary/40]="settingsService.editBannerColor() === preset.hex"
-              [class.border-transparent]="settingsService.editBannerColor() !== preset.hex"
+              (click)="removeBanner()"
+              class="text-micro text-danger hover:underline font-bold cursor-pointer"
             >
-              @if (settingsService.editBannerColor() === preset.hex) {
-                <mat-icon class="!w-3 !h-3 !text-[12px] text-white drop-shadow">check</mat-icon>
-              }
+              Gỡ ảnh bìa
             </button>
           }
+        </div>
 
+        <div
+          class="relative aspect-3/1 w-full overflow-hidden rounded-lg border border-hairline"
+          [style.background]="
+            settingsService.editBannerUrl()
+              ? 'transparent'
+              : 'linear-gradient(135deg, ' + settingsService.editBannerColor() + ' 0%, #001e2b 100%)'
+          "
+        >
+          @if (settingsService.editBannerUrl(); as banner) {
+            <img [src]="banner" alt="" decoding="async" class="size-full object-cover" />
+          } @else {
+            <span class="absolute inset-0 flex items-center justify-center text-caption text-on-dark-muted">
+              Chưa có ảnh bìa — đang dùng màu chủ đạo
+            </span>
+          }
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <label
+            for="profile-tab-banner-file"
+            class="py-1 px-3 rounded-xl bg-primary hover:opacity-90 active:scale-98 text-on-primary text-[11px] font-bold cursor-pointer shadow-xs inline-flex items-center gap-1.5 transition-all"
+          >
+            <mat-icon class="!w-3.5 !h-3.5 !text-[15px]">image</mat-icon>
+            <span>{{ settingsService.editBannerUrl() ? 'Đổi ảnh bìa' : 'Dùng ảnh làm nền' }}</span>
+          </label>
           <input
-            type="color"
-            [ngModel]="settingsService.editBannerColor()"
-            (ngModelChange)="settingsService.editBannerColor.set($event)"
-            class="w-6 h-6 rounded-full border border-hairline bg-transparent cursor-pointer ml-1"
+            id="profile-tab-banner-file"
+            type="file"
+            accept="image/*"
+            (change)="onBannerFileSelected($event)"
+            class="hidden"
           />
+        </div>
+
+        @if (bannerError(); as message) {
+          <p role="alert" class="text-micro text-danger">{{ message }}</p>
+        }
+
+        <div class="pt-2 border-t border-hairline/60 space-y-2">
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider">
+            MÀU BANNER CHỦ ĐẠO
+          </label>
+          <p class="text-micro text-steel">
+            Dùng khi chưa đặt ảnh bìa. Bảng màu cố định để chữ trên bìa luôn đọc được.
+          </p>
+          <div class="flex flex-wrap gap-2 items-center">
+            @for (preset of colorPresets; track preset.hex) {
+              <button
+                type="button"
+                (click)="selectBannerColor(preset.hex)"
+                [matTooltip]="preset.label"
+                class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
+                [style.backgroundColor]="preset.hex"
+                [class.border-primary]="settingsService.editBannerColor() === preset.hex"
+                [class.ring-2]="settingsService.editBannerColor() === preset.hex"
+                [class.ring-primary/40]="settingsService.editBannerColor() === preset.hex"
+                [class.border-transparent]="settingsService.editBannerColor() !== preset.hex"
+              >
+                @if (settingsService.editBannerColor() === preset.hex) {
+                  <mat-icon class="!w-3 !h-3 !text-[12px] text-white drop-shadow">check</mat-icon>
+                }
+              </button>
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -225,9 +303,13 @@
       <div class="w-full rounded-2xl overflow-hidden bg-surface border border-hairline shadow-card text-ink select-none animate-slide-up">
         <!-- Banner Header -->
         <div
-          class="h-20 w-full transition-colors duration-300 relative"
+          class="h-20 w-full transition-colors duration-300 relative overflow-hidden"
           [style.backgroundColor]="settingsService.editBannerColor()"
         >
+          <!-- Ảnh đè lên màu: màu chỉ là nền dự phòng khi chưa đặt ảnh bìa. -->
+          @if (settingsService.editBannerUrl(); as banner) {
+            <img [src]="banner" alt="" decoding="async" class="absolute inset-0 size-full object-cover" />
+          }
           <div class="absolute inset-0 bg-black/10"></div>
           <div class="absolute top-2.5 right-2.5 flex items-center gap-1 bg-black/35 backdrop-blur-xs border border-white/10 rounded-full px-2 py-0.5 shadow-2xs">
             <mat-icon class="!w-3 !h-3 !text-[13px] text-primary" matTooltip="Nexus Member">bolt</mat-icon>
@@ -239,12 +321,12 @@
         <!-- Avatar & Info -->
         <div class="px-3.5 pb-3.5 pt-0 relative">
           <div class="flex items-end justify-between -mt-8 mb-2">
-            <div class="relative w-15 h-15 rounded-full bg-surface p-1 shadow-card ring-2 ring-surface">
-              @if (settingsService.editAvatarUrl()) {
-                <img [src]="settingsService.editAvatarUrl()" alt="Avatar" class="w-full h-full rounded-full object-cover bg-surface-feature" />
-              } @else {
-                <app-avatar [name]="settingsService.editDisplayName() || 'Nexus'" size="lg" />
-              }
+            <div class="relative w-15 h-15 flex items-center justify-center rounded-full bg-surface p-1 shadow-card ring-2 ring-surface">
+              <app-avatar
+                [name]="settingsService.editDisplayName() || 'Nexus'"
+                [src]="settingsService.editAvatarUrl()"
+                size="lg"
+              />
               <span class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-success border-2 border-surface flex items-center justify-center"></span>
             </div>
 
@@ -262,12 +344,6 @@
               </h4>
               <div class="flex items-center gap-1.5 text-[11px] text-steel mt-0.5">
                 <span class="font-mono">&#64;{{ settingsService.editUsername() || 'username' }}</span>
-                @if (settingsService.editPronouns()) {
-                  <span>•</span>
-                  <span class="text-micro font-bold bg-surface-feature px-1.5 py-0.2 rounded text-primary border border-hairline">
-                    {{ settingsService.editPronouns() }}
-                  </span>
-                }
               </div>
             </div>
 
@@ -278,163 +354,65 @@
               </p>
             </div>
 
-            <div class="pt-1.5 border-t border-hairline flex items-center justify-between text-[10px] text-steel">
-              <span>Thành viên từ</span>
-              <span class="font-bold text-ink">Tháng 8, 2026</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ CỘT 3: HOẠT ĐỘNG TRÒ CHƠI & WIDGETS (Right 4 cols - Ảnh 3) ══ -->
-    <div class="lg:col-span-4 p-3.5 rounded-2xl bg-surface border border-hairline shadow-2xs space-y-3.5 select-none">
-      <!-- Tab Bar: Bảng | Hoạt động | Danh Sách (Ảnh 3) -->
-      <div class="flex items-center justify-between border-b border-hairline pb-2">
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            (click)="activeTab.set('board')"
-            class="text-[11.5px] font-extrabold transition-colors cursor-pointer"
-            [class.text-primary]="activeTab() === 'board'"
-            [class.text-steel]="activeTab() !== 'board'"
-          >
-            Bảng
-          </button>
-          <button
-            type="button"
-            (click)="activeTab.set('activity')"
-            class="text-[11.5px] font-extrabold transition-colors cursor-pointer"
-            [class.text-primary]="activeTab() === 'activity'"
-            [class.text-steel]="activeTab() !== 'activity'"
-          >
-            Hoạt động
-          </button>
-          <button
-            type="button"
-            (click)="activeTab.set('wishlist')"
-            class="text-[11.5px] font-extrabold transition-colors cursor-pointer"
-            [class.text-primary]="activeTab() === 'wishlist'"
-            [class.text-steel]="activeTab() !== 'wishlist'"
-          >
-            Danh Sách
-          </button>
-        </div>
-
-        <button
-          type="button"
-          class="px-2 py-0.5 rounded-lg border border-hairline bg-canvas hover:bg-surface-feature text-[10.5px] font-bold text-ink transition-colors cursor-pointer shadow-2xs"
-        >
-          + Widget
-        </button>
-      </div>
-
-      <!-- 1. Trò Chơi Luân Phiên (Ảnh 3) -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="block text-caption font-extrabold text-ink leading-tight">Trò Chơi Luân Phiên</span>
-            <span class="text-[10px] text-steel">Thêm tối đa 5 trò chơi</span>
-          </div>
-          <button
-            type="button"
-            class="w-5 h-5 rounded-md border border-hairline bg-canvas text-steel hover:text-ink flex items-center justify-center cursor-pointer shadow-2xs"
-          >
-            <mat-icon class="!w-3 !h-3 !text-[13px]">add</mat-icon>
-          </button>
-        </div>
-
-        <!-- Game Cards Stack -->
-        <div class="space-y-2">
-          @for (game of currentGames(); track game.title; let gIdx = $index) {
-            <div class="group relative flex items-center gap-2.5 p-2 rounded-xl border border-hairline bg-canvas hover:bg-surface-feature/40 transition-colors shadow-2xs">
-              <div class="w-10 h-14 rounded-lg overflow-hidden bg-surface-feature shrink-0 border border-hairline shadow-xs">
-                <img
-                  [src]="game.image"
-                  [alt]="game.title"
-                  (error)="onImageError($event, game.title)"
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-
-              <div class="flex-1 min-w-0 space-y-1">
-                <span class="block text-caption font-extrabold text-ink truncate leading-tight">
-                  {{ game.title }}
-                </span>
-
-                <div class="flex flex-wrap items-center gap-1">
-                  @for (tag of game.tags; track tag; let tIdx = $index) {
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md border border-hairline bg-surface text-[9.5px] font-bold text-steel shadow-2xs">
-                      <span>{{ tag }}</span>
-                      <button
-                        type="button"
-                        (click)="removeRotatingTag(gIdx, tIdx)"
-                        class="hover:text-danger cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    </span>
+            <!-- Liên kết đã gắn ở tab Ứng dụng đã kết nối. Thẻ này tự nhận là
+                 "Thời gian thực" nhưng từng bỏ hẳn mục này: gắn YouTube xong
+                 quay lại đây thấy y hệt lúc chưa gắn. -->
+            @if (links().length) {
+              <div class="pt-1.5 border-t border-hairline">
+                <span class="block text-[9px] font-extrabold uppercase tracking-wider text-stone mb-1">Liên kết</span>
+                <div class="flex flex-wrap gap-1.5">
+                  @for (link of links(); track link.url) {
+                    <a
+                      [href]="link.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1 rounded-full border border-hairline bg-surface-feature px-2 py-0.5 text-[10px] font-bold text-ink transition-colors hover:border-primary hover:text-primary"
+                    >
+                      <mat-icon aria-hidden="true" class="!w-3 !h-3 !text-[12px]">{{ iconFor(link.url) }}</mat-icon>
+                      <span class="max-w-24 truncate">{{ link.label }}</span>
+                    </a>
                   }
-                  <button
-                    type="button"
-                    class="px-1.5 py-0.2 rounded-md border border-hairline border-dashed text-[9.5px] font-bold text-steel hover:text-primary hover:border-primary cursor-pointer transition-colors"
-                  >
-                    + Tag
-                  </button>
                 </div>
               </div>
+            }
 
-              <button
-                type="button"
-                (click)="removeRotatingGame(gIdx)"
-                class="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-black/60 text-white/80 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-              >
-                <mat-icon class="!w-2.5 !h-2.5 !text-[10px]">close</mat-icon>
-              </button>
+            @if (birthdateFormatted(); as bday) {
+              <div class="pt-1.5 border-t border-hairline flex items-center justify-between text-[10px] text-steel">
+                <span class="inline-flex items-center gap-1">
+                  <mat-icon class="!w-3 !h-3 !text-[12px]">cake</mat-icon>
+                  Ngày sinh
+                </span>
+                <span class="font-bold text-ink">{{ bday }}</span>
+              </div>
+            }
+
+            <div class="pt-1.5 border-t border-hairline flex items-center justify-between text-[10px] text-steel">
+              <span>Thành viên từ</span>
+              <span class="font-bold text-ink">{{ memberSince() }}</span>
             </div>
-          }
-        </div>
-      </div>
-
-      <!-- 2. Trò Chơi Tôi Thích (Ảnh 3 - Lưới Poster Đẹp 4 Cột, Không Chữ Đè) -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="block text-caption font-extrabold text-ink leading-tight">Trò Chơi Tôi Thích</span>
-            <span class="text-[10px] text-steel">Thêm tối đa 20 trò chơi</span>
           </div>
-          <button
-            type="button"
-            class="w-5 h-5 rounded-md border border-hairline bg-canvas text-steel hover:text-ink flex items-center justify-center cursor-pointer shadow-2xs"
-          >
-            <mat-icon class="!w-3 !h-3 !text-[13px]">add</mat-icon>
-          </button>
-        </div>
-
-        <div class="grid grid-cols-4 gap-1.5">
-          @for (game of favoriteGames(); track game.title; let fIdx = $index) {
-            <div
-              class="group relative aspect-[3/4] rounded-lg overflow-hidden border border-hairline bg-surface-feature shadow-xs cursor-pointer"
-              [title]="game.title"
-            >
-              <img
-                [src]="game.image"
-                [alt]="game.title"
-                (error)="onImageError($event, game.title)"
-                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-              />
-
-              <button
-                type="button"
-                (click)="removeFavoriteGame(fIdx)"
-                class="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/70 text-white/90 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-sm"
-              >
-                <mat-icon class="!w-2.5 !h-2.5 !text-[10px]">close</mat-icon>
-              </button>
-            </div>
-          }
         </div>
       </div>
     </div>
+
+    <!-- ══ CỘT 3: WIDGET TRÒ CHƠI ══
+         Trước đây khối này là markup chép tay với dữ liệu cứng trong
+         profile-tab.ts và các nút không có (click). Giờ là một component riêng
+         ghi thẳng xuống máy chủ. -->
+    <app-profile-widgets-editor class="block lg:col-span-4" />
   </div>
+  } @else {
+    <!-- Hồ sơ riêng theo máy chủ sửa ở cửa sổ riêng (app-server-profile-modal),
+         không sửa tại đây. Nói thẳng ra thay vì hiện lại các ô của hồ sơ chính. -->
+    <div class="rounded-2xl border border-dashed border-hairline bg-surface p-8 text-center animate-slide-up">
+      <mat-icon aria-hidden="true" class="text-stone">badge</mat-icon>
+      <p class="mt-2 text-body-sm font-bold text-ink">
+        Hồ sơ riêng cho từng máy chủ chưa dùng được
+      </p>
+      <p class="mx-auto mt-1 max-w-md text-caption text-steel">
+        Các ô ở tab "Hồ Sơ Chính" ghi vào hồ sơ dùng chung trên toàn Nexus, nên không hiện ở đây
+        để bạn khỏi sửa nhầm.
+      </p>
+    </div>
+  }
 </div>

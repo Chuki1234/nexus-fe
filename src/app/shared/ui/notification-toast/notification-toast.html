@@ -9,7 +9,7 @@
         @if (notif.senderAvatarUrl) {
           <img [src]="notif.senderAvatarUrl" [alt]="notif.senderName" class="w-full h-full object-cover" />
         } @else {
-          <app-avatar [name]="notif.senderName" size="md" />
+          <app-avatar [name]="notif.senderName" [src]="notif.senderAvatarUrl || null" size="md" />
         }
       </div>
 

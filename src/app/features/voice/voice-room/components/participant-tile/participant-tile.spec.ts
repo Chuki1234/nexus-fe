@@ -47,7 +47,7 @@ describe('ParticipantTile', () => {
     expect(tile?.classList.contains('participant-tile--speaking')).toBe(true);
   });
 
-  it('hiển thị badge TRỰC TIẾP và phát sự kiện watchStream khi người tham gia chia sẻ màn hình', () => {
+  it('hiển thị badge LIVE và phát sự kiện watchStream khi là stream tile chia sẻ màn hình', () => {
     let emittedIdentity = '';
     component.watchStream.subscribe((id: string) => {
       emittedIdentity = id;
@@ -57,14 +57,30 @@ describe('ParticipantTile', () => {
       ...mockParticipant,
       isScreenSharing: true,
     });
+    fixture.componentRef.setInput('isScreenShare', true);
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('TRỰC TIẾP');
+    expect(el.textContent).toContain('LIVE');
+    expect(el.textContent).toContain('Màn hình');
 
-    const watchBtn = el.querySelector('.watch-stream-btn') as HTMLButtonElement;
-    expect(watchBtn).toBeDefined();
-    watchBtn.click();
+    const watchOverlay = el.querySelector('.watch-stream-overlay') as HTMLElement;
+    expect(watchOverlay).toBeTruthy();
+    watchOverlay.click();
     expect(emittedIdentity).toBe('usr-1');
+  });
+
+  it('ẩn nút xem stream và overlay khi ở chế độ isFocused', () => {
+    fixture.componentRef.setInput('participant', {
+      ...mockParticipant,
+      isScreenSharing: true,
+    });
+    fixture.componentRef.setInput('isScreenShare', true);
+    fixture.componentRef.setInput('isFocused', true);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.watch-stream-overlay')).toBeNull();
+    expect(el.querySelector('.participant-tile--focused')).toBeTruthy();
   });
 });
