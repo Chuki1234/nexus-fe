@@ -1,0 +1,71 @@
+<div class="flex max-h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-surface">
+  <header class="flex items-center justify-between border-b border-hairline px-5 py-4">
+    <h2 class="text-heading-5 font-bold text-ink">Thêm Widget Hồ Sơ</h2>
+    <button
+      type="button"
+      (click)="close()"
+      class="nexus-icon-control cursor-pointer"
+      aria-label="Đóng hộp thoại"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  </header>
+
+  <div class="flex min-h-0 flex-1">
+    <!-- Cột nhóm. `role=tablist` để bàn phím hiểu đây là bộ chuyển, không phải
+         danh sách link rời rạc. -->
+    <nav class="w-44 shrink-0 space-y-1 border-r border-hairline p-3" role="tablist">
+      @for (group of groups; track group.id) {
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="activeGroup() === group.id"
+          (click)="activeGroup.set(group.id)"
+          class="w-full cursor-pointer rounded-lg px-3 py-2 text-left text-body-sm font-medium transition-colors"
+          [class.bg-surface-feature]="activeGroup() === group.id"
+          [class.text-ink]="activeGroup() === group.id"
+          [class.font-bold]="activeGroup() === group.id"
+          [class.text-steel]="activeGroup() !== group.id"
+          [class.hover:bg-surface-feature/50]="activeGroup() !== group.id"
+        >
+          {{ group.label }}
+        </button>
+      }
+    </nav>
+
+    <div class="nexus-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+      @for (type of types(); track type.kind) {
+        <button
+          type="button"
+          (click)="pick(type.kind)"
+          [disabled]="type.full"
+          class="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-hairline bg-canvas p-3 text-left transition-colors hover:border-primary hover:bg-surface-feature/40 disabled:cursor-default disabled:opacity-55 disabled:hover:border-hairline disabled:hover:bg-canvas"
+        >
+          <span
+            aria-hidden="true"
+            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-feature text-primary"
+          >
+            <mat-icon>{{ type.icon }}</mat-icon>
+          </span>
+
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center gap-2">
+              <span class="truncate text-body-sm-medium font-bold text-ink">{{ type.label }}</span>
+              <span class="shrink-0 text-micro text-stone">{{ type.englishLabel }}</span>
+            </span>
+            <span class="mt-0.5 block text-caption text-steel">{{ type.description }}</span>
+          </span>
+
+          <!-- Nói thẳng còn mấy chỗ thay vì để người dùng bấm rồi mới biết đầy. -->
+          @if (type.full) {
+            <span class="shrink-0 rounded-full bg-surface-feature px-2 py-0.5 text-micro font-bold text-stone">
+              Đã đầy
+            </span>
+          } @else {
+            <span class="shrink-0 text-micro text-stone">còn {{ type.slotsLeft }}</span>
+          }
+        </button>
+      }
+    </div>
+  </div>
+</div>

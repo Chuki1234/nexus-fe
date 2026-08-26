@@ -26,20 +26,46 @@ import { linkIconFor } from '../link-icon';
   styleUrl: './profile-panel.css',
 })
 export class ProfilePanel {
-  readonly username = input.required<string>();
+  /** Username hồ sơ thật. `null` với nhân vật demo hoặc bot — không có gì để tra. */
+  readonly username = input.required<string | null>();
+
+  /**
+   * Tên và trạng thái lấy từ chính cuộc trò chuyện.
+   *
+   * Có sẵn ngay từ lúc mở, nên panel vẽ được liền thay vì đợi mạng; và khi người
+   * bên kia không có hồ sơ công khai thì đây là tất cả những gì hiển thị được —
+   * vẫn hơn một cột trống.
+   */
+  readonly fallbackName = input('');
+  readonly fallbackStatus = input<string | null>(null);
 
   private readonly lookup = inject(ProfileLookup);
 
-  protected readonly profile = computed(() => this.lookup.profileFor(this.username())());
+  protected readonly profile = computed(() => {
+    const key = this.username();
+    return key ? this.lookup.profileFor(key)() : null;
+  });
+
+  /** Chỉ chờ khi thật sự có gì để chờ. */
+  protected readonly loading = computed(() => {
+    const key = this.username();
+    return key ? this.lookup.statusFor(key)() === 'loading' : false;
+  });
 
   protected readonly name = computed(() => {
     const person = this.profile();
-    return person ? profileDisplayName(person) : '';
+    return person ? profileDisplayName(person) : this.fallbackName();
   });
+
+  protected readonly status = computed(
+    () => this.profile()?.statusMessage ?? this.fallbackStatus(),
+  );
 
   protected readonly bannerColor = computed(() => {
     const person = this.profile();
-    return person ? bannerColorFor(person.username, person.accentColor) : '#001e2b';
+    return person
+      ? bannerColorFor(person.username, person.accentColor)
+      : bannerColorFor(this.fallbackName(), null);
   });
 
   protected readonly joined = computed(() => {

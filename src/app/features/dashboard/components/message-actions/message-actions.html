@@ -57,15 +57,14 @@
   xPosition="before"
   [overlapTrigger]="false"
 >
-  <button mat-menu-item type="button" (click)="requestEdit()" [disabled]="!editable()">
-    <mat-icon aria-hidden="true">edit_note</mat-icon>
-    <span class="message-menu-copy">
-      <span>Chỉnh sửa tin nhắn</span>
-      @if (!editable()) {
-        <small>Chỉ áp dụng cho tin của bạn</small>
-      }
-    </span>
-  </button>
+  @if (ownMessage() && canEdit()) {
+    <button mat-menu-item type="button" (click)="requestEdit()">
+      <mat-icon aria-hidden="true">edit_note</mat-icon>
+      <span class="message-menu-copy">
+        <span>Chỉnh sửa tin nhắn</span>
+      </span>
+    </button>
+  }
   <button mat-menu-item type="button" (click)="requestForward()">
     <mat-icon aria-hidden="true">forward_to_inbox</mat-icon>
     <span class="message-menu-copy">
@@ -74,7 +73,7 @@
   </button>
   <mat-divider />
   <button mat-menu-item type="button" class="message-menu-danger" (click)="requestDelete()">
-    <mat-icon aria-hidden="true">{{ editable() ? 'delete_forever' : 'delete_outline' }}</mat-icon>
-    <span>{{ editable() ? 'Thu hồi tin nhắn' : 'Xóa khỏi phía bạn' }}</span>
+    <mat-icon aria-hidden="true">{{ ownMessage() ? 'delete_forever' : 'delete_outline' }}</mat-icon>
+    <span>{{ ownMessage() ? 'Thu hồi tin nhắn' : 'Xóa khỏi phía bạn' }}</span>
   </button>
 </mat-menu>

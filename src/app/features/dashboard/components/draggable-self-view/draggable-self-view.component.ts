@@ -7,6 +7,8 @@ import {
   ViewChild,
   computed,
   inject,
+  input,
+  output,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -18,7 +20,7 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
   standalone: true,
   imports: [CommonModule],
   template: `
-    @if (!store.isVideoMuted()) {
+    @if (isVideoAvailable()) {
       <div
         #card
         class="self-view-card"
@@ -27,19 +29,37 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
         (mousedown)="onMouseDown($event)"
         (touchstart)="onTouchStart($event)"
       >
-        <video
-          #localVideo
-          class="local-video"
-          [ngClass]="{ mirrored: store.isSelfViewMirrored() }"
-          autoplay
-          playsinline
-          muted
-        ></video>
+        @if (source() === 'local') {
+          <video
+            #localVideo
+            class="local-video"
+            [ngClass]="{ mirrored: store.isSelfViewMirrored() }"
+            autoplay
+            playsinline
+            muted
+          ></video>
+        } @else {
+          <video
+            #remoteVideo
+            class="local-video"
+            autoplay
+            playsinline
+          ></video>
+        }
 
         <!-- Top bar overlay on hover -->
         <div class="card-overlay">
-          <div class="corner-label">Bạn</div>
+          <div class="corner-label">{{ source() === 'local' ? 'Bạn' : remoteLabel() }}</div>
           <div class="overlay-actions">
+            <button
+              type="button"
+              class="overlay-btn overlay-btn--swap"
+              (click)="onActivate($event)"
+              [attr.aria-label]="source() === 'local' ? 'Phóng lớn video của bạn' : 'Phóng lớn video của người bên kia'"
+              title="Đổi video lớn và video thu nhỏ"
+            >
+              <span class="material-icons text-xs">swap_calls</span>
+            </button>
             <button
               type="button"
               class="overlay-btn"
@@ -140,6 +160,10 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
         opacity: 1;
       }
 
+      .self-view-card:focus-within .card-overlay {
+        opacity: 1;
+      }
+
       .corner-label {
         font-size: 0.75rem;
         font-weight: 600;
@@ -169,6 +193,22 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
         background: rgba(255, 255, 255, 0.35);
       }
 
+      .overlay-btn:focus-visible {
+        outline: 2px solid #a5b4fc;
+        outline-offset: 2px;
+      }
+
+      .overlay-btn--swap {
+        min-width: 44px;
+        min-height: 44px;
+      }
+
+      @media (hover: none) {
+        .card-overlay {
+          opacity: 1;
+        }
+      }
+
       .local-mute-badge {
         position: absolute;
         bottom: 6px;
@@ -188,11 +228,44 @@ import { DirectCallMediaService } from '../../../../core/calls/direct-call-media
 export class DraggableSelfViewComponent implements AfterViewInit, OnDestroy {
   readonly store = inject(DirectCallStore);
   readonly mediaService = inject(DirectCallMediaService);
+  readonly source = input<'local' | 'remote'>('local');
+  readonly activate = output<void>();
+
+  readonly isVideoAvailable = computed(() =>
+    this.source() === 'local'
+      ? !this.store.isVideoMuted()
+      : this.store.isRemoteVideoAvailable(),
+  );
+  readonly remoteLabel = computed(
+    () =>
+      this.store.remoteParticipant()?.displayName ||
+      this.store.remoteParticipant()?.username ||
+      'Đối phương',
+  );
 
   @ViewChild('card') cardRef?: ElementRef<HTMLDivElement>;
+  private localVideoEl: HTMLVideoElement | null = null;
+  private remoteVideoEl: HTMLVideoElement | null = null;
+
   @ViewChild('localVideo') set localVideoElement(ref: ElementRef<HTMLVideoElement> | undefined) {
+    if (this.localVideoEl && !ref) {
+      this.mediaService.releaseLocalVideo(this.localVideoEl);
+      this.localVideoEl = null;
+    }
     if (ref?.nativeElement) {
+      this.localVideoEl = ref.nativeElement;
       this.mediaService.attachLocalVideo(ref.nativeElement);
+    }
+  }
+
+  @ViewChild('remoteVideo') set remoteVideoElement(ref: ElementRef<HTMLVideoElement> | undefined) {
+    if (this.remoteVideoEl && !ref) {
+      this.mediaService.releaseRemoteVideo(this.remoteVideoEl);
+      this.remoteVideoEl = null;
+    }
+    if (ref?.nativeElement) {
+      this.remoteVideoEl = ref.nativeElement;
+      this.mediaService.attachRemoteVideo(ref.nativeElement);
     }
   }
 
@@ -217,7 +290,17 @@ export class DraggableSelfViewComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // cleanup
+    if (this.localVideoEl) {
+      this.mediaService.releaseLocalVideo(this.localVideoEl);
+    }
+    if (this.remoteVideoEl) {
+      this.mediaService.releaseRemoteVideo(this.remoteVideoEl);
+    }
+  }
+
+  onActivate(e: MouseEvent): void {
+    e.stopPropagation();
+    this.activate.emit();
   }
 
   onToggleMirror(e: MouseEvent): void {

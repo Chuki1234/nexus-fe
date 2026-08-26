@@ -1,0 +1,331 @@
+@let grouped = games.grouped();
+@let slots = games.slotsLeft();
+@let busy = games.busy();
+
+<div class="space-y-3.5 rounded-2xl border border-hairline bg-surface p-3.5 shadow-2xs">
+  <!-- Thanh tab + nút thêm widget -->
+  <div class="flex items-center justify-between border-b border-hairline pb-2">
+    <div class="flex items-center gap-2" role="tablist">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'board'"
+        (click)="activeTab.set('board')"
+        class="cursor-pointer text-[11.5px] font-extrabold transition-colors"
+        [class.text-primary]="activeTab() === 'board'"
+        [class.text-steel]="activeTab() !== 'board'"
+      >
+        Bảng
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'activity'"
+        (click)="activeTab.set('activity')"
+        class="cursor-pointer text-[11.5px] font-extrabold transition-colors"
+        [class.text-primary]="activeTab() === 'activity'"
+        [class.text-steel]="activeTab() !== 'activity'"
+      >
+        Hoạt động
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'wishlist'"
+        (click)="activeTab.set('wishlist')"
+        class="cursor-pointer text-[11.5px] font-extrabold transition-colors"
+        [class.text-primary]="activeTab() === 'wishlist'"
+        [class.text-steel]="activeTab() !== 'wishlist'"
+      >
+        Danh Sách
+      </button>
+    </div>
+
+    <button
+      type="button"
+      (click)="openWidgetPicker()"
+      class="cursor-pointer rounded-lg border border-hairline bg-canvas px-2 py-0.5 text-[10.5px] font-bold text-ink shadow-2xs transition-colors hover:bg-surface-feature"
+    >
+      + Widget
+    </button>
+  </div>
+
+  @if (games.errorMessage(); as message) {
+    <p role="alert" class="rounded-md border border-danger-border bg-danger-surface px-2.5 py-1.5 text-caption text-ink">
+      {{ message }}
+    </p>
+  }
+
+  <!-- Trò chơi ghi thẳng xuống máy chủ, khác hẳn các ô chữ bên trái phải bấm
+       "Lưu thay đổi". Hai mô hình lưu trên cùng một màn hình mà không nói rõ thì
+       người dùng thêm game xong lại đi tìm nút Lưu. -->
+  <p class="text-[10px] text-stone">Trò chơi lưu ngay, không cần bấm "Lưu thay đổi".</p>
+
+  @switch (activeTab()) {
+    @case ('board') {
+      <!-- ── Trò Chơi Luân Phiên ── -->
+      <section class="space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="block text-caption font-extrabold leading-tight text-ink">
+              {{ kindLabels.rotation }}
+            </span>
+            <span class="text-[10px] text-steel">
+              Tối đa {{ limitFor('rotation') }} trò chơi · còn {{ slots.rotation }} chỗ
+            </span>
+          </div>
+          <button
+            type="button"
+            (click)="games.startAdd('rotation')"
+            [disabled]="slots.rotation <= 0 || busy !== null"
+            [attr.aria-label]="'Thêm trò chơi vào ' + kindLabels.rotation"
+            class="flex size-5 cursor-pointer items-center justify-center rounded-md border border-hairline bg-canvas text-steel shadow-2xs transition-colors hover:text-ink disabled:cursor-default disabled:opacity-45"
+          >
+            <mat-icon aria-hidden="true" class="size-3! text-[13px]!">add</mat-icon>
+          </button>
+        </div>
+
+        @if (grouped.rotation.length) {
+          <div class="space-y-2">
+            @for (game of grouped.rotation; track game.id) {
+              <div class="group relative flex items-center gap-2.5 rounded-xl border border-hairline bg-canvas p-2 shadow-2xs transition-colors hover:bg-surface-feature/40">
+                <div class="h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-hairline bg-surface-feature shadow-xs">
+                  <img
+                    [src]="coverOf(game)"
+                    [alt]="game.title"
+                    decoding="async"
+                    (error)="onImageError($event, game.title)"
+                    class="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+
+                <div class="min-w-0 flex-1 space-y-1">
+                  <span class="block truncate text-caption font-extrabold leading-tight text-ink">
+                    {{ game.title }}
+                  </span>
+
+                  <div class="flex flex-wrap items-center gap-1">
+                    @for (tag of game.tags; track tag) {
+                      <span class="inline-flex items-center gap-1 rounded-md border border-hairline bg-surface px-1.5 py-0.5 text-[9.5px] font-bold text-steel shadow-2xs">
+                        <span>{{ tag }}</span>
+                        <button
+                          type="button"
+                          (click)="games.removeTag(game.id, tag)"
+                          [disabled]="busy !== null"
+                          [attr.aria-label]="'Bỏ nhãn ' + tag + ' khỏi ' + game.title"
+                          class="cursor-pointer transition-colors hover:text-danger disabled:cursor-default disabled:opacity-45"
+                        >
+                          <mat-icon aria-hidden="true" class="size-2.5! text-[10px]!">close</mat-icon>
+                        </button>
+                      </span>
+                    }
+
+                    @if (game.tags.length < 4) {
+                      <button
+                        type="button"
+                        (click)="games.startTag(game.id)"
+                        [disabled]="busy !== null"
+                        class="cursor-pointer rounded-md border border-dashed border-hairline px-1.5 py-0.5 text-[9.5px] font-bold text-steel transition-colors hover:border-primary hover:text-primary disabled:cursor-default disabled:opacity-45"
+                      >
+                        + Tag
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                <!-- `group-focus-within` + `focus-visible` là bắt buộc: chỉ
+                     `group-hover` thì người dùng bàn phím không bao giờ tới được
+                     nút xoá — trượt WCAG. -->
+                <button
+                  type="button"
+                  (click)="games.remove(game.id)"
+                  [disabled]="busy !== null"
+                  [attr.aria-label]="'Gỡ ' + game.title + ' khỏi ' + kindLabels.rotation"
+                  class="absolute right-1.5 top-1.5 flex size-4 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white/80 opacity-0 transition-opacity hover:text-white focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 disabled:cursor-default"
+                >
+                  <mat-icon aria-hidden="true" class="size-2.5! text-[10px]!">close</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="rounded-xl border border-dashed border-hairline px-3 py-4 text-center text-caption text-muted">
+            Chưa có trò chơi nào. Bấm dấu + ở trên để thêm.
+          </p>
+        }
+      </section>
+
+      <!-- ── Trò Chơi Yêu Thích ── -->
+      <section class="space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="block text-caption font-extrabold leading-tight text-ink">
+              {{ kindLabels.favorite }}
+            </span>
+            <span class="text-[10px] text-steel">Chỉ một tựa nổi bật nhất</span>
+          </div>
+          <button
+            type="button"
+            (click)="games.startAdd('favorite')"
+            [disabled]="slots.favorite <= 0 || busy !== null"
+            [attr.aria-label]="'Chọn ' + kindLabels.favorite"
+            class="flex size-5 cursor-pointer items-center justify-center rounded-md border border-hairline bg-canvas text-steel shadow-2xs transition-colors hover:text-ink disabled:cursor-default disabled:opacity-45"
+          >
+            <mat-icon aria-hidden="true" class="size-3! text-[13px]!">add</mat-icon>
+          </button>
+        </div>
+
+        @if (grouped.favorite.length) {
+          @for (game of grouped.favorite; track game.id) {
+            <div class="group relative flex items-center gap-2.5 rounded-xl border border-primary/40 bg-canvas p-2 shadow-2xs">
+              <div class="h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-hairline bg-surface-feature shadow-xs">
+                <img
+                  [src]="coverOf(game)"
+                  [alt]="game.title"
+                  decoding="async"
+                  (error)="onImageError($event, game.title)"
+                  class="size-full object-cover"
+                />
+              </div>
+              <span class="min-w-0 flex-1 truncate text-caption font-extrabold text-ink">
+                {{ game.title }}
+              </span>
+              <button
+                type="button"
+                (click)="games.remove(game.id)"
+                [disabled]="busy !== null"
+                [attr.aria-label]="'Gỡ ' + game.title + ' khỏi ' + kindLabels.favorite"
+                class="absolute right-1.5 top-1.5 flex size-4 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white/80 opacity-0 transition-opacity hover:text-white focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 disabled:cursor-default"
+              >
+                <mat-icon aria-hidden="true" class="size-2.5! text-[10px]!">close</mat-icon>
+              </button>
+            </div>
+          }
+        } @else {
+          <p class="rounded-xl border border-dashed border-hairline px-3 py-3 text-center text-caption text-muted">
+            Chưa chọn trò chơi yêu thích.
+          </p>
+        }
+      </section>
+
+      <!-- ── Trò Chơi Tôi Thích ── -->
+      <section class="space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="block text-caption font-extrabold leading-tight text-ink">
+              {{ kindLabels.like }}
+            </span>
+            <span class="text-[10px] text-steel">
+              Tối đa {{ limitFor('like') }} trò chơi · còn {{ slots.like }} chỗ
+            </span>
+          </div>
+          <button
+            type="button"
+            (click)="games.startAdd('like')"
+            [disabled]="slots.like <= 0 || busy !== null"
+            [attr.aria-label]="'Thêm trò chơi vào ' + kindLabels.like"
+            class="flex size-5 cursor-pointer items-center justify-center rounded-md border border-hairline bg-canvas text-steel shadow-2xs transition-colors hover:text-ink disabled:cursor-default disabled:opacity-45"
+          >
+            <mat-icon aria-hidden="true" class="size-3! text-[13px]!">add</mat-icon>
+          </button>
+        </div>
+
+        @if (grouped.like.length) {
+          <div class="grid grid-cols-4 gap-1.5">
+            @for (game of grouped.like; track game.id) {
+              <div
+                class="group relative aspect-3/4 overflow-hidden rounded-lg border border-hairline bg-surface-feature shadow-xs"
+                [matTooltip]="game.title"
+              >
+                <img
+                  [src]="coverOf(game)"
+                  [alt]="game.title"
+                  decoding="async"
+                  (error)="onImageError($event, game.title)"
+                  class="size-full object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+                <button
+                  type="button"
+                  (click)="games.remove(game.id)"
+                  [disabled]="busy !== null"
+                  [attr.aria-label]="'Gỡ ' + game.title + ' khỏi ' + kindLabels.like"
+                  class="absolute right-1 top-1 flex size-4 cursor-pointer items-center justify-center rounded-full bg-black/70 text-white/90 opacity-0 shadow-sm transition-opacity hover:text-white focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 disabled:cursor-default"
+                >
+                  <mat-icon aria-hidden="true" class="size-2.5! text-[10px]!">close</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="rounded-xl border border-dashed border-hairline px-3 py-4 text-center text-caption text-muted">
+            Chưa có trò chơi nào trong bộ sưu tập.
+          </p>
+        }
+      </section>
+    }
+
+    @case ('wishlist') {
+      <section class="space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="block text-caption font-extrabold leading-tight text-ink">
+              {{ kindLabels.wishlist }}
+            </span>
+            <span class="text-[10px] text-steel">
+              Tối đa {{ limitFor('wishlist') }} trò chơi · còn {{ slots.wishlist }} chỗ
+            </span>
+          </div>
+          <button
+            type="button"
+            (click)="games.startAdd('wishlist')"
+            [disabled]="slots.wishlist <= 0 || busy !== null"
+            [attr.aria-label]="'Thêm trò chơi vào ' + kindLabels.wishlist"
+            class="flex size-5 cursor-pointer items-center justify-center rounded-md border border-hairline bg-canvas text-steel shadow-2xs transition-colors hover:text-ink disabled:cursor-default disabled:opacity-45"
+          >
+            <mat-icon aria-hidden="true" class="size-3! text-[13px]!">add</mat-icon>
+          </button>
+        </div>
+
+        @if (grouped.wishlist.length) {
+          <div class="grid grid-cols-4 gap-1.5">
+            @for (game of grouped.wishlist; track game.id) {
+              <div
+                class="group relative aspect-3/4 overflow-hidden rounded-lg border border-hairline bg-surface-feature shadow-xs"
+                [matTooltip]="game.title"
+              >
+                <img
+                  [src]="coverOf(game)"
+                  [alt]="game.title"
+                  decoding="async"
+                  (error)="onImageError($event, game.title)"
+                  class="size-full object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+                <button
+                  type="button"
+                  (click)="games.remove(game.id)"
+                  [disabled]="busy !== null"
+                  [attr.aria-label]="'Gỡ ' + game.title + ' khỏi ' + kindLabels.wishlist"
+                  class="absolute right-1 top-1 flex size-4 cursor-pointer items-center justify-center rounded-full bg-black/70 text-white/90 opacity-0 shadow-sm transition-opacity hover:text-white focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 disabled:cursor-default"
+                >
+                  <mat-icon aria-hidden="true" class="size-2.5! text-[10px]!">close</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="rounded-xl border border-dashed border-hairline px-3 py-4 text-center text-caption text-muted">
+            Chưa có trò chơi nào trong danh sách muốn chơi.
+          </p>
+        }
+      </section>
+    }
+
+    <!-- Chưa có nguồn dữ liệu nào ở backend cho nhật ký hoạt động. Nói thẳng
+         thay vì bày một khung rỗng để người dùng ngồi chờ. -->
+    @case ('activity') {
+      <p class="rounded-xl border border-dashed border-hairline px-3 py-6 text-center text-caption text-muted">
+        Nhật ký hoạt động chưa dùng được.
+      </p>
+    }
+  }
+</div>

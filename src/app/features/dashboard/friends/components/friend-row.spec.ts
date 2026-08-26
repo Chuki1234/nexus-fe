@@ -9,6 +9,7 @@ import { FriendRow } from './friend-row';
 const NGUOI: ConversationSummary = {
   id: 'ho-be',
   name: 'ho_be',
+  username: null,
   statusMessage: 'shut the fckup',
   presence: 'dnd',
   unread: false,

@@ -1,0 +1,77 @@
+<div class="inline-message-editor rounded-xl bg-surface-soft border border-hairline p-2.5 transition-colors focus-within:border-primary/50 shadow-inner">
+  <label [for]="'edit-textarea-' + messageId()" class="sr-only">
+    Chỉnh sửa nội dung tin nhắn
+  </label>
+
+  <textarea
+    #editorTextarea
+    [id]="'edit-textarea-' + messageId()"
+    [value]="draft()"
+    (input)="onInput($event)"
+    (keydown)="onKeydown($event)"
+    [disabled]="saving()"
+    rows="1"
+    maxlength="4500"
+    placeholder="Nhập nội dung tin nhắn..."
+    class="inline-editor-textarea w-full resize-none bg-transparent text-body-sm text-ink placeholder:text-steel focus:outline-none leading-relaxed"
+  ></textarea>
+
+  <!-- Thông báo lỗi hoặc hết hạn -->
+  @if (expired()) {
+    <div class="inline-editor-expired mt-1.5 flex items-center gap-1.5 text-xs text-amber-400 font-medium" role="alert">
+      <mat-icon class="!size-4 !text-base">timer_off</mat-icon>
+      <span>Đã hết thời gian chỉnh sửa 5 phút.</span>
+    </div>
+  } @else if (errorMessage(); as err) {
+    <div class="inline-editor-error mt-1.5 flex items-center gap-1.5 text-xs text-danger font-medium" role="alert">
+      <mat-icon class="!size-4 !text-base">error_outline</mat-icon>
+      <span>{{ err }}</span>
+    </div>
+  }
+
+  <!-- Footer điều khiển & hướng dẫn phím tắt -->
+  <div class="inline-editor-footer mt-2 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-hairline/40 text-[11px] text-steel">
+    <div class="inline-editor-hints hidden sm:flex items-center gap-1">
+      <span>Nhấn <kbd class="px-1.5 py-0.5 rounded bg-surface border border-hairline font-mono text-[10px] text-ink">Enter</kbd> để lưu</span>
+      <span>•</span>
+      <span><kbd class="px-1.5 py-0.5 rounded bg-surface border border-hairline font-mono text-[10px] text-ink">Shift + Enter</kbd> xuống dòng</span>
+      <span>•</span>
+      <span><kbd class="px-1.5 py-0.5 rounded bg-surface border border-hairline font-mono text-[10px] text-ink">Escape</kbd> để hủy</span>
+    </div>
+
+    <div class="inline-editor-actions flex items-center gap-2 ml-auto">
+      @if (charCount() > 3500) {
+        <span
+          class="inline-editor-counter text-xs"
+          [class.text-danger]="isOverLimit()"
+          [class.font-semibold]="isOverLimit()"
+        >
+          {{ charCount() }}/4000
+        </span>
+      }
+
+      <button
+        type="button"
+        (click)="cancel.emit()"
+        [disabled]="saving()"
+        class="inline-editor-cancel-btn px-2.5 py-1 rounded-lg text-xs font-medium text-steel hover:text-ink hover:bg-surface-feature transition-colors cursor-pointer disabled:opacity-50"
+      >
+        Hủy
+      </button>
+
+      <button
+        type="button"
+        (click)="submitSave()"
+        [disabled]="!canSubmit()"
+        class="inline-editor-save-btn px-3 py-1 rounded-lg text-xs font-semibold bg-primary text-on-primary hover:bg-primary-hover active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+      >
+        @if (saving()) {
+          <mat-spinner diameter="14" strokeWidth="2" class="!text-on-primary" />
+          <span>Đang lưu...</span>
+        } @else {
+          <span>Lưu</span>
+        }
+      </button>
+    </div>
+  </div>
+</div>

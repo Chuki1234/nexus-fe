@@ -17,6 +17,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
@@ -24,7 +25,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChatToolbar } from '../components/chat-toolbar/chat-toolbar';
-import type { PresenceStatus } from '../../../../shared/dto/common';
+import { MOBILE_BREAKPOINT_QUERY } from '../../../layouts/app-layout/services/dashboard-layout.service';
+import { PRESENCE_LABEL, type PresenceStatus } from '../../../../shared/dto/common';
 import { PresenceService } from '../../../core/presence/presence.service';
 import { ChatScrollController } from '../../../core/utils/chat-scroll.controller';
 import {
@@ -56,6 +58,9 @@ import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/ligh
 import type { LightboxMediaItem } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.types';
 import { extractErrorMessage } from '../../../core/utils/error.util';
 import { GiphyMessageEmbedComponent } from '../components/giphy-message-embed/giphy-message-embed.component';
+import { InlineMessageEditor } from '../components/inline-message-editor/inline-message-editor';
+import { MessageClockService } from '../../../core/utils/message-clock.service';
+import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import {
   parseMessageContent,
   type MessageContentToken,
@@ -215,6 +220,7 @@ import { UserSettingsService } from '../../settings/services/user-settings.servi
     EmptyState,
     ForwardMessageModal,
     GiphyMessageEmbedComponent,
+    InlineMessageEditor,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -225,6 +231,7 @@ import { UserSettingsService } from '../../settings/services/user-settings.servi
     ProfilePanel,
     RouterLink,
   ],
+  providers: [MessageClockService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col relative' },
   templateUrl: './conversation.html',
@@ -237,10 +244,15 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
   private readonly userSettings = inject(UserSettingsService);
   readonly activeChatStore = inject(ActiveChatStore);
+  readonly messageClock = inject(MessageClockService);
   private readonly uiState = inject(DashboardUiState);
   private readonly destroyRef = inject(DestroyRef);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly injector = inject(Injector);
+
+  readonly editingMessageId = signal<string | null>(null);
+  readonly editingSaving = signal<boolean>(false);
+  readonly editingError = signal<string | null>(null);
 
   readonly chatHistoryRef = viewChild<ElementRef<HTMLElement>>('chatHistory');
   readonly composerWrapperRef = viewChild<ElementRef<HTMLElement>>('composerWrapper');
@@ -320,6 +332,12 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     () => this.conversationDetails()?.recipient?.username ?? null,
   );
 
+  private readonly breakpoints = inject(BreakpointObserver);
+  protected readonly isMobile = toSignal(
+    this.breakpoints.observe(MOBILE_BREAKPOINT_QUERY).pipe(map((state) => state.matches)),
+    { initialValue: typeof window !== 'undefined' ? window.innerWidth < 768 : false },
+  );
+
   /** Cột hồ sơ bên phải đang mở hay không (nút "hồ sơ" trên thanh tiêu đề). */
   protected readonly profilePanelOpen = signal(false);
 
@@ -342,6 +360,20 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
       (this.conversationDetails()?.recipient?.presence as PresenceStatus) ||
       'offline'
     );
+  });
+
+  protected readonly recipientStatusSubtitle = computed(() => {
+    const customStatus = this.conversationDetails()?.recipient?.statusMessage;
+    if (customStatus) {
+      return customStatus;
+    }
+    const recipientId = this.conversationDetails()?.recipient?.id;
+    const presence = this.recipientPresence();
+    if (presence === 'offline' && recipientId) {
+      const lastSeenText = this.presenceService.getLastSeenLabel(recipientId)();
+      return lastSeenText ?? PRESENCE_LABEL['offline'];
+    }
+    return PRESENCE_LABEL[presence] ?? null;
   });
 
   protected readonly hasValidConversation = computed(() => {
@@ -489,7 +521,20 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private lastActiveKey: string | null = null;
   private detailsGeneration = 0;
 
+  private previousIsMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+
   constructor() {
+    // Khi viewport chuyển từ desktop sang mobile (có nút hamburger), tự động đóng profile panel
+    effect(() => {
+      const mobile = this.isMobile();
+      if (mobile && !this.previousIsMobile) {
+        untracked(() => {
+          this.profilePanelOpen.set(false);
+        });
+      }
+      this.previousIsMobile = mobile;
+    });
+
     // Tự động kích hoạt phòng chat khi URL param thay đổi hoặc session hoàn tất
     // Sử dụng untracked() và dedupe theo userId:conversationId để ngăn chặn reactive loop
     effect(() => {
@@ -1216,8 +1261,40 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  canEdit(msg: ChatUiMessage): boolean {
+    return canEditMessage(msg, this.currentUserId(), this.messageClock.now());
+  }
+
+  startEdit(msg: ChatUiMessage): void {
+    this.editingMessageId.set(msg.id);
+    this.editingError.set(null);
+  }
+
+  cancelInlineEdit(): void {
+    this.editingMessageId.set(null);
+    this.editingError.set(null);
+  }
+
+  async saveInlineEdit(messageId: string, newContent: string): Promise<void> {
+    try {
+      this.editingSaving.set(true);
+      this.editingError.set(null);
+      await this.activeChatStore.editMessage(messageId, newContent);
+      this.editingMessageId.set(null);
+    } catch (err: unknown) {
+      this.editingError.set(extractErrorMessage(err, 'Lỗi khi chỉnh sửa tin nhắn.'));
+    } finally {
+      this.editingSaving.set(false);
+    }
+  }
+
   onMessageAction(action: MessageComposerContext): void {
-    if (action.kind === 'delete' && action.messageId) {
+    if (action.kind === 'edit' && action.messageId) {
+      const msg = this.messages().find((m) => m.id === action.messageId);
+      if (msg) {
+        this.startEdit(msg);
+      }
+    } else if (action.kind === 'delete' && action.messageId) {
       const msg = this.messages().find((m) => m.id === action.messageId);
       if (msg) {
         this.deleteModalMessage.set(msg);

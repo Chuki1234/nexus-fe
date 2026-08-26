@@ -27,6 +27,33 @@
     outline-offset: 2px;
   }
 
+  &.is-sticker {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    max-width: 160px;
+    max-height: 160px;
+    cursor: pointer;
+
+    .giphy-media-content {
+      object-fit: contain;
+      border-radius: 0;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+      transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), filter 0.18s ease;
+    }
+
+    &:hover,
+    &:focus-visible {
+      box-shadow: none;
+      filter: none;
+
+      .giphy-media-content {
+        transform: scale(1.08);
+        filter: drop-shadow(0 4px 14px rgba(168, 85, 247, 0.4));
+      }
+    }
+  }
+
   .giphy-media-content {
     width: 100%;
     height: 100%;

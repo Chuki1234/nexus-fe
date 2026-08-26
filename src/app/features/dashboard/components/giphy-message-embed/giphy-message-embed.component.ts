@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, Input, signal } from '@angular/core';
-import { GiphyMediaDto } from '../../../../../shared/dto/messages.dto';
+import { ExternalMediaDto } from '../../../../../shared/dto/messages.dto';
 import { LightboxGalleryService } from '../../../../shared/ui/lightbox-gallery/lightbox-gallery.service';
 
 @Component({
@@ -13,7 +13,7 @@ import { LightboxGalleryService } from '../../../../shared/ui/lightbox-gallery/l
 export class GiphyMessageEmbedComponent {
   private readonly lightbox = inject(LightboxGalleryService);
 
-  @Input({ required: true }) media!: GiphyMediaDto;
+  @Input({ required: true }) media!: ExternalMediaDto;
   @Input() messageId?: string;
 
   readonly videoFailed = signal(false);
@@ -21,9 +21,14 @@ export class GiphyMessageEmbedComponent {
 
   readonly aspectRatioStyle = computed(() => {
     if (!this.media || !this.media.width || !this.media.height) {
-      return '4 / 3';
+      return '1 / 1';
     }
     return `${this.media.width} / ${this.media.height}`;
+  });
+
+  readonly maxWidthPx = computed(() => {
+    if (this.media?.mediaType === 'sticker') return 160;
+    return this.media?.width && this.media.width > 480 ? 480 : (this.media?.width || 480);
   });
 
   onVideoError(): void {
@@ -38,16 +43,19 @@ export class GiphyMessageEmbedComponent {
     if (!this.media) return;
     event?.stopPropagation();
 
+    const isSticker = this.media.mediaType === 'sticker';
     const url = this.media.displayUrl || this.media.previewUrl || '';
-    const filename = this.media.title ? `${this.media.title}.gif` : 'giphy.gif';
+    const ext = isSticker ? 'png' : 'gif';
+    const filename = this.media.title ? `${this.media.title}.${ext}` : `media.${ext}`;
+    const mimeType = isSticker ? 'image/png' : 'image/gif';
 
     this.lightbox.open({
       items: [
         {
-          messageId: this.messageId || 'gif-msg',
-          attachmentId: this.media.externalId || 'gif-media',
+          messageId: this.messageId || (isSticker ? 'sticker-msg' : 'gif-msg'),
+          attachmentId: this.media.externalId || (isSticker ? 'sticker-media' : 'gif-media'),
           filename,
-          mimeType: 'image/gif',
+          mimeType,
           url,
           senderName: this.media.creatorUsername ? `@${this.media.creatorUsername}` : undefined,
         },

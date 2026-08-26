@@ -415,5 +415,44 @@ describe('MessageComposer', () => {
       expect(host.sentPayloads).toHaveLength(1);
       expect(host.sentPayloads[0].externalMedia).toEqual(mockGif);
     });
+
+    it('bấm nút Sticker mở/đóng Stipop Picker và chọn sticker phát sự kiện send ngay lập tức', async () => {
+      const fixture = await mount();
+      const host = fixture.componentInstance;
+      const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+
+      expect(composer.showStipopPicker()).toBe(false);
+
+      // Bật sticker picker
+      composer.toggleStipopPicker();
+      fixture.detectChanges();
+      expect(composer.showStipopPicker()).toBe(true);
+
+      // Đảm bảo Emoji và GIF picker bị đóng
+      expect(composer.showEmojiPicker()).toBe(false);
+      expect(composer.showGiphyPicker()).toBe(false);
+
+      // Khi chọn sticker
+      const mockSticker = {
+        provider: 'stipop' as const,
+        externalId: '45268',
+        mediaType: 'sticker' as const,
+        title: 'Happy Sticker',
+        creatorUsername: 'amam',
+        pageUrl: 'https://stipop.io/package/2199',
+        previewUrl: 'https://img.stipop.io/prev.png',
+        displayUrl: 'https://img.stipop.io/disp.png',
+        mp4Url: null,
+        width: 300,
+        height: 300,
+      };
+
+      composer.onStickerSelected(mockSticker);
+      fixture.detectChanges();
+
+      expect(composer.showStipopPicker()).toBe(false);
+      expect(host.sentPayloads).toHaveLength(1);
+      expect(host.sentPayloads[0].externalMedia).toEqual(mockSticker);
+    });
   });
 });

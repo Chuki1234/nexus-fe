@@ -141,6 +141,7 @@
                     <li class="flex items-center justify-between p-3 rounded-xl hover:bg-surface-feature/50 border border-hairline/40 transition-colors">
                       <div class="flex items-center gap-3 min-w-0">
                         <app-avatar
+                          [src]="user.avatarUrl ?? null"
                           [name]="user.displayName"
                           presence="offline"
                           size="md"

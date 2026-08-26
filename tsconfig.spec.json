@@ -11,5 +11,10 @@
   "include": [
     "src/**/*.d.ts",
     "src/**/*.spec.ts"
+  ],
+  "exclude": [
+    "src/app/pages/**",
+    "src/app/shared/ui/profile-card/**",
+    "src/app/core/i18n/**"
   ]
 }

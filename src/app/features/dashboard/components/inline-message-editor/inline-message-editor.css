@@ -1,0 +1,28 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.inline-editor-textarea {
+  min-height: 2.25rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-hairline-strong) transparent;
+}
+
+.inline-editor-textarea::-webkit-scrollbar {
+  width: 4px;
+}
+
+.inline-editor-textarea::-webkit-scrollbar-thumb {
+  background: var(--color-hairline-strong);
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inline-editor-save-btn,
+  .inline-editor-cancel-btn {
+    transition: none !important;
+  }
+}

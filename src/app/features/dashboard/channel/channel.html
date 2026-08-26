@@ -131,12 +131,26 @@
                       {{ msg.createdAt | date: 'HH:mm' }}
                     </time>
                   } @else {
-                    <app-avatar
-                      [name]="msg.author?.displayName || msg.author?.username || 'User'"
-                      [src]="msg.author?.avatarUrl ?? null"
-                      size="md"
-                      ring="canvas"
-                    />
+                    <!-- Bấm vào avatar mở thẻ hồ sơ nổi của người gửi. Chỉ gắn
+                         khi có username: directive cần nó để tra `/profiles/:username`,
+                         không có thì thành một nút bấm vào chẳng ra gì. -->
+                    @if (msg.author?.username; as authorUsername) {
+                      <app-avatar
+                        [appProfileTrigger]="authorUsername"
+                        [attr.aria-label]="'Xem hồ sơ của ' + (msg.author?.displayName || authorUsername)"
+                        [name]="msg.author?.displayName || authorUsername"
+                        [src]="msg.author?.avatarUrl ?? null"
+                        size="md"
+                        ring="canvas"
+                      />
+                    } @else {
+                      <app-avatar
+                        [name]="msg.author?.displayName || 'User'"
+                        [src]="msg.author?.avatarUrl ?? null"
+                        size="md"
+                        ring="canvas"
+                      />
+                    }
                   }
 
                   <article class="message-card">
@@ -171,6 +185,19 @@
                         <!-- Deleted Message State -->
                         @if (msg.deletedAt) {
                           <p class="text-body-sm text-steel italic">Tin nhắn đã bị xóa</p>
+                        } @else if (editingMessageId() === msg.id) {
+                          <div class="mt-1 mb-1">
+                            <app-inline-message-editor
+                              [messageId]="msg.id"
+                              [initialContent]="msg.content || ''"
+                              [createdAt]="msg.createdAt"
+                              [saving]="editingSaving()"
+                              [errorMessage]="editingError()"
+                              [expired]="!canEdit(msg)"
+                              (save)="saveInlineEdit(msg.id, $event)"
+                              (cancel)="cancelInlineEdit()"
+                            />
+                          </div>
                         } @else if (msg.content) {
                           <!-- Normal Parsed Content -->
                           <div class="message-body text-body-sm text-charcoal leading-relaxed break-words whitespace-pre-wrap">
@@ -289,7 +316,8 @@
                             [messageId]="msg.id"
                             [author]="msg.author?.displayName || msg.author?.username || 'User'"
                             [excerpt]="msg.content || 'Đính kèm tệp'"
-                            [editable]="msg.authorId === auth.user()?.id"
+                            [ownMessage]="isMine(msg)"
+                            [canEdit]="canEdit(msg)"
                             (action)="onAction($event)"
                             (reaction)="onToggleReaction(msg.id, $event)"
                           />
@@ -373,6 +401,8 @@
               @for (m of onlineMembers(); track m.userId) {
                 <div class="context-member flex items-center gap-2.5 rounded-xl px-2 py-1.5 select-none">
                   <app-avatar
+                    [appProfileTrigger]="m.username"
+                    [attr.aria-label]="'Xem hồ sơ của ' + (m.nickname || m.displayName || m.username)"
                     [name]="m.nickname || m.displayName || m.username"
                     [src]="m.avatarUrl ?? null"
                     [presence]="m.presence"
@@ -402,6 +432,8 @@
               @for (m of offlineMembers(); track m.userId) {
                 <div class="context-member flex items-center gap-2.5 rounded-xl px-2 py-1.5 select-none">
                   <app-avatar
+                    [appProfileTrigger]="m.username"
+                    [attr.aria-label]="'Xem hồ sơ của ' + (m.nickname || m.displayName || m.username)"
                     [name]="m.nickname || m.displayName || m.username"
                     [src]="m.avatarUrl ?? null"
                     [presence]="'offline'"

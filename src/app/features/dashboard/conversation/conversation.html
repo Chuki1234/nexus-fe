@@ -60,6 +60,7 @@
 } @else if (hasValidConversation()) {
   <app-chat-toolbar
     [title]="recipientName()"
+    [subtitle]="recipientStatusSubtitle()"
     leadingIcon="alternate_email"
     [showCallActions]="true"
     [showDetailsAction]="recipientUsername() !== null"
@@ -520,24 +521,39 @@
                               }
                             </header>
                           }
-                          <div class="message-body text-body-sm text-charcoal break-words whitespace-pre-wrap leading-relaxed">
-                            @for (token of item.contentTokens; track token.key) {
-                              @if (token.type === 'link') {
-                                <a
-                                  [href]="token.url"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  class="nexus-chat-link text-primary underline hover:text-primary-hover break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
-                                  (click)="$event.stopPropagation()"
-                                >{{ token.value }}</a>
-                              } @else {
-                                <span>{{ token.value }}</span>
+                          @if (editingMessageId() === msg.id) {
+                            <div class="mt-1 mb-1">
+                              <app-inline-message-editor
+                                [messageId]="msg.id"
+                                [initialContent]="msg.content || ''"
+                                [createdAt]="msg.createdAt"
+                                [saving]="editingSaving()"
+                                [errorMessage]="editingError()"
+                                [expired]="!canEdit(msg)"
+                                (save)="saveInlineEdit(msg.id, $event)"
+                                (cancel)="cancelInlineEdit()"
+                              />
+                            </div>
+                          } @else {
+                            <div class="message-body text-body-sm text-charcoal break-words whitespace-pre-wrap leading-relaxed">
+                              @for (token of item.contentTokens; track token.key) {
+                                @if (token.type === 'link') {
+                                  <a
+                                    [href]="token.url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="nexus-chat-link text-primary underline hover:text-primary-hover break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
+                                    (click)="$event.stopPropagation()"
+                                  >{{ token.value }}</a>
+                                } @else {
+                                  <span>{{ token.value }}</span>
+                                }
                               }
-                            }
-                            @if (item.isGrouped && msg.editedAt) {
-                              <span class="message-edited-badge text-[11px] text-steel ml-1" title="Đã chỉnh sửa">(đã chỉnh sửa)</span>
-                            }
-                          </div>
+                              @if (item.isGrouped && msg.editedAt) {
+                                <span class="message-edited-badge text-[11px] text-steel ml-1" title="Đã chỉnh sửa">(đã chỉnh sửa)</span>
+                              }
+                            </div>
+                          }
                         </div>
                       } @else if (!item.isGrouped) {
                         <header class="message-header flex flex-wrap items-baseline gap-x-2 mb-1.5">
@@ -695,7 +711,8 @@
                           [messageId]="msg.id"
                           [author]="msg.author?.displayName || msg.author?.username || 'Người dùng'"
                           [excerpt]="getMessageExcerpt(msg)"
-                          [editable]="isMine(msg)"
+                          [ownMessage]="isMine(msg)"
+                          [canEdit]="canEdit(msg)"
                           (action)="onMessageAction($event)"
                           (reaction)="onToggleReaction(msg.id, $event)"
                         />

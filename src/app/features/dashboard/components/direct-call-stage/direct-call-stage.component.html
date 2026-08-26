@@ -33,17 +33,32 @@
 
     <!-- 2. Main Stage Content -->
     <section class="stage-content">
-      <!-- Remote Video View (Always attached) -->
-      <video
-        #remoteVideo
-        class="remote-video"
-        [class.hidden]="!store.isRemoteVideoAvailable()"
-        [ngClass]="store.remoteVideoFit()"
-        autoplay
-        playsinline
-      ></video>
+      @if (isLocalVideoPrimary() && !store.isVideoMuted()) {
+        <video
+          #primaryLocalVideo
+          class="remote-video local-primary-video"
+          [class.mirrored]="store.isSelfViewMirrored()"
+          [ngClass]="store.remoteVideoFit()"
+          autoplay
+          playsinline
+          muted
+          aria-label="Video của bạn đang được phóng lớn"
+        ></video>
+      } @else {
+        <!-- Giữ element trong layout kể cả trước khi track tới để adaptiveStream
+             có thể đánh giá đúng kích thước video cần subscribe. -->
+        <video
+          #remoteVideo
+          class="remote-video"
+          [class.remote-video--unavailable]="!store.isRemoteVideoAvailable()"
+          [ngClass]="store.remoteVideoFit()"
+          autoplay
+          playsinline
+          aria-label="Video của người bên kia"
+        ></video>
+      }
 
-      @if (!store.isRemoteVideoAvailable()) {
+      @if (!isLocalVideoPrimary() && !store.isRemoteVideoAvailable()) {
         <!-- Avatar Fallback View for Audio Call or Remote Camera Off -->
         <div class="avatar-fallback-wrapper">
           <div class="avatar-sonar-container">
@@ -93,7 +108,10 @@
       }
 
       <!-- Draggable Local Self View (Camera Picture-in-Picture) -->
-      <app-draggable-self-view />
+      <app-draggable-self-view
+        [source]="isLocalVideoPrimary() ? 'remote' : 'local'"
+        (activate)="swapPrimaryVideo()"
+      />
     </section>
 
     <!-- 3. Bottom Controls Bar -->

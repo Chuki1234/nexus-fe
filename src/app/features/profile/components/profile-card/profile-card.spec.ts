@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { ProfilesApiService } from '../../../../core/api/profiles-api.service';
 import type { PublicProfile } from '../../../../../shared';
 import { ProfileCard } from './profile-card';
 
@@ -14,6 +15,9 @@ const PERSON: PublicProfile = {
   bio: 'Sinh viên năm ba.',
   location: 'Hà Nội',
   links: [{ label: 'GitHub', url: 'https://github.com/ducpham' }],
+  games: [],
+  mutualFriends: [],
+  mutualServers: [],
   accentColor: null,
   createdAt: '2026-03-15T00:00:00.000Z',
   isSelf: false,
@@ -24,7 +28,13 @@ describe('ProfileCard', () => {
 
   function setup(profile: PublicProfile): HTMLElement {
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), provideRouter([])],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        // Không tự xem hồ sơ mình thì `ProfileCard` tự tải ghi chú riêng —
+        // mọi test dưới đây đều dùng hồ sơ người khác (`isSelf: false`).
+        { provide: ProfilesApiService, useValue: { getNote: () => Promise.resolve({ text: '' }) } },
+      ],
     });
     fixture = TestBed.createComponent(ProfileCard);
     fixture.componentRef.setInput('profile', profile);
@@ -74,5 +84,21 @@ describe('ProfileCard', () => {
     expect(link).not.toBeNull();
     expect(link?.textContent).toContain('GitHub');
     expect(link?.textContent).toContain('github.com/ducpham');
+  });
+
+  it('hiện ngày sinh nếu có trong hồ sơ', () => {
+    const el = setup({ ...PERSON, birthdate: '2005-07-21' });
+    expect(el.textContent).toContain('Ngày sinh');
+    expect(el.textContent).toContain('21 Tháng 7, 2005');
+  });
+
+  it('hiện danh sách máy chủ và bạn bè', () => {
+    const el = setup({
+      ...PERSON,
+      mutualServers: [{ id: 's1', name: 'Server Test', iconUrl: null }],
+      mutualFriends: [{ id: 'u2', username: 'friend1', displayName: 'Bạn 1', avatarUrl: null }],
+    });
+    expect(el.textContent).toContain('Server Test');
+    expect(el.textContent).toContain('Bạn 1');
   });
 });

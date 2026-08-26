@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { UserSettingsService } from './user-settings.service';
 import { ProfileService } from '../../../core/profile/profile.service';
-import { ProfilePendingImages } from '../../profile/pending-images';
 
 describe('UserSettingsService', () => {
   let service: UserSettingsService;
@@ -64,26 +63,70 @@ describe('UserSettingsService', () => {
     expect(service.editDisplayName()).not.toBe('Tên Mới Được Sửa');
   });
 
-  it('ảnh và màu sắc chọn dở cũng tính là thay đổi chưa lưu', () => {
+  /**
+   * Tab Hồ Sơ xếp ảnh chờ qua CHÍNH service này (`stageAvatarFile`), không qua
+   * `ProfilePendingImages` — component `app-profile-images` dùng đường kia hiện
+   * không được render ở đâu cả.
+   */
+  it('ảnh hồ sơ chọn dở cũng tính là thay đổi chưa lưu', () => {
     service.open('profile');
     expect(service.hasUnsavedChanges()).toBe(false);
 
-    service.editAvatarUrl.set('https://x/new-avatar.webp');
+    service.stageAvatarFile(
+      new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }),
+      'blob:pending-avatar',
+    );
     expect(service.hasUnsavedChanges()).toBe(true);
+    expect(service.editAvatarUrl()).toBe('blob:pending-avatar');
 
     service.resetChanges();
     expect(service.hasUnsavedChanges()).toBe(false);
+    expect(service.editAvatarUrl()).not.toBe('blob:pending-avatar');
   });
 
-  it('đóng cài đặt và resetChanges khôi phục trạng thái ban đầu', () => {
+  /** Gỡ ảnh bìa cũng là một thay đổi chờ lưu, không chỉ có việc chọn ảnh mới. */
+  it('gỡ ảnh bìa cũng tính là thay đổi chưa lưu', () => {
     service.open('profile');
-    service.editBannerColor.set('#ff0000');
+    service.stageBannerFile(
+      new File([new Uint8Array([1])], 'b.png', { type: 'image/png' }),
+      'blob:pending-banner',
+    );
+    expect(service.hasUnsavedChanges()).toBe(true);
+
+    service.stageBannerRemoval();
+    expect(service.editBannerUrl()).toBeNull();
+  });
+
+  /**
+   * Đóng modal nghĩa là bỏ ý định đổi ảnh. Trước đây `close()` chỉ dọn
+   * `ProfilePendingImages` nên ảnh chọn từ tab Hồ Sơ vẫn nằm lại: mở cài đặt
+   * lần sau thấy ảnh lạ kèm thanh "chưa lưu" mà không hiểu ở đâu ra.
+   */
+  it('đóng cài đặt bỏ luôn ảnh chọn dở', () => {
+    service.open('profile');
+    service.stageAvatarFile(
+      new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }),
+      'blob:pending-avatar',
+    );
     expect(service.hasUnsavedChanges()).toBe(true);
 
     service.resetChanges();
     expect(service.hasUnsavedChanges()).toBe(false);
     service.close();
-    expect(service.isOpen()).toBe(false);
+
+    expect(service.editAvatarUrl()).not.toBe('blob:pending-avatar');
+    expect(service.hasUnsavedChanges()).toBe(false);
+  });
+
+  /** Chữ gõ dở thì NGƯỢC LẠI — đóng mở lại phải còn, không bị nuốt mất. */
+  it('đóng cài đặt vẫn giữ phần chữ đang gõ dở', () => {
+    service.open('profile');
+    service.editDisplayName.set('Đang Gõ Dở');
+
+    service.close();
+
+    expect(service.editDisplayName()).toBe('Đang Gõ Dở');
+    expect(service.hasUnsavedChanges()).toBe(true);
   });
 
   it('tính toán đúng phân quyền server theo vai trò', () => {

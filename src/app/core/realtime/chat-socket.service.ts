@@ -738,6 +738,16 @@ export class ChatSocketService {
   }
 
   // ---------------------------------------------------------------------------
+  // Presence Activity Indicator
+  // ---------------------------------------------------------------------------
+
+  emitActivity(): void {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('presence:activity');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Socket Listeners & Reconnect Rejoining
   // ---------------------------------------------------------------------------
 

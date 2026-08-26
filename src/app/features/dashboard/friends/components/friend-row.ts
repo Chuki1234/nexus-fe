@@ -89,10 +89,18 @@ export class FriendRow {
     });
   }
 
-  /** Ưu tiên câu trạng thái người dùng tự đặt; không có thì hiện trạng thái hệ thống. */
+  /** Ưu tiên câu trạng thái người dùng tự đặt; không có thì hiện thời gian hoạt động cuối (nếu offline) hoặc trạng thái hệ thống. */
   protected readonly subtitle = computed(() => {
     const person = this.person();
-    return person.statusMessage ?? PRESENCE_LABEL[this.effectivePresence()];
+    if (person.statusMessage) {
+      return person.statusMessage;
+    }
+    const presence = this.effectivePresence();
+    if (presence === 'offline') {
+      const lastSeenText = this.presenceService.getLastSeenLabel(person.id)();
+      return lastSeenText ?? PRESENCE_LABEL['offline'];
+    }
+    return PRESENCE_LABEL[presence];
   });
 
   async onOpenDm(): Promise<void> {
