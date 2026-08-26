@@ -1,61 +1,49 @@
-<div class="space-y-6 pb-8" (click)="closeAllDropdowns()">
-  <!-- Title -->
+<div class="space-y-5 pb-8" (click)="closeAllDropdowns()">
+
+  <!-- ── Title ── -->
   <div>
-    <h2 class="text-heading-4 font-bold text-ink tracking-tight">Giọng nói và Video</h2>
-    <p class="text-caption text-steel mt-1">
-      Tùy chỉnh thiết bị micro, tai nghe, camera và các thuật toán xử lý âm thanh trong cuộc gọi.
-    </p>
+    <h2 style="font-size:20px;font-weight:700;color:#f2f3f5;margin:0 0 4px">Giọng nói & Video</h2>
+    <p style="font-size:13px;color:#949ba4;margin:0">Tùy chỉnh thiết bị micro, tai nghe, camera và xử lý âm thanh trong cuộc gọi.</p>
   </div>
 
-  <!-- ── Devices Row ── -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <!-- ── Devices Grid ── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
 
-    <!-- Input Device Card -->
-    <div class="rounded-xl bg-[#0d1117] border border-[#2e3338] p-4 flex flex-col gap-4">
-      <!-- Card header -->
-      <div class="flex items-center gap-2">
-        <mat-icon class="!w-5 !h-5 !text-[20px] text-[#00ed64]">mic</mat-icon>
-        <span class="text-[11px] font-extrabold text-[#949ba4] uppercase tracking-widest">Thiết Bị Đầu Vào</span>
+    <!-- Input Card -->
+    <div class="vv-card" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <!-- mic svg -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="color:#00ed64">
+          <path d="M12 2a4 4 0 0 1 4 4v6a4 4 0 1 1-8 0V6a4 4 0 0 1 4-4z" fill="currentColor"/>
+          <path d="M5 10a7 7 0 0 0 14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="8" y1="22" x2="16" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="vv-label">Thiết Bị Đầu Vào</span>
       </div>
 
-      <!-- Custom Dropdown -->
-      <div class="relative" (click)="$event.stopPropagation()">
-        <button
-          type="button"
-          class="device-dropdown-btn"
-          [class.open]="inputDropdownOpen()"
-          (click)="toggleInputDropdown()"
-        >
-          <span class="absolute left-3 top-0 bottom-0 flex items-center pointer-events-none">
-            <mat-icon class="!w-4 !h-4 !text-[17px] text-[#5c6f7a]">settings_input_component</mat-icon>
+      <!-- Dropdown -->
+      <div style="position:relative" (click)="$event.stopPropagation()">
+        <button class="vv-select-btn" [class.open]="inputDropdownOpen()" (click)="toggleInputDropdown()" type="button">
+          <span class="vv-select-icon-left">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a4 4 0 0 1 4 4v6a4 4 0 1 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M5 10a7 7 0 0 0 14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
           </span>
-          <span class="flex-1 min-w-0 truncate">{{ selectedInputLabel() }}</span>
-          <span class="absolute right-3 top-0 bottom-0 flex items-center pointer-events-none">
-            <mat-icon class="!w-4 !h-4 !text-[17px] text-[#949ba4] transition-transform duration-150"
-              [style.transform]="inputDropdownOpen() ? 'rotate(180deg)' : 'rotate(0deg)'">
-              expand_more
-            </mat-icon>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ selectedInputLabel() }}</span>
+          <span class="vv-select-icon-right" [class.open]="inputDropdownOpen()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9l6 6 6-6"/></svg>
           </span>
         </button>
-
         @if (inputDropdownOpen()) {
-          <div class="device-dropdown-menu">
+          <div class="vv-dropdown-menu">
             @if (mediaDevices.audioInputs().length === 0) {
-              <div class="device-dropdown-item">
-                <mat-icon class="!w-4 !h-4 !text-[16px] shrink-0">mic</mat-icon>
-                Cài đặt mặc định của Windows (Microphone Array...)
-              </div>
+              <div class="vv-dropdown-item"><span>Cài đặt mặc định Windows (Microphone Array...)</span></div>
             }
             @for (d of mediaDevices.audioInputs(); track d.deviceId; let i = $index) {
-              <div
-                class="device-dropdown-item"
-                [class.active]="mediaDevices.selectedAudioInputId() === d.deviceId"
-                (click)="selectInput(d.deviceId)"
-              >
-                <mat-icon class="!w-4 !h-4 !text-[16px] shrink-0">mic</mat-icon>
-                <span class="truncate">{{ d.label || ('Microphone ' + (i + 1)) }}</span>
+              <div class="vv-dropdown-item" [class.is-active]="mediaDevices.selectedAudioInputId() === d.deviceId" (click)="selectInput(d.deviceId)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M12 2a4 4 0 0 1 4 4v6a4 4 0 1 1-8 0V6a4 4 0 0 1 4-4z"/></svg>
+                <span>{{ d.label || ('Microphone ' + (i + 1)) }}</span>
                 @if (mediaDevices.selectedAudioInputId() === d.deviceId) {
-                  <mat-icon class="!w-4 !h-4 !text-[14px] ml-auto shrink-0">check</mat-icon>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-left:auto;flex-shrink:0;color:#00ed64"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
                 }
               </div>
             }
@@ -63,67 +51,50 @@
         }
       </div>
 
-      <!-- Volume Slider -->
-      <div class="flex flex-col gap-2">
-        <div class="flex justify-between items-center">
-          <span class="text-[11px] font-bold text-[#949ba4] uppercase tracking-wider">Âm lượng Microphone</span>
-          <span class="text-[13px] font-mono font-bold text-[#00ed64]">{{ settingsService.preferences().inputVolume }}%</span>
+      <!-- Input Volume -->
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="vv-label">Âm lượng Micro</span>
+          <span style="font-size:13px;font-weight:700;font-family:monospace;color:#00ed64">{{ settingsService.preferences().inputVolume }}%</span>
         </div>
-        <input
-          type="range" min="0" max="100" step="1"
-          [ngModel]="settingsService.preferences().inputVolume"
-          (ngModelChange)="setInputVolume($event)"
-          class="vol-slider"
-        />
+        <input type="range" min="0" max="100" step="1" [ngModel]="settingsService.preferences().inputVolume" (ngModelChange)="setInputVolume($event)" class="vv-slider"/>
       </div>
     </div>
 
-    <!-- Output Device Card -->
-    <div class="rounded-xl bg-[#0d1117] border border-[#2e3338] p-4 flex flex-col gap-4">
-      <!-- Card header -->
-      <div class="flex items-center gap-2">
-        <mat-icon class="!w-5 !h-5 !text-[20px] text-[#5865f2]">headphones</mat-icon>
-        <span class="text-[11px] font-extrabold text-[#949ba4] uppercase tracking-widest">Thiết Bị Đầu Ra</span>
+    <!-- Output Card -->
+    <div class="vv-card" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <!-- headphones svg -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="color:#5865f2">
+          <path d="M3 11a9 9 0 0 1 18 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <rect x="2" y="11" width="4" height="8" rx="2" fill="currentColor"/>
+          <rect x="18" y="11" width="4" height="8" rx="2" fill="currentColor"/>
+        </svg>
+        <span class="vv-label">Thiết Bị Đầu Ra</span>
       </div>
 
-      <!-- Custom Dropdown -->
-      <div class="relative" (click)="$event.stopPropagation()">
-        <button
-          type="button"
-          class="device-dropdown-btn"
-          [class.open]="outputDropdownOpen()"
-          (click)="toggleOutputDropdown()"
-        >
-          <span class="absolute left-3 top-0 bottom-0 flex items-center pointer-events-none">
-            <mat-icon class="!w-4 !h-4 !text-[17px] text-[#5c6f7a]">speaker</mat-icon>
+      <!-- Dropdown -->
+      <div style="position:relative" (click)="$event.stopPropagation()">
+        <button class="vv-select-btn" [class.open]="outputDropdownOpen()" (click)="toggleOutputDropdown()" type="button">
+          <span class="vv-select-icon-left">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 11a9 9 0 0 1 18 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="2" y="11" width="4" height="8" rx="2" fill="currentColor"/><rect x="18" y="11" width="4" height="8" rx="2" fill="currentColor"/></svg>
           </span>
-          <span class="flex-1 min-w-0 truncate">{{ selectedOutputLabel() }}</span>
-          <span class="absolute right-3 top-0 bottom-0 flex items-center pointer-events-none">
-            <mat-icon class="!w-4 !h-4 !text-[17px] text-[#949ba4] transition-transform duration-150"
-              [style.transform]="outputDropdownOpen() ? 'rotate(180deg)' : 'rotate(0deg)'">
-              expand_more
-            </mat-icon>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ selectedOutputLabel() }}</span>
+          <span class="vv-select-icon-right" [class.open]="outputDropdownOpen()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9l6 6 6-6"/></svg>
           </span>
         </button>
-
         @if (outputDropdownOpen()) {
-          <div class="device-dropdown-menu">
+          <div class="vv-dropdown-menu">
             @if (mediaDevices.audioOutputs().length === 0) {
-              <div class="device-dropdown-item">
-                <mat-icon class="!w-4 !h-4 !text-[16px] shrink-0">headphones</mat-icon>
-                Cài đặt mặc định của Windows (Speakers/Headphones...)
-              </div>
+              <div class="vv-dropdown-item"><span>Cài đặt mặc định Windows (Speakers / Headphones...)</span></div>
             }
             @for (d of mediaDevices.audioOutputs(); track d.deviceId; let i = $index) {
-              <div
-                class="device-dropdown-item"
-                [class.active]="mediaDevices.selectedAudioOutputId() === d.deviceId"
-                (click)="selectOutput(d.deviceId)"
-              >
-                <mat-icon class="!w-4 !h-4 !text-[16px] shrink-0">headphones</mat-icon>
-                <span class="truncate">{{ d.label || ('Speakers ' + (i + 1)) }}</span>
+              <div class="vv-dropdown-item" [class.is-active]="mediaDevices.selectedAudioOutputId() === d.deviceId" (click)="selectOutput(d.deviceId)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M3 11a9 9 0 0 1 18 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="2" y="11" width="4" height="8" rx="2" fill="currentColor"/><rect x="18" y="11" width="4" height="8" rx="2" fill="currentColor"/></svg>
+                <span>{{ d.label || ('Speakers ' + (i + 1)) }}</span>
                 @if (mediaDevices.selectedAudioOutputId() === d.deviceId) {
-                  <mat-icon class="!w-4 !h-4 !text-[14px] ml-auto shrink-0">check</mat-icon>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-left:auto;flex-shrink:0;color:#00ed64"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
                 }
               </div>
             }
@@ -131,50 +102,42 @@
         }
       </div>
 
-      <!-- Volume Slider -->
-      <div class="flex flex-col gap-2">
-        <div class="flex justify-between items-center">
-          <span class="text-[11px] font-bold text-[#949ba4] uppercase tracking-wider">Âm lượng Loa ngoài</span>
-          <span class="text-[13px] font-mono font-bold text-[#00ed64]">{{ settingsService.preferences().outputVolume }}%</span>
+      <!-- Output Volume -->
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="vv-label">Âm lượng Loa ngoài</span>
+          <span style="font-size:13px;font-weight:700;font-family:monospace;color:#00ed64">{{ settingsService.preferences().outputVolume }}%</span>
         </div>
-        <input
-          type="range" min="0" max="200" step="1"
-          [ngModel]="settingsService.preferences().outputVolume"
-          (ngModelChange)="setOutputVolume($event)"
-          class="vol-slider"
-        />
+        <input type="range" min="0" max="200" step="1" [ngModel]="settingsService.preferences().outputVolume" (ngModelChange)="setOutputVolume($event)" class="vv-slider"/>
       </div>
     </div>
   </div>
 
   <!-- ── Mic Test ── -->
-  <div class="rounded-xl bg-[#0d1117] border border-[#2e3338] p-4 flex flex-col gap-3">
+  <div class="vv-card" style="display:flex;flex-direction:column;gap:12px">
     <div>
-      <p class="text-[11px] font-extrabold text-[#949ba4] uppercase tracking-widest mb-1">Kiểm Tra Mic</p>
-      <p class="text-[13px] text-[#949ba4]">
-        Có đang nói chuyện kỳ cục một mình không? Chúng tôi sẽ phát lại giọng nói của bạn để kiểm tra chất lượng micrô.
-      </p>
+      <p class="vv-label" style="margin:0 0 4px">Kiểm Tra Micro</p>
+      <p style="font-size:13px;color:#949ba4;margin:0">Chúng tôi phát lại giọng nói của bạn qua loa đã chọn để kiểm tra chất lượng micrô.</p>
     </div>
-    <div class="flex items-center gap-3">
-      <button
-        type="button"
-        (click)="toggleMicTest()"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-[14px] transition-all cursor-pointer shrink-0"
-        [class.bg-[#00ed64]]="!mediaDevices.isTestingMic()"
-        [class.text-[#001e2b]]="!mediaDevices.isTestingMic()"
-        [class.bg-[#ff4b4b]]="mediaDevices.isTestingMic()"
-        [class.text-white]="mediaDevices.isTestingMic()"
-      >
-        <mat-icon class="!w-4 !h-4 !text-[16px]">{{ mediaDevices.isTestingMic() ? 'stop' : 'graphic_eq' }}</mat-icon>
-        <span>{{ mediaDevices.isTestingMic() ? 'Dừng' : 'Kiểm tra' }}</span>
-      </button>
+    <div style="display:flex;align-items:center;gap:12px">
+      @if (!mediaDevices.isTestingMic()) {
+        <button class="vv-btn-green" type="button" (click)="toggleMicTest()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a4 4 0 0 1 4 4v6a4 4 0 1 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M5 10a7 7 0 0 0 14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="22" x2="16" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Kiểm tra
+        </button>
+      } @else {
+        <button class="vv-btn-red" type="button" (click)="toggleMicTest()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>
+          Dừng
+        </button>
+      }
 
       <!-- Level meter -->
-      <div class="flex-1 bg-[#060d12] border border-[#2e3338] rounded-lg h-10 px-3 flex items-center gap-[3px] overflow-hidden">
+      <div style="flex:1;background:#060d12;border:1.5px solid #2e3338;border-radius:8px;height:40px;padding:0 12px;display:flex;align-items:center;gap:3px;overflow:hidden">
         @for (i of barsArray; track i) {
           <div
-            class="flex-1 rounded-full transition-all duration-75"
-            [style.height]="(i < activeBars() ? (55 + (i / totalBars) * 45) : 25) + '%'"
+            class="vv-level-bar"
+            [style.height]="(i < activeBars() ? (40 + (i / totalBars) * 60) : 20) + '%'"
             [style.background]="i < activeBars() ? '#00ed64' : '#1e2124'"
           ></div>
         }
@@ -183,165 +146,124 @@
   </div>
 
   <!-- ── Divider ── -->
-  <div class="border-t border-[#2e3338]"></div>
+  <div style="border-top:1.5px solid #2e3338"></div>
 
   <!-- ── Input Mode ── -->
-  <div class="space-y-3">
-    <p class="text-[11px] font-extrabold text-[#949ba4] uppercase tracking-widest">Chế Độ Nhập</p>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <p class="vv-label" style="margin:0">Chế Độ Nhập</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <button
         type="button"
+        class="vv-mode-card"
+        [class.active]="settingsService.preferences().inputMode === 'voice-activity'"
         (click)="setInputMode('voice-activity')"
-        class="p-4 rounded-xl border text-left transition-all cursor-pointer"
-        [class.border-[#00ed64]]="settingsService.preferences().inputMode === 'voice-activity'"
-        [class.bg-[#0d2218]]="settingsService.preferences().inputMode === 'voice-activity'"
-        [class.border-[#2e3338]]="settingsService.preferences().inputMode !== 'voice-activity'"
-        [class.bg-[#0d1117]]="settingsService.preferences().inputMode !== 'voice-activity'"
       >
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-bold text-[14px] text-[#f2f3f5]">Cảm ứng giọng nói</span>
-          <span
-            class="w-4 h-4 rounded-full border-2 flex items-center justify-center"
-            [class.border-[#00ed64]]="settingsService.preferences().inputMode === 'voice-activity'"
-            [class.border-[#4e5058]]="settingsService.preferences().inputMode !== 'voice-activity'"
-          >
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:14px;font-weight:700;color:#f2f3f5">Cảm ứng giọng nói</span>
+          <span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"
+            [style.border]="settingsService.preferences().inputMode === 'voice-activity' ? '2px solid #00ed64' : '2px solid #4e5058'">
             @if (settingsService.preferences().inputMode === 'voice-activity') {
-              <span class="w-2 h-2 rounded-full bg-[#00ed64] block"></span>
+              <span style="width:8px;height:8px;border-radius:50%;background:#00ed64;display:block"></span>
             }
           </span>
         </div>
-        <p class="text-[13px] text-[#949ba4]">Tự động truyền âm khi bạn cất tiếng nói.</p>
+        <p style="font-size:13px;color:#949ba4;margin:0">Tự động truyền âm khi bạn cất tiếng nói.</p>
       </button>
 
       <button
         type="button"
+        class="vv-mode-card"
+        [class.active]="settingsService.preferences().inputMode === 'push-to-talk'"
         (click)="setInputMode('push-to-talk')"
-        class="p-4 rounded-xl border text-left transition-all cursor-pointer"
-        [class.border-[#00ed64]]="settingsService.preferences().inputMode === 'push-to-talk'"
-        [class.bg-[#0d2218]]="settingsService.preferences().inputMode === 'push-to-talk'"
-        [class.border-[#2e3338]]="settingsService.preferences().inputMode !== 'push-to-talk'"
-        [class.bg-[#0d1117]]="settingsService.preferences().inputMode !== 'push-to-talk'"
       >
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-bold text-[14px] text-[#f2f3f5]">Nhấn để nói (Push to Talk)</span>
-          <span
-            class="w-4 h-4 rounded-full border-2 flex items-center justify-center"
-            [class.border-[#00ed64]]="settingsService.preferences().inputMode === 'push-to-talk'"
-            [class.border-[#4e5058]]="settingsService.preferences().inputMode !== 'push-to-talk'"
-          >
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:14px;font-weight:700;color:#f2f3f5">Nhấn để nói (PTT)</span>
+          <span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"
+            [style.border]="settingsService.preferences().inputMode === 'push-to-talk' ? '2px solid #00ed64' : '2px solid #4e5058'">
             @if (settingsService.preferences().inputMode === 'push-to-talk') {
-              <span class="w-2 h-2 rounded-full bg-[#00ed64] block"></span>
+              <span style="width:8px;height:8px;border-radius:50%;background:#00ed64;display:block"></span>
             }
           </span>
         </div>
-        <p class="text-[13px] text-[#949ba4]">Chỉ mở micrô khi bạn nhấn giữ một phím chỉ định.</p>
+        <p style="font-size:13px;color:#949ba4;margin:0">Chỉ mở micrô khi nhấn giữ phím chỉ định.</p>
       </button>
     </div>
 
     @if (settingsService.preferences().inputMode === 'push-to-talk') {
-      <div class="p-4 rounded-xl bg-[#0d1117] border border-[#2e3338] space-y-4">
-        <div class="flex items-center justify-between gap-4">
+      <div class="vv-card" style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div>
-            <span class="block font-bold text-[14px] text-[#f2f3f5]">Phím gán Push-to-Talk</span>
-            <span class="text-[13px] text-[#949ba4]">Nhấn giữ phím này khi muốn nói chuyện trong voice</span>
+            <p style="font-size:14px;font-weight:700;color:#f2f3f5;margin:0 0 2px">Phím Push-to-Talk</p>
+            <p style="font-size:13px;color:#949ba4;margin:0">Nhấn giữ phím này khi muốn nói chuyện</p>
           </div>
           <button
             type="button"
+            class="vv-btn-outline"
+            [class.recording]="isRecordingPttKey()"
             (click)="startPttKeyRecording()"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg font-mono font-bold text-[14px] border transition-all cursor-pointer shrink-0"
-            [class.bg-[#3b0e0e]]="isRecordingPttKey()"
-            [class.border-[#ff4b4b]]="isRecordingPttKey()"
-            [class.text-[#ff4b4b]]="isRecordingPttKey()"
-            [class.animate-pulse]="isRecordingPttKey()"
-            [class.bg-[#060d12]]="!isRecordingPttKey()"
-            [class.border-[#2e3338]]="!isRecordingPttKey()"
-            [class.text-[#00ed64]]="!isRecordingPttKey()"
           >
             @if (isRecordingPttKey()) {
-              <mat-icon class="!w-4 !h-4 !text-[16px]">fiber_manual_record</mat-icon>
-              <span>Nhấn phím bất kỳ...</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
+              Nhấn phím bất kỳ...
             } @else {
-              <mat-icon class="!w-4 !h-4 !text-[16px]">keyboard</mat-icon>
-              <span>{{ settingsService.preferences().pushToTalkKey }}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="6" width="20" height="14" rx="2"/><rect x="6" y="10" width="3" height="3" rx="0.5"/><rect x="10.5" y="10" width="3" height="3" rx="0.5"/><rect x="15" y="10" width="3" height="3" rx="0.5"/><rect x="7" y="14" width="10" height="3" rx="0.5"/><rect x="2" y="3" width="4" height="3" rx="1"/></svg>
+              {{ settingsService.preferences().pushToTalkKey }}
             }
           </button>
         </div>
-        <div class="flex flex-col gap-2">
-          <div class="flex justify-between text-[11px] font-bold text-[#949ba4] uppercase tracking-wider">
-            <span>Độ trễ nhả phím PTT</span>
-            <span class="font-mono text-[#f2f3f5]">{{ settingsService.preferences().pushToTalkDelay }} ms</span>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between">
+            <span class="vv-label">Độ trễ nhả phím PTT</span>
+            <span style="font-size:13px;font-weight:700;font-family:monospace;color:#dbdee1">{{ settingsService.preferences().pushToTalkDelay }} ms</span>
           </div>
-          <input
-            type="range" min="0" max="2000" step="20"
-            [ngModel]="settingsService.preferences().pushToTalkDelay"
-            (ngModelChange)="setPushToTalkDelay($event)"
-            class="vol-slider"
-          />
+          <input type="range" min="0" max="2000" step="20" [ngModel]="settingsService.preferences().pushToTalkDelay" (ngModelChange)="setPushToTalkDelay($event)" class="vv-slider"/>
         </div>
       </div>
     }
   </div>
 
   <!-- ── Video / Camera ── -->
-  <div class="space-y-3">
-    <div class="flex items-center justify-between">
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div>
-        <p class="text-[11px] font-extrabold text-[#949ba4] uppercase tracking-widest mb-0.5">Cài Đặt Video / Camera</p>
-        <p class="text-[13px] text-[#949ba4]">Chọn webcam và kiểm tra hình ảnh trước khi tham gia video call.</p>
+        <p class="vv-label" style="margin:0 0 4px">Cài Đặt Video / Camera</p>
+        <p style="font-size:13px;color:#949ba4;margin:0">Chọn webcam và xem trước hình ảnh trước khi tham gia video call.</p>
       </div>
-      <button
-        type="button"
-        (click)="toggleVideoTest()"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-[14px] transition-all cursor-pointer shrink-0"
-        [class.bg-[#00ed64]]="!isTestingVideo()"
-        [class.text-[#001e2b]]="!isTestingVideo()"
-        [class.bg-[#ff4b4b]]="isTestingVideo()"
-        [class.text-white]="isTestingVideo()"
-      >
-        <mat-icon class="!w-4 !h-4 !text-[16px]">{{ isTestingVideo() ? 'videocam_off' : 'videocam' }}</mat-icon>
-        <span>{{ isTestingVideo() ? 'Tắt xem trước' : 'Kiểm tra Video' }}</span>
-      </button>
+      @if (!isTestingVideo()) {
+        <button class="vv-btn-green" type="button" (click)="toggleVideoTest()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15 10l4.553-2.277A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M4 8h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"/></svg>
+          Kiểm tra Video
+        </button>
+      } @else {
+        <button class="vv-btn-red" type="button" (click)="toggleVideoTest()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15 10l4.553-2.277A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M4 8h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z" opacity=".3"/><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Tắt xem trước
+        </button>
+      }
     </div>
 
-    <!-- Camera Custom Dropdown -->
-    <div class="relative" (click)="$event.stopPropagation()">
-      <button
-        type="button"
-        class="device-dropdown-btn"
-        [class.open]="videoDropdownOpen()"
-        (click)="toggleVideoDropdown()"
-      >
-        <span class="absolute left-3 top-0 bottom-0 flex items-center pointer-events-none">
-          <mat-icon class="!w-4 !h-4 !text-[17px] text-[#5c6f7a]">videocam</mat-icon>
+    <!-- Camera Dropdown -->
+    <div style="position:relative" (click)="$event.stopPropagation()">
+      <button class="vv-select-btn" [class.open]="videoDropdownOpen()" (click)="toggleVideoDropdown()" type="button">
+        <span class="vv-select-icon-left">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15 10l4.553-2.277A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M4 8h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"/></svg>
         </span>
-        <span class="flex-1 min-w-0 truncate">{{ selectedVideoLabel() }}</span>
-        <span class="absolute right-3 top-0 bottom-0 flex items-center pointer-events-none">
-          <mat-icon class="!w-4 !h-4 !text-[17px] text-[#949ba4] transition-transform duration-150"
-            [style.transform]="videoDropdownOpen() ? 'rotate(180deg)' : 'rotate(0deg)'">
-            expand_more
-          </mat-icon>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ selectedVideoLabel() }}</span>
+        <span class="vv-select-icon-right" [class.open]="videoDropdownOpen()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9l6 6 6-6"/></svg>
         </span>
       </button>
-
       @if (videoDropdownOpen()) {
-        <div class="device-dropdown-menu">
+        <div class="vv-dropdown-menu">
           @if (mediaDevices.videoInputs().length === 0) {
-            <div class="device-dropdown-item">
-              <mat-icon class="!w-4 !h-4 !text-[16px] shrink-0">videocam</mat-icon>
-              Cài đặt mặc định của Windows (Integrated Camera...)
-            </div>
+            <div class="vv-dropdown-item"><span>Cài đặt mặc định Windows (Integrated Camera...)</span></div>
           }
           @for (c of mediaDevices.videoInputs(); track c.deviceId; let i = $index) {
-            <div
-              class="device-dropdown-item"
-              [class.active]="mediaDevices.selectedVideoInputId() === c.deviceId"
-              (click)="selectVideo(c.deviceId)"
-            >
-              <mat-icon class="!w-4 !h-4 !text-[16px] shrink-0">videocam</mat-icon>
-              <span class="truncate">{{ c.label || ('Camera ' + (i + 1)) }}</span>
+            <div class="vv-dropdown-item" [class.is-active]="mediaDevices.selectedVideoInputId() === c.deviceId" (click)="selectVideo(c.deviceId)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M15 10l4.553-2.277A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M4 8h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"/></svg>
+              <span>{{ c.label || ('Camera ' + (i + 1)) }}</span>
               @if (mediaDevices.selectedVideoInputId() === c.deviceId) {
-                <mat-icon class="!w-4 !h-4 !text-[14px] ml-auto shrink-0">check</mat-icon>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-left:auto;flex-shrink:0;color:#00ed64"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
               }
             </div>
           }
@@ -349,31 +271,37 @@
       }
     </div>
 
-    <!-- Video preview -->
+    <!-- Video Preview -->
     @if (isTestingVideo()) {
-      <div class="rounded-xl overflow-hidden bg-black border border-[#2e3338] aspect-video max-h-72">
-        <video id="settings-video-preview" autoplay playsinline muted class="w-full h-full object-cover"></video>
+      <div style="border-radius:12px;overflow:hidden;background:#000;border:1.5px solid #2e3338;aspect-ratio:16/9;max-height:280px">
+        <video id="settings-video-preview" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block"></video>
       </div>
     }
 
     <!-- Background Effects -->
     <div>
-      <p class="text-[11px] font-extrabold text-[#949ba4] uppercase tracking-widest mb-2">Hiệu Ứng Phông Nền Video</p>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <p class="vv-label" style="margin:0 0 10px">Hiệu Ứng Phông Nền Video</p>
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px">
         @for (eff of backgroundEffects; track eff.id) {
           <button
             type="button"
+            class="vv-effect-btn"
+            [class.active]="settingsService.preferences().videoBackgroundEffect === eff.id"
             (click)="setBackgroundEffect(eff.id)"
-            class="p-3 rounded-lg border text-center transition-all flex flex-col items-center gap-1 cursor-pointer"
-            [class.border-[#00ed64]]="settingsService.preferences().videoBackgroundEffect === eff.id"
-            [class.bg-[#0d2218]]="settingsService.preferences().videoBackgroundEffect === eff.id"
-            [class.text-[#00ed64]]="settingsService.preferences().videoBackgroundEffect === eff.id"
-            [class.border-[#2e3338]]="settingsService.preferences().videoBackgroundEffect !== eff.id"
-            [class.bg-[#0d1117]]="settingsService.preferences().videoBackgroundEffect !== eff.id"
-            [class.text-[#949ba4]]="settingsService.preferences().videoBackgroundEffect !== eff.id"
           >
-            <mat-icon class="!w-5 !h-5 !text-[20px]">{{ eff.icon }}</mat-icon>
-            <span class="text-[12px] font-semibold">{{ eff.label }}</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              @if (eff.id === 'none') {
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z" opacity=".3"/>
+                <path d="M17 9H13V5L7 13h4v4l6-8z"/>
+              } @else if (eff.id === 'blur') {
+                <circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"/><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1" opacity=".25"/>
+              } @else if (eff.id === 'cyberpunk') {
+                <polygon points="12,2 22,8 22,16 12,22 2,16 2,8"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1" opacity=".4"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1" opacity=".4"/>
+              } @else {
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" fill="none" stroke="currentColor" stroke-width="2"/>
+              }
+            </svg>
+            <span style="font-size:11px;font-weight:600;text-align:center">{{ eff.label }}</span>
           </button>
         }
       </div>
@@ -381,37 +309,46 @@
   </div>
 
   <!-- ── Audio Attenuation ── -->
-  <div class="rounded-xl bg-[#0d1117] border border-[#2e3338] p-4 space-y-4">
+  <div class="vv-card" style="display:flex;flex-direction:column;gap:14px">
     <div>
-      <p class="text-[11px] font-extrabold text-[#949ba4] uppercase tracking-widest mb-1">Bộ Suy Giảm Âm Lượng</p>
-      <p class="text-[13px] text-[#949ba4]">Tự động giảm âm lượng các ứng dụng khác khi bạn hoặc ai đó đang nói chuyện.</p>
+      <p class="vv-label" style="margin:0 0 4px">Bộ Suy Giảm Âm Lượng</p>
+      <p style="font-size:13px;color:#949ba4;margin:0">Tự động giảm âm lượng các ứng dụng khác khi bạn hoặc ai đó đang nói chuyện.</p>
     </div>
-    <div class="flex flex-col gap-2">
-      <div class="flex justify-between text-[11px] font-bold text-[#949ba4] uppercase tracking-wider">
-        <span>Tỉ lệ suy giảm</span>
-        <span class="font-mono text-[#00ed64]">{{ settingsService.preferences().attenuationPercent }}%</span>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between">
+        <span class="vv-label">Tỉ lệ suy giảm</span>
+        <span style="font-size:13px;font-weight:700;font-family:monospace;color:#00ed64">{{ settingsService.preferences().attenuationPercent }}%</span>
       </div>
-      <input
-        type="range" min="0" max="100" step="5"
-        [ngModel]="settingsService.preferences().attenuationPercent"
-        (ngModelChange)="setAttenuationPercent($event)"
-        class="vol-slider"
-      />
+      <input type="range" min="0" max="100" step="5" [ngModel]="settingsService.preferences().attenuationPercent" (ngModelChange)="setAttenuationPercent($event)" class="vv-slider"/>
     </div>
-    <div class="space-y-2">
-      <label class="flex items-center justify-between p-3 rounded-lg border border-[#2e3338] cursor-pointer">
-        <span class="text-[14px] font-semibold text-[#dbdee1]">Giảm âm lượng ứng dụng khác khi tôi nói</span>
-        <mat-slide-toggle
-          [checked]="settingsService.preferences().attenuateWhileSpeaking"
-          (change)="settingsService.updatePreference('attenuateWhileSpeaking', $event.checked)"
-        />
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <!-- Toggle row 1 -->
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;border:1.5px solid #2e3338;cursor:pointer;gap:12px">
+        <span style="font-size:14px;font-weight:500;color:#dbdee1">Giảm âm lượng ứng dụng khác khi tôi nói</span>
+        <label class="vv-toggle">
+          <input
+            type="checkbox"
+            [checked]="settingsService.preferences().attenuateWhileSpeaking"
+            (change)="settingsService.updatePreference('attenuateWhileSpeaking', $any($event.target).checked)"
+          />
+          <span class="vv-toggle-track"></span>
+          <span class="vv-toggle-thumb"></span>
+        </label>
       </label>
-      <label class="flex items-center justify-between p-3 rounded-lg border border-[#2e3338] cursor-pointer">
-        <span class="text-[14px] font-semibold text-[#dbdee1]">Giảm âm lượng ứng dụng khác khi người khác nói</span>
-        <mat-slide-toggle
-          [checked]="settingsService.preferences().attenuateWhileOthersSpeak"
-          (change)="settingsService.updatePreference('attenuateWhileOthersSpeak', $event.checked)"
-        />
+
+      <!-- Toggle row 2 -->
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;border:1.5px solid #2e3338;cursor:pointer;gap:12px">
+        <span style="font-size:14px;font-weight:500;color:#dbdee1">Giảm âm lượng ứng dụng khác khi người khác nói</span>
+        <label class="vv-toggle">
+          <input
+            type="checkbox"
+            [checked]="settingsService.preferences().attenuateWhileOthersSpeak"
+            (change)="settingsService.updatePreference('attenuateWhileOthersSpeak', $any($event.target).checked)"
+          />
+          <span class="vv-toggle-track"></span>
+          <span class="vv-toggle-thumb"></span>
+        </label>
       </label>
     </div>
   </div>

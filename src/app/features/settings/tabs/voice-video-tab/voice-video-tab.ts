@@ -8,15 +8,13 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { UserSettingsService, AppPreferences } from '../../services/user-settings.service';
 import { MediaDeviceService } from '../../../voice/services/media-device.service';
 
 @Component({
   selector: 'app-voice-video-tab',
   standalone: true,
-  imports: [FormsModule, MatIconModule, MatSlideToggleModule],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './voice-video-tab.html',
   styleUrl: './voice-video-tab.css',
