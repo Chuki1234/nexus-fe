@@ -1,5 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, ElementRef, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  ElementRef,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AccountDisabledInfo, AccountDisabledService } from '../../../core/auth/account-disabled.service';
@@ -46,8 +54,9 @@ export class LoginPage implements OnInit {
   protected readonly fastSubmitting = signal(false);
   protected readonly fastErrorMessage = signal<string | null>(null);
 
-  // Modal thông báo tài khoản bị vô hiệu hóa khi chọn Google
+  // Modal thông báo & mở khóa 2FA cho tài khoản bị vô hiệu hóa khi chọn Google
   protected readonly showDisabledModal = signal(false);
+  protected readonly disabledStep = signal<'notice' | 'verify_2fa'>('notice');
   protected readonly disabledInfo = signal<AccountDisabledInfo | null>(null);
   protected readonly modal2faCode = signal('');
   protected readonly modal2faSubmitting = signal(false);
@@ -61,6 +70,7 @@ export class LoginPage implements OnInit {
           this.form.controls.identifier.setValue(blocked.email);
         }
         this.disabledInfo.set(blocked.disabledInfo);
+        this.disabledStep.set('notice');
         this.modal2faCode.set('');
         this.modal2faError.set(null);
         this.showDisabledModal.set(true);
@@ -86,6 +96,7 @@ export class LoginPage implements OnInit {
 
         if (disabledAcc) {
           this.disabledInfo.set(disabledAcc);
+          this.disabledStep.set('notice');
           this.modal2faCode.set('');
           this.modal2faError.set(null);
           this.showDisabledModal.set(true);
@@ -169,14 +180,31 @@ export class LoginPage implements OnInit {
   }
 
   /**
-   * Mở khóa tài khoản bị vô hiệu hóa thông qua mã 2FA Google Authenticator
+   * Chuyển sang bước nhập mã 2FA từ modal thông báo
+   */
+  protected proceedTo2faFromModal(): void {
+    this.disabledStep.set('verify_2fa');
+    this.modal2faCode.set('');
+    this.modal2faError.set(null);
+  }
+
+  /**
+   * Quay lại bước thông báo
+   */
+  protected backToNoticeFromModal(): void {
+    this.disabledStep.set('notice');
+    this.modal2faError.set(null);
+  }
+
+  /**
+   * Mở khóa tài khoản bị vô hiệu hóa thông qua mã 2FA (Google Authenticator hoặc mã dự phòng)
    */
   protected async onSubmitModal2fa(): Promise<void> {
     const email = this.disabledInfo()?.email || this.form.controls.identifier.value.trim();
     const code = this.modal2faCode().trim();
 
     if (!code) {
-      this.modal2faError.set('Vui lòng nhập mã xác thực Google Authenticator (hoặc mã dự phòng).');
+      this.modal2faError.set('Vui lòng nhập mã xác thực Google Authenticator (6 số) hoặc mã dự phòng.');
       return;
     }
 
@@ -234,6 +262,7 @@ export class LoginPage implements OnInit {
 
   protected closeDisabledModal(): void {
     this.showDisabledModal.set(false);
+    this.disabledStep.set('notice');
     this.modal2faCode.set('');
     this.modal2faError.set(null);
   }

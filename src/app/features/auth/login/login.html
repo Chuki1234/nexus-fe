@@ -282,100 +282,136 @@
 }
 
 <!-- ══════════════════════════════════════════════════════════════════════
-     POPUP / MODAL: THÔNG BÁO TÀI KHOẢN BỊ VÔ HIỆU HÓA (CHẶN GOOGLE LOGIN)
+     POPUP / MODAL: THÔNG BÁO TÀI KHOẢN BỊ VÔ HIỆU HÓA & MỞ KHÓA 2FA
 ══════════════════════════════════════════════════════════════════════ -->
 @if (showDisabledModal()) {
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in"
     role="dialog"
     aria-modal="true"
     aria-label="Thông báo tài khoản bị vô hiệu hóa"
   >
     <div
-      class="w-full max-w-md rounded-2xl bg-surface border border-hairline-strong p-6 shadow-2xl space-y-5"
+      class="w-full max-w-md rounded-2xl bg-surface border border-hairline-strong p-6 shadow-2xl space-y-5 animate-slide-up"
     >
-      <div class="flex items-center gap-3 text-amber-400">
-        <div class="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        </div>
-        <div>
-          <h3 class="text-heading-4 font-bold text-ink">Tài khoản đang bị vô hiệu hóa</h3>
-          <p class="text-caption text-steel">Không thể đăng nhập trực tiếp qua Google</p>
-        </div>
-      </div>
-
-      <div class="p-4 rounded-xl bg-canvas border border-hairline text-body-sm text-slate leading-relaxed space-y-2">
-        <p>
-          Tài khoản Google <strong class="text-ink font-semibold">{{ disabledInfo()?.email || form.controls.identifier.value }}</strong> hiện đang trong trạng thái tạm vô hiệu hóa.
-        </p>
-        @if (disabledInfo()?.has2fa) {
-          <p class="text-amber-400 text-caption font-medium">
-            🛡️ Tài khoản của bạn đã cài đặt bảo mật 2 lớp (2FA). Để mở khóa vô hiệu hóa và vào lại hệ thống, vui lòng nhập mã xác thực từ <strong>Google Authenticator</strong> (hoặc mã dự phòng).
-          </p>
-        } @else {
-          <p class="text-caption text-steel">
-            Tài khoản này chưa cài đặt 2FA. Bạn có thể nhấn mở khóa để kích hoạt lại tài khoản ngay bây giờ.
-          </p>
-        }
-      </div>
-
-      <!-- Khung nhập mã 2FA Google Authenticator trực tiếp trong Popup -->
-      @if (disabledInfo()?.has2fa) {
-        <div class="space-y-3 pt-1">
-          @if (modal2faError(); as err) {
-            <p class="rounded-md bg-danger-surface px-3 py-2 text-body-sm text-danger">{{ err }}</p>
-          }
-
+      @if (disabledStep() === 'notice') {
+        <!-- ── BƯỚC 1: THÔNG BÁO TÀI KHOẢN TẠM KHÓA ── -->
+        <div class="flex items-center gap-3 text-amber-400">
+          <div class="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
           <div>
-            <label class="block text-caption text-steel mb-1" for="modal-2fa-code">
-              Mã xác thực Google Authenticator (6 số) hoặc Mã dự phòng:
-            </label>
-            <input
-              id="modal-2fa-code"
-              type="text"
-              inputmode="text"
-              autocomplete="one-time-code"
-              [value]="modal2faCode()"
-              (input)="onModal2faInput($event)"
-              (keydown.enter)="onSubmitModal2fa()"
-              placeholder="VD: 123456 hoặc A1B2C3D4"
-              class="w-full rounded-lg border border-hairline-strong bg-canvas px-3 py-2.5 text-center font-mono text-body-md tracking-widest text-ink placeholder:text-steel focus:border-primary focus:outline-none"
-              autofocus
-            />
+            <h3 class="text-heading-4 font-bold text-ink">Tài khoản đang bị vô hiệu hóa</h3>
+            <p class="text-caption text-steel">Không thể đăng nhập trực tiếp qua Google</p>
           </div>
         </div>
-      }
 
-      <div class="flex items-center justify-end gap-3 pt-2">
-        <button
-          type="button"
-          (click)="closeDisabledModal()"
-          class="px-4 py-2.5 rounded-full text-button-md text-slate hover:text-ink cursor-pointer"
-        >
-          Đóng
-        </button>
+        <div class="p-4 rounded-xl bg-canvas border border-hairline text-body-sm text-slate leading-relaxed space-y-2">
+          <p>
+            Tài khoản <strong class="text-ink font-semibold">{{ disabledInfo()?.email || form.controls.identifier.value }}</strong> hiện đang trong trạng thái tạm ngưng sử dụng.
+          </p>
+          @if (disabledInfo()?.has2fa) {
+            <p class="text-amber-400 text-caption font-medium">
+              🛡️ Tài khoản này đã kích hoạt xác thực 2 lớp (2FA). Để mở khóa và vào lại hệ thống, bạn cần nhập mã xác thực 2FA.
+            </p>
+          } @else {
+            <p class="text-caption text-steel">
+              Tài khoản này chưa cài đặt 2FA. Bạn có thể nhấn mở khóa để kích hoạt lại tài khoản ngay bây giờ.
+            </p>
+          }
+        </div>
 
-        @if (disabledInfo()?.has2fa) {
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            (click)="closeDisabledModal()"
+            class="px-4 py-2.5 rounded-full text-button-md text-slate hover:text-ink cursor-pointer"
+          >
+            Đóng
+          </button>
+
+          @if (disabledInfo()?.has2fa) {
+            <button
+              type="button"
+              (click)="proceedTo2faFromModal()"
+              class="px-5 py-2.5 rounded-full text-button-md font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer"
+            >
+              Xác thực 2FA để mở khóa
+            </button>
+          } @else {
+            <button
+              type="button"
+              (click)="unlockAccountDirectly()"
+              class="px-5 py-2.5 rounded-full text-button-md font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer"
+            >
+              Mở khóa & Kích hoạt lại
+            </button>
+          }
+        </div>
+
+      } @else if (disabledStep() === 'verify_2fa') {
+        <!-- ── BƯỚC 2: POPUP NHẬP MÃ 2FA ĐỂ MỞ KHÓA ── -->
+        <div class="flex items-center gap-3 text-primary">
+          <div class="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-heading-4 font-bold text-ink">Xác thực 2FA để mở khóa</h3>
+            <p class="text-caption text-steel">Nhập mã từ Google Authenticator</p>
+          </div>
+        </div>
+
+        <p class="text-body-sm text-slate leading-relaxed">
+          Nhập mã 6 chữ số từ ứng dụng <strong class="text-ink">Google Authenticator</strong> (hoặc mã dự phòng 8 ký tự) để mở khóa tài khoản <strong class="text-ink">{{ disabledInfo()?.email || form.controls.identifier.value }}</strong> và vào hệ thống.
+        </p>
+
+        @if (modal2faError(); as err) {
+          <div class="rounded-xl border border-danger-border bg-danger-surface px-4 py-3 text-body-sm text-danger animate-fade-in">
+            {{ err }}
+          </div>
+        }
+
+        <div class="space-y-2">
+          <label class="block text-micro-uppercase font-extrabold text-stone tracking-wider uppercase" for="modal-2fa-code">
+            Mã xác thực 2FA / Mã dự phòng
+          </label>
+          <input
+            id="modal-2fa-code"
+            type="text"
+            inputmode="text"
+            autocomplete="one-time-code"
+            [value]="modal2faCode()"
+            (input)="onModal2faInput($event)"
+            (keydown.enter)="onSubmitModal2fa()"
+            placeholder="VD: 123456 hoặc A1B2C3D4"
+            maxlength="16"
+            class="w-full rounded-xl border border-hairline-strong bg-canvas px-4 py-3 text-center font-mono text-heading-5 tracking-widest text-ink placeholder:text-steel focus:border-primary focus:outline-none shadow-2xs"
+            autofocus
+          />
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            (click)="backToNoticeFromModal()"
+            class="px-4 py-2.5 rounded-full text-button-md text-slate hover:text-ink cursor-pointer"
+          >
+            Quay lại
+          </button>
           <button
             type="button"
             (click)="onSubmitModal2fa()"
             [disabled]="modal2faSubmitting() || !modal2faCode()"
             class="px-5 py-2.5 rounded-full text-button-md font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {{ modal2faSubmitting() ? 'Đang mở khóa…' : 'Mở khóa bằng Google Authenticator' }}
+            {{ modal2faSubmitting() ? 'Đang mở khóa…' : 'Mở khóa & Đăng nhập' }}
           </button>
-        } @else {
-          <button
-            type="button"
-            (click)="unlockAccountDirectly()"
-            class="px-5 py-2.5 rounded-full text-button-md font-bold bg-primary text-on-primary hover:bg-primary-soft transition-all shadow-sm cursor-pointer"
-          >
-            Mở khóa & Kích hoạt lại
-          </button>
-        }
-      </div>
+        </div>
+      }
     </div>
   </div>
 }
