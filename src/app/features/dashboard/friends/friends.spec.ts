@@ -2,6 +2,8 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import type { ConversationSummary } from '../../../core/conversations/conversation.models';
+import { ServerInvitationsStore } from '../../../core/servers/server-invitations.store';
+import type { DirectServerInvitationDto } from '../../../../shared/dto/server-invitations.dto';
 import {
   DashboardUiState,
   type DashboardBlockingState,
@@ -34,6 +36,7 @@ describe('FriendsPage', () => {
   const mount = async (
     people: ConversationSummary[] = [],
     uiState: DashboardUiStateName = 'ready',
+    serverInvites: DirectServerInvitationDto[] = [],
   ) => {
     const blockingState = signal<DashboardBlockingState | null>(
       uiState === 'loading' ||
@@ -63,11 +66,21 @@ describe('FriendsPage', () => {
       removeFriend: vi.fn().mockResolvedValue(undefined),
       clearFeedback: vi.fn(),
     };
+    const serverInvitationsStore = {
+      pendingInvitations: signal(serverInvites),
+      pendingCount: signal(serverInvites.length).asReadonly(),
+      isLoading: signal(false).asReadonly(),
+      error: signal<string | null>(null).asReadonly(),
+      hydrateInvitations: vi.fn().mockResolvedValue(undefined),
+      acceptInvitation: vi.fn().mockResolvedValue({ success: true, serverId: 's1', alreadyMember: false }),
+      declineInvitation: vi.fn().mockResolvedValue({ success: true }),
+    };
     await TestBed.configureTestingModule({
       imports: [FriendsPage],
       providers: [
         provideRouter([]),
         { provide: FriendsStore, useValue: friendStore },
+        { provide: ServerInvitationsStore, useValue: serverInvitationsStore },
         {
           provide: DashboardUiState,
           useValue: { blockingState, connectionState, clearPreview: async () => true },
@@ -255,5 +268,40 @@ describe('FriendsPage', () => {
     fixture.detectChanges();
 
     expect(panel.classList.contains('context-panel--open')).toBe(true);
+  });
+
+  it('hiển thị danh sách lời mời máy chủ và xử lý chấp nhận/từ chối trong tab pending', async () => {
+    const mockInvite: DirectServerInvitationDto = {
+      id: 'inv-123',
+      serverId: 'srv-1',
+      serverName: 'Nexus Gaming Server',
+      serverIconUrl: null,
+      inviterId: 'user-1',
+      inviterUsername: 'nexus_admin',
+      inviterDisplayName: 'Nexus Admin',
+      inviterAvatarUrl: null,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+    };
+
+    const fixture = await mount(PEOPLE, 'ready', [mockInvite]);
+    const invStore = TestBed.inject(ServerInvitationsStore);
+
+    // Chuyển sang tab 'pending'
+    fixture.componentInstance['tab'].set('pending');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Lời mời tham gia máy chủ');
+    expect(fixture.nativeElement.textContent).toContain('Nexus Gaming Server');
+    expect(fixture.nativeElement.querySelectorAll('app-server-invitation-item').length).toBe(1);
+
+    // Chấp nhận lời mời
+    await fixture.componentInstance['onAcceptServerInvite'](mockInvite);
+    expect(invStore.acceptInvitation).toHaveBeenCalledWith('inv-123');
+
+    // Từ chối lời mời
+    await fixture.componentInstance['onDeclineServerInvite'](mockInvite);
+    expect(invStore.declineInvitation).toHaveBeenCalledWith('inv-123');
   });
 });

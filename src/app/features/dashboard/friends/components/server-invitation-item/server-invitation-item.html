@@ -1,0 +1,66 @@
+<article
+  class="server-invitation-row nexus-interactive-row group flex min-h-16 items-center gap-3.5 rounded-xl px-3.5 py-2.5 border border-hairline/60 bg-surface-feature/20 hover:bg-surface-feature/40 transition-colors"
+  [attr.aria-busy]="busy()"
+>
+  <!-- Server Icon / Fallback -->
+  <div class="relative shrink-0">
+    @if (invitation().serverIconUrl) {
+      <img
+        [src]="invitation().serverIconUrl"
+        [alt]="invitation().serverName"
+        class="size-11 rounded-xl object-cover border border-hairline shadow-xs"
+      />
+    } @else {
+      <div
+        class="size-11 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/30 flex items-center justify-center font-bold text-ink text-body-md-bold shadow-xs select-none"
+      >
+        {{ serverInitial() }}
+      </div>
+    }
+    <span class="absolute -bottom-1 -right-1 flex size-4.5 items-center justify-center rounded-full bg-surface border border-hairline text-primary">
+      <mat-icon class="!size-3 !text-[12px] leading-none">dns</mat-icon>
+    </span>
+  </div>
+
+  <!-- Server Info & Inviter -->
+  <div class="min-w-0 flex-1 space-y-0.5">
+    <div class="flex items-center gap-2 min-w-0">
+      <h3 class="truncate text-body-sm-bold text-ink group-hover:text-primary-soft transition-colors font-semibold">
+        {{ invitation().serverName }}
+      </h3>
+      <span class="rounded bg-surface px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider text-steel border border-hairline shrink-0">
+        Máy chủ
+      </span>
+    </div>
+    <p class="truncate text-caption text-slate">
+      Người mời: <span class="text-ink font-medium">{{ inviterText() }}</span> · <span class="text-steel">{{ expiresText() }}</span>
+    </p>
+  </div>
+
+  <!-- Action buttons (Chấp nhận & Từ chối) -->
+  <div class="flex shrink-0 items-center gap-1.5">
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control nexus-icon-control--accept"
+      [disabled]="busy()"
+      (click)="accepted.emit(invitation())"
+      [attr.aria-label]="'Chấp nhận vào máy chủ ' + invitation().serverName"
+      matTooltip="Chấp nhận lời mời"
+    >
+      <mat-icon aria-hidden="true">{{ busy() ? 'hourglass_top' : 'check' }}</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="nexus-icon-control nexus-icon-control--dismiss"
+      [disabled]="busy()"
+      (click)="dismissed.emit(invitation())"
+      [attr.aria-label]="'Từ chối lời mời vào máy chủ ' + invitation().serverName"
+      matTooltip="Từ chối lời mời"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  </div>
+</article>

@@ -20,11 +20,7 @@ export const dashboardRoutes: Routes = [
       },
       {
         path: '@me/server-invitations',
-        title: 'Lời mời máy chủ · Nexus',
-        loadComponent: () =>
-          import('./server-invitations/server-invitations.component').then(
-            (m) => m.ServerInvitationsComponent,
-          ),
+        redirectTo: '@me',
       },
       {
         path: '@me/:conversationId',

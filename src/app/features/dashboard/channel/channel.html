@@ -20,6 +20,10 @@
       leadingIcon="tag"
       [detailsOpen]="detailsOpen()"
       detailsLabel="thành viên"
+      [showSearch]="true"
+      [showPins]="true"
+      (search)="onSearch($event)"
+      (openPins)="openPins()"
       (toggleDetails)="detailsOpen.set(!detailsOpen())"
     >
       <!-- Action slot: Settings Button nếu có quyền quản lý kênh -->
@@ -318,6 +322,7 @@
                             [excerpt]="msg.content || 'Đính kèm tệp'"
                             [ownMessage]="isMine(msg)"
                             [canEdit]="canEdit(msg)"
+                            [pinned]="channelChat.pinnedIds().has(msg.id)"
                             (action)="onAction($event)"
                             (reaction)="onToggleReaction(msg.id, $event)"
                           />
@@ -449,6 +454,89 @@
             </div>
           }
         }
+        </section>
+      </app-context-panel>
+
+      <!-- Panel: kết quả tìm kiếm trong kênh -->
+      <app-context-panel
+        title="Kết quả tìm kiếm"
+        [open]="searchOpen()"
+        (closed)="searchOpen.set(false)"
+      >
+        <section class="p-3" aria-label="Kết quả tìm kiếm tin nhắn">
+          @if (searchLoading()) {
+            <p class="p-4 text-center text-body-sm text-steel">Đang tìm…</p>
+          } @else if (searchResults().length === 0) {
+            <p class="p-4 text-center text-body-sm text-steel">
+              Không tìm thấy tin nhắn nào cho “{{ searchQuery() }}”.
+            </p>
+          } @else {
+            <p class="px-2 pb-2 text-micro-uppercase font-bold text-steel">
+              {{ searchResults().length }} kết quả
+            </p>
+            <div class="flex flex-col gap-1">
+              @for (m of searchResults(); track m.id) {
+                <button
+                  type="button"
+                  class="panel-result flex w-full items-start gap-2.5 rounded-xl px-2 py-2 text-left hover:bg-surface-feature"
+                  (click)="jumpFromPanel(m.id)"
+                >
+                  <app-avatar
+                    [name]="m.author?.displayName || m.author?.username || 'User'"
+                    [src]="m.author?.avatarUrl ?? null"
+                    size="sm"
+                  />
+                  <span class="flex min-w-0 flex-1 flex-col">
+                    <span class="text-body-sm font-semibold text-ink truncate">
+                      {{ m.author?.displayName || m.author?.username || 'Người dùng' }}
+                    </span>
+                    <span class="text-body-sm text-slate line-clamp-2">
+                      {{ m.content || 'Tệp đính kèm' }}
+                    </span>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+        </section>
+      </app-context-panel>
+
+      <!-- Panel: tin nhắn đã ghim -->
+      <app-context-panel
+        title="Tin nhắn đã ghim"
+        [open]="pinsOpen()"
+        (closed)="pinsOpen.set(false)"
+      >
+        <section class="p-3" aria-label="Danh sách tin nhắn đã ghim">
+          @if (channelChat.pinnedMessages().length === 0) {
+            <p class="p-4 text-center text-body-sm text-steel">
+              Chưa có tin nhắn nào được ghim trong kênh này.
+            </p>
+          } @else {
+            <div class="flex flex-col gap-1">
+              @for (m of channelChat.pinnedMessages(); track m.id) {
+                <button
+                  type="button"
+                  class="panel-result flex w-full items-start gap-2.5 rounded-xl px-2 py-2 text-left hover:bg-surface-feature"
+                  (click)="jumpFromPanel(m.id)"
+                >
+                  <app-avatar
+                    [name]="m.author?.displayName || m.author?.username || 'User'"
+                    [src]="m.author?.avatarUrl ?? null"
+                    size="sm"
+                  />
+                  <span class="flex min-w-0 flex-1 flex-col">
+                    <span class="text-body-sm font-semibold text-ink truncate">
+                      {{ m.author?.displayName || m.author?.username || 'Người dùng' }}
+                    </span>
+                    <span class="text-body-sm text-slate line-clamp-2">
+                      {{ m.content || 'Tệp đính kèm' }}
+                    </span>
+                  </span>
+                </button>
+              }
+            </div>
+          }
         </section>
       </app-context-panel>
     </div>

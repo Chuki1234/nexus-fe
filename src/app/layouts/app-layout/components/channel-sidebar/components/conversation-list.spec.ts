@@ -12,6 +12,7 @@ describe('ConversationList', () => {
   let mockConversationsApi: { listConversations: any };
   let mockChatSocket: {
     conversationUpdated$: Subject<any>;
+    conversationDeleted$: Subject<any>;
     messageRead$: Subject<any>;
     invitationReceived$: Subject<any>;
     invitationUpdated$: Subject<any>;
@@ -42,6 +43,7 @@ describe('ConversationList', () => {
     };
     mockChatSocket = {
       conversationUpdated$: new Subject<any>(),
+      conversationDeleted$: new Subject<any>(),
       messageRead$: new Subject<any>(),
       invitationReceived$: new Subject<any>(),
       invitationUpdated$: new Subject<any>(),
@@ -150,5 +152,19 @@ describe('ConversationList', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).not.toContain('3');
+  });
+
+  it('xóa conversation khỏi sidebar khi nhận conversation:deleted realtime', async () => {
+    const fixture = await mount();
+
+    expect(fixture.nativeElement.textContent).toContain('Alice');
+
+    mockChatSocket.conversationDeleted$.next({
+      conversationId: 'conv-1',
+      friendId: 'user-1',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Alice');
   });
 });

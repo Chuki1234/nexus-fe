@@ -45,7 +45,7 @@ export class ServerInvitationsStore {
           message: `${inviter} đã mời bạn vào máy chủ "${payload.invitation.serverName}"`,
           action: 'Xem lời mời',
           onAction: () => {
-            void this.router.navigate(['/channels/@me/server-invitations']);
+            void this.router.navigate(['/channels/@me'], { queryParams: { tab: 'pending' } });
           },
           type: 'info',
         });

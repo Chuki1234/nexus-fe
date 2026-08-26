@@ -102,6 +102,7 @@ class ChatSocketServiceStub {
   presenceSync$ = new Subject<any>();
   userPresenceUpdated$ = new Subject<any>();
   conversationUpdated$ = new Subject<any>();
+  conversationDeleted$ = new Subject<any>();
   messageRead$ = new Subject<any>();
   invitationReceived$ = new Subject<any>();
   invitationUpdated$ = new Subject<any>();

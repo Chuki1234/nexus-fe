@@ -20,6 +20,7 @@ describe('ChannelChatStore', () => {
   let typingUpdated$: Subject<any>;
   let messageRead$: Subject<any>;
   let messageHiddenForUser$: Subject<any>;
+  let messagePinUpdated$: Subject<any>;
 
   const mockUser = {
     id: 'user-1',
@@ -35,6 +36,7 @@ describe('ChannelChatStore', () => {
     reactionUpdated$ = new Subject();
     typingUpdated$ = new Subject();
     messageRead$ = new Subject();
+    messagePinUpdated$ = new Subject();
 
     mockMessagesApi = {
       getChannelMessages: vi.fn().mockResolvedValue({
@@ -68,6 +70,9 @@ describe('ChannelChatStore', () => {
       recallMessage: vi.fn().mockResolvedValue({ id: '101', deleted: true, scope: 'everyone' }),
       setChannelReaction: vi.fn(),
       markChannelAsRead: vi.fn(),
+      getChannelPins: vi.fn().mockResolvedValue([]),
+      pinMessage: vi.fn().mockResolvedValue({ id: '101' }),
+      unpinMessage: vi.fn().mockResolvedValue({ id: '101' }),
     };
 
     mockServersApi = {
@@ -87,6 +92,7 @@ describe('ChannelChatStore', () => {
       reactionUpdated$,
       typingUpdated$,
       messageRead$,
+      messagePinUpdated$,
       joinChannel: vi.fn().mockResolvedValue({ success: true, status: 'joined' }),
       leaveChannel: vi.fn(),
       startTyping: vi.fn(),

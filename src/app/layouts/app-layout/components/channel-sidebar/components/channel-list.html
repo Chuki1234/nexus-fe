@@ -7,6 +7,7 @@
         cdkDropList
         [cdkDropListData]="uncatGroup"
         [cdkDropListDisabled]="!canManageChannels()"
+        [cdkDropListEnterPredicate]="isChannelPredicate"
         (cdkDropListDropped)="onChannelDrop($event)"
         class="channel-drop-list !px-1 !py-0 flex flex-col gap-0.5"
       >
@@ -23,12 +24,14 @@
     id="categories-drop-list"
     [cdkDropListData]="categoryGroups()"
     [cdkDropListDisabled]="!canManageChannels()"
+    [cdkDropListEnterPredicate]="isCategoryPredicate"
     (cdkDropListDropped)="onCategoryDrop($event)"
     class="categories-drop-list flex flex-col"
   >
     @for (group of categoryGroups(); track group.id) {
       <div
         cdkDrag
+        cdkDragLockAxis="y"
         [cdkDragData]="group"
         [cdkDragDisabled]="!canManageChannels()"
         class="channel-group mt-3 mb-1 group/category"
@@ -106,6 +109,7 @@
             cdkDropList
             [cdkDropListData]="group"
             [cdkDropListDisabled]="!canManageChannels()"
+            [cdkDropListEnterPredicate]="isChannelPredicate"
             (cdkDropListDropped)="onChannelDrop($event)"
             class="channel-drop-list !px-1 !py-0 flex flex-col gap-0.5 mt-0.5"
           >
@@ -128,6 +132,7 @@
   <a
     mat-list-item
     cdkDrag
+    cdkDragLockAxis="y"
     [cdkDragData]="channel"
     [cdkDragDisabled]="!canManageChannels()"
     (pointerdown)="onPrepChannelDrag($event)"
@@ -227,12 +232,14 @@
       cdkDropList
       [cdkDropListData]="channel"
       [cdkDropListDisabled]="!isOwner()"
+      [cdkDropListEnterPredicate]="isVoiceMemberPredicate"
       (cdkDropListDropped)="onVoiceMemberDrop($event, channel)"
       class="voice-channel-members pl-5 pr-2 py-1 flex flex-col gap-0.5 min-h-[2px]"
     >
       @for (m of members; track m.userId) {
         <div
           cdkDrag
+          cdkDragLockAxis="y"
           [cdkDragData]="m"
           [cdkDragDisabled]="!isOwner() || m.isLocal"
           (pointerdown)="onPrepDrag($event)"

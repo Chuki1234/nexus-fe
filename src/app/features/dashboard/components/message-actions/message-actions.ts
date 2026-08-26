@@ -28,6 +28,8 @@ export class MessageActions {
   readonly excerpt = input.required<string>();
   readonly ownMessage = input<boolean>(false);
   readonly canEdit = input<boolean>(false);
+  /** Tin đang được ghim hay chưa (quyết định nhãn Ghim / Bỏ ghim). */
+  readonly pinned = input<boolean>(false);
   readonly action = output<MessageComposerContext>();
   readonly reaction = output<string>();
 
@@ -79,6 +81,29 @@ export class MessageActions {
       description: isOwn
         ? 'Cần backend xác nhận quyền và đồng bộ thao tác thu hồi tới mọi người.'
         : 'Cần backend lưu trạng thái ẩn riêng cho tài khoản của bạn.',
+      messageId: this.messageId(),
+    });
+  }
+
+  protected requestTogglePin(): void {
+    const isPinned = this.pinned();
+    this.action.emit({
+      kind: isPinned ? 'unpin' : 'pin',
+      icon: 'push_pin',
+      label: isPinned ? 'Bỏ ghim tin nhắn' : 'Ghim tin nhắn',
+      description: isPinned
+        ? 'Gỡ tin khỏi danh sách ghim của kênh.'
+        : 'Ghim tin để mọi người trong kênh xem nhanh.',
+      messageId: this.messageId(),
+    });
+  }
+
+  protected requestCopy(): void {
+    this.action.emit({
+      kind: 'copy',
+      icon: 'content_copy',
+      label: 'Sao chép nội dung',
+      description: 'Sao chép nội dung tin nhắn vào bộ nhớ tạm.',
       messageId: this.messageId(),
     });
   }

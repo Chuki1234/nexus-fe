@@ -152,7 +152,7 @@ import { ServersStore } from '../../../../core/servers/servers.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class:
-      'flex h-full w-18 shrink-0 flex-col items-center gap-2 overflow-hidden bg-canvas py-3 select-none',
+      'flex h-full w-18 shrink-0 flex-col items-center overflow-hidden bg-canvas pb-3 select-none',
     '(document:keydown)': 'handleGlobalShortcut($event)',
   },
   templateUrl: './server-rail.html',

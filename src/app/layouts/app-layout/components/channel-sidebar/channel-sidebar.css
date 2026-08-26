@@ -15,7 +15,11 @@
 }
 
 .channel-sidebar__header {
+  height: 48px;
+  min-height: 48px;
   border-bottom: 1px solid var(--nexus-border-subtle);
+  display: flex;
+  align-items: center;
 }
 
 .server-header-chevron {
