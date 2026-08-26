@@ -6,6 +6,7 @@ import {
   OnDestroy,
   ViewChild,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -29,10 +30,41 @@ export class DirectCallStageComponent implements AfterViewInit, OnDestroy {
   readonly mediaService = inject(DirectCallMediaService);
 
   readonly isControlsVisible = signal<boolean>(true);
+  readonly isLocalVideoPrimary = signal<boolean>(false);
   private hideTimer: any = null;
 
-  @ViewChild('remoteVideo') set remoteVideoElement(ref: ElementRef<HTMLVideoElement> | undefined) {
+  private readonly keepPrimaryVideoValid = effect(() => {
+    if (
+      this.isLocalVideoPrimary() &&
+      (this.store.isVideoMuted() || !this.store.isRemoteVideoAvailable())
+    ) {
+      this.isLocalVideoPrimary.set(false);
+    }
+  });
+
+  private primaryLocalVideoEl: HTMLVideoElement | null = null;
+  private primaryRemoteVideoEl: HTMLVideoElement | null = null;
+
+  @ViewChild('primaryLocalVideo') set primaryLocalVideoElement(
+    ref: ElementRef<HTMLVideoElement> | undefined,
+  ) {
+    if (this.primaryLocalVideoEl && !ref) {
+      this.mediaService.releaseLocalVideo(this.primaryLocalVideoEl);
+      this.primaryLocalVideoEl = null;
+    }
     if (ref?.nativeElement) {
+      this.primaryLocalVideoEl = ref.nativeElement;
+      this.mediaService.attachLocalVideo(ref.nativeElement);
+    }
+  }
+
+  @ViewChild('remoteVideo') set remoteVideoElement(ref: ElementRef<HTMLVideoElement> | undefined) {
+    if (this.primaryRemoteVideoEl && !ref) {
+      this.mediaService.releaseRemoteVideo(this.primaryRemoteVideoEl);
+      this.primaryRemoteVideoEl = null;
+    }
+    if (ref?.nativeElement) {
+      this.primaryRemoteVideoEl = ref.nativeElement;
       this.mediaService.attachRemoteVideo(ref.nativeElement);
     }
   }
@@ -84,6 +116,12 @@ export class DirectCallStageComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  swapPrimaryVideo(): void {
+    if (this.store.isVideoMuted() || !this.store.isRemoteVideoAvailable()) return;
+    this.isLocalVideoPrimary.update((value) => !value);
+    this.showControls();
+  }
+
   ngAfterViewInit(): void {
     // Initial bindings handled via setters
   }
@@ -91,6 +129,12 @@ export class DirectCallStageComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
+    }
+    if (this.primaryLocalVideoEl) {
+      this.mediaService.releaseLocalVideo(this.primaryLocalVideoEl);
+    }
+    if (this.primaryRemoteVideoEl) {
+      this.mediaService.releaseRemoteVideo(this.primaryRemoteVideoEl);
     }
   }
 }

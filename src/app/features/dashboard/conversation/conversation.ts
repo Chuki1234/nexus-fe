@@ -26,7 +26,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChatToolbar } from '../components/chat-toolbar/chat-toolbar';
 import { MOBILE_BREAKPOINT_QUERY } from '../../../layouts/app-layout/services/dashboard-layout.service';
-import type { PresenceStatus } from '../../../../shared/dto/common';
+import { PRESENCE_LABEL, type PresenceStatus } from '../../../../shared/dto/common';
 import { PresenceService } from '../../../core/presence/presence.service';
 import { ChatScrollController } from '../../../core/utils/chat-scroll.controller';
 import {
@@ -360,6 +360,20 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
       (this.conversationDetails()?.recipient?.presence as PresenceStatus) ||
       'offline'
     );
+  });
+
+  protected readonly recipientStatusSubtitle = computed(() => {
+    const customStatus = this.conversationDetails()?.recipient?.statusMessage;
+    if (customStatus) {
+      return customStatus;
+    }
+    const recipientId = this.conversationDetails()?.recipient?.id;
+    const presence = this.recipientPresence();
+    if (presence === 'offline' && recipientId) {
+      const lastSeenText = this.presenceService.getLastSeenLabel(recipientId)();
+      return lastSeenText ?? PRESENCE_LABEL['offline'];
+    }
+    return PRESENCE_LABEL[presence] ?? null;
   });
 
   protected readonly hasValidConversation = computed(() => {

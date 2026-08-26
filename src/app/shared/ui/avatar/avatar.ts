@@ -44,7 +44,10 @@ const DOT: Record<AvatarSize, 'sm' | 'md' | 'lg' | 'xl'> = {
   selector: 'app-avatar',
   imports: [StatusDot],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'relative inline-flex shrink-0' },
+  host: {
+    class: 'relative inline-flex shrink-0',
+    '[class.avatar--offline]': "effectivePresence() === 'offline'",
+  },
   templateUrl: './avatar.html',
   styleUrl: './avatar.css',
 })

@@ -16,12 +16,17 @@ describe('DraggableSelfViewComponent', () => {
       isAudioMuted: () => false,
       selfViewCorner: () => 'bottom-right',
       isSelfViewMirrored: () => true,
+      isRemoteVideoAvailable: () => true,
+      remoteParticipant: () => ({ displayName: 'Mentor', username: 'mentor' }),
       toggleSelfViewMirror: vi.fn(),
       setSelfViewCorner: vi.fn(),
     };
 
     mockMedia = {
       attachLocalVideo: vi.fn(),
+      attachRemoteVideo: vi.fn(),
+      releaseLocalVideo: vi.fn(),
+      releaseRemoteVideo: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -43,5 +48,23 @@ describe('DraggableSelfViewComponent', () => {
 
   it('attaches local video on init', () => {
     expect(mockMedia.attachLocalVideo).toHaveBeenCalled();
+  });
+
+  it('attaches remote video when used as the mini view', () => {
+    fixture.componentRef.setInput('source', 'remote');
+    fixture.detectChanges();
+
+    expect(mockMedia.attachRemoteVideo).toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.corner-label')?.textContent).toContain('Mentor');
+  });
+
+  it('emits activate from the swap button', () => {
+    const emitted = vi.fn();
+    component.activate.subscribe(emitted);
+
+    const button = fixture.nativeElement.querySelector('.overlay-btn--swap') as HTMLButtonElement;
+    button.click();
+
+    expect(emitted).toHaveBeenCalledOnce();
   });
 });

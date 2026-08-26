@@ -2,8 +2,9 @@
   display: flex;
   flex-direction: column;
   width: 420px;
-  max-width: calc(100vw - 24px);
-  height: 480px;
+  max-width: 100%;
+  height: 460px;
+  max-height: min(460px, calc(100dvh - 140px));
   background: color-mix(in srgb, var(--color-surface, #002634) 96%, #001e2b);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -425,6 +426,26 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
       filter: drop-shadow(0 0 4px rgba(0, 237, 100, 0.3));
+    }
+  }
+}
+
+@media (max-width: 440px) {
+  .giphy-picker-container {
+    width: 100%;
+    border-radius: var(--radius-xl, 14px);
+  }
+
+  .picker-header {
+    padding: 10px 10px 8px;
+  }
+
+  .picker-body {
+    padding: 8px;
+
+    .gifs-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
     }
   }
 }

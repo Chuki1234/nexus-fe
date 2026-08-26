@@ -171,6 +171,17 @@
 .remote-video {
   width: 100%;
   height: 100%;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.remote-video--unavailable {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.local-primary-video.mirrored {
+  transform: scaleX(-1);
 }
 
 .remote-video.cover {
@@ -183,6 +194,7 @@
 
 /* Central Fallback Wrapper */
 .avatar-fallback-wrapper {
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
