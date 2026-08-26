@@ -142,22 +142,8 @@ export class SettingsModal {
     {
       title: 'CÀI ĐẶT NGƯỜI DÙNG',
       items: [
-        {
-          id: 'account',
-          label: 'Tài Khoản',
-          icon: 'person',
-          subItems: [
-            { label: 'Thông Tin Tài Khoản', actionId: 'account-info-heading' },
-            { label: 'Mật Khẩu & Bảo Mật', actionId: 'security-heading' },
-            { label: 'Xác Thực Hai Yếu Tố', actionId: 'two-factor-heading' },
-            { label: 'Trạng thái tài khoản', actionId: 'account-status-heading' },
-          ],
-        },
-        {
-          id: 'privacy',
-          label: 'Dữ Liệu & Bảo Mật',
-          icon: 'shield',
-        },
+        { id: 'account', label: 'Tài Khoản', icon: 'person' },
+        { id: 'privacy', label: 'Dữ Liệu & Bảo Mật', icon: 'shield' },
         { id: 'connections', label: 'Ứng Dụng Đã Kết Nối', icon: 'link' },
         { id: 'notifications', label: 'Các Thông Báo', icon: 'notifications' },
       ],
@@ -165,15 +151,7 @@ export class SettingsModal {
     {
       title: 'TRẢI NGHIỆM',
       items: [
-        {
-          id: 'voice-video',
-          label: 'Giọng nói và Video',
-          icon: 'mic',
-          subItems: [
-            { label: 'Giọng nói', actionId: 'voice-settings-heading' },
-            { label: 'Camera', actionId: 'video-settings-heading' },
-          ],
-        },
+        { id: 'voice-video', label: 'Giọng nói và Video', icon: 'mic' },
         {
           id: 'appearance',
           label: 'Hiển thị',

@@ -96,26 +96,6 @@
                         </span>
                       }
                     </button>
-
-                    <!-- Sub-items tree view -->
-                    @if (item.subItems && settingsService.currentTab() === item.id) {
-                      <div class="ml-4 pl-3 border-l border-hairline my-1 space-y-0.5">
-                        @for (sub of item.subItems; track sub.label) {
-                          <div
-                            (click)="selectTab(item.id, sub.actionId)"
-                            class="text-caption font-medium py-1.5 px-2.5 rounded-full transition-colors cursor-pointer select-none"
-                            [class.bg-surface-feature]="activeSubAction() === sub.actionId"
-                            [class.text-primary]="activeSubAction() === sub.actionId"
-                            [class.font-bold]="activeSubAction() === sub.actionId"
-                            [class.text-steel]="activeSubAction() !== sub.actionId"
-                            [class.hover:bg-surface-feature/50]="activeSubAction() !== sub.actionId"
-                            [class.hover:text-ink]="activeSubAction() !== sub.actionId"
-                          >
-                            {{ sub.label }}
-                          </div>
-                        }
-                      </div>
-                    }
                   </div>
                 }
               </div>
