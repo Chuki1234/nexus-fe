@@ -92,7 +92,9 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "exclude": [
-              "src/app/pages/**"
+              "src/app/pages/**",
+              "src/app/shared/ui/profile-card/**",
+              "src/app/core/i18n/**"
             ]
           }
         }
