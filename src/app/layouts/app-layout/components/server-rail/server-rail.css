@@ -40,6 +40,20 @@
   opacity: 1;
 }
 
+/* Unread & Mention Badges on Server Tiles & DM Tile chuẩn phong cách Discord */
+.server-tile-unread-badge {
+  position: absolute;
+  right: calc(50% - 24px);
+  bottom: calc(50% - 24px);
+  transform: translate(20%, 20%);
+  z-index: 20;
+  pointer-events: none;
+}
+
+.server-tile-unread-badge span {
+  box-shadow: 0 0 0 2px var(--color-surface, #002634);
+}
+
 /* Icon Server & Folder Tile 48x48px */
 .server-tile,
 .server-group-tile,
