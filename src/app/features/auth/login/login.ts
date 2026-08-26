@@ -1,30 +1,30 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, ElementRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, OnInit, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AccountDisabledInfo, AccountDisabledService } from '../../../core/auth/account-disabled.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { toAuthErrorMessage, toLoginErrorMessage } from '../../../core/auth/auth-error';
 import { getAndClearReturnUrl, saveReturnUrl } from '../../../core/auth/auth-redirect.util';
 
 @Component({
   selector: 'app-login-page',
+  standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './login.html',
   styleUrl: './login.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly auth = inject(AuthService);
+  private readonly accountDisabled = inject(AccountDisabledService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /**
    * Một ô định danh duy nhất: email hoặc tên đăng nhập.
-   *
-   * Cố tình KHÔNG validate định dạng ngoài "phải nhập" — thêm luật ở đây sẽ chặn
-   * nhầm một trong hai loại, và backend mới là nơi biết chuỗi này ứng với ai.
    */
   protected readonly form = this.formBuilder.group({
     identifier: ['', [Validators.required]],
@@ -45,6 +45,24 @@ export class LoginPage {
   protected readonly fastCode = signal('');
   protected readonly fastSubmitting = signal(false);
   protected readonly fastErrorMessage = signal<string | null>(null);
+
+  // Modal thông báo tài khoản bị vô hiệu hóa khi cố đăng nhập bằng Google
+  protected readonly showDisabledModal = signal(false);
+  protected readonly disabledInfo = signal<AccountDisabledInfo | null>(null);
+
+  ngOnInit(): void {
+    const isBlockedGoogle = this.route.snapshot.queryParamMap.get('blockedGoogle') === 'true';
+    const emailParam = this.route.snapshot.queryParamMap.get('email');
+
+    if (isBlockedGoogle) {
+      if (emailParam) {
+        this.form.controls.identifier.setValue(emailParam);
+      }
+      const disabledAcc = this.accountDisabled.getDisabledAccount(emailParam || undefined) || this.accountDisabled.currentDisabled();
+      this.disabledInfo.set(disabledAcc);
+      this.showDisabledModal.set(true);
+    }
+  }
 
   protected togglePasswordVisibility(): void {
     this.passwordVisible.update((visible) => !visible);
@@ -71,7 +89,6 @@ export class LoginPage {
   }
 
   protected onFastCodeInput(event: Event): void {
-    // Mã dự phòng chỉ gồm chữ và số (bỏ gạch nối người dùng có thể gõ theo mẫu A1B2-C3D4).
     this.fastCode.set((event.target as HTMLInputElement).value.replace(/[^0-9a-zA-Z]/g, ''));
   }
 
@@ -84,7 +101,7 @@ export class LoginPage {
       return;
     }
     if (!code) {
-      this.fastErrorMessage.set('Vui lòng nhập mã dự phòng.');
+      this.fastErrorMessage.set('Vui lòng nhập mã dự phòng 2FA.');
       return;
     }
 
@@ -92,7 +109,11 @@ export class LoginPage {
     this.fastErrorMessage.set(null);
     try {
       await this.auth.fastLoginTotp(identifier, code);
-      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+      // Nếu tài khoản đang vô hiệu hóa -> Mở khóa thành công sau khi xác thực 2FA
+      this.accountDisabled.reactivateAccount();
+
+      const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
+      const returnUrl = getAndClearReturnUrl(rawParam);
       this.showFastLoginModal.set(false);
       await this.router.navigateByUrl(returnUrl);
     } catch (error: unknown) {
@@ -116,6 +137,16 @@ export class LoginPage {
   /** Chuyển hướng sang Google; quay lại /auth/callback kèm returnUrl. */
   protected async onGoogle(): Promise<void> {
     this.errorMessage.set(null);
+
+    // Kiểm tra nếu tài khoản đang nhập bị vô hiệu hóa
+    const currentId = this.form.controls.identifier.value.trim();
+    const disabledAcc = this.accountDisabled.getDisabledAccount(currentId || undefined) || this.accountDisabled.currentDisabled();
+    if (disabledAcc) {
+      this.disabledInfo.set(disabledAcc);
+      this.showDisabledModal.set(true);
+      return;
+    }
+
     const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
     const returnUrl = getAndClearReturnUrl(rawParam);
     saveReturnUrl(returnUrl);
@@ -126,6 +157,28 @@ export class LoginPage {
       this.errorMessage.set(toAuthErrorMessage(error));
       this.focusFirst('#login-error');
     }
+  }
+
+  /** Chuyển từ Modal chặn Google sang nhập 2FA mở khóa */
+  protected proceedTo2faFromModal(): void {
+    this.showDisabledModal.set(false);
+    const email = this.disabledInfo()?.email || this.form.controls.identifier.value.trim();
+    if (email) {
+      this.fastIdentifier.set(email);
+    }
+    this.openFastLogin();
+  }
+
+  /** Mở khóa trực tiếp nếu tài khoản không bật 2FA */
+  protected unlockAccountDirectly(): void {
+    this.accountDisabled.reactivateAccount();
+    this.showDisabledModal.set(false);
+    this.disabledInfo.set(null);
+    this.errorMessage.set('Tài khoản đã được mở khóa thành công! Vui lòng đăng nhập.');
+  }
+
+  protected closeDisabledModal(): void {
+    this.showDisabledModal.set(false);
   }
 
   /** Errors stay hidden until the field is left or the form is submitted. */
@@ -149,13 +202,19 @@ export class LoginPage {
 
     this.submitting.set(true);
     try {
+      const identifier = this.form.controls.identifier.value.trim();
+      const disabledAcc = this.accountDisabled.getDisabledAccount(identifier);
+
       const result = await this.auth.signIn(this.form.getRawValue());
       const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
       const returnUrl = getAndClearReturnUrl(rawParam);
 
-      // Tài khoản bật 2FA: mật khẩu đúng nhưng chưa đủ — sang màn nhập mã, mang
-      // theo challenge + token AAL1 tạm để verify-login.
+      // Nếu tài khoản có 2FA
       if ('requiresMfa' in result && result.requiresMfa) {
+        if (disabledAcc) {
+          // Ghi nhận sẽ mở khóa sau khi hoàn tất 2FA
+          this.accountDisabled.reactivateAccount();
+        }
         await this.router.navigate(['/2fa'], {
           state: {
             mfaChallengeId: result.mfaChallengeId,
@@ -166,12 +225,15 @@ export class LoginPage {
         return;
       }
 
+      // Nếu tài khoản bị vô hiệu hóa nhưng không có 2FA -> mở khóa thành công
+      if (disabledAcc) {
+        this.accountDisabled.reactivateAccount();
+      }
+
       await this.router.navigateByUrl(returnUrl);
     } catch (error) {
       this.errorMessage.set(toLoginErrorMessage(error));
       this.form.controls.password.reset();
-      // Tắt cờ submitted để ô mật khẩu vừa reset không hiện thêm lỗi "Vui lòng
-      // nhập mật khẩu" chồng lên banner "sai thông tin đăng nhập".
       this.submitted.set(false);
       this.focusFirst('#login-error');
     } finally {
@@ -181,8 +243,6 @@ export class LoginPage {
 
   /** Moves focus to the first match so screen readers announce the problem. */
   private focusFirst(selector: string): void {
-    // A macrotask, so the target exists: it may only be rendered by the change
-    // detection pass this call is reacting to.
     setTimeout(() => {
       this.host.nativeElement.querySelector<HTMLElement>(selector)?.focus();
     });

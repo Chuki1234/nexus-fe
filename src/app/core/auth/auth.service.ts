@@ -3,6 +3,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import type { Session, User } from '@supabase/supabase-js';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AccountDisabledService } from './account-disabled.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import type {
   LoginMfaRequired,
@@ -20,6 +21,7 @@ export interface SignInCredentials {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly supabase = inject(SupabaseService);
+  private readonly accountDisabled = inject(AccountDisabledService);
   private readonly http = inject(HttpClient);
 
   private readonly currentSession = signal<Session | null>(null);
@@ -37,6 +39,14 @@ export class AuthService {
 
   constructor() {
     this.supabase.client.auth.onAuthStateChange((_event, session) => {
+      const email = session?.user?.email;
+      const disabled = email ? this.accountDisabled.getDisabledAccount(email) : this.accountDisabled.currentDisabled();
+      if (disabled && session) {
+        // Tài khoản đang vô hiệu hóa: xóa phiên cục bộ ngay
+        this.currentSession.set(null);
+        void this.supabase.client.auth.signOut({ scope: 'local' });
+        return;
+      }
       this.currentSession.set(session);
     });
     this.ready = this.restoreSession();
@@ -68,6 +78,13 @@ export class AuthService {
 
   private async restoreSession(): Promise<void> {
     const { data } = await this.supabase.client.auth.getSession();
+    const email = data?.session?.user?.email;
+    const disabled = email ? this.accountDisabled.getDisabledAccount(email) : this.accountDisabled.currentDisabled();
+    if (disabled && data?.session) {
+      this.currentSession.set(null);
+      await this.supabase.client.auth.signOut({ scope: 'local' });
+      return;
+    }
     this.currentSession.set(data.session);
   }
 
