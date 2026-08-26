@@ -1486,69 +1486,70 @@ export class UserSettingsService {
     const serverName = sSummary?.name ?? 'Máy chủ';
     const username = this.getEffectiveUsername() || 'admin_nexus';
     const displayName = this.profileService.current()?.displayName || username;
+    const initials = serverName.slice(0, 3).toUpperCase();
+
+    const newServerData: ServerSettingsData = {
+      id: serverId,
+      name: serverName,
+      description: '',
+      initials,
+      iconUrl: sSummary?.iconUrl ?? null,
+      bannerColor: '#001721',
+      systemChannelId: 'general',
+      sendWelcomeMessage: true,
+      adminUsernames: [username, 'nexusadmin#0001', 'admin_nexus', 'itss_admin'],
+      moderatorUsernames: [],
+      invites: [],
+      roles: [
+        {
+          id: 'role-admin',
+          name: 'Quản trị viên (Admin)',
+          color: '#00ed64',
+          membersCount: 1,
+          permissions: {
+            administrator: true,
+            manageServer: true,
+            manageRoles: true,
+            kickMembers: true,
+            banMembers: true,
+            manageChannels: true,
+          },
+        },
+        {
+          id: 'role-everyone',
+          name: '@everyone',
+          color: '#99aab5',
+          membersCount: 1,
+          isDefault: true,
+          permissions: {
+            administrator: false,
+            manageServer: false,
+            manageRoles: false,
+            kickMembers: false,
+            banMembers: false,
+            manageChannels: false,
+          },
+        },
+      ],
+      members: [
+        {
+          id: 'owner-1',
+          username: username,
+          displayName: displayName,
+          roles: ['role-admin'],
+          joinedAt: 'Hôm nay',
+          avatarUrl: this.profileService.current()?.avatarUrl,
+          isOwner: true,
+        },
+      ],
+      joinRequests: [],
+      bannedUsers: [],
+      auditLogs: [],
+    };
 
     this.serverDataMap.update((map) => ({
       ...map,
-      [serverId]: {
-        name: serverName,
-        iconUrl: sSummary?.iconUrl ?? null,
-        bannerUrl: null,
-        description: '',
-        systemChannelId: 'general',
-        afkChannelId: null,
-        afkTimeout: 300,
-        verificationLevel: 'low',
-        explicitContentFilter: 'medium',
-        defaultNotificationLevel: 'all',
-        adminUsernames: [username, 'nexusadmin#0001', 'admin_nexus', 'itss_admin'],
-        moderatorUsernames: [],
-        invites: [],
-        roles: [
-          {
-            id: 'role-admin',
-            name: 'Quản trị viên (Admin)',
-            color: '#00ed64',
-            membersCount: 1,
-            permissions: {
-              administrator: true,
-              manageServer: true,
-              manageRoles: true,
-              kickMembers: true,
-              banMembers: true,
-              manageChannels: true,
-            },
-          },
-          {
-            id: 'role-everyone',
-            name: '@everyone',
-            color: '#99aab5',
-            membersCount: 1,
-            isDefault: true,
-            permissions: {
-              administrator: false,
-              manageServer: false,
-              manageRoles: false,
-              kickMembers: false,
-              banMembers: false,
-              manageChannels: false,
-            },
-          },
-        ],
-        members: [
-          {
-            id: 'owner-1',
-            username: username,
-            displayName: displayName,
-            roles: ['role-admin'],
-            joinedAt: 'Hôm nay',
-            avatarUrl: this.profileService.current()?.avatarUrl,
-            isOwner: true,
-          },
-        ],
-        joinRequests: [],
-        bannedUsers: [],
-        auditLogs: [],
-      },
+      [serverId]: newServerData,
     }));
   }
 
