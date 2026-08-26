@@ -263,14 +263,23 @@
 
 .composer-picker-popover {
   position: absolute;
-  right: 0.25rem;
-  bottom: calc(100% + 0.625rem);
+  right: 0;
+  bottom: calc(100% + 0.5rem);
   z-index: 100;
   margin: 0;
+  width: min(360px, 100%);
   max-width: 100%;
+  box-sizing: border-box;
   transform-origin: bottom right;
   display: flex;
   justify-content: flex-end;
+}
+
+.composer-picker-popover app-giphy-picker,
+.composer-picker-popover app-stipop-picker {
+  display: block;
+  width: 100%;
+  max-width: 100%;
 }
 
 @media (max-width: 639.98px) {
@@ -279,6 +288,7 @@
     left: 0;
     margin-inline: auto;
     bottom: calc(100% + 0.5rem);
+    width: 100%;
     max-width: 100%;
     justify-content: center;
   }
@@ -318,6 +328,9 @@
 }
 
 .composer-emoji-palette {
+  width: 100%;
+  max-width: 360px;
+  box-sizing: border-box;
   border: 1px solid var(--nexus-border-subtle);
   background: var(--color-surface);
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);

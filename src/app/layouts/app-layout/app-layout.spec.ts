@@ -104,6 +104,7 @@ class ChatSocketServiceStub {
   conversationUpdated$ = new Subject<any>();
   conversationDeleted$ = new Subject<any>();
   messageRead$ = new Subject<any>();
+  messagePinUpdated$ = new Subject<any>();
   invitationReceived$ = new Subject<any>();
   invitationUpdated$ = new Subject<any>();
   channelsInvalidated$ = new Subject<any>();

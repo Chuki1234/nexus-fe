@@ -20,6 +20,7 @@ export interface ConversationSummary {
 
 export interface DisplayConversation {
   id: string;
+  recipientId?: string | null;
   /** Username của người bên kia (DM 1-1) — để mở thẻ hồ sơ. Null nếu không rõ. */
   username: string | null;
   name: string;
