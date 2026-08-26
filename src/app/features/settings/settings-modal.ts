@@ -154,17 +154,6 @@ export class SettingsModal {
         { id: 'voice-video', label: 'Giọng nói và Video', icon: 'mic' },
         { id: 'appearance', label: 'Hiển thị', icon: 'palette' },
         { id: 'text-images', label: 'Văn Bản & Hình Ảnh', icon: 'image' },
-        { id: 'accessibility', label: 'Trợ Năng', icon: 'accessibility' },
-        { id: 'keybinds', label: 'Hệ Thống & Phím Tắt', icon: 'keyboard' },
-        { id: 'language', label: 'Ngôn Ngữ & Thời Gian', icon: 'language' },
-      ],
-    },
-    {
-      title: 'TRÒ CHƠI & ỨNG DỤNG',
-      items: [
-        { id: 'games', label: 'Trò chơi đã đăng ký', icon: 'sports_esports' },
-        { id: 'activity', label: 'Tính bảo mật của Hoạt động', icon: 'privacy_tip' },
-        { id: 'developer', label: 'Nhà phát triển & Nâng cao', icon: 'code' },
       ],
     },
   ];

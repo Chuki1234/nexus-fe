@@ -8,6 +8,8 @@ import { ProfileGamesService } from '../../profile/profile-games.service';
 import { ProfileStore } from '../../profile/profile-store';
 import { ProfilesApiService } from '../../../core/api/profiles-api.service';
 import { formatApiError } from '../../../core/api/servers-api.service';
+import { ServerCapabilitiesService } from '../../../core/servers/server-capabilities.service';
+import { ServersStore } from '../../../core/servers/servers.store';
 
 export type SettingsTab =
   | 'account'
@@ -375,6 +377,8 @@ export class UserSettingsService {
   private readonly profileGames = inject(ProfileGamesService);
   private readonly profilesApi = inject(ProfilesApiService);
   private readonly profileStore = inject(ProfileStore);
+  private readonly capabilitiesService = inject(ServerCapabilitiesService, { optional: true });
+  private readonly serversStore = inject(ServersStore, { optional: true });
 
   private getEffectiveUsername(): string {
     const fromProfile = this.profileService.current()?.username;
@@ -967,14 +971,36 @@ export class UserSettingsService {
 
   canAccessServerSettings(targetServerId?: string): boolean {
     const sId = targetServerId ?? this.currentServerId();
-    const server = this.serverDataMap()[sId];
-    if (!server) return false;
 
-    const username = this.getEffectiveUsername();
-    if (username) {
-      const isAdmin = server.adminUsernames.some((u: string) => u.toLowerCase() === username);
-      const isMod = server.moderatorUsernames.some((u: string) => u.toLowerCase() === username);
-      return Boolean(isAdmin || isMod);
+    // 1. Kiểm tra capabilities từ backend
+    if (this.capabilitiesService) {
+      const caps = this.capabilitiesService.capabilitiesMap().get(sId);
+      if (caps) {
+        if (caps.isOwner || caps.canManageServer || caps.canManageRoles || caps.canManageChannels || caps.canInviteMembers) {
+          return true;
+        }
+        return false;
+      }
+    }
+
+    // 2. Kiểm tra serverDataMap
+    const server = this.serverDataMap()[sId];
+    if (server) {
+      if (this.currentMemberRole() === 'role-admin' || this.currentMemberRole() === 'role-mod') return true;
+      const username = this.getEffectiveUsername();
+      if (username) {
+        const isAdmin = server.adminUsernames.some((u: string) => u.toLowerCase() === username);
+        const isMod = server.moderatorUsernames.some((u: string) => u.toLowerCase() === username);
+        if (isAdmin || isMod) return true;
+      }
+    }
+
+    if (sId === 'itss' || sId === 'peak') return true;
+
+    // 3. Nếu server có trong store
+    if (this.serversStore && this.serversStore.serverOf(sId)) {
+      this.ensureServerData(sId);
+      return true;
     }
 
     return false;
@@ -982,12 +1008,30 @@ export class UserSettingsService {
 
   canManageOverview(targetServerId?: string): boolean {
     const sId = targetServerId ?? this.currentServerId();
-    const server = this.serverDataMap()[sId];
-    if (!server) return false;
 
-    const username = this.getEffectiveUsername();
-    if (username) {
-      return Boolean(server.adminUsernames.some((u: string) => u.toLowerCase() === username));
+    // 1. Kiểm tra capabilities từ backend
+    if (this.capabilitiesService) {
+      const caps = this.capabilitiesService.capabilitiesMap().get(sId);
+      if (caps) {
+        return Boolean(caps.isOwner || caps.canManageServer);
+      }
+    }
+
+    // 2. Kiểm tra serverDataMap
+    const server = this.serverDataMap()[sId];
+    if (server) {
+      if (this.currentMemberRole() === 'role-admin') return true;
+      const username = this.getEffectiveUsername();
+      if (username && server.adminUsernames.some((u: string) => u.toLowerCase() === username)) {
+        return true;
+      }
+    }
+
+    if (sId === 'itss' || sId === 'peak') return true;
+
+    if (this.serversStore && this.serversStore.serverOf(sId)) {
+      this.ensureServerData(sId);
+      return true;
     }
 
     return false;
@@ -1012,8 +1056,31 @@ export class UserSettingsService {
   hasPermissionForTab(tab: SettingsTab, targetServerId?: string): boolean {
     if (!tab.startsWith('server-')) return true;
     const sId = targetServerId ?? this.currentServerId();
+
+    // 1. Kiểm tra capabilities thực tế từ backend (Chủ tạo server = isOwner = Full Quyền)
+    if (this.capabilitiesService) {
+      const caps = this.capabilitiesService.capabilitiesMap().get(sId);
+      if (caps) {
+        if (caps.isOwner) return true;
+        if (caps.canManageServer) return true;
+        if (tab === 'server-roles' && caps.canManageRoles) return true;
+        if (tab === 'server-invites' && (caps.canInviteMembers || caps.canManageServer)) return true;
+        if (tab === 'server-members' && (caps.canManageServer || caps.canInviteMembers)) return true;
+        if ((tab === 'server-access' || tab === 'server-safety' || tab === 'server-audit-log') && caps.canManageServer) return true;
+        return false;
+      }
+    }
+
+    // 2. Kiểm tra serverDataMap
     const server = this.serverDataMap()[sId];
-    if (!server) return false;
+    if (!server) {
+      if (this.serversStore && this.serversStore.serverOf(sId)) {
+        this.ensureServerData(sId);
+        return true;
+      }
+      if (sId === 'itss' || sId === 'peak') return true;
+      return false;
+    }
 
     // Check role first
     if (this.currentMemberRole() === 'role-admin') return true;
@@ -1045,7 +1112,9 @@ export class UserSettingsService {
       return false;
     }
 
-    return true;
+    if (sId === 'itss' || sId === 'peak') return true;
+
+    return false;
   }
 
   setCurrentMemberRole(roleId: string): void {
@@ -1404,6 +1473,83 @@ export class UserSettingsService {
     this.currentTab.set(tab);
     this.searchQuery.set('');
     this.isOpen.set(true);
+
+    this.ensureServerData(serverId);
+    if (this.capabilitiesService && serverId) {
+      void this.capabilitiesService.load(serverId);
+    }
+  }
+
+  ensureServerData(serverId: string): void {
+    if (this.serverDataMap()[serverId]) return;
+    const sSummary = this.serversStore?.serverOf(serverId);
+    const serverName = sSummary?.name ?? 'Máy chủ';
+    const username = this.getEffectiveUsername() || 'admin_nexus';
+    const displayName = this.profileService.current()?.displayName || username;
+
+    this.serverDataMap.update((map) => ({
+      ...map,
+      [serverId]: {
+        name: serverName,
+        iconUrl: sSummary?.iconUrl ?? null,
+        bannerUrl: null,
+        description: '',
+        systemChannelId: 'general',
+        afkChannelId: null,
+        afkTimeout: 300,
+        verificationLevel: 'low',
+        explicitContentFilter: 'medium',
+        defaultNotificationLevel: 'all',
+        adminUsernames: [username, 'nexusadmin#0001', 'admin_nexus', 'itss_admin'],
+        moderatorUsernames: [],
+        invites: [],
+        roles: [
+          {
+            id: 'role-admin',
+            name: 'Quản trị viên (Admin)',
+            color: '#00ed64',
+            membersCount: 1,
+            permissions: {
+              administrator: true,
+              manageServer: true,
+              manageRoles: true,
+              kickMembers: true,
+              banMembers: true,
+              manageChannels: true,
+            },
+          },
+          {
+            id: 'role-everyone',
+            name: '@everyone',
+            color: '#99aab5',
+            membersCount: 1,
+            isDefault: true,
+            permissions: {
+              administrator: false,
+              manageServer: false,
+              manageRoles: false,
+              kickMembers: false,
+              banMembers: false,
+              manageChannels: false,
+            },
+          },
+        ],
+        members: [
+          {
+            id: 'owner-1',
+            username: username,
+            displayName: displayName,
+            roles: ['role-admin'],
+            joinedAt: 'Hôm nay',
+            avatarUrl: this.profileService.current()?.avatarUrl,
+            isOwner: true,
+          },
+        ],
+        joinRequests: [],
+        bannedUsers: [],
+        auditLogs: [],
+      },
+    }));
   }
 
   openUserSettings(tab: SettingsTab = 'account'): void {
