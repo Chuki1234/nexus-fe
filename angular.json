@@ -58,6 +58,17 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "local": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.local.ts"
+                }
+              ],
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
             }
           },
           "defaultConfiguration": "production"
@@ -70,6 +81,9 @@
             },
             "development": {
               "buildTarget": "nexus-fe:build:development"
+            },
+            "local": {
+              "buildTarget": "nexus-fe:build:local"
             }
           },
           "defaultConfiguration": "development"

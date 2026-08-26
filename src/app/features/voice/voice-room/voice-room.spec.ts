@@ -3,8 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ChannelSummary } from '../../../core/api/shell-data';
-import { ShellData } from '../../../core/api/shell-data';
+import type { ChannelSummary } from '../../../core/servers/server.models';
 import { VoiceConnectionStatus, VoiceParticipantModel, VoiceRoomService } from '../services/voice-room.service';
 import { VoiceRoom } from './voice-room';
 
@@ -33,7 +32,6 @@ describe('VoiceRoom', () => {
     closePrejoin: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
-  let mockShellData: { servers: ReturnType<typeof signal<Array<{ id: string; name: string }>>> };
 
   const mockChannel: ChannelSummary = {
     id: 'chn-voice-1',
@@ -70,14 +68,12 @@ describe('VoiceRoom', () => {
     };
 
     mockDialog = { open: vi.fn() };
-    mockShellData = { servers: signal([{ id: 'srv-1', name: 'Test Server' }]) };
 
     await TestBed.configureTestingModule({
       imports: [VoiceRoom],
       providers: [
         { provide: VoiceRoomService, useValue: mockVoiceRoomService },
         { provide: MatDialog, useValue: mockDialog },
-        { provide: ShellData, useValue: mockShellData },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -98,27 +94,34 @@ describe('VoiceRoom', () => {
     expect(component).toBeDefined();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Kênh thoại 1');
-    expect(el.textContent).toContain('Tham Gia Thoại');
-    expect(el.textContent).toContain('Xem thiết bị');
   });
 
-  it('bật/tắt chat drawer khi gọi toggleChat', () => {
-    expect(component.isChatOpen()).toBe(false);
+  it('bấm Tham gia kênh thoại phải gọi voiceRoom.joinRoom() với options', () => {
+    component['joinVoice']({ audio: true, video: false });
+    expect(mockVoiceRoomService.joinRoom).toHaveBeenCalledWith(
+      'srv-1',
+      'chn-voice-1',
+      'Kênh thoại 1',
+      { audio: true, video: false },
+    );
+  });
+
+  it('bấm Xem thiết bị phải gọi voiceRoom.openPrejoin()', () => {
+    component['openPrejoin']();
+    expect(mockVoiceRoomService.openPrejoin).toHaveBeenCalledWith(
+      'srv-1',
+      'chn-voice-1',
+      'Kênh thoại 1',
+    );
+  });
+
+  it('bấm nút Chat thoại phải gọi toggleChatDrawer() trên service', () => {
     component['toggleChat']();
-    expect(component.isChatOpen()).toBe(true);
-    component['toggleChat']();
-    expect(component.isChatOpen()).toBe(false);
+    expect(mockVoiceRoomService.toggleChatDrawer).toHaveBeenCalled();
   });
 
-  it('gọi joinRoom khi bấm Tham Gia Thoại', () => {
-    const joinBtn = fixture.nativeElement.querySelector('button[mat-flat-button]');
-    joinBtn?.click();
-    expect(mockVoiceRoomService.joinRoom).toHaveBeenCalledWith('srv-1', 'chn-voice-1', 'Kênh thoại 1', undefined);
-  });
-
-  it('gọi openPrejoin khi bấm Xem thiết bị', () => {
-    const previewBtn = fixture.nativeElement.querySelector('button[mat-stroked-button]');
-    previewBtn?.click();
-    expect(mockVoiceRoomService.openPrejoin).toHaveBeenCalledWith('srv-1', 'chn-voice-1', 'Kênh thoại 1');
+  it('bấm Mời bạn bè phải mở InviteChannelDialog', () => {
+    component['openInviteDialog']();
+    expect(mockDialog.open).toHaveBeenCalled();
   });
 });

@@ -1,48 +1,55 @@
 @if (isVoiceConnected()) {
   <!-- Voice Connected Banner (Discord Style) -->
-  <div class="user-panel__voice-status flex items-center justify-between border-b border-hairline/60 pb-2 mb-2">
-    <div class="flex items-center gap-2 min-w-0">
-      <mat-icon class="!size-5 !text-xl text-primary animate-pulse">signal_cellular_alt</mat-icon>
-      <div class="min-w-0">
+  <div class="user-panel__voice-status w-full flex items-center justify-between border-b border-hairline/60 pb-2 mb-2">
+    <div class="flex items-center gap-2 min-w-0 flex-1">
+      <mat-icon class="!size-5 !text-xl text-primary animate-pulse shrink-0">signal_cellular_alt</mat-icon>
+      <div class="min-w-0 flex-1">
         <span class="block truncate text-body-sm-medium text-primary font-bold">Đã Kết Nối Giọng Nói</span>
         <span class="block truncate text-micro text-steel">#{{ voiceChannelName() }}</span>
       </div>
     </div>
-    <button
-      mat-icon-button
-      type="button"
-      class="!size-8 !text-danger hover:!bg-danger/20"
-      matTooltip="Ngắt kết nối"
-      (click)="disconnectVoice()"
-    >
-      <mat-icon class="!size-4 !text-base">call_end</mat-icon>
-    </button>
+
+    <!-- Voice Control Actions (Cleanly centered and aligned with proper spacing) -->
+    <div class="user-panel__voice-actions-group shrink-0">
+      <!-- Test Mic Button (Waveform icon) -->
+      <button
+        mat-icon-button
+        type="button"
+        class="user-panel__voice-btn nexus-icon-control"
+        [class.!text-primary]="isTestingMic()"
+        [class.!bg-primary/20]="isTestingMic()"
+        [matTooltip]="isTestingMic() ? 'Dừng kiểm tra Micro' : 'Kiểm tra Micro (Test Mic)'"
+        (click)="toggleTestMic()"
+      >
+        <mat-icon>{{ isTestingMic() ? 'equalizer' : 'graphic_eq' }}</mat-icon>
+      </button>
+
+      <!-- Disconnect Button (Optically centered) -->
+      <button
+        mat-icon-button
+        type="button"
+        class="user-panel__voice-btn user-panel__voice-btn--disconnect !text-danger hover:!bg-danger/20"
+        matTooltip="Ngắt kết nối"
+        (click)="disconnectVoice()"
+      >
+        <mat-icon>call_end</mat-icon>
+      </button>
+    </div>
   </div>
 
-  <!-- Voice Quick Action Toolbar -->
-  <div class="user-panel__voice-actions flex items-center justify-around border-b border-hairline/60 pb-2 mb-2">
-    <button
-      mat-icon-button
-      type="button"
-      class="nexus-icon-control !size-8"
-      [class.!text-primary]="isScreenSharing()"
-      [matTooltip]="isScreenSharing() ? 'Dừng chia sẻ' : 'Chia sẻ màn hình'"
-      (click)="toggleScreenShare()"
-    >
-      <mat-icon class="!size-4 !text-base">{{ isScreenSharing() ? 'stop_screen_share' : 'screen_share' }}</mat-icon>
-    </button>
-
-    <button
-      mat-icon-button
-      type="button"
-      class="nexus-icon-control !size-8"
-      [class.!text-primary]="isCameraOn()"
-      [matTooltip]="isCameraOn() ? 'Tắt camera' : 'Bật camera'"
-      (click)="toggleCamera()"
-    >
-      <mat-icon class="!size-4 !text-base">{{ isCameraOn() ? 'videocam' : 'videocam_off' }}</mat-icon>
-    </button>
-  </div>
+  <!-- Realtime Mic Test Level Bar (shown when user is testing mic) -->
+  @if (isTestingMic()) {
+    <div class="flex items-center gap-2 px-1 pb-2 mb-2 border-b border-hairline/40">
+      <span class="text-[11px] text-steel shrink-0 font-medium">Mic Level:</span>
+      <div class="h-1.5 flex-1 rounded-full bg-surface-feature overflow-hidden">
+        <div
+          class="h-full bg-primary transition-all duration-75 rounded-full"
+          [style.width.%]="mediaDevices.audioLevel()"
+        ></div>
+      </div>
+      <span class="text-[11px] text-primary font-mono w-7 text-right">{{ mediaDevices.audioLevel() }}%</span>
+    </div>
+  }
 }
 
 <div class="flex items-center justify-between w-full min-w-0">

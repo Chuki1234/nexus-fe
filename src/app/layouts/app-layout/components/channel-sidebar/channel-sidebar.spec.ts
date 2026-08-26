@@ -4,12 +4,13 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
-import { ShellData } from '../../../../core/api/shell-data';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
 import { ServerCapabilitiesService } from '../../../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../../../core/servers/servers.store';
+import { ConversationsApiService } from '../../../../core/api/conversations-api.service';
 import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
+import { CommandCenterService } from '../../services/command-center.service';
 import { ChannelSidebar } from './channel-sidebar';
 import { CreateChannelDialog } from './components/create-channel-dialog/create-channel-dialog';
 
@@ -50,8 +51,12 @@ describe('ChannelSidebar', () => {
     refresh: ReturnType<typeof vi.fn>;
     clear: ReturnType<typeof vi.fn>;
   };
+  let mockConversationsApi: {
+    listConversations: ReturnType<typeof vi.fn>;
+    getOrCreateDm: ReturnType<typeof vi.fn>;
+  };
 
-  const mount = async (serverId: string | null, shell: ShellData = new ShellData()) => {
+  const mount = async (serverId: string | null) => {
     mockDialog = {
       open: vi.fn().mockReturnValue({
         afterClosed: () => of(null),
@@ -73,50 +78,35 @@ describe('ChannelSidebar', () => {
       canViewAuditLog: vi.fn().mockReturnValue(true),
       openServerSettings: vi.fn(),
     };
+    const defaultCaps = {
+      isOwner: true,
+      canInviteMembers: true,
+      canManageServer: true,
+      canManageChannels: true,
+      canManageRoles: true,
+    };
     mockCapabilitiesService = {
-      capabilitiesMap: signal(
-        new Map([
-          [
-            'itss',
-            {
-              isOwner: true,
-              canInviteMembers: true,
-              canManageServer: true,
-              canManageChannels: true,
-              canManageRoles: true,
-            },
-          ],
-          [
-            'lofi',
-            {
-              isOwner: true,
-              canInviteMembers: true,
-              canManageServer: true,
-              canManageChannels: true,
-              canManageRoles: true,
-            },
-          ],
-          [
-            'server-1',
-            {
-              isOwner: true,
-              canInviteMembers: true,
-              canManageServer: true,
-              canManageChannels: true,
-              canManageRoles: true,
-            },
-          ],
-        ]),
-      ),
-      load: vi.fn().mockResolvedValue({
-        isOwner: true,
-        canInviteMembers: true,
-        canManageServer: true,
-        canManageChannels: true,
-        canManageRoles: true,
-      }),
-      refresh: vi.fn(),
+      capabilitiesMap: signal(new Map([['lofi', defaultCaps], ['server-1', defaultCaps]])),
+      load: vi.fn().mockResolvedValue(defaultCaps),
+      refresh: vi.fn().mockResolvedValue(defaultCaps),
       clear: vi.fn(),
+    };
+    mockConversationsApi = {
+      listConversations: vi.fn().mockResolvedValue([
+        {
+          id: 'binh',
+          recipient: {
+            id: 'u-binh',
+            username: 'binh',
+            displayName: 'Bình',
+            avatarUrl: null,
+            presence: 'online',
+            statusMessage: null,
+          },
+          unreadCount: 0,
+        },
+      ]),
+      getOrCreateDm: vi.fn().mockResolvedValue({ id: 'binh' }),
     };
 
     await TestBed.configureTestingModule({
@@ -125,10 +115,10 @@ describe('ChannelSidebar', () => {
         provideRouter([]),
         { provide: AuthService, useValue: new AuthStub() },
         { provide: ProfileService, useValue: new ProfileStub() },
-        { provide: ShellData, useValue: shell },
         { provide: MatDialog, useValue: mockDialog },
         { provide: UserSettingsService, useValue: mockSettingsService },
         { provide: ServerCapabilitiesService, useValue: mockCapabilitiesService },
+        { provide: ConversationsApiService, useValue: mockConversationsApi },
       ],
     }).compileComponents();
 
@@ -138,6 +128,14 @@ describe('ChannelSidebar', () => {
       { id: 'itss', name: 'ITSS Lab', iconUrl: null, unread: false, mentionCount: 0 },
       { id: 'server-1', name: 'Máy chủ 1', iconUrl: null, unread: false, mentionCount: 0 },
     ]);
+    serversStore.addChannel('lofi', {
+      id: 'c-general',
+      name: 'chung',
+      type: 'text',
+      topic: null,
+      unread: false,
+      mentionCount: 0,
+    });
 
     const fixture = TestBed.createComponent(ChannelSidebar);
     (fixture.componentRef as ComponentRef<ChannelSidebar>).setInput('serverId', serverId);
@@ -145,15 +143,15 @@ describe('ChannelSidebar', () => {
     return fixture;
   };
 
-  it('không có serverId thì hiện danh sách hộp thoại và ô tìm kiếm', async () => {
+  it('không có serverId thì hiện danh sách hộp thoại và nút tìm kiếm', async () => {
     const fixture = await mount(null);
 
     expect(fixture.nativeElement.querySelector('app-conversation-list')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('app-channel-list')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('app-search-field')).toBeTruthy();
-    const input = fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
-    expect(input.disabled).toBe(false);
-    expect(input.placeholder).toBe('Tìm người hoặc cuộc trò chuyện');
+    const searchBtn = fixture.nativeElement.querySelector('[data-action="sidebar-search"]') as HTMLButtonElement;
+    expect(searchBtn).toBeTruthy();
+    expect(searchBtn.getAttribute('aria-label')).toBe('Tìm người hoặc cuộc trò chuyện');
+    expect(searchBtn.textContent).toContain('Tìm người hoặc cuộc trò chuyện');
     expect(fixture.nativeElement.querySelector('.channel-sidebar__header')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('nav')?.classList.contains('nexus-scrollbar')).toBe(
       true,
@@ -162,21 +160,16 @@ describe('ChannelSidebar', () => {
     expect(fixture.nativeElement.classList.contains('flex-1')).toBe(true);
   });
 
-  it('lọc người và DM ngay trong sidebar, không đẩy kết quả sang workspace', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount(null, shell);
-    const input = fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
+  it('nhấn nút tìm kiếm trên sidebar gọi open của CommandCenterService', async () => {
+    const fixture = await mount(null);
+    const commandCenterService = TestBed.inject(CommandCenterService);
+    const openSpy = vi.spyOn(commandCenterService, 'open');
 
-    input.value = 'binh';
-    input.dispatchEvent(new Event('input'));
+    const searchBtn = fixture.nativeElement.querySelector('[data-action="sidebar-search"]') as HTMLButtonElement;
+    searchBtn.click();
     fixture.detectChanges();
 
-    const results = fixture.nativeElement.querySelectorAll('[data-conversation-id]');
-    expect(results).toHaveLength(1);
-    expect(results[0].getAttribute('data-conversation-id')).toBe('binh');
-    expect(fixture.nativeElement.textContent).toContain('Kết quả · 1');
-    expect(fixture.nativeElement.querySelector('a[href="/channels/@me"]')).toBeTruthy();
+    expect(openSpy).toHaveBeenCalled();
   });
 
   it('có serverId chưa tồn tại thì vẫn giữ khung danh sách kênh an toàn', async () => {
@@ -189,9 +182,7 @@ describe('ChannelSidebar', () => {
   });
 
   it('hiển thị header máy chủ với chevron và nút mời nhanh ở góc phải khi có serverId', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount('lofi', shell);
+    const fixture = await mount('lofi');
 
     const header = fixture.nativeElement.querySelector('.channel-sidebar__server-header');
     expect(header).toBeTruthy();
@@ -201,9 +192,7 @@ describe('ChannelSidebar', () => {
   });
 
   it('gọi openServerSettings khi chọn Cài đặt máy chủ', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount('lofi', shell);
+    const fixture = await mount('lofi');
 
     fixture.componentInstance['openServerSettings']('server-overview');
 
@@ -214,9 +203,7 @@ describe('ChannelSidebar', () => {
   });
 
   it('gọi openCreateChannelDialog mở CreateChannelDialog khi chọn Tạo kênh', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount('lofi', shell);
+    const fixture = await mount('lofi');
     const dialogSpy = vi.spyOn(fixture.componentInstance['dialog'], 'open');
 
     fixture.componentInstance['openCreateChannelDialog']();
@@ -234,9 +221,7 @@ describe('ChannelSidebar', () => {
   });
 
   it('toggleHideMutedChannels thay đổi trạng thái checkbox', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount('lofi', shell);
+    const fixture = await mount('lofi');
 
     expect(fixture.componentInstance['hideMutedChannels']()).toBe(false);
 
@@ -260,9 +245,7 @@ describe('ChannelSidebar', () => {
   });
 
   it('gọi openDeleteServerDialog khi chọn Xóa máy chủ (Owner)', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount('lofi', shell);
+    const fixture = await mount('lofi');
     const dialogSpy = vi.spyOn(fixture.componentInstance['dialog'], 'open');
 
     fixture.componentInstance['openDeleteServerDialog']();
@@ -271,14 +254,22 @@ describe('ChannelSidebar', () => {
   });
 
   it('gọi openLeaveServerDialog khi chọn Rời khỏi máy chủ (Non-Owner)', async () => {
-    const shell = new ShellData();
-    shell.setDemoEnabled(true);
-    const fixture = await mount('lofi', shell);
+    const fixture = await mount('lofi');
     const dialogSpy = vi.spyOn(fixture.componentInstance['dialog'], 'open');
 
     fixture.componentInstance['openLeaveServerDialog']();
 
     expect(dialogSpy).toHaveBeenCalled();
   });
-});
 
+  describe('Channel Drag & Drop Integration', () => {
+    it('render cdkDropListGroup và các cdkDropList cho từng nhóm kênh', async () => {
+      const fixture = await mount('lofi');
+      const dropGroup = fixture.nativeElement.querySelector('.channel-list-drop-group');
+      expect(dropGroup).toBeTruthy();
+
+      const dropLists = fixture.nativeElement.querySelectorAll('.channel-drop-list');
+      expect(dropLists.length).toBeGreaterThan(0);
+    });
+  });
+});

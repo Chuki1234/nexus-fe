@@ -20,6 +20,7 @@ import { extractErrorMessage } from '../../../core/utils/error.util';
 import { compareMessageOrder } from '../../../core/utils/safe-message-comparator';
 export { compareMessageOrder as compareMessageIds } from '../../../core/utils/safe-message-comparator';
 import type { MessagePayload } from '../../../../shared/socket-events';
+import { GiphyMediaDto } from '../../../../shared/dto/messages.dto';
 
 export interface OptimisticChannelMessage {
   clientNonce: string;
@@ -29,6 +30,7 @@ export interface OptimisticChannelMessage {
   status: 'sending' | 'failed';
   attachments?: AttachmentResponseDto[];
   files?: File[];
+  externalMedia?: GiphyMediaDto | null;
   errorMessage?: string;
   createdAt: string;
   optimisticSeq?: number;
@@ -47,6 +49,7 @@ export interface ChannelChatUiMessage {
   editedAt: string | null;
   deletedAt: string | null;
   isForwarded: boolean;
+  externalMedia: GiphyMediaDto | null;
   attachments?: AttachmentResponseDto[];
   reactions?: ReactionSummaryDto[];
   createdAt: string;
@@ -156,6 +159,7 @@ export class ChannelChatStore implements OnDestroy {
         editedAt: null,
         deletedAt: null,
         isForwarded: false,
+        externalMedia: opt.externalMedia ?? null,
         attachments: opt.attachments,
         reactions: [],
         createdAt: opt.createdAt,
@@ -165,6 +169,7 @@ export class ChannelChatStore implements OnDestroy {
 
     const persistedUi: ChannelChatUiMessage[] = persisted.map((m) => ({
       ...m,
+      externalMedia: m.externalMedia ?? null,
       status: 'persisted',
     }));
 
@@ -175,12 +180,42 @@ export class ChannelChatStore implements OnDestroy {
     this.setupSocketSubscriptions();
   }
 
-  ngOnDestroy(): void {
-    this.subs.unsubscribe();
-    const activeChan = this._channelId();
-    if (activeChan) {
-      this.chatSocket.leaveChannel(activeChan);
+  /**
+   * Cleanup nguyên tử toàn bộ trạng thái của store theo đúng thứ tự:
+   * a. capture activeChannelId;
+   * b. currentGeneration++;
+   * c. isReconciling = false và clear buffer;
+   * d. leaveChannel(activeChannelId);
+   * e. reset signals;
+   */
+  clear(): void {
+    const activeChannelId = this._channelId();
+    this.currentGeneration++;
+    this.isReconciling = false;
+    this.bufferedRealtimeMessages = [];
+
+    if (activeChannelId) {
+      this.chatSocket.leaveChannel(activeChannelId);
     }
+
+    this._serverId.set(null);
+    this._channelId.set(null);
+    this._messages.set([]);
+    this._optimisticMessages.set([]);
+    this._lastReadMessageId.set(null);
+    this._typingUserIds.set([]);
+    this._hasMore.set(false);
+    this._nextCursor.set(undefined);
+    this._loadingInitial.set(false);
+    this._loadingMore.set(false);
+    this._error.set(null);
+    this._chatError.set(null);
+    this._paginationError.set(null);
+  }
+
+  ngOnDestroy(): void {
+    this.clear();
+    this.subs.unsubscribe();
   }
 
   /**
@@ -338,17 +373,45 @@ export class ChannelChatStore implements OnDestroy {
    * Gửi tin nhắn mới vào kênh máy chủ (Optimistic Update).
    */
   async sendMessage(
-    content?: string,
+    payloadOrContent?:
+      | string
+      | {
+          content?: string;
+          replyToId?: string;
+          files?: File[];
+          attachments?: any[];
+          externalMedia?: GiphyMediaDto;
+        },
     files?: File[],
     replyToId?: string,
   ): Promise<MessageResponseDto | null> {
     const channelId = this._channelId();
     if (!channelId) return null;
 
+    let content: string | undefined;
+    let replyId: string | undefined;
+    let actualFiles: File[] | undefined;
+    let externalMedia: GiphyMediaDto | undefined;
+
+    if (typeof payloadOrContent === 'string') {
+      content = payloadOrContent.trim();
+      actualFiles = files;
+      replyId = replyToId;
+    } else if (payloadOrContent) {
+      content = payloadOrContent.content?.trim();
+      replyId = payloadOrContent.replyToId || replyToId;
+      actualFiles = payloadOrContent.files || files;
+      externalMedia = payloadOrContent.externalMedia;
+    }
+
+    if (!content && (!actualFiles || actualFiles.length === 0) && !externalMedia) {
+      return null;
+    }
+
     const clientNonce = crypto.randomUUID();
     const optimisticSeq = ++this.optimisticSeqCounter;
 
-    const optimisticAttachments: AttachmentResponseDto[] = (files || []).map((file) => ({
+    const optimisticAttachments: AttachmentResponseDto[] = (actualFiles || []).map((file) => ({
       id: `opt-att-${crypto.randomUUID()}`,
       filename: file.name,
       mimeType: file.type,
@@ -362,11 +425,12 @@ export class ChannelChatStore implements OnDestroy {
     const optMsg: OptimisticChannelMessage = {
       clientNonce,
       channelId,
-      content: content?.trim() || null,
-      replyToId,
+      content: content || null,
+      replyToId: replyId,
       status: 'sending',
       attachments: optimisticAttachments.length > 0 ? optimisticAttachments : undefined,
-      files,
+      files: actualFiles,
+      externalMedia: externalMedia || null,
       createdAt: new Date().toISOString(),
       optimisticSeq,
     };
@@ -377,8 +441,9 @@ export class ChannelChatStore implements OnDestroy {
       const persisted = await this.messagesApi.sendChannelMessage(channelId, {
         content: optMsg.content || undefined,
         clientNonce,
-        replyToId,
-        files,
+        replyToId: replyId,
+        files: actualFiles,
+        externalMedia,
       });
 
       // Thay thế optimistic message bằng persisted message
@@ -412,6 +477,7 @@ export class ChannelChatStore implements OnDestroy {
         clientNonce: opt.clientNonce,
         replyToId: opt.replyToId,
         files: opt.files,
+        externalMedia: opt.externalMedia || undefined,
       });
 
       this._optimisticMessages.update((curr) => curr.filter((m) => m.clientNonce !== clientNonce));
@@ -440,13 +506,84 @@ export class ChannelChatStore implements OnDestroy {
   }
 
   /**
-   * Xóa tin nhắn (soft delete).
+   * Ẩn tin nhắn chỉ ở phía người dùng (Hide for Me) với Optimistic Update và Rollback cục bộ.
    */
-  async deleteMessage(messageId: string): Promise<void> {
-    await this.messagesApi.deleteMessage(messageId);
+  async hideMessage(messageId: string): Promise<void> {
+    const list = this._messages();
+    const targetIdx = list.findIndex((m) => m.id === messageId);
+    if (targetIdx === -1) return;
+
+    const originalMsg = list[targetIdx];
+
+    // 1. Optimistic removal
+    this._messages.update((curr) => curr.filter((m) => m.id !== messageId));
+
+    // 2. Gọi REST API
+    try {
+      await this.messagesApi.hideMessage(messageId);
+    } catch (err: unknown) {
+      // 3. Rollback: Chèn lại message vào đúng vị trí canonical
+      this._messages.update((curr) => {
+        if (curr.some((m) => m.id === originalMsg.id)) return curr;
+        return [...curr, originalMsg].sort((a, b) => compareMessageOrder(a, b));
+      });
+      const errorMsg = extractErrorMessage(err, 'Lỗi khi ẩn tin nhắn.');
+      this._error.set(errorMsg);
+      throw err;
+    }
+  }
+
+  /**
+   * Thu hồi tin nhắn đối với mọi người trong kênh (Recall for Everyone) với Optimistic Update và Rollback cục bộ.
+   */
+  async recallMessage(messageId: string): Promise<void> {
+    const list = this._messages();
+    const targetIdx = list.findIndex((m) => m.id === messageId);
+    if (targetIdx === -1) return;
+
+    const originalMsg = list[targetIdx];
+
+    // 1. Optimistic redact
+    const recalledMsg: MessageResponseDto = {
+      ...originalMsg,
+      content: null,
+      deletedAt: new Date().toISOString(),
+      attachments: [],
+      reactions: [],
+      externalMedia: null,
+    };
+
     this._messages.update((curr) =>
-      curr.map((m) => (m.id === messageId ? { ...m, content: null, deletedAt: new Date().toISOString() } : m)),
+      curr.map((m) => (m.id === messageId ? recalledMsg : m)),
     );
+
+    // 2. Gọi REST API
+    try {
+      await this.messagesApi.recallMessage(messageId);
+    } catch (err: unknown) {
+      // 3. Rollback nguyên trạng
+      this._messages.update((curr) =>
+        curr.map((m) => (m.id === messageId ? originalMsg : m)),
+      );
+      const errorMsg = extractErrorMessage(err, 'Lỗi khi thu hồi tin nhắn.');
+      this._error.set(errorMsg);
+      throw err;
+    }
+  }
+
+  /**
+   * Xóa / Thu hồi tin nhắn (hỗ trợ scope: 'for_me' | 'everyone').
+   */
+  async deleteMessage(
+    messageId: string,
+    scope: 'for_me' | 'everyone' = 'for_me',
+  ): Promise<void> {
+    if (scope === 'for_me') {
+      return this.hideMessage(messageId);
+    }
+    if (scope === 'everyone') {
+      return this.recallMessage(messageId);
+    }
   }
 
   /**
@@ -589,21 +726,40 @@ export class ChannelChatStore implements OnDestroy {
       }),
     );
 
-    // 3. Message deleted
+    // 3. Message deleted (Thu hồi cho mọi người)
     this.subs.add(
       this.chatSocket.messageDeleted$.subscribe(({ channelId, messageId }) => {
         const activeChan = this._channelId();
-        if (!activeChan || channelId !== activeChan) return;
+        if (!activeChan || (channelId && channelId !== activeChan)) return;
 
         this._messages.update((curr) =>
           curr.map((m) =>
             m.id === messageId
-              ? { ...m, content: null, deletedAt: new Date().toISOString() }
+              ? {
+                  ...m,
+                  content: null,
+                  reactions: [],
+                  attachments: [],
+                  externalMedia: null,
+                  deletedAt: new Date().toISOString(),
+                }
               : m,
           ),
         );
       }),
     );
+
+    // 3b. Message hidden for user (Ẩn tin nhắn ở phía tôi)
+    if (this.chatSocket.messageHiddenForUser$) {
+      this.subs.add(
+        this.chatSocket.messageHiddenForUser$.subscribe(({ channelId, messageId }) => {
+          const activeChan = this._channelId();
+          if (!activeChan || (channelId && channelId !== activeChan)) return;
+
+          this._messages.update((curr) => curr.filter((m) => m.id !== messageId));
+        }),
+      );
+    }
 
     // 4. Reaction updated
     this.subs.add(

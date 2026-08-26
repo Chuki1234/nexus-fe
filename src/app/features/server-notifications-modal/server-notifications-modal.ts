@@ -15,12 +15,12 @@ import { UserSettingsService, ServerNotificationSettings } from '../settings/ser
 export class ServerNotificationsModal {
   protected readonly settingsService = inject(UserSettingsService);
 
-  readonly serverId = input<string>('itss');
+  readonly serverId = input.required<string>();
   readonly close = output<void>();
 
   protected readonly serverData = computed(() => {
     const sId = this.serverId();
-    return this.settingsService.serverDataMap()[sId] ?? this.settingsService.serverDataMap()['itss'];
+    return this.settingsService.serverDataMap()[sId] ?? { name: 'Máy chủ', initials: 'MC' };
   });
 
   protected readonly serverName = computed(() => this.serverData().name);

@@ -71,7 +71,7 @@
             @if (settingsService.editAvatarUrl()) {
               <img [src]="settingsService.editAvatarUrl()" alt="Avatar" class="w-full h-full object-cover" />
             } @else {
-              <app-avatar [name]="settingsService.editDisplayName() || 'Nexus'" size="md" />
+              <app-avatar [name]="settingsService.editDisplayName() || 'Nexus'" [src]="settingsService.editAvatarUrl() || null" size="md" />
             }
           </div>
 
@@ -243,7 +243,7 @@
               @if (settingsService.editAvatarUrl()) {
                 <img [src]="settingsService.editAvatarUrl()" alt="Avatar" class="w-full h-full rounded-full object-cover bg-surface-feature" />
               } @else {
-                <app-avatar [name]="settingsService.editDisplayName() || 'Nexus'" size="lg" />
+                <app-avatar [name]="settingsService.editDisplayName() || 'Nexus'" [src]="settingsService.editAvatarUrl() || null" size="lg" />
               }
               <span class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-success border-2 border-surface flex items-center justify-center"></span>
             </div>

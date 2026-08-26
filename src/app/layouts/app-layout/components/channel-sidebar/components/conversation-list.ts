@@ -14,39 +14,29 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ShellData } from '../../../../../core/api/shell-data';
 import {
   ConversationsApiService,
   type ConversationResponseDto,
 } from '../../../../../core/api/conversations-api.service';
 import type { PresenceStatus } from '../../../../../../shared/dto/common';
+import type { DisplayConversation } from '../../../../../core/conversations/conversation.models';
+export type { DisplayConversation };
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
 import { PresenceService } from '../../../../../core/presence/presence.service';
 import { ActiveChatStore } from '../../../../../features/dashboard/services/active-chat.store';
 import { ServerInvitationsStore } from '../../../../../core/servers/server-invitations.store';
+import { FriendsStore } from '../../../../../features/dashboard/friends/services/friends-store';
 import { ProfileAvatar } from '../../../../../features/profile/components/profile-avatar/profile-avatar';
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
 import { UnreadBadge } from '../../../../../shared/ui/unread-badge/unread-badge';
-
-export interface DisplayConversation {
-  id: string;
-  /** Username của người bên kia (DM 1-1) — để mở thẻ hồ sơ. Null nếu không rõ. */
-  username: string | null;
-  name: string;
-  avatarUrl: string | null;
-  presence: 'online' | 'idle' | 'dnd' | 'offline';
-  statusMessage: string | null;
-  unread: boolean;
-  unreadCount: number;
-}
+import { OverflowMarquee } from '../../../../../shared/ui/overflow-marquee/overflow-marquee';
 
 /**
  * Danh sách tin nhắn riêng — nội dung cột 2 khi ở khu `/channels/@me`.
  *
- * Tải dữ liệu thật từ ConversationsApiService khi ở chế độ thật,
- * hoặc dùng dữ liệu ShellData khi bật chế độ demo.
+ * Tải dữ liệu thật từ ConversationsApiService và đồng bộ realtime qua Socket.IO.
  */
 @Component({
   selector: 'app-conversation-list',
@@ -61,6 +51,7 @@ export interface DisplayConversation {
     RouterLinkActive,
     SectionLabel,
     UnreadBadge,
+    OverflowMarquee,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
@@ -68,16 +59,20 @@ export interface DisplayConversation {
   styleUrl: './conversation-list.css',
 })
 export class ConversationList implements OnInit, OnDestroy {
-  private readonly shell = inject(ShellData);
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly chatSocket = inject(ChatSocketService);
   private readonly presenceService = inject(PresenceService);
   private readonly auth = inject(AuthService);
   private readonly activeChatStore = inject(ActiveChatStore);
   protected readonly invitationsStore = inject(ServerInvitationsStore);
+  protected readonly friendsStore = inject(FriendsStore);
   private readonly subs = new Subscription();
 
   readonly query = input('');
+
+  protected readonly pendingFriendRequestsCount = computed(
+    () => this.friendsStore.incomingRequests().length,
+  );
 
   readonly realConversations = signal<ConversationResponseDto[]>([]);
   readonly loading = signal<boolean>(false);
@@ -88,40 +83,26 @@ export class ConversationList implements OnInit, OnDestroy {
   protected readonly conversations = computed<DisplayConversation[]>(() => {
     const query = this.normalize(this.query());
 
-    let list: DisplayConversation[];
-    if (this.shell.demoEnabled()) {
-      list = this.shell.conversations().map((c) => ({
+    const list: DisplayConversation[] = this.realConversations().map((c) => {
+      const name =
+        c.recipient?.displayName ||
+        c.recipient?.username ||
+        c.name ||
+        'Người dùng';
+      const presence = c.recipient?.id
+        ? this.presenceService.getPresence(c.recipient.id)()
+        : ((c.recipient?.presence as PresenceStatus) || 'offline');
+      return {
         id: c.id,
-        username: null,
-        name: c.name,
-        avatarUrl: null,
-        presence: c.presence,
-        statusMessage: c.statusMessage ?? null,
-        unread: Boolean(c.unread),
-        unreadCount: c.unread ? 1 : 0,
-      }));
-    } else {
-      list = this.realConversations().map((c) => {
-        const name =
-          c.recipient?.displayName ||
-          c.recipient?.username ||
-          c.name ||
-          'Người dùng';
-        const presence = c.recipient?.id
-          ? this.presenceService.getPresence(c.recipient.id)()
-          : ((c.recipient?.presence as PresenceStatus) || 'offline');
-        return {
-          id: c.id,
-          username: c.recipient?.username ?? null,
-          name,
-          avatarUrl: c.recipient?.avatarUrl || c.iconUrl || null,
-          presence,
-          statusMessage: c.recipient?.statusMessage || null,
-          unread: c.unreadCount > 0,
-          unreadCount: c.unreadCount,
-        };
-      });
-    }
+        username: c.recipient?.username ?? null,
+        name,
+        avatarUrl: c.recipient?.avatarUrl || c.iconUrl || null,
+        presence,
+        statusMessage: c.recipient?.statusMessage || null,
+        unread: c.unreadCount > 0,
+        unreadCount: c.unreadCount,
+      };
+    });
 
     if (!query) {
       return list;
@@ -137,12 +118,9 @@ export class ConversationList implements OnInit, OnDestroy {
   );
 
   ngOnInit(): void {
-    if (!this.shell.demoEnabled()) {
-      this.chatSocket.connect();
-      void this.loadRealConversations();
-      void this.invitationsStore.hydrateInvitations();
-      this.setupRealtimeListeners();
-    }
+    void this.loadRealConversations();
+    void this.invitationsStore.hydrateInvitations();
+    this.setupRealtimeListeners();
   }
 
   ngOnDestroy(): void {

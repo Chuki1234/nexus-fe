@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ServersApiService } from '../../../../../../core/api/servers-api.service';
-import { ShellData } from '../../../../../../core/api/shell-data';
+import { ServersStore } from '../../../../../../core/servers/servers.store';
 import {
   CreateChannelDialog,
   CreateChannelDialogData,
@@ -12,7 +12,7 @@ describe('CreateChannelDialog', () => {
   let component: CreateChannelDialog;
   let mockDialogRef: { close: ReturnType<typeof vi.fn> };
   let mockServersApi: { createChannel: ReturnType<typeof vi.fn> };
-  let shellData: ShellData;
+  let serversStore: ServersStore;
 
   const defaultData: CreateChannelDialogData = {
     serverId: 'server-1',
@@ -27,17 +27,16 @@ describe('CreateChannelDialog', () => {
     await TestBed.configureTestingModule({
       imports: [CreateChannelDialog],
       providers: [
-        ShellData,
+        ServersStore,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: ServersApiService, useValue: mockServersApi },
       ],
     }).compileComponents();
 
-
     fixture = TestBed.createComponent(CreateChannelDialog);
     component = fixture.componentInstance;
-    shellData = TestBed.inject(ShellData);
+    serversStore = TestBed.inject(ServersStore);
     fixture.detectChanges();
     return fixture;
   };
@@ -85,7 +84,7 @@ describe('CreateChannelDialog', () => {
     expect(component['isNameValid']()).toBe(true);
   });
 
-  it('tạo kênh thành công gọi serversApi, nạp vào ShellData và đóng dialog', async () => {
+  it('tạo kênh thành công gọi serversApi, nạp vào ServersStore và đóng dialog', async () => {
     await mount();
 
     const mockCreated = {
@@ -118,8 +117,53 @@ describe('CreateChannelDialog', () => {
       'text',
       'Chủ đề quan trọng',
     );
-    expect(shellData.channelsOf('server-1')).toContainEqual(mockCreated);
-    expect(mockDialogRef.close).toHaveBeenCalledWith(mockCreated);
+    expect(serversStore.channelsOf('server-1')).toContainEqual({
+      ...mockCreated,
+      categoryId: null,
+    });
+    expect(mockDialogRef.close).toHaveBeenCalledWith({
+      ...mockCreated,
+      categoryId: null,
+    });
+  });
+
+  it('khi tạo kênh có categoryId truyền vào thì gán đúng categoryId đó', async () => {
+    await mount({
+      serverId: 'server-1',
+      serverName: 'ITSS Lab',
+      defaultType: 'voice',
+      categoryId: 'cat-custom-1',
+      categoryName: 'Phòng học tập',
+    });
+
+    const mockCreated = {
+      id: 'c-voice-1',
+      name: 'Phòng ôn thi',
+      type: 'voice' as const,
+      topic: null,
+      unread: false,
+      mentionCount: 0,
+    };
+    mockServersApi.createChannel.mockResolvedValue(mockCreated);
+
+    const nameInput = fixture.nativeElement.querySelector('#create-channel-name-input') as HTMLInputElement;
+    nameInput.value = 'Phòng ôn thi';
+    nameInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(serversStore.channelsOf('server-1')).toContainEqual({
+      ...mockCreated,
+      categoryId: 'cat-custom-1',
+    });
+    expect(mockDialogRef.close).toHaveBeenCalledWith({
+      ...mockCreated,
+      categoryId: 'cat-custom-1',
+    });
   });
 
   it('hiển thị thông báo lỗi inline khi API tạo kênh thất bại', async () => {

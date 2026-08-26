@@ -11,6 +11,7 @@ import {
   inject,
   Injector,
   OnInit,
+  PLATFORM_ID,
   signal,
   untracked,
   viewChild,
@@ -46,14 +47,21 @@ import { compareMessageOrder } from '../../../core/utils/safe-message-comparator
 import { ServersStore } from '../../../core/servers/servers.store';
 import { ServerRealtimeCoordinator } from '../../../core/servers/server-realtime-coordinator.service';
 import { PresenceService } from '../../../core/presence/presence.service';
+import { ChatScrollController } from '../../../core/utils/chat-scroll.controller';
 import type { PresenceStatus } from '../../../../shared/dto/common';
 import { Avatar } from '../../../shared/ui/avatar/avatar';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { ChannelSettingsModal } from '../../settings/modals/channel-settings-modal/channel-settings-modal';
 import { ForwardMessageModal } from '../components/forward-message-modal/forward-message-modal';
+import { DeleteMessageModal } from '../components/delete-message-modal/delete-message-modal';
 import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.service';
 import type { LightboxMediaItem } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.types';
 import { VoiceRoom } from '../../voice/voice-room/voice-room';
+import { GiphyMessageEmbedComponent } from '../components/giphy-message-embed/giphy-message-embed.component';
+import {
+  formatMessageTimestamp,
+  formatCompactTime,
+} from '../../../core/utils/date-format.util';
 import {
   parseMessageContent,
   type MessageContentToken,
@@ -76,8 +84,10 @@ import type { AttachmentResponseDto } from '../../../core/api/messages-api.servi
     ContextPanel,
     DashboardState,
     DatePipe,
+    DeleteMessageModal,
     EmptyState,
     ForwardMessageModal,
+    GiphyMessageEmbedComponent,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -104,11 +114,26 @@ export class ChannelPage implements OnInit, AfterViewInit {
   private readonly lightbox = inject(LightboxGalleryService);
   private readonly uiState = inject(DashboardUiState);
   private readonly injector = inject(Injector);
+  private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
   private isDestroyed = false;
 
   protected readonly chatViewportRef = viewChild<ElementRef<HTMLDivElement>>('chatViewport');
   protected readonly chatHistoryRef = viewChild<ElementRef<HTMLDivElement>>('chatHistory');
+
+  readonly scrollController = new ChatScrollController({
+    getContainer: () => this.chatHistoryRef()?.nativeElement,
+    getContentWrapper: () =>
+      (this.chatHistoryRef()?.nativeElement.firstElementChild as HTMLElement) ||
+      this.chatHistoryRef()?.nativeElement,
+    injector: this.injector,
+    platformId: this.platformId,
+    threshold: 120,
+    onPillChange: (show, count) => {
+      this.showScrollDownButton.set(show);
+      this.unreadCountBelow.set(count);
+    },
+  });
 
   // UI state signals
   protected readonly detailsOpen = signal<boolean>(false);
@@ -119,6 +144,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
   protected readonly showScrollDownButton = signal<boolean>(false);
   protected readonly highlightedMessageId = signal<string | null>(null);
   protected readonly unreadCountBelow = signal<number>(0);
+  private readonly processedMessageIds = new Set<string>();
 
   protected readonly blockingState = this.uiState.blockingState;
   protected readonly connectionState = this.uiState.connectionState;
@@ -176,6 +202,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
   constructor() {
     this.destroyRef.onDestroy(() => {
       this.isDestroyed = true;
+      this.scrollController.destroy();
     });
 
     // Tự động load channel khi params thay đổi
@@ -189,36 +216,69 @@ export class ChannelPage implements OnInit, AfterViewInit {
       }
     });
 
-    // DOM-Driven Smart Scroll khi messages thay đổi
+    // DOM-Driven Smart Scroll khi messages thay đổi (Phân biệt Initial History vs Realtime)
     effect(() => {
       const msgs = this.messages();
       const isLoading = this.channelChat.loadingInitial();
-      if (msgs.length > 0 && !isLoading) {
-        untracked(() => {
-          this.handleMessagesChanged();
-        });
-      }
-    });
-  }
+      const isLoadingMore = this.channelChat.loadingMore();
+      const sId = this.serverId();
+      const cId = this.channelId();
+      const myId = this.auth.user()?.id;
 
-  private safeAfterNextRender(fn: () => void): void {
-    if (this.isDestroyed) return;
-    try {
-      afterNextRender(
-        () => {
-          if (!this.isDestroyed) {
-            fn();
-          }
-        },
-        { injector: this.injector },
-      );
-    } catch {
-      setTimeout(() => {
-        if (!this.isDestroyed) {
-          fn();
+      if (!sId || !cId || isLoading || isLoadingMore) {
+        return;
+      }
+
+      const targetKey = `${sId}:${cId}`;
+
+      untracked(() => {
+        if (msgs.length === 0) {
+          this.processedMessageIds.clear();
+          return;
         }
-      }, 0);
-    }
+
+        // 1. Initial history: thực hiện đúng 1 lần instant scroll
+        if (!this.scrollController.hasScrolledInitial) {
+          for (const m of msgs) {
+            const k = m.id || m.clientNonce;
+            if (k) this.processedMessageIds.add(k);
+          }
+          this.scrollController.handleInitialRender(
+            targetKey,
+            this.scrollController.generation,
+          );
+          return;
+        }
+
+        // 2. Realtime messages:
+        const newMsgs: ChannelChatUiMessage[] = [];
+        for (const m of msgs) {
+          const k = m.id || m.clientNonce;
+          if (k && !this.processedMessageIds.has(k)) {
+            this.processedMessageIds.add(k);
+            newMsgs.push(m);
+          }
+        }
+
+        if (newMsgs.length === 0) return;
+
+        const { wasNearBottom } = this.scrollController.capturePreMutationState();
+        const hasOwnMessage = newMsgs.some((m) => m.authorId === myId);
+        const inboundCount = newMsgs.filter(
+          (m) => m.authorId !== myId && m.status === 'persisted',
+        ).length;
+
+        this.scrollController.handleRealtimeAppend(
+          targetKey,
+          this.scrollController.generation,
+          {
+            isMine: hasOwnMessage,
+            wasNearBottom,
+            count: inboundCount,
+          },
+        );
+      });
+    });
   }
 
   async ngOnInit(): Promise<void> {
@@ -228,12 +288,13 @@ export class ChannelPage implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.safeAfterNextRender(() => {
-      this.scrollToBottom('instant');
-    });
+    // Initial scroll được điều khiển bởi scrollController khi messages render xong
   }
 
   private async initChannel(serverId: string, channelId: string): Promise<void> {
+    const targetKey = `${serverId}:${channelId}`;
+    this.scrollController.reset(targetKey);
+    this.processedMessageIds.clear();
     this.composerContext.set(null);
     this.forwardModalMessage.set(null);
     this.unreadCountBelow.set(0);
@@ -251,14 +312,6 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
     // Load server members
     void this.loadMembers(serverId);
-
-    // DOM-driven initial bottom scroll sau khi DOM render
-    this.safeAfterNextRender(() => {
-      const el = this.chatHistoryRef()?.nativeElement;
-      if (el && el.scrollHeight > 0) {
-        el.scrollTop = el.scrollHeight;
-      }
-    });
   }
 
   private async loadMembers(serverId: string): Promise<void> {
@@ -347,13 +400,38 @@ export class ChannelPage implements OnInit, AfterViewInit {
     const replyToId = context?.kind === 'reply' ? context.messageId : undefined;
     this.composerContext.set(null);
 
-    await this.channelChat.sendMessage(payload.content, payload.files, replyToId);
+    await this.channelChat.sendMessage({
+      content: payload.content,
+      files: payload.files,
+      replyToId,
+      externalMedia: payload.externalMedia,
+    });
     this.unreadCountBelow.set(0);
 
     // Gửi tin của chính mình -> cuộn mượt về đáy
-    this.safeAfterNextRender(() => {
-      this.scrollToBottom('smooth');
-    });
+    this.scrollController.scrollToBottom('smooth');
+  }
+
+  protected readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
+  protected readonly deleteModalMessage = signal<ChannelChatUiMessage | null>(null);
+  protected readonly isDeletingMessage = signal<boolean>(false);
+
+  protected closeDeleteModal(): void {
+    this.deleteModalMessage.set(null);
+  }
+
+  protected async onConfirmDelete(scope: 'for_me' | 'everyone'): Promise<void> {
+    const msg = this.deleteModalMessage();
+    if (!msg) return;
+    this.isDeletingMessage.set(true);
+    try {
+      await this.channelChat.deleteMessage(msg.id, scope);
+      this.closeDeleteModal();
+    } catch {
+      // Handled in store error
+    } finally {
+      this.isDeletingMessage.set(false);
+    }
   }
 
   protected onAction(event: MessageComposerContext): void {
@@ -365,16 +443,13 @@ export class ChannelPage implements OnInit, AfterViewInit {
       return;
     }
     if (event.kind === 'delete' && event.messageId) {
-      void this.onDeleteMessage(event.messageId);
+      const msg = this.messages().find((m) => m.id === event.messageId);
+      if (msg) {
+        this.deleteModalMessage.set(msg);
+      }
       return;
     }
     this.composerContext.set(event);
-  }
-
-  protected async onDeleteMessage(messageId: string): Promise<void> {
-    if (confirm('Bạn có chắc chắn muốn xóa tin nhắn này không?')) {
-      await this.channelChat.deleteMessage(messageId);
-    }
   }
 
   protected async onToggleReaction(messageId: string, emoji: string): Promise<void> {
@@ -459,25 +534,26 @@ export class ChannelPage implements OnInit, AfterViewInit {
     const el = this.chatHistoryRef()?.nativeElement;
     if (!el) return;
 
+    this.scrollController.onScroll();
+
     // Load more khi cuộn lên đỉnh
     if (el.scrollTop < 80 && this.channelChat.hasMore() && !this.channelChat.loadingMore()) {
       const prevScrollHeight = el.scrollHeight;
       const prevScrollTop = el.scrollTop;
+      const targetKey = `${this.serverId()}:${this.channelId()}`;
+      const gen = this.scrollController.generation;
 
       void this.channelChat.loadMore().then(() => {
-        this.safeAfterNextRender(() => {
-          if (el) {
-            el.scrollTop = el.scrollHeight - prevScrollHeight + prevScrollTop;
-          }
-        });
+        this.scrollController.preserveScrollOnPrepend(
+          prevScrollHeight,
+          prevScrollTop,
+          targetKey,
+          gen,
+        );
       });
     }
 
-    // Kiểm tra vị trí đọc
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    this.showScrollDownButton.set(!isNearBottom);
-    if (isNearBottom) {
-      this.unreadCountBelow.set(0);
+    if (this.scrollController.isNearBottom()) {
       const msgs = this.messages();
       const lastPersisted = [...msgs].reverse().find((m) => m.status === 'persisted');
       if (lastPersisted) {
@@ -486,31 +562,20 @@ export class ChannelPage implements OnInit, AfterViewInit {
     }
   }
 
-  protected scrollToBottom(behavior: ScrollBehavior = 'smooth'): void {
-    const el = this.chatHistoryRef()?.nativeElement;
-    if (el) {
-      if (typeof el.scrollTo === 'function') {
-        el.scrollTo({ top: el.scrollHeight, behavior });
-      } else {
-        el.scrollTop = el.scrollHeight;
-      }
-      this.unreadCountBelow.set(0);
-      this.showScrollDownButton.set(false);
+  protected scrollToLatest(behavior: ScrollBehavior = 'smooth'): void {
+    this.scrollController.scrollToLatest(behavior);
+    const msgs = this.messages();
+    const lastPersisted = [...msgs].reverse().find((m) => m.status === 'persisted');
+    if (lastPersisted) {
+      void this.channelChat.markAsRead(lastPersisted.id);
     }
   }
 
-  private handleMessagesChanged(): void {
-    const el = this.chatHistoryRef()?.nativeElement;
-    if (!el) return;
+  protected scrollToBottom(behavior: ScrollBehavior = 'smooth'): void {
+    this.scrollToLatest(behavior);
+  }
 
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 180;
-    if (isNearBottom) {
-      this.safeAfterNextRender(() => {
-        this.scrollToBottom('smooth');
-      });
-    } else {
-      // Người dùng đang đọc lịch sử cũ -> tăng counter tin nhắn mới phía dưới
-      this.unreadCountBelow.update((c) => c + 1);
-    }
+  protected formatMessageTime(dateStr: string | null | undefined): string {
+    return formatMessageTimestamp(dateStr);
   }
 }

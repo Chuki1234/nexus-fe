@@ -55,13 +55,14 @@
         </div>
       </mat-sidenav>
 
-      <mat-sidenav-content class="dashboard-content h-full min-h-0 p-2">
+      <mat-sidenav-content class="dashboard-content h-full min-h-0 p-2 relative">
         <button
           mat-icon-button
           type="button"
           (click)="drawer.toggle()"
           matTooltip="Mở danh sách kênh"
-          class="nexus-icon-control absolute top-3 left-3 z-10 bg-surface shadow-card"
+          aria-label="Mở danh sách kênh"
+          class="dashboard-mobile-menu-trigger nexus-icon-control absolute top-4 left-4 z-20 bg-surface/90 border border-hairline/80 shadow-md backdrop-blur-sm text-steel hover:text-ink hover:bg-surface-feature"
         >
           <mat-icon>menu</mat-icon>
           <span class="sr-only">Mở danh sách kênh</span>
@@ -108,4 +109,8 @@
   <!-- User/Server Settings modal (Setting của Giang). Tự ẩn/hiện qua
        settingsService.isOpen() nên mount thẳng, không cần bọc @if. -->
   <app-settings-modal />
+
+  <!-- Global Direct Call Subsystem Overlays -->
+  <app-incoming-call-overlay />
+  <app-direct-call-stage />
 </div>

@@ -18,7 +18,7 @@ import {
   formatApiError,
   ServersApiService,
 } from '../../../../../../core/api/servers-api.service';
-import { ChannelSummary, ShellData } from '../../../../../../core/api/shell-data';
+import { ChannelSummary } from '../../../../../../core/servers/server.models';
 import { ServersStore } from '../../../../../../core/servers/servers.store';
 import { ServerCapabilitiesService } from '../../../../../../core/servers/server-capabilities.service';
 
@@ -26,6 +26,8 @@ export interface CreateChannelDialogData {
   serverId: string;
   serverName?: string;
   defaultType?: 'text' | 'voice';
+  categoryId?: string;
+  categoryName?: string;
 }
 
 function formatChannelNameInput(raw: string, type: 'text' | 'voice'): string {
@@ -55,7 +57,6 @@ export class CreateChannelDialog {
   readonly dialogRef = inject(MatDialogRef<CreateChannelDialog, ChannelSummary | null>);
   readonly data = inject<CreateChannelDialogData>(MAT_DIALOG_DATA);
   private readonly serversApi = inject(ServersApiService);
-  private readonly shellData = inject(ShellData, { optional: true });
   private readonly serversStore = inject(ServersStore, { optional: true });
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
 
@@ -103,11 +104,15 @@ export class CreateChannelDialog {
         this.channelTopic().trim() || undefined,
       );
 
-      // Cập nhật live state trong ServersStore và ShellData
-      this.serversStore?.addChannel(this.data.serverId, createdChannel);
-      this.shellData?.addChannel(this.data.serverId, createdChannel);
+      const channelWithCategory: ChannelSummary = {
+        ...createdChannel,
+        categoryId: this.data.categoryId ?? null,
+      };
 
-      this.dialogRef.close(createdChannel);
+      // Cập nhật live state trong ServersStore
+      this.serversStore?.addChannel(this.data.serverId, channelWithCategory);
+
+      this.dialogRef.close(channelWithCategory);
     } catch (err: any) {
       const formatted = formatApiError(err);
       this.errorMessage.set(formatted);

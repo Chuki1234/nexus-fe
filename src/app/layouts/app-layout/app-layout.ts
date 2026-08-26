@@ -16,16 +16,20 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { filter, map } from 'rxjs';
+import { Subscription, filter, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ServersApiService } from '../../core/api/servers-api.service';
 import { ServersStore } from '../../core/servers/servers.store';
+import { ChatSocketService } from '../../core/realtime/chat-socket.service';
 import { ServerRealtimeCoordinator } from '../../core/servers/server-realtime-coordinator.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { SettingsModal } from '../../features/settings/settings-modal';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
+import { IncomingCallOverlayComponent } from '../../features/dashboard/components/incoming-call-overlay/incoming-call-overlay.component';
+import { DirectCallStageComponent } from '../../features/dashboard/components/direct-call-stage/direct-call-stage.component';
+import { DirectCallCoordinatorService } from '../../core/calls/direct-call-coordinator.service';
 
 import {
   DashboardLayoutService,
@@ -54,6 +58,8 @@ import {
     RouterOutlet,
     ServerRail,
     SettingsModal,
+    IncomingCallOverlayComponent,
+    DirectCallStageComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './app-layout.css',
@@ -66,7 +72,9 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly serversApi = inject(ServersApiService);
   private readonly serversStore = inject(ServersStore);
+  private readonly chatSocket = inject(ChatSocketService);
   private readonly coordinator = inject(ServerRealtimeCoordinator);
+  private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
   protected readonly layoutService = inject(DashboardLayoutService);
   protected readonly theme = inject(ThemeService).mode;
   protected readonly toastService = inject(ToastService);
@@ -78,6 +86,7 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   readonly shellContainer = viewChild<ElementRef<HTMLElement>>('dashboardShell');
   private resizeObserver: ResizeObserver | null = null;
   private isHydrating = false;
+  private readonly subs = new Subscription();
 
   /**
    * Dưới `lg` (1024px) hoặc khi container không đủ không gian chứa main minimum 560px
@@ -96,6 +105,17 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     void this.hydrateServers();
+    void this.directCallCoordinator.restoreActiveCall();
+
+    this.subs.add(
+      this.router.events
+        .pipe(filter((event) => event instanceof NavigationEnd))
+        .subscribe(() => {
+          const sId = this.readServerId();
+          const cId = this.readChannelId();
+          this.serversStore.setActive(sId, cId);
+        }),
+    );
   }
 
   ngAfterViewInit(): void {
@@ -118,6 +138,7 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+    this.subs.unsubscribe();
   }
 
   startNavResize(event: PointerEvent): void {
@@ -205,6 +226,9 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
       if (!this.auth.isAuthenticated()) {
         return;
       }
+      const user = this.auth.user();
+      this.serversStore.setActiveUser(user?.id ?? null);
+      this.chatSocket.connect();
       await this.coordinator.hydrateAndJoinAll();
     } catch {
       // Giữ live state rỗng nếu không kết nối được
@@ -230,6 +254,18 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
     let route: ActivatedRoute | null = this.route;
     while (route) {
       const id = route.snapshot?.paramMap.get('serverId');
+      if (id) {
+        return id;
+      }
+      route = route.firstChild;
+    }
+    return null;
+  }
+
+  private readChannelId(): string | null {
+    let route: ActivatedRoute | null = this.route;
+    while (route) {
+      const id = route.snapshot?.paramMap.get('channelId');
       if (id) {
         return id;
       }

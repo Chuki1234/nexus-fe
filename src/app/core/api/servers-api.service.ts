@@ -13,7 +13,7 @@ import {
 import { ServerMemberDto } from '../../../shared/dto/server-members.dto';
 export type { ServerMemberDto };
 import { AuthService } from '../auth/auth.service';
-import type { ChannelSummary, ServerSummary } from './shell-data';
+import type { ChannelSummary, ServerSummary } from '../servers/server.models';
 
 export type ServerTemplateId =
   | 'custom'

@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserSettingsService, ServerInviteItem } from '../../services/user-settings.service';
-import { ShellData } from '../../../../core/api/shell-data';
+import { ServersStore } from '../../../../core/servers/servers.store';
 
 import { InviteFriendsModal } from '../../../invite-friends-modal/invite-friends-modal';
 
@@ -17,7 +17,7 @@ import { InviteFriendsModal } from '../../../invite-friends-modal/invite-friends
 })
 export class ServerInvitesTab {
   protected readonly settingsService = inject(UserSettingsService);
-  private readonly shellData = inject(ShellData);
+  private readonly serversStore = inject(ServersStore);
 
   protected readonly showInviteFriendsModal = signal<boolean>(false);
   protected readonly serverData = this.settingsService.currentServerData;
@@ -25,7 +25,7 @@ export class ServerInvitesTab {
 
   protected readonly availableChannels = computed(() => {
     const sId = this.settingsService.currentServerId();
-    return this.shellData.channelsOf(sId);
+    return this.serversStore.channelsOf(sId);
   });
 
   protected readonly showCreateModal = signal<boolean>(false);

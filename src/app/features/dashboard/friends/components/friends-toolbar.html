@@ -1,5 +1,5 @@
 <mat-toolbar class="friends-toolbar !h-auto !min-h-14 !flex-wrap !gap-3 !px-3 !py-2 sm:!px-4">
-  <span class="friends-toolbar__title flex items-center gap-2.5">
+  <span class="friends-toolbar__title flex items-center gap-2.5 shrink-0">
     <span class="friends-toolbar__badge" aria-hidden="true">
       <mat-icon>group</mat-icon>
     </span>
@@ -7,7 +7,7 @@
   </span>
 
   <div
-    class="friends-segmented order-3 flex w-full flex-wrap gap-1 rounded-full bg-surface-soft p-1 sm:order-none sm:w-auto"
+    class="friends-segmented order-3 flex w-full flex-wrap gap-1 rounded-full bg-surface-soft p-1 lg:order-none lg:w-auto"
     role="group"
     aria-label="Chọn chế độ bạn bè"
   >
@@ -16,39 +16,34 @@
         type="button"
         (click)="tab.set(option.id)"
         [attr.aria-pressed]="tab() === option.id"
-        class="nexus-filter-tab min-h-9 rounded-full border px-3 text-body-sm-medium"
+        class="nexus-filter-tab min-h-9 rounded-full border px-3 text-body-sm-medium flex items-center gap-1.5 cursor-pointer"
       >
-        {{ option.label }}
+        <span>{{ option.label }}</span>
+        @if (option.id === 'pending' && pendingCount() > 0) {
+          <span class="inline-flex items-center justify-center px-1.5 py-0.5 min-w-4.5 h-4.5 rounded-full bg-danger text-white text-[11px] font-bold leading-none">
+            {{ pendingCount() }}
+          </span>
+        }
       </button>
     }
   </div>
 
   <span class="flex-1"></span>
 
-  <span class="friends-toolbar__actions flex items-center gap-1 rounded-full bg-surface-soft p-1">
-    <button
-      mat-icon-button
-      type="button"
-      class="nexus-icon-control"
-      [attr.aria-expanded]="activityOpen()"
-      [attr.aria-label]="activityOpen() ? 'Ẩn hoạt động bạn bè' : 'Hiện hoạt động bạn bè'"
-      [matTooltip]="activityOpen() ? 'Ẩn hoạt động' : 'Hiện hoạt động'"
-      (click)="toggleActivity.emit()"
-    >
-      <mat-icon aria-hidden="true">view_sidebar</mat-icon>
-    </button>
-
-    <button
-      mat-icon-button
-      type="button"
-      class="nexus-demo-toggle nexus-icon-control"
-      [attr.aria-pressed]="demoEnabled()"
-      [attr.aria-label]="demoEnabled() ? 'Tắt dữ liệu demo' : 'Bật dữ liệu demo'"
-      [matTooltip]="demoEnabled() ? 'Tắt dữ liệu demo' : 'Bật dữ liệu demo'"
-      (click)="toggleDemo.emit()"
-    >
-      <mat-icon aria-hidden="true">storage</mat-icon>
-    </button>
+  <span class="friends-toolbar__actions flex items-center gap-1 rounded-full bg-surface-soft p-1 shrink-0">
+    @if (showActivityToggle()) {
+      <button
+        mat-icon-button
+        type="button"
+        class="nexus-icon-control"
+        [attr.aria-expanded]="activityOpen()"
+        [attr.aria-label]="activityOpen() ? 'Ẩn hoạt động bạn bè' : 'Hiện hoạt động bạn bè'"
+        [matTooltip]="activityOpen() ? 'Ẩn hoạt động' : 'Hiện hoạt động'"
+        (click)="toggleActivity.emit()"
+      >
+        <mat-icon aria-hidden="true">view_sidebar</mat-icon>
+      </button>
+    }
 
     <button
       mat-icon-button

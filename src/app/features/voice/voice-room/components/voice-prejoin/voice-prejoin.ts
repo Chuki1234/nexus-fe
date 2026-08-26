@@ -45,6 +45,7 @@ export class VoicePrejoin implements OnInit, OnDestroy {
   private previewStream: MediaStream | null = null;
 
   protected readonly displayName = this.profile.current()?.displayName || 'Bạn';
+  protected readonly avatarUrl = this.profile.current()?.avatarUrl || null;
   protected readonly audioLevel = this.mediaDevices.audioLevel;
 
   constructor() {

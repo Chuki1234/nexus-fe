@@ -157,7 +157,7 @@
                               {{ msg.author?.displayName || msg.author?.username || 'User' }}
                             </strong>
                             <time class="text-micro text-stone">
-                              {{ msg.createdAt | date: 'HH:mm' }}
+                              {{ formatMessageTime(msg.createdAt) }}
                             </time>
                             @if (msg.isForwarded) {
                               <span class="forwarded-badge inline-flex items-center gap-0.5 text-micro text-steel italic">
@@ -231,6 +231,11 @@
                         </div>
                       }
 
+                      <!-- GIPHY External Media Embed -->
+                      @if (!msg.deletedAt && msg.externalMedia) {
+                        <app-giphy-message-embed [media]="msg.externalMedia" />
+                      }
+
                       <!-- Reaction Summary Chips -->
                       @if (!msg.deletedAt && msg.reactions && msg.reactions.length > 0) {
                         <div class="message-reactions mt-1.5 flex flex-wrap gap-1.5" aria-label="Cảm xúc">
@@ -298,54 +303,59 @@
           </div>
         </div>
 
-        <!-- Scroll to bottom Floating Pill -->
-        @if (showScrollDownButton()) {
-          <button
-            type="button"
-            class="floating-new-messages-pill"
-            (click)="scrollToBottom('smooth')"
-            aria-label="Cuộn xuống tin nhắn mới nhất"
-          >
-            <mat-icon class="!size-4 !text-base">arrow_downward</mat-icon>
-            <span>
-              @if (unreadCountBelow() > 0) {
-                {{ unreadCountBelow() }} tin nhắn mới
-              } @else {
-                Tin nhắn mới nhất
+        <!-- Composer wrapper with Scroll to bottom button -->
+        <div class="relative">
+          @if (scrollController.showScrollDownButton()) {
+            <button
+              type="button"
+              class="absolute left-1/2 -translate-x-1/2 -top-13 z-30 flex size-11 items-center justify-center rounded-full bg-surface-feature/95 text-ink border border-hairline shadow-md backdrop-blur-md transition-all hover:bg-surface-feature hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none cursor-pointer"
+              (click)="scrollToLatest()"
+              [attr.aria-label]="scrollController.unreadCount() > 0 ? ('Đi tới ' + scrollController.unreadCount() + ' tin nhắn mới nhất') : 'Đi tới tin nhắn mới nhất'"
+              matTooltip="Đi tới tin nhắn mới nhất"
+              matTooltipPosition="above"
+            >
+              <mat-icon class="!size-5 !text-[20px]">keyboard_arrow_down</mat-icon>
+              @if (scrollController.unreadCount() > 0) {
+                <span
+                  aria-live="polite"
+                  class="absolute -top-1.5 -right-1.5 flex min-w-5 h-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-extrabold text-on-primary shadow-xs"
+                >
+                  {{ scrollController.unreadCount() > 99 ? '99+' : scrollController.unreadCount() }}
+                </span>
               }
-            </span>
-          </button>
-        }
+            </button>
+          }
 
-        <!-- Typing Indicator Banner -->
-        @if (typingUserIds().length > 0) {
-          <div class="typing-banner px-4 py-1.5 text-micro text-steel flex items-center gap-2">
-            <div class="typing-dots">
-              <span></span>
-              <span></span>
-              <span></span>
+          <!-- Typing Indicator Banner -->
+          @if (typingUserIds().length > 0) {
+            <div class="typing-banner px-4 py-1.5 text-micro text-steel flex items-center gap-2">
+              <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span>Ai đó đang gõ...</span>
             </div>
-            <span>Ai đó đang gõ...</span>
-          </div>
-        }
+          }
 
-        <!-- Message Composer with Permission Gating -->
-        @if (permissions().canSend) {
-          <app-message-composer
-            [target]="'#' + current.name"
-            [context]="composerContext()"
-            [attachmentsDisabled]="!permissions().canAttach"
-            attachmentsDisabledReason="Bạn không có quyền đính kèm tệp trong kênh này"
-            (contextClosed)="composerContext.set(null)"
-            (send)="onSendMessage($event)"
-            (typing)="onComposerTyping()"
-          />
-        } @else {
-          <div class="p-4 border-t border-hairline bg-surface-feature/30 text-center text-body-sm text-steel font-medium">
-            <mat-icon class="!size-4 !text-base align-middle mr-1 text-stone">lock</mat-icon>
-            <span>Bạn không có quyền gửi tin nhắn trong kênh này.</span>
-          </div>
-        }
+          <!-- Message Composer with Permission Gating -->
+          @if (permissions().canSend) {
+            <app-message-composer
+              [target]="'#' + current.name"
+              [context]="composerContext()"
+              [attachmentsDisabled]="!permissions().canAttach"
+              attachmentsDisabledReason="Bạn không có quyền đính kèm tệp trong kênh này"
+              (contextClosed)="composerContext.set(null)"
+              (send)="onSendMessage($event)"
+              (typing)="onComposerTyping()"
+            />
+          } @else {
+            <div class="p-4 border-t border-hairline bg-surface-feature/30 text-center text-body-sm text-steel font-medium">
+              <mat-icon class="!size-4 !text-base align-middle mr-1 text-stone">lock</mat-icon>
+              <span>Bạn không có quyền gửi tin nhắn trong kênh này.</span>
+            </div>
+          }
+        </div>
       </div>
 
       <!-- Live Members Panel in Context Panel -->
@@ -421,5 +431,16 @@
     [message]="fwdMsg"
     [currentChannelId]="channelId()"
     (close)="forwardModalMessage.set(null)"
+  />
+}
+
+<!-- Delete / Recall Message Modal -->
+@if (deleteModalMessage(); as delMsg) {
+  <app-delete-message-modal
+    [message]="delMsg"
+    [canRecall]="delMsg.authorId === currentUserId() || permissions().canManageMessages"
+    [isSubmitting]="isDeletingMessage()"
+    (close)="closeDeleteModal()"
+    (confirm)="onConfirmDelete($event)"
   />
 }

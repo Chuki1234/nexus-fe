@@ -1,104 +1,228 @@
 @if (isWatchingStream() && focusedParticipant(); as focusedSharer) {
-  <!-- Screen Share Focus Layout (Đang xem stream) -->
-  <div class="flex size-full min-h-0 flex-col gap-3">
-    <!-- Main Big Screen Share Stage Container -->
+  <!-- ==================== THEATER WATCHING STREAM MODE ==================== -->
+  <div
+    class="relative flex size-full min-h-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl bg-black border border-hairline/70 shadow-modal"
+    id="nexus-voice-stream-container"
+    [class.cursor-none]="!areControlsVisible()"
+    (mousemove)="onStreamMouseMove()"
+    (mouseleave)="onStreamMouseLeave()"
+    (click)="onStreamMouseMove()"
+  >
+    <!-- Focused Video Stream (Fills 100% of stage space, adapting to intrinsic resolution) -->
+    <div class="flex size-full min-h-0 flex-1 items-center justify-center">
+      <app-participant-tile
+        [participant]="focusedSharer"
+        [isScreenShare]="true"
+        [isFocused]="true"
+        class="size-full"
+      />
+    </div>
+
+    <!-- Floating Top Header Bar (Auto-hides after 3s inactivity, reveals on mouse move) -->
     <div
-      id="nexus-voice-stream-container"
-      class="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-hairline/70 bg-black shadow-modal"
+      class="theater-top-bar absolute inset-x-0 top-0 z-30 flex items-center justify-between bg-gradient-to-b from-black/90 via-black/40 to-transparent p-4 backdrop-blur-xs transition-all duration-300 ease-out"
+      [class.opacity-100]="areControlsVisible()"
+      [class.pointer-events-auto]="areControlsVisible()"
+      [class.translate-y-0]="areControlsVisible()"
+      [class.opacity-0]="!areControlsVisible()"
+      [class.pointer-events-none]="!areControlsVisible()"
+      [class.-translate-y-3]="!areControlsVisible()"
     >
-      <!-- Top Stream Overlay Bar -->
-      <div class="absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 backdrop-blur-xs">
-        <div class="flex items-center gap-2">
-          <div class="flex items-center gap-1.5 rounded-md bg-danger px-2 py-0.5 text-micro font-bold text-white shadow-glow">
-            <span class="size-1.5 rounded-full bg-white animate-pulse"></span>
-            <span>TRỰC TIẾP</span>
-          </div>
-          <span class="text-body-sm font-bold text-white drop-shadow">
-            {{ focusedSharer.name }} đang chia sẻ màn hình
-          </span>
+      <div class="flex items-center gap-2.5">
+        <div class="inline-flex items-center gap-1.5 rounded bg-[#ed4245] px-2 py-0.5 font-sans text-[10px] font-black tracking-wider text-white shadow-glow leading-none uppercase shrink-0">
+          <span class="size-2 rounded-full bg-white animate-pulse"></span>
+          <span>LIVE</span>
         </div>
-
-        <!-- Stage Action Controls -->
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            (click)="stopWatchingStream()"
-            matTooltip="Thu nhỏ stream (Về chế độ lưới)"
-            class="flex items-center gap-1.5 rounded-lg bg-surface/80 hover:bg-surface-feature text-ink px-3 py-1.5 text-caption font-medium backdrop-blur-md transition-colors cursor-pointer border border-hairline/60 shadow-card"
-          >
-            <mat-icon class="!size-4 !text-base">grid_view</mat-icon>
-            <span>Thu nhỏ</span>
-          </button>
-
-          <button
-            type="button"
-            (click)="toggleFullscreen()"
-            matTooltip="Toàn màn hình"
-            class="flex size-8 items-center justify-center rounded-lg bg-surface/80 hover:bg-surface-feature text-ink backdrop-blur-md transition-colors cursor-pointer border border-hairline/60 shadow-card"
-          >
-            <mat-icon class="!size-4 !text-base">fullscreen</mat-icon>
-          </button>
-        </div>
+        <span class="text-body-sm font-bold text-white drop-shadow flex items-center gap-1.5">
+          <mat-icon class="!size-4 !text-base text-primary">screen_share</mat-icon>
+          {{ focusedSharer.name }} đang chia sẻ màn hình
+        </span>
       </div>
 
-      <!-- Focused Video Tile -->
-      <div class="flex size-full min-h-0 flex-1 items-center justify-center">
-        <app-participant-tile [participant]="focusedSharer" [isScreenShare]="true" class="size-full" />
+      <!-- Theater Controls -->
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          (click)="stopWatchingStream()"
+          matTooltip="Thu nhỏ stream (Về chế độ lưới)"
+          class="flex items-center gap-1.5 rounded-full bg-surface/80 hover:bg-surface-feature text-ink px-3 py-1.5 text-caption font-semibold backdrop-blur-md transition-all cursor-pointer border border-hairline/60 shadow-card hover:scale-105"
+        >
+          <mat-icon class="!size-4 !text-base">grid_view</mat-icon>
+          <span>Chế độ lưới</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="toggleFullscreen()"
+          matTooltip="Toàn màn hình"
+          class="flex size-8 items-center justify-center rounded-full bg-surface/80 hover:bg-surface-feature text-ink backdrop-blur-md transition-all cursor-pointer border border-hairline/60 shadow-card hover:scale-105"
+        >
+          <mat-icon class="!size-4 !text-base">fullscreen</mat-icon>
+        </button>
       </div>
     </div>
 
-    <!-- Horizontal Filmstrip of participants -->
-    <div class="nexus-scrollbar flex h-24 shrink-0 items-center gap-3 overflow-x-auto pb-1">
-      @for (p of participants(); track p.identity) {
-        <div
-          class="h-20 w-36 shrink-0 transition-transform hover:scale-[1.02]"
-          [class.ring-2]="p.identity === focusedSharer.identity"
-          [class.ring-primary]="p.identity === focusedSharer.identity"
-          [class.rounded-2xl]="true"
-        >
-          <app-participant-tile [participant]="p" (watchStream)="watchStream($event)" />
+    <!-- Floating Bottom Voice Controls Bar (Auto-hides after 3s inactivity, reveals on mouse move) -->
+    <div
+      class="theater-bottom-bar absolute inset-x-0 bottom-4 z-30 flex items-center justify-center transition-all duration-300 ease-out"
+      [class.opacity-100]="areControlsVisible()"
+      [class.pointer-events-auto]="areControlsVisible()"
+      [class.translate-y-0]="areControlsVisible()"
+      [class.opacity-0]="!areControlsVisible()"
+      [class.pointer-events-none]="!areControlsVisible()"
+      [class.translate-y-4]="!areControlsVisible()"
+    >
+      <app-voice-controls />
+    </div>
+  </div>
+} @else {
+  <!-- ==================== DISCORD DYNAMIC STAGE GRID ==================== -->
+  <div class="stage-container flex size-full min-h-0 flex-1 items-center justify-center overflow-y-auto">
+    <div
+      class="stage-grid-wrapper flex flex-wrap items-center justify-center content-center gap-3 sm:gap-4 w-full h-full"
+      [class]="stageTierClass()"
+    >
+      @for (item of stageItems(); track item.id) {
+        <div class="stage-tile-item transition-all duration-200">
+          <app-participant-tile
+            [participant]="item.participant"
+            [isScreenShare]="item.type === 'screen_share'"
+            (watchStream)="watchStream($event)"
+            (contextmenu)="onParticipantContextMenu($event, item.participant)"
+          />
+        </div>
+      }
+
+      <!-- Companion tile if only 1 participant in the room and no stream active -->
+      @if (showCompanionTile()) {
+        <div class="stage-tile-item companion-item transition-all duration-200">
+          <div
+            class="companion-tile flex size-full min-h-[140px] flex-col items-center justify-center gap-3 sm:gap-4 rounded-2xl border border-hairline/60 bg-gradient-to-br from-surface-feature/40 to-surface-soft/20 p-5 text-center shadow-surface"
+          >
+            <div class="flex size-12 sm:size-14 items-center justify-center rounded-2xl bg-surface-feature text-primary shadow-glow">
+              <mat-icon class="!size-7 sm:!size-8 !text-2xl sm:!text-3xl">spatial_audio</mat-icon>
+            </div>
+
+            <div>
+              <h3 class="text-body-md sm:text-heading-5 font-bold text-ink">Bạn đang ở trong phòng một mình</h3>
+              <p class="mt-0.5 sm:mt-1 text-caption sm:text-body-sm text-steel">
+                Mời bạn bè cùng trò chuyện hoặc chia sẻ màn hình của bạn.
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-3">
+              <button
+                mat-flat-button
+                type="button"
+                class="!rounded-full !bg-primary !text-on-primary font-semibold shadow-glow"
+                (click)="inviteClicked.emit()"
+              >
+                <mat-icon aria-hidden="true">person_add</mat-icon>
+                Mời vào phòng thoại
+              </button>
+            </div>
+          </div>
         </div>
       }
     </div>
   </div>
-} @else {
-  <!-- Normal Participant Grid -->
-  <div
-    class="stage-grid grid size-full min-h-0 flex-1 auto-rows-fr gap-4"
-    [class]="gridClass()"
-  >
-    @for (p of participants(); track p.identity) {
-      <app-participant-tile [participant]="p" (watchStream)="watchStream($event)" />
-    }
+}
 
-    <!-- Companion card if only 1 participant in the room (Discord style invite/activities tile) -->
-    @if (participants().length === 1) {
-      <div
-        class="companion-tile flex size-full min-h-[160px] flex-col items-center justify-center gap-4 rounded-2xl border border-hairline/60 bg-gradient-to-br from-surface-feature/40 to-surface-soft/20 p-6 text-center shadow-surface"
-      >
-        <div class="flex size-14 items-center justify-center rounded-2xl bg-surface-feature text-primary shadow-glow">
-          <mat-icon class="!size-8 !text-3xl">spatial_audio</mat-icon>
+<!-- Hidden Context Menu Trigger Anchor -->
+<div
+  style="visibility: hidden; position: fixed; pointer-events: none"
+  [style.left.px]="contextMenuPosition().x"
+  [style.top.px]="contextMenuPosition().y"
+  [matMenuTriggerFor]="stageMemberContextMenu"
+  #stageMemberMenuTrigger="matMenuTrigger"
+></div>
+
+<!-- Stage Participant Context Menu (Chuột phải vào ô thành viên trên sân khấu) -->
+<mat-menu #stageMemberContextMenu="matMenu" class="nexus-context-menu nexus-member-menu">
+  @if (selectedParticipant(); as participant) {
+    <!-- Member Header Card -->
+    <div class="px-3.5 py-2.5 border-b border-surface-border/40 flex items-center gap-2.5 select-none pointer-events-none">
+      <app-avatar [name]="participant.name" [src]="participant.avatarUrl || null" size="sm" ring="surface" />
+      <div class="flex flex-col min-w-0">
+        <span class="text-body-sm-bold text-ink truncate">{{ participant.name }}</span>
+        <span class="text-[11px] text-steel">
+          {{ participant.isLocal ? 'Chính bạn' : isOwner() ? 'Thành viên máy chủ' : 'Thành viên thoại' }}
+        </span>
+      </div>
+    </div>
+
+    @if (!participant.isLocal) {
+      <!-- Âm lượng người dùng (User Volume Slider 0% - 200%) -->
+      <div class="px-3.5 py-2 flex flex-col gap-1.5" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between text-caption font-semibold">
+          <span class="text-steel text-[11px]">Âm lượng người dùng</span>
+          <span class="text-primary font-mono text-xs">{{ voiceRoom.getUserVolume(participant.identity) }}%</span>
         </div>
-
-        <div>
-          <h3 class="text-heading-5 text-ink">Bạn đang ở trong phòng một mình</h3>
-          <p class="mt-1 text-body-sm text-steel">
-            Mời bạn bè cùng trò chuyện hoặc chia sẻ màn hình của bạn.
-          </p>
-        </div>
-
-        <div class="flex flex-wrap items-center justify-center gap-3">
-          <button
-            mat-flat-button
-            type="button"
-            class="!rounded-full !bg-primary !text-on-primary font-semibold"
-            (click)="inviteClicked.emit()"
-          >
-            <mat-icon aria-hidden="true">person_add</mat-icon>
-            Mời vào phòng thoại
-          </button>
+        <div class="flex items-center gap-2">
+          <mat-icon class="!size-4 !text-base text-steel">volume_down</mat-icon>
+          <input
+            type="range"
+            min="0"
+            max="200"
+            step="1"
+            [value]="voiceRoom.getUserVolume(participant.identity)"
+            (input)="onVolumeChange(participant.identity, $event)"
+            class="w-full h-1.5 bg-surface-feature rounded-lg appearance-none cursor-pointer accent-primary"
+          />
+          <mat-icon class="!size-4 !text-base text-steel">volume_up</mat-icon>
         </div>
       </div>
+
+      <!-- Tắt tiếng cục bộ (Local Mute) -->
+      <button mat-menu-item type="button" (click)="voiceRoom.toggleLocalMute(participant.identity)" class="context-menu-item">
+        <mat-icon class="context-menu-icon" [class.text-danger]="voiceRoom.isLocalMuted(participant.identity)" [class.text-steel]="!voiceRoom.isLocalMuted(participant.identity)">
+          {{ voiceRoom.isLocalMuted(participant.identity) ? 'volume_off' : 'volume_up' }}
+        </mat-icon>
+        <span class="context-menu-label text-ink flex-1">
+          {{ voiceRoom.isLocalMuted(participant.identity) ? 'Bật tiếng cho bạn' : 'Tắt tiếng cho bạn' }}
+        </span>
+      </button>
+
+      <!-- DÀNH CHO CHỦ SERVER / ADMIN -->
+      @if (isOwner()) {
+        <div class="context-menu-divider" role="separator"></div>
+
+        <!-- Chuyển sang kênh thoại khác (Submenu) -->
+        @let otherChannels = otherVoiceChannels();
+        @if (otherChannels.length > 0) {
+          <button mat-menu-item type="button" [matMenuTriggerFor]="stageMoveVoiceChannelSubmenu" class="context-menu-item">
+            <mat-icon class="context-menu-icon text-primary">move_to_inbox</mat-icon>
+            <span class="context-menu-label text-ink flex-1">Chuyển sang kênh thoại</span>
+            <mat-icon class="context-submenu-chevron text-steel">chevron_right</mat-icon>
+          </button>
+        }
+
+        <!-- Tắt mic trên máy chủ (Server Mute) -->
+        <button mat-menu-item type="button" (click)="onToggleServerMute(participant.identity, participant.isMuted)" class="context-menu-item">
+          <mat-icon class="context-menu-icon text-warning">mic_off</mat-icon>
+          <span class="context-menu-label text-ink">
+            {{ participant.isMuted ? 'Bỏ tắt mic trên server' : 'Tắt mic trên server' }}
+          </span>
+        </button>
+
+        <!-- Ngắt kết nối / Đá khỏi phòng thoại -->
+        <button mat-menu-item type="button" (click)="onKickMember(participant.identity)" class="context-menu-item context-menu-item--danger">
+          <mat-icon class="context-menu-icon !text-danger">phone_disabled</mat-icon>
+          <span class="context-menu-label font-semibold text-danger">Ngắt kết nối phòng thoại</span>
+        </button>
+      }
     }
-  </div>
-}
+  }
+</mat-menu>
+
+<!-- Submenu Chuyển Kênh Thoại Trên Stage -->
+<mat-menu #stageMoveVoiceChannelSubmenu="matMenu" class="nexus-context-menu nexus-submenu">
+  @if (selectedParticipant(); as participant) {
+    @for (vc of otherVoiceChannels(); track vc.id) {
+      <button mat-menu-item type="button" (click)="onMoveMember(participant.identity, vc.id)" class="context-menu-item">
+        <mat-icon class="context-menu-icon text-primary">volume_up</mat-icon>
+        <span class="context-menu-label text-ink">{{ vc.name }}</span>
+      </button>
+    }
+  }
+</mat-menu>

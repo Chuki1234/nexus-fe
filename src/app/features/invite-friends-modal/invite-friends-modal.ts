@@ -2,7 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ShellData, ConversationSummary, ServerInviteCardData } from '../../core/api/shell-data';
+import { type ServerInviteCardData } from '../../core/servers/server.models';
+import type { ConversationSummary } from '../../core/conversations/conversation.models';
+import { ServersStore } from '../../core/servers/servers.store';
+import { FriendsStore } from '../dashboard/friends/services/friends-store';
 import { UserSettingsService } from '../settings/services/user-settings.service';
 import { Avatar } from '../../shared/ui/avatar/avatar';
 
@@ -15,7 +18,8 @@ import { Avatar } from '../../shared/ui/avatar/avatar';
   styleUrl: './invite-friends-modal.css',
 })
 export class InviteFriendsModal {
-  private readonly shell = inject(ShellData);
+  private readonly serversStore = inject(ServersStore);
+  private readonly friendsStore = inject(FriendsStore);
   private readonly userSettings = inject(UserSettingsService);
 
   readonly serverId = input.required<string>();
@@ -27,13 +31,13 @@ export class InviteFriendsModal {
 
   protected readonly serverData = computed(() => {
     const sId = this.serverId();
-    return this.userSettings.serverDataMap()[sId] ?? this.userSettings.serverDataMap()['itss'];
+    return this.userSettings.serverDataMap()[sId] ?? { name: 'Máy chủ', initials: 'MC', invites: [] };
   });
 
   protected readonly defaultChannel = computed(() => {
     const sId = this.serverId();
-    const channels = this.shell.channelsOf(sId);
-    return channels.find((c) => c.type === 'text') ?? channels[0] ?? { id: 'do-an', name: 'đồ-án' };
+    const channels = this.serversStore.channelsOf(sId);
+    return channels.find((c) => c.type === 'text') ?? channels[0] ?? { id: 'general', name: 'chung' };
   });
 
   protected readonly activeInviteCode = computed<string>(() => {
@@ -48,7 +52,7 @@ export class InviteFriendsModal {
 
   protected readonly friendsList = computed<ConversationSummary[]>(() => {
     const q = this.searchQuery().trim().toLowerCase();
-    const list = this.shell.conversations().filter((c) => c.id !== 'lofi-bot');
+    const list = this.friendsStore.friends();
     if (!q) return list;
     return list.filter(
       (c) => c.name.toLowerCase().includes(q) || (c.statusMessage && c.statusMessage.toLowerCase().includes(q)),
@@ -81,14 +85,7 @@ export class InviteFriendsModal {
       targetChannelId: this.defaultChannel().id,
     };
 
-    // 1. Send invite card to DM conversation (Ảnh 4)
-    this.shell.sendDirectMessage(
-      friend.id,
-      `https://nexus.app/invite/${this.activeInviteCode()}`,
-      inviteCard,
-    );
-
-    // 2. Add dynamic audit log record (Ảnh 5)
+    // Add dynamic audit log record
     this.userSettings.addAuditLog(
       'Gửi lời mời bạn bè vào server',
       `Mời ${friend.name} vào #${this.defaultChannel().name}`,

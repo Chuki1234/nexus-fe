@@ -64,33 +64,26 @@ describe('UserSettingsService', () => {
     expect(service.editDisplayName()).not.toBe('Tên Mới Được Sửa');
   });
 
-  it('ảnh hồ sơ chọn dở cũng tính là thay đổi chưa lưu', () => {
-    const staged = TestBed.inject(ProfilePendingImages);
-    URL.createObjectURL ??= () => 'blob:test';
-    URL.revokeObjectURL ??= () => undefined;
-
+  it('ảnh và màu sắc chọn dở cũng tính là thay đổi chưa lưu', () => {
     service.open('profile');
     expect(service.hasUnsavedChanges()).toBe(false);
 
-    staged.stage('avatar', new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }));
+    service.editAvatarUrl.set('https://x/new-avatar.webp');
     expect(service.hasUnsavedChanges()).toBe(true);
 
     service.resetChanges();
-    expect(staged.hasPending()).toBe(false);
     expect(service.hasUnsavedChanges()).toBe(false);
   });
 
-  it('đóng cài đặt bỏ luôn ảnh chọn dở', () => {
-    const staged = TestBed.inject(ProfilePendingImages);
-    URL.createObjectURL ??= () => 'blob:test';
-    URL.revokeObjectURL ??= () => undefined;
-
+  it('đóng cài đặt và resetChanges khôi phục trạng thái ban đầu', () => {
     service.open('profile');
-    staged.stageRemoval('banner');
+    service.editBannerColor.set('#ff0000');
     expect(service.hasUnsavedChanges()).toBe(true);
 
+    service.resetChanges();
+    expect(service.hasUnsavedChanges()).toBe(false);
     service.close();
-    expect(staged.hasPending()).toBe(false);
+    expect(service.isOpen()).toBe(false);
   });
 
   it('tính toán đúng phân quyền server theo vai trò', () => {

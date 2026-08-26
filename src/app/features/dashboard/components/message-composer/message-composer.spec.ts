@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import {
   MessageComposer,
@@ -43,7 +45,10 @@ class Host {
 
 describe('MessageComposer', () => {
   const mount = async () => {
-    await TestBed.configureTestingModule({ imports: [Host] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [Host],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    }).compileComponents();
     const fixture = TestBed.createComponent(Host);
     fixture.detectChanges();
     return fixture;
@@ -374,6 +379,41 @@ describe('MessageComposer', () => {
       // 4. Rời hẳn khỏi composer shell
       composer.onDragLeave(fakeDragEvent);
       expect(composer.isDraggingOver()).toBe(false);
+    });
+
+    it('bấm nút GIF mở/đóng GIPHY Picker và chọn GIF phát sự kiện send ngay lập tức', async () => {
+      const fixture = await mount();
+      const host = fixture.componentInstance;
+      const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+
+      expect(composer.showGiphyPicker()).toBe(false);
+
+      // Bật picker
+      composer.toggleGiphyPicker();
+      fixture.detectChanges();
+      expect(composer.showGiphyPicker()).toBe(true);
+
+      // Khi chọn GIF
+      const mockGif = {
+        provider: 'giphy' as const,
+        externalId: 'gif-test-123',
+        mediaType: 'gif' as const,
+        title: 'Dancing Cat',
+        creatorUsername: 'cat',
+        pageUrl: 'https://giphy.com/gifs/cat-123',
+        previewUrl: 'https://media0.giphy.com/media/123/200w.webp',
+        displayUrl: 'https://media0.giphy.com/media/123/giphy.gif',
+        mp4Url: 'https://media1.giphy.com/media/123/200w.mp4',
+        width: 400,
+        height: 300,
+      };
+
+      composer.onGifSelected(mockGif);
+      fixture.detectChanges();
+
+      expect(composer.showGiphyPicker()).toBe(false);
+      expect(host.sentPayloads).toHaveLength(1);
+      expect(host.sentPayloads[0].externalMedia).toEqual(mockGif);
     });
   });
 });

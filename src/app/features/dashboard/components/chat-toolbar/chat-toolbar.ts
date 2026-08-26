@@ -27,4 +27,6 @@ export class ChatToolbar {
   readonly detailsLabel = input<string>('hồ sơ');
 
   readonly toggleDetails = output<void>();
+  readonly startAudioCall = output<void>();
+  readonly startVideoCall = output<void>();
 }

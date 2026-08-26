@@ -1,0 +1,59 @@
+<div class="p-6 bg-surface-raised text-ink max-w-md w-full rounded-2xl border border-hairline shadow-2xl">
+  <div class="flex items-center justify-between pb-4 border-b border-hairline/60">
+    <div class="flex items-center gap-2.5">
+      <div class="size-9 rounded-xl bg-surface-feature flex items-center justify-center text-primary">
+        <mat-icon class="!size-5 !text-xl">edit_note</mat-icon>
+      </div>
+      <div>
+        <h2 class="text-body-md-bold text-ink m-0">Ghi chú bạn bè</h2>
+        <p class="text-caption text-steel m-0">Chỉ một mình bạn nhìn thấy ghi chú này</p>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      (click)="onCancel()"
+      class="size-8 rounded-lg flex items-center justify-center text-steel hover:text-ink hover:bg-surface-feature transition-colors cursor-pointer"
+      aria-label="Đóng"
+    >
+      <mat-icon class="!size-4 !text-base">close</mat-icon>
+    </button>
+  </div>
+
+  <div class="py-4 flex flex-col gap-2">
+    <label for="friend-note-input" class="text-micro-uppercase text-steel font-bold tracking-wider">
+      Ghi chú cho {{ data.friendName }}
+    </label>
+    <div class="relative">
+      <textarea
+        id="friend-note-input"
+        [ngModel]="noteText()"
+        (ngModelChange)="noteText.set($event)"
+        maxlength="256"
+        rows="4"
+        placeholder="Ví dụ: Bạn học cùng lớp, chơi game cùng tối thứ 7..."
+        class="w-full rounded-xl bg-surface border border-hairline p-3 text-body-sm text-ink placeholder:text-steel/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none transition-all"
+      ></textarea>
+      <span class="absolute right-3 bottom-2 text-[11px] text-steel">
+        {{ noteText().length }}/256
+      </span>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-end gap-2 pt-3 border-t border-hairline/60">
+    <button
+      type="button"
+      (click)="onCancel()"
+      class="px-4 py-2 rounded-xl text-body-sm font-medium text-steel hover:text-ink hover:bg-surface-feature transition-colors cursor-pointer"
+    >
+      Hủy
+    </button>
+    <button
+      type="button"
+      (click)="onSave()"
+      class="px-5 py-2 rounded-xl text-body-sm font-semibold bg-primary hover:bg-primary/90 text-surface-base transition-colors cursor-pointer shadow-md shadow-primary/20"
+    >
+      Lưu ghi chú
+    </button>
+  </div>
+</div>

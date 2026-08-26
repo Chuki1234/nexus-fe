@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import type { ConversationSummary } from '../../../../core/api/shell-data';
+import type { ConversationSummary } from '../../../../core/conversations/conversation.models';
 import {
   formatFriendsApiError,
   FriendsApi,

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import type { ConversationSummary } from '../../../../../core/api/shell-data';
+import type { ConversationSummary } from '../../../../../core/conversations/conversation.models';
 import { ActivityPanel } from './activity-panel';
 
 describe('ActivityPanel', () => {

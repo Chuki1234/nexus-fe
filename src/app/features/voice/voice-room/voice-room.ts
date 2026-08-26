@@ -12,8 +12,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
-import type { ChannelSummary } from '../../../core/api/shell-data';
-import { ShellData } from '../../../core/api/shell-data';
+import type { ChannelSummary } from '../../../core/servers/server.models';
+import { ServersStore } from '../../../core/servers/servers.store';
 import { InviteChannelDialog } from '../../../layouts/app-layout/components/channel-sidebar/components/invite-channel-dialog/invite-channel-dialog';
 import { ChannelSettingsModal } from '../../settings/modals/channel-settings-modal/channel-settings-modal';
 import { VoiceRoomService } from '../services/voice-room.service';
@@ -43,8 +43,8 @@ import { VoiceStage } from './components/voice-stage/voice-stage';
 export class VoiceRoom implements OnInit {
   readonly voiceRoom = inject(VoiceRoomService);
   private readonly dialog = inject(MatDialog);
-  private readonly shell = inject(ShellData);
   private readonly route = inject(ActivatedRoute);
+  private readonly serversStore = inject(ServersStore);
 
   readonly channel = input.required<ChannelSummary>();
   readonly serverId = input.required<string>();
@@ -62,7 +62,7 @@ export class VoiceRoom implements OnInit {
   );
 
   protected readonly serverName = computed(() => {
-    const s = this.shell.servers().find((srv) => srv.id === this.serverId());
+    const s = this.serversStore.servers().find((srv) => srv.id === this.serverId());
     return s?.name ?? 'Máy chủ';
   });
 
@@ -106,10 +106,6 @@ export class VoiceRoom implements OnInit {
 
   protected joinVoice(options?: { audio?: boolean; video?: boolean }): void {
     void this.voiceRoom.joinRoom(this.serverId(), this.channel().id, this.channel().name, options);
-  }
-
-  protected joinDemoVoice(options?: { audio?: boolean; video?: boolean }): void {
-    this.voiceRoom.joinDemoRoom(this.serverId(), this.channel().id, this.channel().name, options);
   }
 
   protected openPrejoin(): void {

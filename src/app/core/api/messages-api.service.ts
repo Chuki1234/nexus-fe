@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
+import { GiphyMediaDto } from '../../../shared/dto/messages.dto';
 
 export interface MessageAuthorDto {
   id: string;
@@ -41,6 +42,7 @@ export interface MessageResponseDto {
   editedAt: string | null;
   deletedAt: string | null;
   isForwarded: boolean;
+  externalMedia: GiphyMediaDto | null;
   attachments?: AttachmentResponseDto[];
   reactions?: ReactionSummaryDto[];
   createdAt: string;
@@ -61,6 +63,7 @@ export interface SendMessageDto {
   clientNonce?: string;
   replyToId?: string;
   files?: File[];
+  externalMedia?: GiphyMediaDto;
 }
 
 export interface EditMessageDto {
@@ -155,6 +158,9 @@ export class MessagesApiService {
       }
       if (dto.replyToId) {
         formData.append('replyToId', dto.replyToId);
+      }
+      if (dto.externalMedia) {
+        formData.append('externalMedia', JSON.stringify(dto.externalMedia));
       }
       for (const file of dto.files) {
         formData.append('files', file);
@@ -313,6 +319,9 @@ export class MessagesApiService {
       if (dto.replyToId) {
         formData.append('replyToId', dto.replyToId);
       }
+      if (dto.externalMedia) {
+        formData.append('externalMedia', JSON.stringify(dto.externalMedia));
+      }
       for (const file of dto.files) {
         formData.append('files', file);
       }
@@ -439,17 +448,55 @@ export class MessagesApiService {
   }
 
   /**
-   * Xoá tin nhắn (soft delete).
+   * Ẩn tin nhắn chỉ riêng ở phía người dùng (Hide for Me).
    */
-  async deleteMessage(
+  async hideMessage(
     messageId: string,
-  ): Promise<{ id: string; deleted: boolean }> {
+  ): Promise<{ id: string; hidden: boolean; scope: 'for_me'; conversationId: string | null; channelId: string | null }> {
     const headers = await this.getAuthHeaders();
     return firstValueFrom(
       this.http
-        .delete<{ id: string; deleted: boolean }>(
-          `${this.baseUrl}/messages/${messageId}`,
+        .post<{ id: string; hidden: boolean; scope: 'for_me'; conversationId: string | null; channelId: string | null }>(
+          `${this.baseUrl}/messages/${messageId}/hide`,
+          {},
           { headers },
+        )
+        .pipe(timeout(15000)),
+    );
+  }
+
+  /**
+   * Thu hồi tin nhắn đối với tất cả mọi người trong cuộc trò chuyện (Recall for Everyone).
+   */
+  async recallMessage(
+    messageId: string,
+  ): Promise<{ id: string; deleted: boolean; scope: 'everyone'; conversationId: string | null; channelId: string | null }> {
+    const headers = await this.getAuthHeaders();
+    return firstValueFrom(
+      this.http
+        .post<{ id: string; deleted: boolean; scope: 'everyone'; conversationId: string | null; channelId: string | null }>(
+          `${this.baseUrl}/messages/${messageId}/recall`,
+          {},
+          { headers },
+        )
+        .pipe(timeout(15000)),
+    );
+  }
+
+  /**
+   * Xoá / Thu hồi tin nhắn (hỗ trợ scope: 'for_me' | 'everyone').
+   */
+  async deleteMessage(
+    messageId: string,
+    scope: 'for_me' | 'everyone' = 'for_me',
+  ): Promise<{ id: string; deleted?: boolean; hidden?: boolean; scope: 'for_me' | 'everyone'; conversationId: string | null; channelId: string | null }> {
+    const headers = await this.getAuthHeaders();
+    const params = new HttpParams().set('scope', scope);
+    return firstValueFrom(
+      this.http
+        .delete<{ id: string; deleted?: boolean; hidden?: boolean; scope: 'for_me' | 'everyone'; conversationId: string | null; channelId: string | null }>(
+          `${this.baseUrl}/messages/${messageId}`,
+          { headers, params },
         )
         .pipe(timeout(15000)),
     );

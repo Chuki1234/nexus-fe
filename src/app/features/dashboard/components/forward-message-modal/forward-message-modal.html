@@ -1,4 +1,4 @@
-<div class="modal-backdrop" (click)="!isSubmitting() && close.emit()">
+<div class="modal-backdrop" (click)="close.emit()">
   <div
     class="modal-card"
     (click)="$event.stopPropagation()"
@@ -8,13 +8,12 @@
     <header class="modal-header">
       <div class="header-title-group">
         <mat-icon class="header-icon">forward_to_inbox</mat-icon>
-        <h2 id="forward-dialog-title" class="header-title">Chuyển tiếp tin nhắn</h2>
+        <h2 id="forward-dialog-title" class="header-title">Chia sẻ / Chuyển tiếp tin nhắn</h2>
       </div>
       <button
         type="button"
         mat-icon-button
         class="close-btn"
-        [disabled]="isSubmitting()"
         (click)="close.emit()"
         matTooltip="Đóng (Esc)"
         aria-label="Đóng hộp thoại"
@@ -41,11 +40,39 @@
           <p class="preview-content">{{ message().content }}</p>
         }
 
-        @if (getAttachmentSummary(); as attSummary) {
-          <div class="preview-attachment-badge">
-            <mat-icon class="attachment-icon">attach_file</mat-icon>
-            <span>{{ attSummary }}</span>
-          </div>
+        <!-- Image attachments preview -->
+        @if (getImageAttachments(); as imgAtts) {
+          @if (imgAtts.length > 0) {
+            <div class="preview-images-grid">
+              @for (img of imgAtts; track img.url) {
+                <div class="preview-img-wrapper">
+                  <img [src]="img.url" [alt]="img.fileName || 'Ảnh đính kèm'" class="preview-img" />
+                </div>
+              }
+            </div>
+          }
+        }
+
+        <!-- Non-image attachments preview -->
+        @if (getNonImageAttachments(); as otherAtts) {
+          @if (otherAtts.length > 0) {
+            <div class="preview-files-list">
+              @for (file of otherAtts; track file.fileName) {
+                <div class="preview-file-pill">
+                  <mat-icon class="file-icon">attach_file</mat-icon>
+                  <span class="file-name truncate">{{ file.fileName }}</span>
+                  @if (file.fileSize) {
+                    <span class="file-size">({{ formatFileSize(file.fileSize) }})</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+        }
+
+        <!-- GIPHY External Media Embed Preview -->
+        @if (message().externalMedia; as extMedia) {
+          <app-giphy-message-embed [media]="extMedia" />
         }
       </div>
     </section>
@@ -58,11 +85,10 @@
           #searchInput
           type="text"
           class="search-input"
-          placeholder="Tìm kiếm cuộc trò chuyện hoặc bạn bè..."
+          placeholder="Tìm kiếm bạn bè, cuộc trò chuyện, máy chủ hoặc kênh..."
           [ngModel]="searchQuery()"
           (ngModelChange)="searchQuery.set($event)"
-          [disabled]="isSubmitting()"
-          aria-label="Tìm kiếm cuộc trò chuyện"
+          aria-label="Tìm kiếm nơi chia sẻ"
         />
         @if (searchQuery()) {
           <button
@@ -82,80 +108,146 @@
       <div class="error-banner" role="alert">
         <mat-icon class="error-icon">error_outline</mat-icon>
         <span class="error-text">{{ err }}</span>
-        @if (isLoading()) {
-          <button type="button" class="retry-link" (click)="loadTargets()">
-            Thử lại
-          </button>
-        }
+        <button type="button" class="retry-link" (click)="loadTargets()">
+          Thử lại
+        </button>
       </div>
     }
 
-    <!-- Conversation Target List (Single Select) -->
-    <section class="conversation-list-section" aria-label="Danh sách cuộc trò chuyện">
-      <div class="section-label">Gửi tới:</div>
-
+    <!-- Target List Section -->
+    <section class="targets-list-section nexus-scrollbar" aria-label="Danh sách nơi chia sẻ">
       @if (isLoading()) {
         <div class="loading-state">
           <mat-spinner diameter="28" strokeWidth="3" />
-          <span>Đang tải danh sách đích chuyển tiếp...</span>
+          <span>Đang tải danh sách bạn bè và máy chủ...</span>
         </div>
-      } @else if (filteredTargets.length === 0) {
+      } @else if (!hasAnyResults()) {
         <div class="empty-state">
-          <mat-icon class="empty-icon">chat_bubble_outline</mat-icon>
-          <p class="empty-title">Không tìm thấy đích chuyển tiếp</p>
+          <mat-icon class="empty-icon">search_off</mat-icon>
+          <p class="empty-title">Không tìm thấy kết quả phù hợp</p>
           <p class="empty-desc">
             @if (searchQuery()) {
-              Không có kết quả khớp với "{{ searchQuery() }}".
+              Không có bạn bè hoặc kênh máy chủ nào khớp với "{{ searchQuery() }}".
             } @else {
-              Bạn chưa có kênh hoặc cuộc trò chuyện khác để chuyển tiếp.
+              Bạn chưa có bạn bè hoặc máy chủ nào để chia sẻ.
             }
           </p>
         </div>
       } @else {
-        <ul class="conversation-list" role="listbox" aria-label="Chọn kênh hoặc cuộc trò chuyện đích">
-          @for (target of filteredTargets; track target.id) {
-            <li
-              class="conversation-item"
-              [class.selected]="selectedTarget()?.id === target.id"
-              (click)="selectTarget(target)"
-              (keydown.enter)="selectTarget(target)"
-              (keydown.space)="selectTarget(target)"
-              tabindex="0"
-              role="option"
-              [attr.aria-selected]="selectedTarget()?.id === target.id"
-            >
-              <div class="item-avatar-wrapper">
-                @if (target.type === 'channel') {
-                  <div class="flex size-9 items-center justify-center rounded-xl bg-surface-feature text-steel">
-                    <mat-icon class="!size-5 !text-xl">tag</mat-icon>
-                  </div>
-                } @else {
+        <!-- Direct Messages / Friends Section -->
+        @if (filteredDmTargets().length > 0) {
+          <div class="target-group-header">
+            <mat-icon class="group-header-icon">forum</mat-icon>
+            <span>Tin nhắn trực tiếp & Bạn bè</span>
+          </div>
+
+          <ul class="target-list" role="list">
+            @for (dm of filteredDmTargets(); track dm.id) {
+              <li class="target-row">
+                <div class="target-left">
                   <app-avatar
-                    [name]="target.avatarName || target.name"
-                    [src]="target.avatarUrl ?? null"
-                    [presence]="target.presence || null"
-                    size="md"
+                    [name]="dm.name"
+                    [src]="dm.avatarUrl ?? null"
+                    [presence]="dm.presence || null"
+                    size="sm"
                   />
-                }
-              </div>
+                  <div class="target-info">
+                    <span class="target-name truncate">{{ dm.name }}</span>
+                    @if (dm.username) {
+                      <span class="target-subtitle truncate">{{ dm.username }}</span>
+                    }
+                  </div>
+                </div>
 
-              <div class="item-info">
-                <div class="item-title">{{ target.name }}</div>
-                @if (target.subtitle) {
-                  <div class="item-subtitle">{{ target.subtitle }}</div>
-                }
-              </div>
-
-              <div class="item-radio-indicator">
-                <div class="radio-circle">
-                  @if (selectedTarget()?.id === target.id) {
-                    <div class="radio-inner"></div>
+                <div class="target-action">
+                  @if (isTargetSent(dm.id)) {
+                    <span class="status-badge sent-badge">
+                      <mat-icon class="badge-icon">check</mat-icon>
+                      <span>Đã gửi</span>
+                    </span>
+                  } @else if (isTargetSending(dm.id)) {
+                    <button type="button" class="action-btn sending-btn" disabled>
+                      <mat-spinner diameter="14" strokeWidth="2" />
+                      <span>Đang gửi</span>
+                    </button>
+                  } @else {
+                    <button
+                      type="button"
+                      class="action-btn send-btn"
+                      (click)="sendToTarget(dm)"
+                      [attr.aria-label]="'Gửi tới ' + dm.name"
+                    >
+                      <mat-icon class="btn-icon">send</mat-icon>
+                      <span>Gửi</span>
+                    </button>
                   }
                 </div>
+              </li>
+            }
+          </ul>
+        }
+
+        <!-- Servers & Channels Section -->
+        @if (filteredServerGroups().length > 0) {
+          @for (group of filteredServerGroups(); track group.id) {
+            <div class="server-group-block">
+              <!-- Server Header with Server Image and Name -->
+              <div class="server-header">
+                <div class="server-avatar-box">
+                  @if (group.iconUrl) {
+                    <img [src]="group.iconUrl" [alt]="group.name" class="server-icon-img" />
+                  } @else {
+                    <span class="server-initials">{{ group.name.slice(0, 2).toUpperCase() }}</span>
+                  }
+                </div>
+                <span class="server-name truncate">{{ group.name }}</span>
               </div>
-            </li>
+
+              <!-- Channels under this server -->
+              <ul class="target-list" role="list">
+                @for (ch of group.channels; track ch.id) {
+                  <li class="target-row channel-row">
+                    <div class="target-left">
+                      <div class="channel-icon-box">
+                        <mat-icon class="channel-icon">tag</mat-icon>
+                      </div>
+                      <div class="target-info">
+                        <span class="target-name truncate">{{ ch.name }}</span>
+                        @if (ch.topic) {
+                          <span class="target-subtitle truncate">{{ ch.topic }}</span>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="target-action">
+                      @if (isTargetSent(ch.id)) {
+                        <span class="status-badge sent-badge">
+                          <mat-icon class="badge-icon">check</mat-icon>
+                          <span>Đã gửi</span>
+                        </span>
+                      } @else if (isTargetSending(ch.id)) {
+                        <button type="button" class="action-btn sending-btn" disabled>
+                          <mat-spinner diameter="14" strokeWidth="2" />
+                          <span>Đang gửi</span>
+                        </button>
+                      } @else {
+                        <button
+                          type="button"
+                          class="action-btn send-btn"
+                          (click)="sendToTarget(ch)"
+                          [attr.aria-label]="'Gửi vào kênh ' + ch.name + ' máy chủ ' + group.name"
+                        >
+                          <mat-icon class="btn-icon">send</mat-icon>
+                          <span>Gửi</span>
+                        </button>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+            </div>
           }
-        </ul>
+        }
       }
     </section>
 
@@ -163,28 +255,12 @@
     <footer class="modal-footer">
       <button
         type="button"
-        mat-button
-        class="cancel-btn"
-        [disabled]="isSubmitting()"
-        (click)="close.emit()"
-      >
-        Hủy
-      </button>
-
-      <button
-        type="button"
         mat-flat-button
         color="primary"
-        class="submit-btn"
-        [disabled]="!selectedTarget() || isSubmitting() || isLoading()"
-        (click)="submitForward()"
+        class="done-btn"
+        (click)="close.emit()"
       >
-        @if (isSubmitting()) {
-          <mat-spinner diameter="18" strokeWidth="2" class="submit-spinner" />
-          <span>Đang chuyển tiếp...</span>
-        } @else {
-          <span>Chuyển tiếp</span>
-        }
+        Xong
       </button>
     </footer>
   </div>

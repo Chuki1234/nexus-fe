@@ -103,30 +103,27 @@
     </span>
   </div>
 
-  <div class="friend-options__preview" role="note">
-    <mat-icon aria-hidden="true">construction</mat-icon>
-    <span>Bản xem trước · chờ kết nối</span>
-  </div>
-
   <p class="friend-options__section-label">Liên lạc</p>
-  <button mat-menu-item type="button" disabled>
-    <mat-icon aria-hidden="true">call</mat-icon>
-    <span>Gọi thoại</span>
+  <button mat-menu-item type="button" (click)="onStartAudioCall()">
+    <mat-icon aria-hidden="true" class="text-primary">call</mat-icon>
+    <span class="text-ink">Gọi thoại</span>
   </button>
-  <button mat-menu-item type="button" disabled>
-    <mat-icon aria-hidden="true">videocam</mat-icon>
-    <span>Gọi video</span>
+  <button mat-menu-item type="button" (click)="onStartVideoCall()">
+    <mat-icon aria-hidden="true" class="text-primary">videocam</mat-icon>
+    <span class="text-ink">Gọi video</span>
   </button>
 
   <div class="friend-options__divider" role="separator"></div>
   <p class="friend-options__section-label">Quản lý</p>
-  <button mat-menu-item type="button" disabled>
-    <mat-icon aria-hidden="true">notifications_off</mat-icon>
-    <span>Tắt thông báo</span>
+  <button mat-menu-item type="button" (click)="onToggleMute()">
+    <mat-icon aria-hidden="true" [class.text-warning]="isMuted()" class="text-steel">
+      {{ isMuted() ? 'notifications_off' : 'notifications' }}
+    </mat-icon>
+    <span class="text-ink">{{ isMuted() ? 'Bật thông báo' : 'Tắt thông báo' }}</span>
   </button>
-  <button mat-menu-item type="button" disabled>
-    <mat-icon aria-hidden="true">edit_note</mat-icon>
-    <span>Ghi chú</span>
+  <button mat-menu-item type="button" (click)="onEditNote()">
+    <mat-icon aria-hidden="true" class="text-steel">edit_note</mat-icon>
+    <span class="text-ink">Ghi chú</span>
   </button>
 
   <div class="friend-options__divider" role="separator"></div>
@@ -141,7 +138,7 @@
     <mat-icon aria-hidden="true">person_remove</mat-icon>
     <span>Xóa khỏi danh sách bạn</span>
   </button>
-  <button mat-menu-item type="button" class="friend-options__danger" disabled>
+  <button mat-menu-item type="button" class="friend-options__danger" (click)="onBlockUser()">
     <mat-icon aria-hidden="true">block</mat-icon>
     <span>Chặn</span>
   </button>

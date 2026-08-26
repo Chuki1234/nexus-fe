@@ -17,7 +17,11 @@ import type {
   PresenceUpdatedPayload,
   ReactionUpdatedPayload,
   ServerToClientEvents,
+  VoiceMemberState,
+  VoiceServerStatesSyncPayload,
+  VoiceStateUpdatePayload,
 } from '../../../shared/socket-events';
+import type { DirectCallDto } from '../../../shared/dto/direct-calls.dto';
 import { AuthService } from '../auth/auth.service';
 
 export type ConnectionStatus =
@@ -70,6 +74,13 @@ export class ChatSocketService {
     conversationId: string | null;
     messageId: string;
   }>();
+  private readonly messageHiddenForUserSubject = new Subject<{
+    channelId: string | null;
+    conversationId: string | null;
+    messageId: string;
+    userId: string;
+    hiddenAt: string;
+  }>();
   private readonly messageReadSubject = new Subject<{
     conversationId?: string | null;
     channelId?: string | null;
@@ -103,6 +114,33 @@ export class ChatSocketService {
   private readonly capabilitiesUpdatedSubject = new Subject<{ serverId: string; capabilities: any }>();
   private readonly serverDeletedSubject = new Subject<{ serverId: string }>();
   private readonly serverMemberLeftSubject = new Subject<{ serverId: string; userId: string }>();
+  private readonly voiceStateUpdatedSubject = new Subject<VoiceStateUpdatePayload>();
+  private readonly voiceServerStatesSyncSubject = new Subject<VoiceServerStatesSyncPayload>();
+  private readonly voiceForceMoveSubject = new Subject<{
+    serverId: string;
+    channelId: string;
+    channelName: string;
+  }>();
+  private readonly voiceForceDisconnectSubject = new Subject<{
+    serverId: string;
+    channelId?: string;
+  }>();
+  private readonly voiceForceMuteSubject = new Subject<{
+    serverId: string;
+    isMuted: boolean;
+  }>();
+
+  // Direct Call Signaling Subjects
+  private readonly directCallIncomingSubject = new Subject<DirectCallDto>();
+  private readonly directCallRingingSubject = new Subject<DirectCallDto>();
+  private readonly directCallAcceptedSubject = new Subject<DirectCallDto>();
+  private readonly directCallConnectedSubject = new Subject<{ callId: string; connectedAt: string }>();
+  private readonly directCallDeclinedSubject = new Subject<DirectCallDto>();
+  private readonly directCallCancelledSubject = new Subject<DirectCallDto>();
+  private readonly directCallEndedSubject = new Subject<DirectCallDto>();
+  private readonly directCallMissedSubject = new Subject<DirectCallDto>();
+  private readonly directCallBusySubject = new Subject<{ conversationId: string; calleeId: string }>();
+  private readonly directCallStateSyncSubject = new Subject<DirectCallDto | null>();
 
   readonly messageCreated$: Observable<{ message: MessagePayload }> =
     this.messageCreatedSubject.asObservable();
@@ -113,6 +151,13 @@ export class ChatSocketService {
     conversationId: string | null;
     messageId: string;
   }> = this.messageDeletedSubject.asObservable();
+  readonly messageHiddenForUser$: Observable<{
+    channelId: string | null;
+    conversationId: string | null;
+    messageId: string;
+    userId: string;
+    hiddenAt: string;
+  }> = this.messageHiddenForUserSubject.asObservable();
   readonly reactionUpdated$: Observable<ReactionUpdatedPayload> =
     this.reactionUpdatedSubject.asObservable();
   readonly messageRead$: Observable<{
@@ -172,6 +217,45 @@ export class ChatSocketService {
     lastMessageAt: string;
     unreadDelta: number;
   }> = this.conversationUpdatedSubject.asObservable();
+
+  readonly directCallIncoming$: Observable<DirectCallDto> =
+    this.directCallIncomingSubject.asObservable();
+  readonly directCallRinging$: Observable<DirectCallDto> =
+    this.directCallRingingSubject.asObservable();
+  readonly directCallAccepted$: Observable<DirectCallDto> =
+    this.directCallAcceptedSubject.asObservable();
+  readonly directCallConnected$: Observable<{ callId: string; connectedAt: string }> =
+    this.directCallConnectedSubject.asObservable();
+  readonly directCallDeclined$: Observable<DirectCallDto> =
+    this.directCallDeclinedSubject.asObservable();
+  readonly directCallCancelled$: Observable<DirectCallDto> =
+    this.directCallCancelledSubject.asObservable();
+  readonly directCallEnded$: Observable<DirectCallDto> =
+    this.directCallEndedSubject.asObservable();
+  readonly directCallMissed$: Observable<DirectCallDto> =
+    this.directCallMissedSubject.asObservable();
+  readonly directCallBusy$: Observable<{ conversationId: string; calleeId: string }> =
+    this.directCallBusySubject.asObservable();
+  readonly directCallStateSync$: Observable<DirectCallDto | null> =
+    this.directCallStateSyncSubject.asObservable();
+
+  readonly voiceStateUpdated$: Observable<VoiceStateUpdatePayload> =
+    this.voiceStateUpdatedSubject.asObservable();
+  readonly voiceServerStatesSync$: Observable<VoiceServerStatesSyncPayload> =
+    this.voiceServerStatesSyncSubject.asObservable();
+  readonly voiceForceMove$: Observable<{
+    serverId: string;
+    channelId: string;
+    channelName: string;
+  }> = this.voiceForceMoveSubject.asObservable();
+  readonly voiceForceDisconnect$: Observable<{
+    serverId: string;
+    channelId?: string;
+  }> = this.voiceForceDisconnectSubject.asObservable();
+  readonly voiceForceMute$: Observable<{
+    serverId: string;
+    isMuted: boolean;
+  }> = this.voiceForceMuteSubject.asObservable();
 
   constructor() {}
 
@@ -739,6 +823,16 @@ export class ChatSocketService {
       });
     });
 
+    this.socket.on('message:hidden-for-user', (payload) => {
+      this.messageHiddenForUserSubject.next({
+        channelId: payload.channelId ?? null,
+        conversationId: payload.conversationId ?? null,
+        messageId: payload.messageId,
+        userId: payload.userId,
+        hiddenAt: payload.hiddenAt,
+      });
+    });
+
     this.socket.on('message:reaction-updated', (payload) => {
       this.reactionUpdatedSubject.next(payload);
     });
@@ -798,6 +892,102 @@ export class ChatSocketService {
 
     this.socket.on('server:member-left', (payload) => {
       this.serverMemberLeftSubject.next(payload);
+    });
+
+    // Direct Call Signaling
+    this.socket.on('direct-call:incoming', (payload) => {
+      this.directCallIncomingSubject.next(payload);
+    });
+    this.socket.on('direct-call:ringing', (payload) => {
+      this.directCallRingingSubject.next(payload);
+    });
+    this.socket.on('direct-call:accepted', (payload) => {
+      this.directCallAcceptedSubject.next(payload);
+    });
+    this.socket.on('direct-call:connected', (payload) => {
+      this.directCallConnectedSubject.next(payload);
+    });
+    this.socket.on('direct-call:declined', (payload) => {
+      this.directCallDeclinedSubject.next(payload);
+    });
+    this.socket.on('direct-call:cancelled', (payload) => {
+      this.directCallCancelledSubject.next(payload);
+    });
+    this.socket.on('direct-call:ended', (payload) => {
+      this.directCallEndedSubject.next(payload);
+    });
+    this.socket.on('direct-call:missed', (payload) => {
+      this.directCallMissedSubject.next(payload);
+    });
+    this.socket.on('direct-call:busy', (payload) => {
+      this.directCallBusySubject.next(payload);
+    });
+    this.socket.on('direct-call:state-sync', (payload) => {
+      this.directCallStateSyncSubject.next(payload);
+    });
+
+    // Server Voice States
+    this.socket.on('voice:state-updated', (payload) => {
+      this.voiceStateUpdatedSubject.next(payload);
+    });
+    this.socket.on('voice:server-states-sync', (payload) => {
+      this.voiceServerStatesSyncSubject.next(payload);
+    });
+    this.socket.on('voice:force-move', (payload) => {
+      this.voiceForceMoveSubject.next(payload);
+    });
+    this.socket.on('voice:force-disconnect', (payload) => {
+      this.voiceForceDisconnectSubject.next(payload);
+    });
+    this.socket.on('voice:force-mute', (payload) => {
+      this.voiceForceMuteSubject.next(payload);
+    });
+  }
+
+  updateVoiceState(payload: {
+    serverId: string;
+    channelId: string | null;
+    isMuted?: boolean;
+    isDeafened?: boolean;
+    isCameraOn?: boolean;
+    isScreenSharing?: boolean;
+  }): void {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('voice:state-update', payload);
+    }
+  }
+
+  moveVoiceMember(serverId: string, targetUserId: string, targetChannelId: string): void {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('voice:move-member', { serverId, targetUserId, targetChannelId });
+    }
+  }
+
+  kickVoiceMember(serverId: string, targetUserId: string): void {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('voice:kick-member', { serverId, targetUserId });
+    }
+  }
+
+  serverMuteVoiceMember(serverId: string, targetUserId: string, isMuted: boolean): void {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('voice:server-mute-member', { serverId, targetUserId, isMuted });
+    }
+  }
+
+  getServerVoiceStates(serverId: string): Promise<VoiceServerStatesSyncPayload> {
+    return new Promise((resolve) => {
+      if (!this.socket || !this.socket.connected) {
+        return resolve({ serverId, states: [] });
+      }
+      this.socket.emit('voice:get-server-states', { serverId }, (response: VoiceServerStatesSyncPayload) => {
+        if (response && response.states) {
+          this.voiceServerStatesSyncSubject.next(response);
+          resolve(response);
+        } else {
+          resolve({ serverId, states: [] });
+        }
+      });
     });
   }
 
