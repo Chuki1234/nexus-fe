@@ -26,3 +26,9 @@
     transform: translateY(0);
   }
 }
+
+@media (max-width: 767.98px) {
+  .voice-header {
+    padding-left: 3.75rem !important;
+  }
+}

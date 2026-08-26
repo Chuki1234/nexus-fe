@@ -106,7 +106,7 @@ describe('FriendsPage', () => {
       fixture.nativeElement
         .querySelector('app-context-panel aside')
         ?.classList.contains('context-panel--open'),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('lọc theo tên khi gõ vào ô tìm kiếm', async () => {
@@ -179,6 +179,9 @@ describe('FriendsPage', () => {
 
   it('activity panel hỗ trợ co giãn và đóng mở linh hoạt', async () => {
     const fixture = await mount();
+    const component = fixture.componentInstance;
+    component['contextView'].set('activity');
+    fixture.detectChanges();
 
     const panel = fixture.nativeElement.querySelector('app-context-panel aside') as HTMLElement;
     expect(panel.classList.contains('context-panel--open')).toBe(true);
@@ -198,6 +201,9 @@ describe('FriendsPage', () => {
 
   it('không dựng hồ sơ nhanh thuộc ownership của trang Profile', async () => {
     const fixture = await mount(PEOPLE);
+    const component = fixture.componentInstance;
+    component['contextView'].set('activity');
+    fixture.detectChanges();
 
     const panel = fixture.nativeElement.querySelector('app-context-panel') as HTMLElement;
     expect(fixture.nativeElement.querySelector('button[aria-label^="Xem hồ sơ nhanh"]')).toBeNull();
@@ -229,5 +235,23 @@ describe('FriendsPage', () => {
     fixture.detectChanges();
 
     expect(friendStore.clearFeedback).toHaveBeenCalled();
+  });
+
+  it('người dùng có thể chủ động bấm nút toggle để mở lại activity panel', async () => {
+    const fixture = await mount(PEOPLE);
+    const component = fixture.componentInstance;
+    component['contextView'].set(null);
+    fixture.detectChanges();
+
+    const panel = fixture.nativeElement.querySelector('app-context-panel aside') as HTMLElement;
+    expect(panel.classList.contains('context-panel--open')).toBe(false);
+
+    // Bấm nút toggle trên toolbar
+    const toggleBtn = fixture.nativeElement.querySelector('button[aria-label="Hiện hoạt động bạn bè"]') as HTMLButtonElement;
+    expect(toggleBtn).toBeTruthy();
+    toggleBtn.click();
+    fixture.detectChanges();
+
+    expect(panel.classList.contains('context-panel--open')).toBe(true);
   });
 });

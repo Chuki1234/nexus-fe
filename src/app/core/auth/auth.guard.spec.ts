@@ -50,12 +50,12 @@ describe('route guards', () => {
   /** '/' chuyển hướng sang Dashboard, nên returnUrl nhớ đích cuối chứ không phải '/'. */
   const DASHBOARD_RETURN_URL = '/login?returnUrl=%2Fchannels%2F@me';
 
-  it('sends a guest landing on / to the login page', async () => {
+  it('lets a guest view the public landing page on /', async () => {
     auth.authenticated = false;
 
     await harness.navigateByUrl('/');
 
-    expect(TestBed.inject(Router).url).toBe(DASHBOARD_RETURN_URL);
+    expect(TestBed.inject(Router).url).toBe('/');
   }, 15000);
 
   it('funnels an unknown path through the wildcard to login', async () => {

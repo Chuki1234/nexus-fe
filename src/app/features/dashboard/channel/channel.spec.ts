@@ -215,4 +215,37 @@ describe('ChannelPage', () => {
     scrollBtn.click();
     expect(scrollSpy).toHaveBeenCalled();
   });
+
+  it('hỗ trợ inline message editor: onAction kind edit mở editor và saveInlineEdit cập nhật tin nhắn', async () => {
+    const harness = await mount('itss/do-an');
+    const component = harness.fixture.debugElement.query(
+      (debugEl) => debugEl.componentInstance instanceof ChannelPage,
+    ).componentInstance as ChannelPage;
+
+    const editSpy = vi.spyOn(component.channelChat, 'editMessage').mockResolvedValue({} as any);
+
+    // Kích hoạt edit action
+    component['onAction']({
+      kind: 'edit',
+      messageId: '1001',
+      icon: 'edit_note',
+      label: 'Chỉnh sửa',
+      description: 'Chỉnh sửa tin nhắn',
+    });
+
+    expect(component.editingMessageId()).toBe('1001');
+    expect(component['composerContext']()).toBeNull();
+
+    // Lưu edit
+    await component['saveInlineEdit']('1001', 'Tin nhắn kênh mới');
+    expect(editSpy).toHaveBeenCalledWith('1001', 'Tin nhắn kênh mới');
+    expect(component.editingMessageId()).toBeNull();
+
+    // Thất bại
+    editSpy.mockRejectedValueOnce(new Error('Lỗi server'));
+    component.editingMessageId.set('1001');
+    await component['saveInlineEdit']('1001', 'Tin lỗi');
+    expect(component.editingMessageId()).toBe('1001');
+    expect(component.editingError()).toBe('Lỗi server');
+  });
 });

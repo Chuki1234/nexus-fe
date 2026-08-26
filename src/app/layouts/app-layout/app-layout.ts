@@ -1,4 +1,4 @@
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -13,7 +13,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { Subscription, filter, map } from 'rxjs';
@@ -33,6 +33,7 @@ import { DirectCallCoordinatorService } from '../../core/calls/direct-call-coord
 
 import {
   DashboardLayoutService,
+  MOBILE_BREAKPOINT_QUERY,
   NAV_DEFAULT_WIDTH,
   NAV_MAX_WIDTH,
   NAV_MIN_WIDTH,
@@ -45,7 +46,7 @@ import {
  *
  * Trên Desktop (!isCompact): Bố cục Flex pane tự nhiên, cho phép resize Navigation Sidebar
  * mà không bao giờ bị overlay hoặc lệch content margin.
- * Trên Mobile / Tablet (isCompact): Sử dụng Angular Material MatSidenav với mode="over" và backdrop.
+ * Trên Mobile (isCompact, <768px): Sử dụng Angular Material MatSidenav với mode="over" và backdrop.
  */
 @Component({
   selector: 'app-dashboard-shell',
@@ -84,17 +85,18 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   protected readonly serverRailWidth = SERVER_RAIL_WIDTH;
 
   readonly shellContainer = viewChild<ElementRef<HTMLElement>>('dashboardShell');
+  readonly drawer = viewChild<MatSidenav>('drawer');
   private resizeObserver: ResizeObserver | null = null;
   private isHydrating = false;
   private readonly subs = new Subscription();
 
   /**
-   * Dưới `lg` (1024px) hoặc khi container không đủ không gian chứa main minimum 560px
-   * thì hai cột trái thu vào drawer.
+   * Chỉ kích hoạt compact mode khi viewport nhỏ hơn 768px (mức điện thoại).
+   * Tablet (>= 768px) và laptop/desktop luôn giữ desktop navigation.
    */
   private readonly compact = toSignal(
     this.breakpoints
-      .observe([Breakpoints.XSmall, Breakpoints.Small, Breakpoints.Medium])
+      .observe([MOBILE_BREAKPOINT_QUERY])
       .pipe(map((state) => state.matches)),
     { initialValue: false },
   );
@@ -114,6 +116,8 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
           const sId = this.readServerId();
           const cId = this.readChannelId();
           this.serversStore.setActive(sId, cId);
+          // Đóng drawer trên mobile khi chuyển route
+          this.drawer()?.close();
         }),
     );
   }

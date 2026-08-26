@@ -326,6 +326,41 @@ describe('ChannelChatStore', () => {
       expect(target?.deletedAt).toBeNull();
     });
 
+    it('editMessage thành công: gọi API và cập nhật canonical message', async () => {
+      mockMessagesApi.editMessage.mockResolvedValueOnce({
+        id: '101',
+        channelId: 'chan-1',
+        conversationId: null,
+        authorId: 'user-1',
+        type: 'default',
+        content: 'Nội dung kênh đã sửa',
+        editedAt: '2026-08-26T12:00:00.000Z',
+        deletedAt: null,
+        isForwarded: false,
+        createdAt: '2026-08-24T00:00:00.000Z',
+      });
+
+      await store.editMessage('101', 'Nội dung kênh đã sửa');
+
+      expect(mockMessagesApi.editMessage).toHaveBeenCalledWith('101', { content: 'Nội dung kênh đã sửa' });
+      const target = store.messages().find((m) => m.id === '101');
+      expect(target?.content).toBe('Nội dung kênh đã sửa');
+      expect(target?.editedAt).toBe('2026-08-26T12:00:00.000Z');
+    });
+
+    it('editMessage thất bại: rollback snapshot và re-throw error', async () => {
+      mockMessagesApi.editMessage.mockRejectedValueOnce(new Error('Lỗi khi sửa tin nhắn kênh'));
+
+      await expect(
+        store.editMessage('101', 'Nội dung sửa thất bại'),
+      ).rejects.toThrow('Lỗi khi sửa tin nhắn kênh');
+
+      const target = store.messages().find((m) => m.id === '101');
+      expect(target?.content).toBe('Hello channel!');
+      expect(target?.editedAt).toBeNull();
+      expect(store.error()).toBe('Lỗi khi sửa tin nhắn kênh');
+    });
+
     it('nhận reactionUpdated$ và cập nhật reactions của message', () => {
       reactionUpdated$.next({
         channelId: 'chan-1',

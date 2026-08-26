@@ -669,12 +669,14 @@ export class ActiveChatStore implements OnDestroy {
   /**
    * Chỉnh sửa tin nhắn với Optimistic Update và Snapshot Rollback khi lỗi
    */
-  async editMessage(messageId: string, newContent: string): Promise<void> {
+  async editMessage(messageId: string, newContent: string): Promise<MessageResponseDto> {
     const convId = this._conversationId();
     const generation = this.currentGeneration;
 
     const prevSnapshot = this._messages().find((m) => m.id === messageId);
-    if (!prevSnapshot) return;
+    if (!prevSnapshot) {
+      throw new Error('Không tìm thấy tin nhắn cần chỉnh sửa.');
+    }
 
     // Optimistic update
     this._messages.update((list) =>
@@ -698,6 +700,7 @@ export class ActiveChatStore implements OnDestroy {
           list.map((m) => (m.id === messageId ? updated : m)),
         );
       }
+      return updated;
     } catch (err: unknown) {
       if (
         this._conversationId() === convId &&
@@ -707,10 +710,10 @@ export class ActiveChatStore implements OnDestroy {
         this._messages.update((list) =>
           list.map((m) => (m.id === messageId ? prevSnapshot : m)),
         );
-        this._error.set(
-          extractErrorMessage(err, 'Chỉnh sửa tin nhắn thất bại.'),
-        );
+        const errorMsg = extractErrorMessage(err, 'Chỉnh sửa tin nhắn thất bại.');
+        this._error.set(errorMsg);
       }
+      throw err;
     }
   }
 

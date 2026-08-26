@@ -6,6 +6,7 @@ import {
   MEMBER_DEFAULT_WIDTH,
   MEMBER_MAX_WIDTH,
   MEMBER_MIN_WIDTH,
+  MOBILE_BREAKPOINT,
   NAV_DEFAULT_WIDTH,
   NAV_MAX_WIDTH,
   NAV_MIN_WIDTH,
@@ -45,28 +46,59 @@ describe('DashboardLayoutService', () => {
     expect(service.navWidth()).toBe(320);
   });
 
-  it('tính toán effectiveMaxNavWidth dựa trên containerWidth và trừ đủ không gian main 560px', () => {
-    // Container rộng 1280px, server rail 72px, gap 32px, main min 560px -> 1280 - 72 - 560 - 32 = 616px > 380px -> max là 380px
+  it('tính toán effectiveMaxNavWidth dựa trên containerWidth và MAIN_MIN_WIDTH 360px', () => {
+    // 1. Container rộng 1280px -> 1280 - 72 - 360 - 32 = 816px > 380px -> max là 380px
     service.updateContainerWidth(1280);
     expect(service.effectiveMaxNavWidth()).toBe(NAV_MAX_WIDTH);
 
-    // Container hẹp 920px -> 920 - 72 - 560 - 32 = 256px -> effectiveMax là 256px
-    service.updateContainerWidth(920);
-    expect(service.effectiveMaxNavWidth()).toBe(256);
+    // 2. Container tablet 768px -> 768 - 72 - 360 - 32 = 304px
+    service.updateContainerWidth(768);
+    expect(service.effectiveMaxNavWidth()).toBe(304);
 
-    // Nếu navWidth đang là 300px, khi container hẹp 920px (max 256px), navWidth tự clamp về 256px
-    service.setNavWidth(300);
-    expect(service.navWidth()).toBe(256);
+    // 3. Nếu navWidth đang là 350px, khi container hẹp 768px (max 304px), navWidth tự clamp về 304px
+    service.setNavWidth(350);
+    expect(service.navWidth()).toBe(304);
   });
 
-  it('bật shouldForceCompact khi container quá nhỏ không đủ chứa min nav 240px + main 560px', () => {
-    // Container hẹp 800px -> 800 - 72 - 560 - 32 = 136px < 240px
-    service.updateContainerWidth(800);
-    expect(service.shouldForceCompact()).toBe(true);
+  it('chỉ trừ memberWidth vào effectiveMaxNavWidth khi containerWidth >= 1280px', () => {
+    // Dưới 1280px, context-panel là fixed overlay nên không trừ vào flex space của container
+    service.updateContainerWidth(1024);
+    service.setIsMemberOpen(true);
+    // 1024 - 72 - 360 - 0 - 32 = 560px > 380px -> max 380px
+    expect(service.effectiveMaxNavWidth()).toBe(NAV_MAX_WIDTH);
 
-    // Container tăng lại 1200px -> shouldForceCompact = false
-    service.updateContainerWidth(1200);
-    expect(service.shouldForceCompact()).toBe(false);
+    // Từ 1280px, context-panel là normal flow nên trừ memberWidth (280px)
+    service.updateContainerWidth(1280);
+    service.setIsMemberOpen(true);
+    // 1280 - 72 - 360 - 280 - 32 = 536px > 380px -> max 380px
+    expect(service.effectiveMaxNavWidth()).toBe(NAV_MAX_WIDTH);
+  });
+
+  describe('shouldForceCompact boundary values', () => {
+    it('bật compact (true) khi containerWidth < 768px', () => {
+      service.updateContainerWidth(375);
+      expect(service.shouldForceCompact()).toBe(true);
+
+      service.updateContainerWidth(600);
+      expect(service.shouldForceCompact()).toBe(true);
+
+      service.updateContainerWidth(767);
+      expect(service.shouldForceCompact()).toBe(true);
+    });
+
+    it('tắt compact (false) cho tablet và laptop/desktop từ 768px trở lên', () => {
+      service.updateContainerWidth(768);
+      expect(service.shouldForceCompact()).toBe(false);
+
+      service.updateContainerWidth(820);
+      expect(service.shouldForceCompact()).toBe(false);
+
+      service.updateContainerWidth(1024);
+      expect(service.shouldForceCompact()).toBe(false);
+
+      service.updateContainerWidth(1280);
+      expect(service.shouldForceCompact()).toBe(false);
+    });
   });
 
   it('khôi phục kích thước hợp lệ từ localStorage v2', () => {

@@ -18,3 +18,9 @@
   box-shadow: var(--shadow-glow);
 }
 
+@media (max-width: 767.98px) {
+  .chat-toolbar {
+    padding-left: 3.75rem !important;
+  }
+}
+

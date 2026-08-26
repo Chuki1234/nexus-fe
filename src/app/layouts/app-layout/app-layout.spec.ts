@@ -12,6 +12,7 @@ import { ChatSocketService } from '../../core/realtime/chat-socket.service';
 import { ServersStore } from '../../core/servers/servers.store';
 import { dashboardRoutes } from '../../features/dashboard/dashboard.routes';
 import { FriendsStore } from '../../features/dashboard/friends/services/friends-store';
+import { DashboardLayoutService } from './services/dashboard-layout.service';
 
 class AuthServiceStub {
   whenReady = () => Promise.resolve();
@@ -151,24 +152,39 @@ class DirectCallsApiServiceStub {
   getHistory = vi.fn().mockResolvedValue([]);
 }
 
+import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
+import { BehaviorSubject } from 'rxjs';
+
 describe('AppLayout', () => {
   let harness: RouterTestingHarness;
   let chatSocketStub: ChatSocketServiceStub;
+  let breakpointSubject$: BehaviorSubject<BreakpointState>;
 
-  const text = () => harness.routeNativeElement!.ownerDocument.body.textContent ?? '';
+  const text = () => harness.fixture?.nativeElement?.textContent ?? '';
   const query = (selector: string) =>
-    harness.routeNativeElement!.ownerDocument.body.querySelector(selector);
+    harness.fixture?.nativeElement?.querySelector(selector) ?? null;
   const queryAll = (selector: string) =>
-    Array.from(harness.routeNativeElement!.ownerDocument.body.querySelectorAll(selector));
+    harness.fixture?.nativeElement
+      ? Array.from(harness.fixture.nativeElement.querySelectorAll(selector))
+      : [];
 
   beforeEach(async () => {
+    document.body.innerHTML = '';
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
     chatSocketStub = new ChatSocketServiceStub();
+    breakpointSubject$ = new BehaviorSubject<BreakpointState>({ matches: false, breakpoints: {} });
 
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'channels', children: dashboardRoutes }]),
+        {
+          provide: BreakpointObserver,
+          useValue: {
+            observe: vi.fn().mockReturnValue(breakpointSubject$.asObservable()),
+            isMatched: vi.fn().mockImplementation(() => breakpointSubject$.value.matches),
+          },
+        },
         { provide: AuthService, useValue: new AuthServiceStub() },
         { provide: ProfileService, useValue: new ProfileServiceStub() },
         { provide: ServersApiService, useValue: new ServersApiServiceStub() },
@@ -179,6 +195,8 @@ describe('AppLayout', () => {
         { provide: DirectCallsApiService, useValue: new DirectCallsApiServiceStub() },
       ],
     });
+    const layoutService = TestBed.inject(DashboardLayoutService);
+    layoutService.updateContainerWidth(1280);
     harness = await RouterTestingHarness.create();
   });
 
@@ -305,5 +323,62 @@ describe('AppLayout', () => {
     handle.dispatchEvent(new MouseEvent('dblclick'));
     TestBed.tick();
     expect(handle.getAttribute('aria-valuenow')).toBe('280');
+  });
+
+  it('trên tablet/desktop (viewport >= 768px): hiển thị desktop navigation và không render nút hamburger trong DOM', async () => {
+    const layoutService = TestBed.inject(DashboardLayoutService);
+    layoutService.updateContainerWidth(768);
+    breakpointSubject$.next({ matches: false, breakpoints: {} });
+    await harness.navigateByUrl('/channels/@me');
+    harness.detectChanges();
+
+    expect(query('.dashboard-desktop-nav-shell')).toBeTruthy();
+    expect(query('app-server-rail')).toBeTruthy();
+    expect(query('app-channel-sidebar')).toBeTruthy();
+    expect(query('.pane-resize-handle--nav')).toBeTruthy();
+    // Nút hamburger hoàn toàn không tồn tại trong DOM
+    expect(query('.dashboard-mobile-menu-trigger')).toBeNull();
+    expect(query('mat-sidenav-container.dashboard-mobile-container')).toBeNull();
+  });
+
+  it('trên mobile (viewport < 768px): chuyển sang drawer và hiển thị nút hamburger nằm trọn trong workspace', async () => {
+    const layoutService = TestBed.inject(DashboardLayoutService);
+    layoutService.updateContainerWidth(375);
+    breakpointSubject$.next({ matches: true, breakpoints: {} });
+    await harness.navigateByUrl('/channels/@me');
+    harness.detectChanges();
+
+    // Desktop nav shell không còn trong DOM chính
+    expect(query('.dashboard-desktop-nav-shell')).toBeNull();
+
+    // Mobile container và drawer xuất hiện
+    expect(query('mat-sidenav-container.dashboard-mobile-container')).toBeTruthy();
+
+    // Nút hamburger nằm trọn bên trong dashboard-workspace
+    const workspace = query('.dashboard-workspace') as HTMLElement;
+    expect(workspace).toBeTruthy();
+    expect(workspace.classList.contains('relative')).toBe(true);
+
+    const hamburger = query('.dashboard-workspace .dashboard-mobile-menu-trigger') as HTMLButtonElement;
+    expect(hamburger).toBeTruthy();
+    expect(hamburger.getAttribute('type')).toBe('button');
+    expect(hamburger.getAttribute('aria-label')).toBe('Mở danh sách kênh');
+  });
+
+  it('trên mobile: bấm nút hamburger kích hoạt toggle drawer', async () => {
+    const layoutService = TestBed.inject(DashboardLayoutService);
+    layoutService.updateContainerWidth(375);
+    breakpointSubject$.next({ matches: true, breakpoints: {} });
+    await harness.navigateByUrl('/channels/@me');
+    harness.detectChanges();
+
+    const hamburger = query('.dashboard-workspace .dashboard-mobile-menu-trigger') as HTMLButtonElement;
+    expect(hamburger).toBeTruthy();
+
+    hamburger.click();
+    harness.detectChanges();
+
+    const drawer = query('mat-sidenav.dashboard-nav-drawer') as HTMLElement;
+    expect(drawer).toBeTruthy();
   });
 });

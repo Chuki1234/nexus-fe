@@ -1,42 +1,32 @@
+import '@angular/compiler';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { environment } from '../../../environments/environment';
-import { GiphyApiService, GiphySearchResponse } from './giphy-api.service';
+import { GiphyMediaDto } from '../../../shared/dto/messages.dto';
+import { GiphyApiService } from './giphy-api.service';
 
 describe('GiphyApiService', () => {
   let service: GiphyApiService;
   let httpMock: HttpTestingController;
 
-  const mockTrendingResponse: GiphySearchResponse = {
-    data: [
-      {
-        id: 'testGif123',
-        title: 'Happy Dance GIF by Cat',
-        url: 'https://giphy.com/gifs/cat-testGif123',
-        username: 'catvibes',
-        images: {
-          original: {
-            url: 'https://media0.giphy.com/media/testGif123/giphy.gif',
-            width: '480',
-            height: '360',
-            mp4: 'https://media1.giphy.com/media/testGif123/giphy.mp4',
-            webp: 'https://media0.giphy.com/media/testGif123/giphy.webp',
-          },
-          fixed_width: {
-            url: 'https://media0.giphy.com/media/testGif123/200w.gif',
-            width: '200',
-            height: '150',
-            mp4: 'https://media1.giphy.com/media/testGif123/200w.mp4',
-            webp: 'https://media0.giphy.com/media/testGif123/200w.webp',
-          },
-        },
-      },
-    ],
-    pagination: { total_count: 1, count: 1, offset: 0 },
-    meta: { status: 200, msg: 'OK' },
-  };
+  const mockTrendingDtos: GiphyMediaDto[] = [
+    {
+      provider: 'giphy',
+      externalId: 'testGif123',
+      mediaType: 'gif',
+      title: 'Happy Dance GIF by Cat',
+      creatorUsername: 'catvibes',
+      pageUrl: 'https://giphy.com/gifs/cat-testGif123',
+      previewUrl: 'https://media0.giphy.com/media/testGif123/200w.webp',
+      displayUrl: 'https://media0.giphy.com/media/testGif123/giphy.gif',
+      mp4Url: 'https://media1.giphy.com/media/testGif123/200w.mp4',
+      width: 480,
+      height: 360,
+    },
+  ];
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -52,42 +42,24 @@ describe('GiphyApiService', () => {
 
   afterEach(() => {
     httpMock.verify();
-    environment.giphyApiKey = '';
   });
 
-  it('hasApiKey() trả về false khi apiKey rỗng hoặc là placeholder', () => {
-    environment.giphyApiKey = '';
-    expect(service.hasApiKey()).toBe(false);
-
-    environment.giphyApiKey = '   ';
-    expect(service.hasApiKey()).toBe(false);
-
-    environment.giphyApiKey = 'GIPHY_API_KEY_PLACEHOLDER';
-    expect(service.hasApiKey()).toBe(false);
-
-    environment.giphyApiKey = 'valid_test_key';
+  it('hasApiKey() trả về true khi apiUrl được định nghĩa', () => {
     expect(service.hasApiKey()).toBe(true);
   });
 
-  it('getTrending() không phát HTTP request và trả về lỗi nếu chưa cấu hình API key', async () => {
-    environment.giphyApiKey = '';
-    await expect(firstValueFrom(service.getTrending())).rejects.toThrow('GIPHY_API_KEY_NOT_CONFIGURED');
-    httpMock.expectNone('https://api.giphy.com/v1/gifs/trending');
-  });
-
-  it('getTrending() gửi đúng params và parse dữ liệu chuẩn khi có API key', async () => {
-    environment.giphyApiKey = 'test_api_key_123';
-
+  it('getTrending() gửi đúng params tới endpoint backend proxy', async () => {
     const promise = firstValueFrom(service.getTrending(20, 0));
 
-    const req = httpMock.expectOne((r) => r.url === 'https://api.giphy.com/v1/gifs/trending');
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${environment.apiUrl}/giphy/trending` &&
+        r.params.get('limit') === '20' &&
+        r.params.get('offset') === '0',
+    );
     expect(req.request.method).toBe('GET');
-    expect(req.request.params.get('api_key')).toBe('test_api_key_123');
-    expect(req.request.params.get('limit')).toBe('20');
-    expect(req.request.params.get('offset')).toBe('0');
-    expect(req.request.params.get('rating')).toBe('g');
 
-    req.flush(mockTrendingResponse);
+    req.flush(mockTrendingDtos);
     const dtos = await promise;
 
     expect(dtos).toHaveLength(1);
@@ -104,18 +76,19 @@ describe('GiphyApiService', () => {
     expect(gif.displayUrl).toBe('https://media0.giphy.com/media/testGif123/giphy.gif');
   });
 
-  it('searchGifs() gửi đúng từ khóa tìm kiếm và query params', async () => {
-    environment.giphyApiKey = 'test_api_key_123';
-
+  it('searchGifs() gửi đúng từ khóa tìm kiếm và query params tới backend proxy', async () => {
     const promise = firstValueFrom(service.searchGifs('mèo cute', 15, 0));
 
-    const req = httpMock.expectOne((r) => r.url === 'https://api.giphy.com/v1/gifs/search');
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${environment.apiUrl}/giphy/search` &&
+        r.params.get('q') === 'mèo cute' &&
+        r.params.get('limit') === '15' &&
+        r.params.get('offset') === '0',
+    );
     expect(req.request.method).toBe('GET');
-    expect(req.request.params.get('q')).toBe('mèo cute');
-    expect(req.request.params.get('lang')).toBe('vi');
-    expect(req.request.params.get('limit')).toBe('15');
 
-    req.flush(mockTrendingResponse);
+    req.flush(mockTrendingDtos);
     const dtos = await promise;
 
     expect(dtos).toHaveLength(1);
@@ -123,11 +96,9 @@ describe('GiphyApiService', () => {
   });
 
   it('sử dụng session cache khi gọi lại cùng query mà không phát HTTP request mới', async () => {
-    environment.giphyApiKey = 'test_api_key_123';
-
     const promise1 = firstValueFrom(service.searchGifs('dog', 24, 0));
-    const req = httpMock.expectOne((r) => r.url === 'https://api.giphy.com/v1/gifs/search');
-    req.flush(mockTrendingResponse);
+    const req = httpMock.expectOne((r) => r.url === `${environment.apiUrl}/giphy/search`);
+    req.flush(mockTrendingDtos);
     const firstResult = await promise1;
     expect(firstResult).toHaveLength(1);
 
@@ -137,41 +108,5 @@ describe('GiphyApiService', () => {
 
     // Không có request thứ 2 nào được gửi đi
     httpMock.verify();
-  });
-
-  it('xử lý an toàn khi API trả về metadata rỗng hoặc kích thước không hợp lệ', async () => {
-    environment.giphyApiKey = 'test_api_key_123';
-
-    const malformedResponse: GiphySearchResponse = {
-      data: [
-        {
-          id: 'malformed1',
-          title: '',
-          images: {
-            original: {
-              url: 'https://media.giphy.com/media/m1/giphy.gif',
-              width: 'invalid_number',
-              height: 'NaN',
-            },
-          },
-        },
-        {
-          id: 'missingUrls',
-          images: {},
-        },
-      ],
-    };
-
-    const promise = firstValueFrom(service.getTrending());
-    const req = httpMock.expectOne((r) => r.url === 'https://api.giphy.com/v1/gifs/trending');
-    req.flush(malformedResponse);
-
-    const dtos = await promise;
-    // Chỉ item có displayUrl và previewUrl mới được giữ lại
-    expect(dtos).toHaveLength(1);
-    expect(dtos[0].externalId).toBe('malformed1');
-    expect(dtos[0].title).toBe('GIF');
-    expect(dtos[0].width).toBe(480); // Default fallback
-    expect(dtos[0].height).toBe(360);
   });
 });
