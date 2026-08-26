@@ -1,4 +1,4 @@
-// Tự động tạo bởi scripts/generate-local-env.mjs từ .env.local (Không commit file này vào git)
+// Tự động tạo bởi scripts/generate-local-env.mjs từ .env / .env.local (Không commit file này vào git)
 export interface AppEnvironment {
   supabaseUrl: string;
   supabaseKey: string;

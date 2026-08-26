@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { AccountDisabledService } from '../../../../core/auth/account-disabled.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
 import { UserSettingsService } from '../../services/user-settings.service';
 import { TwoFactorService } from '../../services/two-factor.service';
@@ -210,5 +213,97 @@ export class AccountTab implements OnInit {
 
   protected cancelDisable2fa(): void {
     this.wizardStep.set('idle');
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // DANGER ZONE ACTIONS (Vô hiệu hóa & Xóa tài khoản)
+  // ══════════════════════════════════════════════════════════════════════
+  protected readonly authService = inject(AuthService);
+  protected readonly accountDisabled = inject(AccountDisabledService);
+  protected readonly router = inject(Router);
+
+  protected readonly showDisableModal = signal<boolean>(false);
+  protected readonly showDeleteModal = signal<boolean>(false);
+  protected readonly disableDuration = signal<number | null>(null);
+  protected readonly disableReason = signal<string>('Tạm thời nghỉ ngơi');
+  protected readonly deleteConfirmEmail = signal<string>('');
+  protected readonly isDeleting = signal<boolean>(false);
+  protected readonly deleteError = signal<string | null>(null);
+
+  protected openDisableModal(): void {
+    this.disableDuration.set(null);
+    this.disableReason.set('Tạm thời nghỉ ngơi');
+    this.showDisableModal.set(true);
+  }
+
+  protected closeDisableModal(): void {
+    this.showDisableModal.set(false);
+  }
+
+  protected async confirmDisableAccount(): Promise<void> {
+    const prof = this.profile();
+    const duration = this.disableDuration();
+    let durationLabel = 'Vô thời hạn';
+    if (duration === 1440) durationLabel = '1 ngày';
+    else if (duration === 10080) durationLabel = '7 ngày';
+    else if (duration === 43200) durationLabel = '30 ngày';
+
+    this.accountDisabled.disableAccount({
+      userId: prof?.id,
+      email: this.email(),
+      username: this.username(),
+      displayName: prof?.displayName || this.username(),
+      durationMinutes: duration,
+      durationLabel,
+      reason: this.disableReason(),
+    });
+
+    this.showDisableModal.set(false);
+    this.settingsService.close();
+    await this.authService.signOut();
+    await this.router.navigate(['/login']);
+  }
+
+  protected openDeleteModal(): void {
+    this.deleteConfirmEmail.set('');
+    this.deleteError.set(null);
+    this.isDeleting.set(false);
+    this.showDeleteModal.set(true);
+  }
+
+  protected closeDeleteModal(): void {
+    this.showDeleteModal.set(false);
+    this.deleteError.set(null);
+    this.isDeleting.set(false);
+  }
+
+  protected async confirmDeleteAccount(): Promise<void> {
+    const enteredEmail = this.deleteConfirmEmail().trim().toLowerCase();
+    const currentEmail = (this.email() || '').trim().toLowerCase();
+
+    if (!enteredEmail) {
+      this.deleteError.set('Vui lòng nhập địa chỉ email của bạn để xác nhận.');
+      return;
+    }
+
+    if (enteredEmail !== currentEmail) {
+      this.deleteError.set('Địa chỉ email nhập vào không khớp với tài khoản hiện tại.');
+      return;
+    }
+
+    this.isDeleting.set(true);
+    this.deleteError.set(null);
+
+    try {
+      await this.authService.deleteAccount(currentEmail);
+      this.showDeleteModal.set(false);
+      this.settingsService.close();
+      await this.router.navigate(['/login']);
+    } catch (err: unknown) {
+      const error = err as Error;
+      this.deleteError.set(error?.message || 'Không thể xóa tài khoản. Vui lòng thử lại sau.');
+    } finally {
+      this.isDeleting.set(false);
+    }
   }
 }
