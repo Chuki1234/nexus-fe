@@ -14,10 +14,11 @@ const FILL: Record<PresenceStatus, string> = {
   offline: 'bg-[#64748b]',
 };
 
-const SIZE: Record<'sm' | 'md' | 'lg', string> = {
+const SIZE: Record<'sm' | 'md' | 'lg' | 'xl', string> = {
   sm: 'size-2.5',
   md: 'size-3',
   lg: 'size-4',
+  xl: 'size-5.5',
 };
 
 /**
@@ -35,7 +36,7 @@ const SIZE: Record<'sm' | 'md' | 'lg', string> = {
 })
 export class StatusDot {
   readonly presence = input.required<PresenceStatus>();
-  readonly size = input<'sm' | 'md' | 'lg'>('md');
+  readonly size = input<'sm' | 'md' | 'lg' | 'xl'>('md');
   /** Nền bao quanh chấm. 'none' khi chấm đứng riêng, không đè lên gì. */
   readonly ring = input<'canvas' | 'surface' | 'none'>('none');
 

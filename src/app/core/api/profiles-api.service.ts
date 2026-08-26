@@ -105,6 +105,21 @@ export class ProfilesApiService {
     );
   }
 
+  /**
+   * Đổi ngày sinh — đường riêng, tách khỏi `update()` vì đây là dữ liệu kiểm
+   * tra tuổi (khớp `SetBirthdateDto` bên backend), không phải thông tin
+   * trang trí hồ sơ.
+   */
+  async setBirthdate(birthdate: string): Promise<OwnProfile> {
+    return firstValueFrom(
+      this.http.put<OwnProfile>(
+        `${this.baseUrl}/me/birthdate`,
+        { birthdate },
+        { headers: await this.authHeaders() },
+      ),
+    );
+  }
+
   /** Tìm người khác theo username hoặc tên hiển thị. */
   async search(query: string): Promise<ProfileSummary[]> {
     return firstValueFrom(
@@ -112,6 +127,29 @@ export class ProfilesApiService {
         params: { q: query },
         headers: await this.authHeaders(),
       }),
+    );
+  }
+
+  /**
+   * Ghi chú RIÊNG của mình về người này — không phải dữ liệu của hồ sơ họ,
+   * nên đi API riêng thay vì nằm trong `getByUsername()`.
+   */
+  async getNote(username: string): Promise<{ text: string }> {
+    return firstValueFrom(
+      this.http.get<{ text: string }>(`${this.baseUrl}/${encodeURIComponent(username)}/note`, {
+        headers: await this.authHeaders(),
+      }),
+    );
+  }
+
+  /** Lưu ghi chú. Chuỗi rỗng = xoá. */
+  async setNote(username: string, text: string): Promise<{ text: string }> {
+    return firstValueFrom(
+      this.http.put<{ text: string }>(
+        `${this.baseUrl}/${encodeURIComponent(username)}/note`,
+        { text },
+        { headers: await this.authHeaders() },
+      ),
     );
   }
 

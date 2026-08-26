@@ -1,0 +1,467 @@
+<div>
+  <section class="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:py-10">
+    <!-- Page Header -->
+    <header class="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-hairline/80 pb-6">
+      <div>
+        <div class="flex items-center gap-2 text-eyebrow text-primary uppercase font-bold tracking-wider">
+          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {{ 'settings.nav.profile' | translate }}
+        </div>
+        <h1 class="mt-1 text-display-md font-bold text-ink-strong tracking-tight">Chỉnh sửa hồ sơ cá nhân</h1>
+        <p class="mt-1 text-body-md text-body">
+          Tùy chỉnh sự hiện diện của bạn trên hệ thống Nexus và xem trước trực tiếp thay đổi.
+        </p>
+      </div>
+
+      @if (profile(); as person) {
+        <a
+          [routerLink]="['/u', person.username]"
+          class="inline-flex items-center gap-2 rounded-lg border border-hairline-strong bg-canvas-soft px-4 py-2.5 text-button font-semibold text-ink transition-colors hover:border-primary hover:text-primary"
+        >
+          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          {{ 'settings.account.viewProfile' | translate }}
+        </a>
+      }
+    </header>
+
+    @if (loading()) {
+      <div class="animate-pulse space-y-6">
+        <div class="h-64 rounded-xl border border-hairline bg-canvas-soft"></div>
+        <div class="h-32 rounded-xl border border-hairline bg-canvas-soft"></div>
+      </div>
+      <p aria-live="polite" class="sr-only">Đang tải hồ sơ.</p>
+    } @else if (!profile()) {
+      <div
+        role="alert"
+        class="rounded-xl border border-danger-border/60 bg-danger-surface/40 p-6 text-body-sm text-ink backdrop-blur-md"
+      >
+        {{ errorMessage() ?? 'Không đọc được hồ sơ.' }}
+      </div>
+    } @else {
+      <!-- 2 Column Split Layout: Form & Live Preview -->
+      <div class="grid gap-8 lg:grid-cols-12">
+
+        <!-- LEFT COLUMN: Form Controls -->
+        <div class="space-y-8 lg:col-span-7">
+
+          <!-- ── Image Upload Section ── -->
+          <section aria-labelledby="images-heading" class="rounded-xl border border-hairline bg-canvas-soft/60 p-6 backdrop-blur-md">
+            <h2 id="images-heading" class="text-eyebrow text-mute uppercase font-bold tracking-wider flex items-center gap-2">
+              <svg class="size-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Hình ảnh ảnh bìa & ảnh đại diện
+            </h2>
+
+            @if (imageError(); as message) {
+              <div
+                role="alert"
+                class="mt-4 rounded-lg border border-danger-border bg-danger-surface p-4 text-body-sm text-ink"
+              >
+                {{ message }}
+              </div>
+            }
+
+            <!-- Banner Upload Zone -->
+            <div class="mt-4 space-y-3">
+              <span class="block text-body-sm-strong font-semibold text-ink">Ảnh bìa</span>
+              <div class="relative group aspect-[3/1] w-full overflow-hidden rounded-xl border border-hairline bg-canvas shadow-inner">
+                @if (profile()!.bannerUrl; as banner) {
+                  <img [src]="banner" alt="" decoding="async" class="size-full object-cover transition-transform group-hover:scale-105" />
+                } @else {
+                  <div
+                    class="size-full flex items-center justify-center text-mute"
+                    [style.background]="'linear-gradient(135deg, ' + bannerColorPreview() + ' 0%, #101010 100%)'"
+                  >
+                    <span class="text-caption font-semibold">Chưa có ảnh bìa (Đang dùng màu mặc định)</span>
+                  </div>
+                }
+              </div>
+
+              <div class="flex flex-wrap items-center gap-3">
+                <label
+                  class="cursor-pointer inline-flex items-center gap-2 rounded-lg border border-hairline-strong bg-canvas px-4 py-2 text-button text-ink transition-all hover:border-primary hover:text-primary focus-within:outline focus-within:outline-2 focus-within:outline-primary"
+                >
+                  <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  {{ profile()!.bannerUrl ? 'Tải ảnh bìa mới' : 'Tải ảnh bìa' }}
+                  <input
+                    type="file"
+                    class="sr-only"
+                    [accept]="imageAccept"
+                    [disabled]="busyImage() !== null"
+                    (change)="onPickImage('banner', $event)"
+                  />
+                </label>
+
+                @if (profile()!.bannerUrl) {
+                  <button
+                    type="button"
+                    (click)="onRemoveImage('banner')"
+                    [disabled]="busyImage() !== null"
+                    class="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-button text-body transition-colors hover:bg-danger-surface hover:text-danger disabled:cursor-not-allowed disabled:text-mute"
+                  >
+                    Gỡ ảnh bìa
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Accent Color Picker -->
+            <div class="mt-6 border-t border-hairline/60 pt-6">
+              <span class="mb-1 block text-body-sm-strong font-semibold text-ink">
+                {{ 'profile.accent.title' | translate }}
+              </span>
+              <p class="mb-3 text-caption text-mute">{{ 'profile.accent.hint' | translate }}</p>
+
+              <div
+                role="radiogroup"
+                [attr.aria-label]="'profile.accent.title' | translate"
+                class="flex flex-wrap items-center gap-2.5"
+              >
+                <button
+                  type="button"
+                  role="radio"
+                  [attr.aria-checked]="selectedAccent() === null"
+                  (click)="selectAccent(null)"
+                  [title]="('profile.accent.auto' | translate) + ' — ' + ('profile.accent.autoHint' | translate)"
+                  [class.border-primary]="selectedAccent() === null"
+                  [class.border-hairline-strong]="selectedAccent() !== null"
+                  class="relative flex size-9 items-center justify-center rounded-full border-2 bg-canvas text-mute transition-all hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <svg aria-hidden="true" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0114.13-5.36M20 15a9 9 0 01-14.13 5.36" />
+                  </svg>
+                  <span class="sr-only">{{ 'profile.accent.auto' | translate }}</span>
+                  @if (selectedAccent() === null) {
+                    <span
+                      aria-hidden="true"
+                      class="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-on-primary shadow-modal"
+                    >
+                      <svg class="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                  }
+                </button>
+
+                @for (color of accentColors; track color; let i = $index) {
+                  <button
+                    type="button"
+                    role="radio"
+                    [attr.aria-checked]="selectedAccent() === color"
+                    (click)="selectAccent(color)"
+                    [style.background-color]="color"
+                    [title]="
+                      ('profile.accent.swatchLabel' | translate) +
+                      ' ' +
+                      (i + 1) +
+                      (selectedAccent() === color ? ' — ' + ('profile.accent.selected' | translate) : '')
+                    "
+                    [class.ring-ink-strong]="selectedAccent() === color"
+                    [class.ring-transparent]="selectedAccent() !== color"
+                    class="relative flex size-9 items-center justify-center rounded-full ring-2 ring-offset-2 ring-offset-canvas transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <span class="sr-only">{{ 'profile.accent.swatchLabel' | translate }} {{ i + 1 }}</span>
+                    @if (selectedAccent() === color) {
+                      <!-- Dấu tick, không chỉ đổi viền: màu sắc không được là
+                           cách truyền đạt duy nhất (WCAG 1.4.1). -->
+                      <svg aria-hidden="true" class="size-4 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Avatar Upload Zone -->
+            <div class="mt-6 border-t border-hairline/60 pt-6">
+              <span class="block text-body-sm-strong font-semibold text-ink mb-3">Ảnh đại diện</span>
+              <div class="flex flex-wrap items-center gap-5">
+                <div class="inline-flex rounded-full ring-4 ring-canvas shadow-glow">
+                  <app-avatar [src]="profile()!.avatarUrl" [name]="name()" size="md" />
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                  <label
+                    class="cursor-pointer inline-flex items-center gap-2 rounded-lg border border-hairline-strong bg-canvas px-4 py-2 text-button text-ink transition-all hover:border-primary hover:text-primary focus-within:outline focus-within:outline-2 focus-within:outline-primary"
+                  >
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    {{ profile()!.avatarUrl ? 'Thay đổi ảnh' : 'Tải ảnh avatar' }}
+                    <input
+                      type="file"
+                      class="sr-only"
+                      [accept]="imageAccept"
+                      [disabled]="busyImage() !== null"
+                      (change)="onPickImage('avatar', $event)"
+                    />
+                  </label>
+
+                  @if (profile()!.avatarUrl) {
+                    <button
+                      type="button"
+                      (click)="onRemoveImage('avatar')"
+                      [disabled]="busyImage() !== null"
+                      class="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-button text-body transition-colors hover:bg-danger-surface hover:text-danger disabled:cursor-not-allowed disabled:text-mute"
+                    >
+                      Gỡ avatar
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Main Profile Form ── -->
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="space-y-6">
+            @if (errorMessage(); as message) {
+              <div
+                role="alert"
+                class="rounded-lg border border-danger-border bg-danger-surface p-4 text-body-sm text-ink"
+              >
+                {{ message }}
+              </div>
+            }
+
+            <section aria-labelledby="info-heading" class="rounded-xl border border-hairline bg-canvas-soft/60 p-6 backdrop-blur-md space-y-5">
+              <h2 id="info-heading" class="text-eyebrow text-mute uppercase font-bold tracking-wider flex items-center gap-2">
+                <svg class="size-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Thông tin cá nhân
+              </h2>
+
+              <!-- Display Name -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label for="displayName" class="block text-body-sm-strong font-semibold text-ink">
+                    Tên hiển thị
+                  </label>
+                  <span class="text-caption text-mute">{{ displayNameValue() ? displayNameValue()!.length : 0 }}/{{ displayNameMax }}</span>
+                </div>
+                <input
+                  id="displayName"
+                  type="text"
+                  formControlName="displayName"
+                  autocomplete="nickname"
+                  placeholder="Nhập tên của bạn..."
+                  [attr.aria-invalid]="showError('displayName')"
+                  class="w-full rounded-lg border border-hairline-strong bg-canvas px-4 py-2.5 text-body-sm text-ink placeholder:text-mute focus:border-primary aria-invalid:border-danger transition-colors"
+                />
+                @if (showError('displayName')) {
+                  <p id="displayName-error" class="mt-1.5 text-caption text-danger">
+                    Tên hiển thị tối đa {{ displayNameMax }} ký tự.
+                  </p>
+                }
+              </div>
+
+              <!-- Status Message -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label for="statusMessage" class="block text-body-sm-strong font-semibold text-ink">
+                    Dòng trạng thái
+                  </label>
+                  <span class="text-caption text-mute">Còn {{ statusRemaining() }} ký tự</span>
+                </div>
+                <input
+                  id="statusMessage"
+                  type="text"
+                  formControlName="statusMessage"
+                  placeholder="Ví dụ: Đang lập trình dự án Nexus..."
+                  [attr.aria-invalid]="showError('statusMessage')"
+                  class="w-full rounded-lg border border-hairline-strong bg-canvas px-4 py-2.5 text-body-sm text-ink placeholder:text-mute focus:border-primary aria-invalid:border-danger transition-colors"
+                />
+                @if (showError('statusMessage')) {
+                  <p id="statusMessage-error" class="mt-1.5 text-caption text-danger">
+                    Dòng trạng thái tối đa {{ statusMessageMax }} ký tự.
+                  </p>
+                }
+              </div>
+
+              <!-- Bio -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label for="bio" class="block text-body-sm-strong font-semibold text-ink">Giới thiệu bản thân</label>
+                  <span class="text-caption text-mute">Còn {{ bioRemaining() }} ký tự</span>
+                </div>
+                <textarea
+                  id="bio"
+                  rows="4"
+                  formControlName="bio"
+                  placeholder="Chia sẻ đôi điều về bạn..."
+                  [attr.aria-invalid]="showError('bio')"
+                  class="w-full rounded-lg border border-hairline-strong bg-canvas px-4 py-2.5 text-body-sm text-ink placeholder:text-mute focus:border-primary aria-invalid:border-danger transition-colors"
+                ></textarea>
+                @if (showError('bio')) {
+                  <p id="bio-error" class="mt-1.5 text-caption text-danger">
+                    Giới thiệu tối đa {{ bioMax }} ký tự.
+                  </p>
+                }
+              </div>
+
+              <!-- Location -->
+              <div>
+                <label for="location" class="mb-2 block text-body-sm-strong font-semibold text-ink">Nơi ở</label>
+                <input
+                  id="location"
+                  type="text"
+                  formControlName="location"
+                  autocomplete="address-level2"
+                  placeholder="Ví dụ: Hà Nội, Việt Nam"
+                  [attr.aria-invalid]="showError('location')"
+                  class="w-full rounded-lg border border-hairline-strong bg-canvas px-4 py-2.5 text-body-sm text-ink placeholder:text-mute focus:border-primary aria-invalid:border-danger transition-colors"
+                />
+                @if (showError('location')) {
+                  <p id="location-error" class="mt-1.5 text-caption text-danger">
+                    Nơi ở tối đa {{ locationMax }} ký tự.
+                  </p>
+                }
+              </div>
+            </section>
+
+            <!-- ── Social Links Section ── -->
+            <section aria-labelledby="links-heading" class="rounded-xl border border-hairline bg-canvas-soft/60 p-6 backdrop-blur-md space-y-4" formArrayName="links">
+              <div class="flex items-center justify-between">
+                <h2 id="links-heading" class="text-eyebrow text-mute uppercase font-bold tracking-wider flex items-center gap-2">
+                  <svg class="size-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  Liên kết mạng xã hội
+                </h2>
+                <span class="text-caption text-mute">Tối đa {{ maxLinks }} liên kết</span>
+              </div>
+
+              @for (group of links.controls; track $index) {
+                <fieldset [formGroupName]="$index" class="rounded-lg border border-hairline bg-canvas/60 p-4 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <legend class="text-caption-strong font-bold text-primary">Liên kết #{{ $index + 1 }}</legend>
+                    <button
+                      type="button"
+                      (click)="removeLink($index)"
+                      class="text-caption text-mute transition-colors hover:text-danger"
+                    >
+                      Xoá
+                    </button>
+                  </div>
+
+                  <div class="grid gap-3 sm:grid-cols-3">
+                    <div class="sm:col-span-1">
+                      <label [for]="'link-label-' + $index" class="mb-1 block text-caption-strong text-ink">Nhãn</label>
+                      <input
+                        [id]="'link-label-' + $index"
+                        type="text"
+                        formControlName="label"
+                        placeholder="VD: GitHub"
+                        [maxlength]="linkLabelMax"
+                        class="w-full rounded-md border border-hairline-strong bg-canvas-soft px-3 py-2 text-body-sm text-ink placeholder:text-mute focus:border-primary"
+                      />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                      <label [for]="'link-url-' + $index" class="mb-1 block text-caption-strong text-ink">Địa chỉ (https://)</label>
+                      <input
+                        [id]="'link-url-' + $index"
+                        type="url"
+                        formControlName="url"
+                        placeholder="https://github.com/username"
+                        [maxlength]="linkUrlMax"
+                        class="w-full rounded-md border border-hairline-strong bg-canvas-soft px-3 py-2 text-body-sm text-ink placeholder:text-mute focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                </fieldset>
+              }
+
+              @if (links.length < maxLinks) {
+                <button
+                  type="button"
+                  (click)="addLink()"
+                  class="inline-flex items-center gap-2 rounded-lg border border-dashed border-hairline-strong px-4 py-2.5 text-button text-ink transition-colors hover:border-primary hover:text-primary"
+                >
+                  <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Thêm liên kết mới
+                </button>
+              }
+            </section>
+
+            <!-- Save Action Bar -->
+            <div class="flex items-center gap-4 pt-2">
+              <button
+                type="submit"
+                [disabled]="saving()"
+                class="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-button font-semibold text-on-primary shadow-glow transition-all hover:bg-primary-soft hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                @if (saving()) {
+                  <svg class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Đang lưu…
+                } @else {
+                  <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Lưu thay đổi
+                }
+              </button>
+
+              @if (saved()) {
+                <span class="inline-flex items-center gap-1.5 text-body-sm font-semibold text-emerald-400">
+                  <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Đã cập nhật thành công!
+                </span>
+              }
+            </div>
+          </form>
+        </div>
+
+        <!-- RIGHT COLUMN: Live Profile Preview -->
+        <div class="lg:col-span-5">
+          <div class="sticky top-20 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-caption-strong text-mute uppercase font-bold tracking-wider flex items-center gap-1.5">
+                <span class="size-2 rounded-full bg-primary animate-pulse"></span>
+                Xem trước trực tiếp
+              </span>
+              <span class="text-caption text-mute">Cập nhật thời gian thực</span>
+            </div>
+
+            <!-- Không gọi API: chỉ gộp hồ sơ đã lưu với giá trị đang gõ dở
+                 trong form. Ảnh không có bước "xem trước chưa lưu" vì đã tải
+                 lên ngay khi chọn (xem onPickImage) — busyImage() bật lớp mờ
+                 đúng lúc request đang chạy. -->
+            <app-profile-preview-card
+              [displayName]="previewName()"
+              [username]="profile()!.username"
+              [avatarUrl]="profile()!.avatarUrl"
+              [bannerUrl]="profile()!.bannerUrl"
+              [accentColor]="selectedAccent()"
+              [statusMessage]="statusValue() || null"
+              [location]="locationValue() || null"
+              [bio]="bioValue() || null"
+              [links]="linksValue()"
+              [avatarBusy]="busyImage() === 'avatar'"
+              [bannerBusy]="busyImage() === 'banner'"
+            />
+          </div>
+        </div>
+
+      </div>
+    }
+  </section>
+</div>
+

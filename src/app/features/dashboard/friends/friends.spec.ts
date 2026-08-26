@@ -16,6 +16,7 @@ describe('FriendsPage', () => {
     {
       id: 'mai',
       name: 'Mai',
+      username: null,
       statusMessage: 'Đang học Angular',
       presence: 'online',
       unread: false,
@@ -23,6 +24,7 @@ describe('FriendsPage', () => {
     {
       id: 'nam',
       name: 'Nam',
+      username: null,
       statusMessage: null,
       presence: 'offline',
       unread: false,

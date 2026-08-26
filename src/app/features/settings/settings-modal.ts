@@ -13,6 +13,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
+import { ConnectedAppsService } from '../profile/connected-apps.service';
+import { CUSTOM_LINK_COLOR, tint } from '../profile/connected-apps';
+import { LINK_LABEL_MAX } from '../../../shared';
 import { UserSettingsService, SettingsTab } from './services/user-settings.service';
 import { Avatar } from '../../shared/ui/avatar/avatar';
 
@@ -41,6 +44,9 @@ import { ServerAccessTab } from './tabs/server-access-tab/server-access-tab';
 import { ServerSafetyTab } from './tabs/server-safety-tab/server-safety-tab';
 import { ServerAuditLogTab } from './tabs/server-audit-log-tab/server-audit-log-tab';
 import { ColorStudioModal } from './components/color-studio-modal/color-studio-modal';
+import { ProfileStore } from '../profile/profile-store';
+import { ProfileGamesService } from '../profile/profile-games.service';
+import { GAME_KIND_LABELS, GAME_TAG_MAX, GAME_TITLE_MAX } from '../../../shared';
 
 export interface NavItem {
   id: SettingsTab;
@@ -92,10 +98,33 @@ export interface NavCategory {
 })
 export class SettingsModal {
   protected readonly settingsService = inject(UserSettingsService);
+  private readonly profileStore = inject(ProfileStore);
+  /** Ảnh đại diện thật của chính mình — để phần xem trước khớp với mọi nơi khác. */
+  protected readonly myAvatarUrl = computed(() => this.profileStore.profile()?.avatarUrl ?? null);
   private readonly authService = inject(AuthService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * Thanh popup nhập tên tài khoản neo đáy khung (xem template) đọc state từ
+   * đây. Đặt ở cấp modal chứ không bên trong `ConnectionsTab`: popup phải nổi
+   * NGOÀI vùng cuộn riêng của từng tab, nếu không nó trôi theo danh mục nền
+   * tảng và người dùng phải cuộn mới thấy ô vừa mở.
+   */
+  protected readonly apps = inject(ConnectedAppsService);
+
+  /**
+   * Ô nhập trò chơi cũng phải nổi ở CẤP MODAL như popup gắn nền tảng — nếu
+   * render trong cột widget thì nó trôi theo vùng cuộn của tab.
+   */
+  protected readonly games = inject(ProfileGamesService);
+  protected readonly kindLabels = GAME_KIND_LABELS;
+  protected readonly gameTitleMax = GAME_TITLE_MAX;
+  protected readonly gameTagMax = GAME_TAG_MAX;
+  protected readonly tint = tint;
+  protected readonly customLinkColor = CUSTOM_LINK_COLOR;
+  protected readonly labelMax = LINK_LABEL_MAX;
 
   protected readonly mobileSidebarOpen = signal<boolean>(false);
 
@@ -124,17 +153,20 @@ export class SettingsModal {
             { label: 'Trạng thái tài khoản', actionId: 'account-status-heading' },
           ],
         },
+        // "Quyền Hạn Tin Nhắn" từng là mục riêng ở đây nhưng render đúng cùng
+        // một `<app-privacy-tab />` — bấm mục nào cũng ra một trang y hệt, chỉ
+        // khác dòng breadcrumb. Gộp về một mục, phần tin nhắn thành mục con trỏ
+        // thẳng tới đúng khối của nó trong trang.
         {
           id: 'privacy',
           label: 'Dữ Liệu & Bảo Mật',
           icon: 'shield',
           subItems: [
             { label: 'Cách Nexus Sử Dụng Dữ Liệu Của Tôi', actionId: 'privacy-data-heading' },
-            { label: 'Quyền Riêng Tư Hồ Sơ', actionId: 'privacy-safety-heading' },
+            { label: 'Quyền Riêng Tư Hồ Sơ & An Toàn Tin Nhắn', actionId: 'privacy-safety-heading' },
           ],
         },
         { id: 'connections', label: 'Ứng Dụng Đã Kết Nối', icon: 'link' },
-        { id: 'messages', label: 'Quyền Hạn Tin Nhắn', icon: 'chat' },
         { id: 'notifications', label: 'Các Thông Báo', icon: 'notifications' },
       ],
     },

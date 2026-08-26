@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal } from '@angular/core';
 import type { PresenceStatus } from '../../../../shared/dto/common';
 import { PresenceService } from '../../../core/presence/presence.service';
 import { StatusDot } from '../status-dot/status-dot';
@@ -23,12 +23,12 @@ const TEXT: Record<AvatarSize, string> = {
 };
 
 /** Chấm trạng thái nhỏ hơn ở avatar nhỏ, nếu không nó nuốt mất avatar. */
-const DOT: Record<AvatarSize, 'sm' | 'md' | 'lg'> = {
+const DOT: Record<AvatarSize, 'sm' | 'md' | 'lg' | 'xl'> = {
   xs: 'sm',
   sm: 'sm',
   md: 'md',
-  lg: 'md',
-  xl: 'lg',
+  lg: 'lg',
+  xl: 'xl',
 };
 
 /**
@@ -59,7 +59,17 @@ export class Avatar {
 
   private readonly presenceService = inject(PresenceService);
 
-  protected readonly imageFailed = signal(false);
+  /**
+   * Cờ "ảnh này tải hỏng", TỰ RESET khi đổi sang ảnh khác.
+   *
+   * Trước đây là `signal(false)` thường: một lần tải hỏng — mạng chớp, link chết,
+   * ảnh chưa kịp lên storage — là kẹt vĩnh viễn ở chữ cái dự phòng. Tải avatar
+   * mới lên cũng vô ích vì `src` đổi nhưng cờ vẫn `true`, phải F5 mới thấy ảnh.
+   */
+  protected readonly imageFailed = linkedSignal<string | null, boolean>({
+    source: () => this.src(),
+    computation: () => false,
+  });
 
   protected readonly box = computed(() => BOX[this.size()]);
   protected readonly text = computed(() => TEXT[this.size()]);
