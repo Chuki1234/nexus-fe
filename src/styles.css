@@ -1894,3 +1894,62 @@ app-dashboard-shell
     }
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THEME STYLES OVERRIDES (NEXUS DARK / AMOLED BLACK / WARM CERAMIC LIGHT)
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --chat-font-size: 15px;
+}
+
+[data-theme='midnight-dark'] {
+  --color-canvas: #07090e;
+  --color-canvas-dark: #05060a;
+  --color-surface: #0e1017;
+  --color-surface-soft: #141722;
+  --color-surface-feature: #1b1f2e;
+  --color-hairline: #1e2230;
+  --color-hairline-soft: #161924;
+  --color-hairline-strong: #333a50;
+  --color-hairline-dark: #12141d;
+  --color-on-primary: #07090e;
+}
+
+[data-theme='warm-light'] {
+  --color-canvas: #f4f1ea;
+  --color-canvas-dark: #ece7dc;
+  --color-surface: #ffffff;
+  --color-surface-soft: #faf8f5;
+  --color-surface-feature: #ede8df;
+  --color-hairline: #e3ded5;
+  --color-hairline-soft: #ede8e0;
+  --color-hairline-strong: #c2bbb0;
+  --color-hairline-dark: #d5cec2;
+  --color-ink: #1e293b;
+  --color-charcoal: #334155;
+  --color-slate: #475569;
+  --color-steel: #64748b;
+  --color-stone: #94a3b8;
+  --color-muted: #cbd5e1;
+  --color-on-primary: #ffffff;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MESSAGE DENSITY & CHAT FONT SIZE RULES
+   ══════════════════════════════════════════════════════════════════════════ */
+[data-message-density='compact'] .chat-message-row {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+  margin-top: 1px !important;
+  margin-bottom: 1px !important;
+}
+
+[data-message-density='compact'] .chat-message-avatar {
+  display: none !important;
+}
+
+.chat-message-body,
+.chat-message-text {
+  font-size: var(--chat-font-size, 15px);
+}
+

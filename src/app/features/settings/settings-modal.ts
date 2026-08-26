@@ -152,13 +152,7 @@ export class SettingsModal {
       title: 'TRẢI NGHIỆM',
       items: [
         { id: 'voice-video', label: 'Giọng nói và Video', icon: 'mic' },
-        {
-          id: 'appearance',
-          label: 'Hiển thị',
-          icon: 'palette',
-          badge: 'MỚI',
-          badgeType: 'new',
-        },
+        { id: 'appearance', label: 'Hiển thị', icon: 'palette' },
         { id: 'text-images', label: 'Văn Bản & Hình Ảnh', icon: 'image' },
         { id: 'accessibility', label: 'Trợ Năng', icon: 'accessibility' },
         { id: 'keybinds', label: 'Hệ Thống & Phím Tắt', icon: 'keyboard' },

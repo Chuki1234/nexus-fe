@@ -1284,18 +1284,52 @@ export class UserSettingsService {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
         }
         if (typeof document !== 'undefined') {
-          document.documentElement.setAttribute('data-theme', prefs.theme);
-          if (prefs.themeAccent && prefs.themeAccent !== '#00ed64') {
-            document.documentElement.style.setProperty('--nexus-primary', prefs.themeAccent);
-            document.documentElement.style.setProperty('--nexus-brand-green', prefs.themeAccent);
+          // 1. Theme
+          document.documentElement.setAttribute('data-theme', prefs.theme || 'nexus-dark');
+
+          // 2. Message Density
+          document.documentElement.setAttribute('data-message-density', prefs.messageDensity || 'cozy');
+
+          // 3. Chat Font Size
+          const fontSize = prefs.fontSize || 15;
+          document.documentElement.style.setProperty('--chat-font-size', `${fontSize}px`);
+
+          // 4. Accent Color
+          if (prefs.themeAccent) {
+            const hex = prefs.themeAccent;
+            document.documentElement.style.setProperty('--color-primary', hex);
+            document.documentElement.style.setProperty('--color-brand-green', hex);
+            document.documentElement.style.setProperty('--nexus-primary', hex);
+            document.documentElement.style.setProperty('--nexus-brand-green', hex);
+            document.documentElement.style.setProperty('--color-doodle-tint', hex);
+            document.documentElement.style.setProperty('--color-primary-soft', hex);
           } else {
+            document.documentElement.style.removeProperty('--color-primary');
+            document.documentElement.style.removeProperty('--color-brand-green');
             document.documentElement.style.removeProperty('--nexus-primary');
             document.documentElement.style.removeProperty('--nexus-brand-green');
+            document.documentElement.style.removeProperty('--color-doodle-tint');
+            document.documentElement.style.removeProperty('--color-primary-soft');
           }
+
+          // 5. Zoom Level
           if (prefs.zoomLevel && prefs.zoomLevel !== 100) {
             document.documentElement.style.zoom = `${prefs.zoomLevel}%`;
-          } else if (typeof document !== 'undefined') {
+          } else {
             document.documentElement.style.removeProperty('zoom');
+          }
+
+          // 6. Accessibility flags
+          if (prefs.reducedMotion) {
+            document.documentElement.setAttribute('data-reduced-motion', 'true');
+          } else {
+            document.documentElement.removeAttribute('data-reduced-motion');
+          }
+
+          if (prefs.highContrast) {
+            document.documentElement.setAttribute('data-high-contrast', 'true');
+          } else {
+            document.documentElement.removeAttribute('data-high-contrast');
           }
         }
       } catch {
