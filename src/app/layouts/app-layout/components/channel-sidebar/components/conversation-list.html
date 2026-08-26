@@ -49,6 +49,7 @@
         [activated]="link.isActive"
         [attr.aria-current]="link.isActive ? 'page' : null"
         [attr.data-conversation-id]="conversation.id"
+        (contextmenu)="onConversationContextMenu($event, conversation)"
         class="conversation-row nexus-nav-item !rounded-lg"
       >
         <span
@@ -101,3 +102,74 @@
     }
   </mat-nav-list>
 }
+
+<!-- Điểm neo vô hình để mở Context Menu tại đúng tọa độ chuột -->
+<div
+  class="fixed pointer-events-none"
+  [style.left.px]="contextMenuPosition().x"
+  [style.top.px]="contextMenuPosition().y"
+  [matMenuTriggerFor]="conversationContextMenu"
+  #contextMenuTrigger="matMenuTrigger"
+></div>
+
+<!-- Menu chuột phải phong cách Discord cho cuộc trò chuyện bạn bè -->
+<mat-menu
+  #conversationContextMenu="matMenu"
+  class="nexus-friend-options-menu"
+  [overlapTrigger]="false"
+>
+  @if (selectedConversation(); as conv) {
+    <div class="friend-options__identity" role="presentation">
+      <app-avatar
+        [name]="conv.name"
+        [src]="conv.avatarUrl"
+        [presence]="conv.presence"
+        size="md"
+        ring="surface"
+      />
+      <span class="friend-options__identity-copy">
+        <strong>{{ conv.name }}</strong>
+        <small>{{ presenceLabel(conv.presence) }}</small>
+      </span>
+    </div>
+
+    <p class="friend-options__section-label">Liên lạc</p>
+    <button mat-menu-item type="button" (click)="onStartAudioCall(conv)">
+      <mat-icon aria-hidden="true" class="text-primary">call</mat-icon>
+      <span class="text-ink">Gọi thoại</span>
+    </button>
+    <button mat-menu-item type="button" (click)="onStartVideoCall(conv)">
+      <mat-icon aria-hidden="true" class="text-primary">videocam</mat-icon>
+      <span class="text-ink">Gọi video</span>
+    </button>
+
+    <div class="friend-options__divider" role="separator"></div>
+    <p class="friend-options__section-label">Quản lý</p>
+    <button mat-menu-item type="button" (click)="onToggleMute(conv)">
+      <mat-icon aria-hidden="true" [class.text-warning]="isMuted(conv)" class="text-steel">
+        {{ isMuted(conv) ? 'notifications_off' : 'notifications' }}
+      </mat-icon>
+      <span class="text-ink">{{ isMuted(conv) ? 'Bật thông báo' : 'Tắt thông báo' }}</span>
+    </button>
+    <button mat-menu-item type="button" (click)="onEditNote(conv)">
+      <mat-icon aria-hidden="true" class="text-steel">edit_note</mat-icon>
+      <span class="text-ink">Ghi chú</span>
+    </button>
+
+    <div class="friend-options__divider" role="separator"></div>
+    <p class="friend-options__section-label">An toàn</p>
+    <button
+      mat-menu-item
+      type="button"
+      class="friend-options__danger"
+      (click)="onRemoveFriend(conv)"
+    >
+      <mat-icon aria-hidden="true">person_remove</mat-icon>
+      <span>Xóa khỏi danh sách bạn</span>
+    </button>
+    <button mat-menu-item type="button" class="friend-options__danger" (click)="onBlockUser(conv)">
+      <mat-icon aria-hidden="true">block</mat-icon>
+      <span>Chặn</span>
+    </button>
+  }
+</mat-menu>

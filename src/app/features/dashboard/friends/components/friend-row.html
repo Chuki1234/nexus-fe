@@ -1,5 +1,6 @@
 <article
   class="friend-row nexus-interactive-row group flex flex-col gap-1.5 rounded-xl px-3.5 py-2.5"
+  (contextmenu)="onContextMenu($event)"
 >
   <div class="flex min-h-11 w-full items-center gap-3">
     <button
@@ -82,6 +83,14 @@
     </div>
   }
 </article>
+
+<div
+  class="fixed pointer-events-none"
+  [style.left.px]="contextMenuPosition().x"
+  [style.top.px]="contextMenuPosition().y"
+  [matMenuTriggerFor]="friendOptionsMenu"
+  #friendOptionsMenuTrigger="matMenuTrigger"
+></div>
 
 <mat-menu
   #friendOptionsMenu="matMenu"

@@ -71,6 +71,8 @@ describe('ChannelPage', () => {
       hasMore: signal(false).asReadonly(),
       chatError: signal(null).asReadonly(),
       lastReadMessageId: signal('1000').asReadonly(),
+      pinnedMessages: signal([]).asReadonly(),
+      pinnedIds: signal(new Set()).asReadonly(),
       loadInitial: async () => {},
       loadMore: async () => {},
       sendMessage: async () => {},

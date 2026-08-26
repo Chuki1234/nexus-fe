@@ -7,26 +7,32 @@ import {
   OnDestroy,
   OnInit,
   signal,
+  ViewChild,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog } from '@angular/material/dialog';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   ConversationsApiService,
   type ConversationResponseDto,
 } from '../../../../../core/api/conversations-api.service';
-import type { PresenceStatus } from '../../../../../../shared/dto/common';
+import { PRESENCE_LABEL, type PresenceStatus } from '../../../../../../shared/dto/common';
 import type { DisplayConversation } from '../../../../../core/conversations/conversation.models';
 export type { DisplayConversation };
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
 import { PresenceService } from '../../../../../core/presence/presence.service';
+import { DirectCallCoordinatorService } from '../../../../../core/calls/direct-call-coordinator.service';
+import { UserSettingsService } from '../../../../../features/settings/services/user-settings.service';
 import { ActiveChatStore } from '../../../../../features/dashboard/services/active-chat.store';
 import { ServerInvitationsStore } from '../../../../../core/servers/server-invitations.store';
 import { FriendsStore } from '../../../../../features/dashboard/friends/services/friends-store';
+import { FriendNoteDialog } from '../../../../../features/dashboard/friends/components/friend-note-dialog/friend-note-dialog';
 import { ProfileAvatar } from '../../../../../features/profile/components/profile-avatar/profile-avatar';
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { SectionLabel } from '../../../../../shared/ui/section-label/section-label';
@@ -44,6 +50,7 @@ import { OverflowMarquee } from '../../../../../shared/ui/overflow-marquee/overf
     Avatar,
     MatIconModule,
     MatListModule,
+    MatMenuModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     ProfileAvatar,
@@ -65,11 +72,20 @@ export class ConversationList implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly activeChatStore = inject(ActiveChatStore);
   private readonly router = inject(Router);
+  private readonly directCallCoordinator = inject(DirectCallCoordinatorService, { optional: true });
+  private readonly userSettingsService = inject(UserSettingsService, { optional: true });
+  private readonly dialog = inject(MatDialog, { optional: true });
   protected readonly invitationsStore = inject(ServerInvitationsStore);
   protected readonly friendsStore = inject(FriendsStore);
   private readonly subs = new Subscription();
 
+  @ViewChild('contextMenuTrigger', { read: MatMenuTrigger })
+  protected contextMenuTrigger?: MatMenuTrigger;
+
   readonly query = input('');
+
+  protected readonly selectedConversation = signal<DisplayConversation | null>(null);
+  protected readonly contextMenuPosition = signal<{ x: number; y: number }>({ x: 0, y: 0 });
 
   protected readonly pendingFriendRequestsCount = computed(
     () => this.friendsStore.incomingRequests().length + this.invitationsStore.pendingCount(),
@@ -95,6 +111,7 @@ export class ConversationList implements OnInit, OnDestroy {
         : ((c.recipient?.presence as PresenceStatus) || 'offline');
       return {
         id: c.id,
+        recipientId: c.recipient?.id ?? null,
         username: c.recipient?.username ?? null,
         name,
         avatarUrl: c.recipient?.avatarUrl || c.iconUrl || null,
@@ -206,6 +223,76 @@ export class ConversationList implements OnInit, OnDestroy {
         }),
       );
     }
+  }
+
+  protected onConversationContextMenu(event: MouseEvent, conv: DisplayConversation): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectedConversation.set(conv);
+    this.contextMenuPosition.set({ x: event.clientX, y: event.clientY });
+    this.contextMenuTrigger?.openMenu();
+  }
+
+  protected onStartAudioCall(conv: DisplayConversation): void {
+    void this.directCallCoordinator?.startCall(conv.id, 'audio');
+    void this.router.navigate(['/channels/@me', conv.id]);
+  }
+
+  protected onStartVideoCall(conv: DisplayConversation): void {
+    void this.directCallCoordinator?.startCall(conv.id, 'video');
+    void this.router.navigate(['/channels/@me', conv.id]);
+  }
+
+  protected isMuted(conv: DisplayConversation): boolean {
+    if (!conv.recipientId || !this.userSettingsService) return false;
+    return this.userSettingsService.isFriendMuted(conv.recipientId);
+  }
+
+  protected onToggleMute(conv: DisplayConversation): void {
+    if (conv.recipientId && this.userSettingsService) {
+      this.userSettingsService.toggleMuteFriend(conv.recipientId);
+    }
+  }
+
+  protected onEditNote(conv: DisplayConversation): void {
+    if (!conv.recipientId || !this.dialog || !this.userSettingsService) return;
+    const currentNote = this.userSettingsService.getFriendNote(conv.recipientId) || '';
+    const dialogRef = this.dialog.open(FriendNoteDialog, {
+      data: {
+        friendId: conv.recipientId,
+        friendName: conv.name,
+        initialNote: currentNote,
+      },
+      panelClass: 'nexus-dialog-surface',
+      hasBackdrop: true,
+    });
+
+    dialogRef.afterClosed().subscribe((result: string | null | undefined) => {
+      if (typeof result === 'string' && conv.recipientId) {
+        this.userSettingsService?.setFriendNote(conv.recipientId, result);
+      }
+    });
+  }
+
+  protected onRemoveFriend(conv: DisplayConversation): void {
+    if (conv.recipientId) {
+      void this.friendsStore.removeFriend(conv.recipientId);
+    }
+  }
+
+  protected onBlockUser(conv: DisplayConversation): void {
+    if (conv.recipientId) {
+      this.userSettingsService?.blockUser({
+        id: conv.recipientId,
+        username: conv.username || conv.name,
+        displayName: conv.name,
+      });
+      void this.friendsStore.removeFriend(conv.recipientId);
+    }
+  }
+
+  protected presenceLabel(presence: PresenceStatus): string {
+    return PRESENCE_LABEL[presence] || 'Ngoại tuyến';
   }
 
   private normalize(value: string): string {
