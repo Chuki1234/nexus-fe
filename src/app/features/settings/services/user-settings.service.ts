@@ -1222,9 +1222,9 @@ export class UserSettingsService {
   ]);
 
   // Blocked users list
-  readonly blockedUsers = signal<{ id: string; username: string; displayName: string }[]>([
-    { id: 'b1', username: 'spammer_bot99', displayName: 'Free Nitro Bot' },
-    { id: 'b2', username: 'toxic_player01', displayName: 'Toxic User' },
+  readonly blockedUsers = signal<{ id: string; username: string; displayName: string; avatarUrl?: string | null }[]>([
+    { id: 'b1', username: 'spammer_bot99', displayName: 'Free Nitro Bot', avatarUrl: null },
+    { id: 'b2', username: 'toxic_player01', displayName: 'Toxic User', avatarUrl: null },
   ]);
 
   // Friend Notes map: Record<friendId, string>

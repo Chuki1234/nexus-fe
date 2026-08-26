@@ -185,6 +185,19 @@
                         <!-- Deleted Message State -->
                         @if (msg.deletedAt) {
                           <p class="text-body-sm text-steel italic">Tin nhắn đã bị xóa</p>
+                        } @else if (editingMessageId() === msg.id) {
+                          <div class="mt-1 mb-1">
+                            <app-inline-message-editor
+                              [messageId]="msg.id"
+                              [initialContent]="msg.content || ''"
+                              [createdAt]="msg.createdAt"
+                              [saving]="editingSaving()"
+                              [errorMessage]="editingError()"
+                              [expired]="!canEdit(msg)"
+                              (save)="saveInlineEdit(msg.id, $event)"
+                              (cancel)="cancelInlineEdit()"
+                            />
+                          </div>
                         } @else if (msg.content) {
                           <!-- Normal Parsed Content -->
                           <div class="message-body text-body-sm text-charcoal leading-relaxed break-words whitespace-pre-wrap">
@@ -303,7 +316,8 @@
                             [messageId]="msg.id"
                             [author]="msg.author?.displayName || msg.author?.username || 'User'"
                             [excerpt]="msg.content || 'Đính kèm tệp'"
-                            [editable]="msg.authorId === auth.user()?.id"
+                            [ownMessage]="isMine(msg)"
+                            [canEdit]="canEdit(msg)"
                             (action)="onAction($event)"
                             (reaction)="onToggleReaction(msg.id, $event)"
                           />

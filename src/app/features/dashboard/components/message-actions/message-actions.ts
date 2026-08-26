@@ -26,7 +26,8 @@ export class MessageActions {
   readonly messageId = input.required<string>();
   readonly author = input.required<string>();
   readonly excerpt = input.required<string>();
-  readonly editable = input(false);
+  readonly ownMessage = input<boolean>(false);
+  readonly canEdit = input<boolean>(false);
   readonly action = output<MessageComposerContext>();
   readonly reaction = output<string>();
 
@@ -47,7 +48,7 @@ export class MessageActions {
   }
 
   protected requestEdit(): void {
-    if (!this.editable()) {
+    if (!this.ownMessage() || !this.canEdit()) {
       return;
     }
     this.action.emit({
@@ -70,12 +71,12 @@ export class MessageActions {
   }
 
   protected requestDelete(): void {
-    const ownMessage = this.editable();
+    const isOwn = this.ownMessage();
     this.action.emit({
       kind: 'delete',
-      icon: ownMessage ? 'delete_forever' : 'delete_outline',
-      label: ownMessage ? 'Thu hồi tin nhắn' : 'Xóa khỏi phía bạn',
-      description: ownMessage
+      icon: isOwn ? 'delete_forever' : 'delete_outline',
+      label: isOwn ? 'Thu hồi tin nhắn' : 'Xóa khỏi phía bạn',
+      description: isOwn
         ? 'Cần backend xác nhận quyền và đồng bộ thao tác thu hồi tới mọi người.'
         : 'Cần backend lưu trạng thái ẩn riêng cho tài khoản của bạn.',
       messageId: this.messageId(),

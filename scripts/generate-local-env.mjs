@@ -6,6 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const feRoot = path.resolve(__dirname, '..');
 
+const envPath = path.join(feRoot, '.env');
 const envLocalPath = path.join(feRoot, '.env.local');
 const envTsPath = path.join(feRoot, 'src/environments/environment.ts');
 const envLocalTsPath = path.join(feRoot, 'src/environments/environment.local.ts');
@@ -30,14 +31,18 @@ function parseDotEnv(filePath) {
   return result;
 }
 
-const envVars = parseDotEnv(envLocalPath);
+const envVars = {
+  ...parseDotEnv(envPath),
+  ...parseDotEnv(envLocalPath),
+};
+
 const giphyKey = envVars.GIPHY_API_KEY || process.env.GIPHY_API_KEY || '';
 const apiUrl = envVars.API_URL || process.env.API_URL || 'http://localhost:3000/api';
 const apiBaseUrl = envVars.API_BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000';
 const supabaseUrl = envVars.SUPABASE_URL || process.env.SUPABASE_URL || 'https://ubdgjtjxcytwctsbtpjy.supabase.co';
 const supabaseKey = envVars.SUPABASE_KEY || process.env.SUPABASE_KEY || 'sb_publishable_HueUJF-kVoMvvjfAFup-Ng_AJUV3J7l';
 
-const fileContent = `// Tự động tạo bởi scripts/generate-local-env.mjs từ .env.local (Không commit file này vào git)
+const fileContent = `// Tự động tạo bởi scripts/generate-local-env.mjs từ .env / .env.local (Không commit file này vào git)
 export interface AppEnvironment {
   supabaseUrl: string;
   supabaseKey: string;
@@ -56,9 +61,5 @@ export const environment: AppEnvironment = {
 `;
 
 fs.writeFileSync(envLocalTsPath, fileContent, 'utf8');
-console.log('✔ Đã tạo thành công src/environments/environment.local.ts (untracked) từ .env.local / env vars.');
-if (giphyKey) {
-  console.log('✔ GIPHY_API_KEY đã được cấu hình cho môi trường local.');
-} else {
-  console.log('ℹ GIPHY_API_KEY đang để trống. Bạn có thể thêm GIPHY_API_KEY=... vào file nexus-fe/.env.local');
-}
+console.log('✔ Đã tạo thành công src/environments/environment.local.ts (untracked) từ .env / .env.local / env vars.');
+console.log('✔ GIPHY API được proxy và bảo vệ qua Backend (/api/giphy).');

@@ -17,6 +17,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,6 +27,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChatToolbar } from '../components/chat-toolbar/chat-toolbar';
 import { ContextPanel } from '../components/context-panel/context-panel';
+import { MOBILE_BREAKPOINT_QUERY } from '../../../layouts/app-layout/services/dashboard-layout.service';
 import {
   MessageComposer,
   type MessageComposerContext,
@@ -74,6 +76,10 @@ import {
   parseTimestamp,
   type MessagePresentationVariant,
 } from '../conversation/conversation';
+import { InlineMessageEditor } from '../components/inline-message-editor/inline-message-editor';
+import { MessageClockService } from '../../../core/utils/message-clock.service';
+import { canEditMessage } from '../../../../shared/dto/messages.dto';
+import { extractErrorMessage } from '../../../core/utils/error.util';
 import type { AttachmentResponseDto } from '../../../core/api/messages-api.service';
 
 /** Kênh trong server — `/channels/:serverId/:channelId`. */
@@ -89,6 +95,7 @@ import type { AttachmentResponseDto } from '../../../core/api/messages-api.servi
     EmptyState,
     ForwardMessageModal,
     GiphyMessageEmbedComponent,
+    InlineMessageEditor,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -98,6 +105,7 @@ import type { AttachmentResponseDto } from '../../../core/api/messages-api.servi
     ProfileTrigger,
     VoiceRoom,
   ],
+  providers: [MessageClockService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-col' },
   templateUrl: './channel.html',
@@ -111,14 +119,25 @@ export class ChannelPage implements OnInit, AfterViewInit {
   private readonly coordinator = inject(ServerRealtimeCoordinator, { optional: true });
   readonly channelChat = inject(ChannelChatStore, { optional: true }) ?? inject(ChannelChatStore);
   protected readonly auth = inject(AuthService, { optional: true }) ?? inject(AuthService);
+  readonly messageClock = inject(MessageClockService);
   private readonly presenceService = inject(PresenceService, { optional: true }) ?? inject(PresenceService);
   private readonly dialog = inject(MatDialog);
+
+  readonly editingMessageId = signal<string | null>(null);
+  readonly editingSaving = signal<boolean>(false);
+  readonly editingError = signal<string | null>(null);
   private readonly lightbox = inject(LightboxGalleryService);
   private readonly uiState = inject(DashboardUiState);
   private readonly injector = inject(Injector);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly breakpoints = inject(BreakpointObserver);
   private isDestroyed = false;
+
+  protected readonly isMobile = toSignal(
+    this.breakpoints.observe(MOBILE_BREAKPOINT_QUERY).pipe(map((state) => state.matches)),
+    { initialValue: typeof window !== 'undefined' ? window.innerWidth < 768 : false },
+  );
 
   protected readonly chatViewportRef = viewChild<ElementRef<HTMLDivElement>>('chatViewport');
   protected readonly chatHistoryRef = viewChild<ElementRef<HTMLDivElement>>('chatHistory');
@@ -201,10 +220,23 @@ export class ChannelPage implements OnInit, AfterViewInit {
     this.membersWithPresence().filter((m) => m.presence === 'offline'),
   );
 
+  private previousIsMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+
   constructor() {
     this.destroyRef.onDestroy(() => {
       this.isDestroyed = true;
       this.scrollController.destroy();
+    });
+
+    // Khi viewport chuyển từ desktop sang mobile (có nút hamburger), tự đóng details panel
+    effect(() => {
+      const mobile = this.isMobile();
+      if (mobile && !this.previousIsMobile) {
+        untracked(() => {
+          this.detailsOpen.set(false);
+        });
+      }
+      this.previousIsMobile = mobile;
     });
 
     // Tự động load channel khi params thay đổi
@@ -436,7 +468,46 @@ export class ChannelPage implements OnInit, AfterViewInit {
     }
   }
 
+  protected isMine(msg: ChannelChatUiMessage): boolean {
+    const uid = this.auth.user()?.id;
+    return Boolean(uid && msg.authorId === uid);
+  }
+
+  protected canEdit(msg: ChannelChatUiMessage): boolean {
+    return canEditMessage(msg, this.auth.user()?.id, this.messageClock.now());
+  }
+
+  protected startEdit(msg: ChannelChatUiMessage): void {
+    this.editingMessageId.set(msg.id);
+    this.editingError.set(null);
+  }
+
+  protected cancelInlineEdit(): void {
+    this.editingMessageId.set(null);
+    this.editingError.set(null);
+  }
+
+  protected async saveInlineEdit(messageId: string, newContent: string): Promise<void> {
+    try {
+      this.editingSaving.set(true);
+      this.editingError.set(null);
+      await this.channelChat.editMessage(messageId, newContent);
+      this.editingMessageId.set(null);
+    } catch (err: unknown) {
+      this.editingError.set(extractErrorMessage(err, 'Lỗi khi chỉnh sửa tin nhắn.'));
+    } finally {
+      this.editingSaving.set(false);
+    }
+  }
+
   protected onAction(event: MessageComposerContext): void {
+    if (event.kind === 'edit' && event.messageId) {
+      const msg = this.messages().find((m) => m.id === event.messageId);
+      if (msg) {
+        this.startEdit(msg);
+      }
+      return;
+    }
     if (event.kind === 'forward' && event.messageId) {
       const msg = this.messages().find((m) => m.id === event.messageId);
       if (msg) {

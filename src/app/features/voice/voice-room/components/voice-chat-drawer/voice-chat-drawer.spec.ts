@@ -11,6 +11,7 @@ import { MessagesApiService } from '../../../../../core/api/messages-api.service
 import { ServersApiService } from '../../../../../core/api/servers-api.service';
 import { ServersStore } from '../../../../../core/servers/servers.store';
 import { FriendsStore } from '../../../../dashboard/friends/services/friends-store';
+import { MessageClockService } from '../../../../../core/utils/message-clock.service';
 
 describe('VoiceChatDrawer', () => {
   let fixture: ComponentFixture<VoiceChatDrawer>;
@@ -76,6 +77,7 @@ describe('VoiceChatDrawer', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        MessageClockService,
         { provide: AuthService, useValue: mockAuthService },
         { provide: ConversationsApiService, useValue: { listConversations: vi.fn().mockResolvedValue([]) } },
         { provide: MessagesApiService, useValue: { forwardChannelMessage: vi.fn().mockResolvedValue({}) } },
@@ -88,6 +90,7 @@ describe('VoiceChatDrawer', () => {
         set: {
           providers: [
             { provide: ChannelChatStore, useValue: mockChannelChatStore },
+            MessageClockService,
           ],
         },
       })
@@ -252,5 +255,27 @@ describe('VoiceChatDrawer', () => {
       description: 'Trả lời tin nhắn',
     });
     expect(component.composerContext()?.kind).toBe('reply');
+
+    // Edit action opens inline editor (does NOT touch composer)
+    component['onAction']({
+      kind: 'edit',
+      messageId: 'msg-v-1',
+      icon: 'edit_note',
+      label: 'Chỉnh sửa',
+      description: 'Chỉnh sửa tin nhắn',
+    });
+    expect(component.editingMessageId()).toBe('msg-v-1');
+
+    // Save inline edit success -> clears editingMessageId
+    await component['saveInlineEdit']('msg-v-1', 'Tin nhắn thoại đã sửa');
+    expect(mockChannelChatStore.editMessage).toHaveBeenCalledWith('msg-v-1', 'Tin nhắn thoại đã sửa');
+    expect(component.editingMessageId()).toBeNull();
+
+    // Save inline edit failure -> retains editingMessageId and sets editingError
+    mockChannelChatStore.editMessage.mockRejectedValueOnce(new Error('Lỗi sửa tin'));
+    component.editingMessageId.set('msg-v-1');
+    await component['saveInlineEdit']('msg-v-1', 'Thất bại');
+    expect(component.editingMessageId()).toBe('msg-v-1');
+    expect(component.editingError()).toBe('Lỗi sửa tin');
   });
 });

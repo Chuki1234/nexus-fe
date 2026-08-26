@@ -2089,5 +2089,79 @@ describe('ConversationPage', () => {
         expect(component['markReadTimeout']).not.toBeNull();
       });
     });
+
+    describe('Inline Message Editing & 5-Minute Window', () => {
+      it('chọn Edit từ MessageActions: mở inline editor với editingMessageId và không đụng tới composer', async () => {
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+        const component = harness.component;
+
+        component.onMessageAction({
+          kind: 'edit',
+          icon: 'edit_note',
+          label: 'Chỉnh sửa tin nhắn',
+          description: 'Xin chào',
+          messageId: 'msg-1',
+        });
+
+        expect(component.editingMessageId()).toBe('msg-1');
+        expect(component['composerContext']()).toBeNull();
+      });
+
+      it('saveInlineEdit thành công: gọi store.editMessage và đóng editor', async () => {
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+        const component = harness.component;
+
+        component.editingMessageId.set('msg-1');
+        await component.saveInlineEdit('msg-1', 'Nội dung mới');
+
+        expect(mockActiveChatStore.editMessage).toHaveBeenCalledWith('msg-1', 'Nội dung mới');
+        expect(component.editingMessageId()).toBeNull();
+      });
+
+      it('saveInlineEdit thất bại: giữ editor mở và lưu thông báo lỗi vào editingError', async () => {
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+        const component = harness.component;
+
+        mockActiveChatStore.editMessage.mockRejectedValueOnce(new Error('Hết thời gian sửa'));
+
+        component.editingMessageId.set('msg-1');
+        await component.saveInlineEdit('msg-1', 'Nội dung mới');
+
+        expect(component.editingMessageId()).toBe('msg-1');
+        expect(component.editingError()).toBe('Hết thời gian sửa');
+      });
+
+      it('canEdit trả về false khi quá 5 phút', async () => {
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+        const component = harness.component;
+
+        const oldMsg: ChatUiMessage = {
+          id: 'old-1',
+          channelId: null,
+          conversationId: 'conv-123',
+          authorId: 'test-user-id', // current user
+          type: 'default',
+          content: 'Tin cũ',
+          replyToId: null,
+          clientNonce: null,
+          editedAt: null,
+          deletedAt: null,
+          isForwarded: false,
+          externalMedia: null,
+          createdAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
+          status: 'persisted',
+        };
+
+        expect(component.canEdit(oldMsg)).toBe(false);
+      });
+    });
   });
 });

@@ -99,6 +99,7 @@
 }
 
 .dashboard-workspace {
+  position: relative;
   display: flex;
   width: 100%;
   min-width: 0;
@@ -112,18 +113,34 @@
   box-shadow: var(--shadow-glow);
 }
 
-/* Mobile / Compact Mode Toolbar Padding: Leave 60px safe area on the left for the floating menu button */
-.dashboard-mobile-container .dashboard-workspace .friends-toolbar,
-.dashboard-mobile-container .dashboard-workspace .chat-toolbar,
-.dashboard-mobile-container .dashboard-workspace .voice-header {
-  padding-left: 3.75rem !important;
-}
-
 .dashboard-mobile-menu-trigger {
-  width: 2.25rem !important;
-  height: 2.25rem !important;
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  z-index: 20;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   border-radius: var(--radius-lg) !important;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  border: 1px solid var(--nexus-border-subtle);
+  color: var(--color-steel);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--motion-fast) var(--ease-nexus-out);
+  cursor: pointer;
+}
+
+.dashboard-mobile-menu-trigger:hover {
+  color: var(--color-ink);
+  background: var(--color-surface-feature);
+}
+
+.dashboard-mobile-menu-trigger:focus-visible {
+  outline: 2px solid var(--color-primary-soft, #00ed64);
+  outline-offset: 2px;
 }
