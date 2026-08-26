@@ -11,8 +11,10 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
+import { DeleteServerDialog } from '../../layouts/app-layout/components/channel-sidebar/components/delete-server-dialog/delete-server-dialog';
 import { ConnectedAppsService } from '../profile/connected-apps.service';
 import { CUSTOM_LINK_COLOR, tint } from '../profile/connected-apps';
 import { LINK_LABEL_MAX } from '../../../shared';
@@ -143,6 +145,7 @@ export class SettingsModal {
       title: 'CÀI ĐẶT NGƯỜI DÙNG',
       items: [
         { id: 'account', label: 'Tài Khoản', icon: 'person' },
+        { id: 'profile', label: 'Hồ Sơ', icon: 'badge' },
         { id: 'privacy', label: 'Dữ Liệu & Bảo Mật', icon: 'shield' },
         { id: 'connections', label: 'Ứng Dụng Đã Kết Nối', icon: 'link' },
         { id: 'notifications', label: 'Các Thông Báo', icon: 'notifications' },
@@ -183,7 +186,6 @@ export class SettingsModal {
       title: 'QUẢN TRỊ & BẢO MẬT',
       items: [
         { id: 'server-safety', label: 'Bảo Mật & Phê Duyệt', icon: 'gavel' },
-        { id: 'server-audit-log', label: 'Nhật Ký Kiểm Toán', icon: 'receipt_long' },
       ],
     },
   ];
@@ -230,6 +232,8 @@ export class SettingsModal {
     }
     return tab;
   });
+
+  private readonly dialog = inject(MatDialog);
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -309,6 +313,28 @@ export class SettingsModal {
     if (event.target === event.currentTarget) {
       this.close();
     }
+  }
+
+  protected handleDeleteServer(): void {
+    const sId = this.settingsService.currentServerId();
+    const sData = this.settingsService.currentServerData();
+    const serverName = sData.name || 'Máy chủ';
+
+    const ref = this.dialog.open(DeleteServerDialog, {
+      data: {
+        serverId: sId,
+        serverName: serverName,
+      },
+      panelClass: 'nexus-dialog-overlay',
+      autoFocus: false,
+    });
+
+    ref.afterClosed().subscribe((deleted) => {
+      if (deleted) {
+        this.settingsService.close();
+        void this.router.navigate(['/channels/@me']);
+      }
+    });
   }
 
   protected async handleLogout(): Promise<void> {

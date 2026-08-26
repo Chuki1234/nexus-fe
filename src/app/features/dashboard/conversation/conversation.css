@@ -78,16 +78,32 @@
   --message-file-icon-surface: #174e64;
 }
 
-:host-context(html[data-theme='light']) {
+:host-context(html[data-theme='light']),
+:host-context(html[data-theme='warm-light']),
+:host-context([data-theme='warm-light']),
+:host-context([data-theme='light']) {
   --message-text-surface: #ffffff;
-  --message-text-surface-hover: #f4f7f4;
-  --message-text-border: #dbe4db;
-  --message-text-border-hover: #c6d4c6;
+  --message-text-surface-hover: #faf8f5;
+  --message-text-border: #e3ded5;
+  --message-text-border-hover: #c2bbb0;
   --message-media-border: rgba(0, 0, 0, 0.08);
   --message-media-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   --message-file-surface: #ffffff;
-  --message-file-surface-hover: #f4f7f4;
-  --message-file-icon-surface: #e6eee6;
+  --message-file-surface-hover: #faf8f5;
+  --message-file-icon-surface: #ede8df;
+}
+
+:host-context(html[data-theme='midnight-dark']),
+:host-context([data-theme='midnight-dark']) {
+  --message-text-surface: #0e1017;
+  --message-text-surface-hover: #141722;
+  --message-text-border: #1e2230;
+  --message-text-border-hover: #333a50;
+  --message-media-border: #1e2230;
+  --message-media-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  --message-file-surface: #0e1017;
+  --message-file-surface-hover: #141722;
+  --message-file-icon-surface: #1b1f2e;
 }
 
 /* Date Divider — Hairline + Centered Semantic Badge */
@@ -125,9 +141,11 @@
   text-transform: capitalize;
 }
 
-:host-context(html[data-theme='light']) .chat-date-divider__badge {
+:host-context(html[data-theme='light']) .chat-date-divider__badge,
+:host-context(html[data-theme='warm-light']) .chat-date-divider__badge,
+:host-context([data-theme='warm-light']) .chat-date-divider__badge {
   background-color: #ffffff;
-  border-color: #dbe4db;
+  border-color: #e3ded5;
   color: var(--color-stone);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
@@ -168,12 +186,16 @@
   letter-spacing: 0.04em;
 }
 
-:host-context(html[data-theme='light']) .nexus-unread-divider__line {
+:host-context(html[data-theme='light']) .nexus-unread-divider__line,
+:host-context(html[data-theme='warm-light']) .nexus-unread-divider__line,
+:host-context([data-theme='warm-light']) .nexus-unread-divider__line {
   background-color: #00876c;
   opacity: 0.5;
 }
 
-:host-context(html[data-theme='light']) .nexus-unread-divider__badge {
+:host-context(html[data-theme='light']) .nexus-unread-divider__badge,
+:host-context(html[data-theme='warm-light']) .nexus-unread-divider__badge,
+:host-context([data-theme='warm-light']) .nexus-unread-divider__badge {
   background-color: #ffffff;
   border-color: #00876c;
   color: #00876c;

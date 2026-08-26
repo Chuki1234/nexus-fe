@@ -243,7 +243,10 @@
    palette mà không cần mỗi component tự biết mã màu cụ thể.
    ========================================================================== */
 
-html[data-theme='light'] {
+html[data-theme='light'],
+html[data-theme='warm-light'],
+[data-theme='warm-light'],
+[data-theme='light'] {
   color-scheme: light;
 
   --color-primary: #006241;
@@ -1852,12 +1855,72 @@ app-dashboard-shell
     transform: translateY(-1px);
   }
 
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius-lg, 12px);
+    background-color: var(--color-primary);
+    color: var(--color-on-primary, #ffffff);
+    font-size: var(--text-caption, 13px);
+    font-weight: 700;
+    line-height: 1.3;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    transition: all var(--motion-fast) var(--ease-nexus-out);
+  }
+  .btn-primary:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+    opacity: 0.85;
+  }
+
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius-lg, 12px);
+    background-color: var(--color-danger, #ef4444);
+    color: #ffffff;
+    font-size: var(--text-caption, 13px);
+    font-weight: 700;
+    line-height: 1.3;
+    border: none;
+    cursor: pointer;
+    transition: all var(--motion-fast) var(--ease-nexus-out);
+  }
+  .btn-danger:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+  }
+  .btn-danger:active {
+    transform: translateY(0);
+    opacity: 0.85;
+  }
+
+  .card-base {
+    background-color: var(--color-surface, #002634);
+    border: 1px solid var(--color-hairline, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-2xl, 20px);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-card);
+    color: var(--color-ink, #ffffff);
+  }
+
   .input-base {
     display: block;
     width: 100%;
-    height: 48px;
-    min-height: 48px;
-    padding: 10px 14px;
+    min-height: 40px;
+    padding: 8px 14px;
     border-radius: 12px;
     background-color: var(--color-canvas, #001e2b);
     border: 1px solid var(--color-hairline-strong, #5c7883);

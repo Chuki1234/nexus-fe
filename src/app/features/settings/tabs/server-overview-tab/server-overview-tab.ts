@@ -51,14 +51,6 @@ export class ServerOverviewTab {
     { label: 'Obsidian Noir', gradient: 'linear-gradient(135deg, #1f2937 0%, #030712 100%)' },
   ];
 
-  protected readonly serverIconPresets = [
-    { label: 'Cyber Tech', url: 'https://api.dicebear.com/7.x/shapes/svg?seed=ITSSLab' },
-    { label: 'Code Dev', url: 'https://api.dicebear.com/7.x/identicon/svg?seed=NexusCode' },
-    { label: 'Gaming Shield', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=GamingServer' },
-    { label: 'Galaxy Lab', url: 'https://api.dicebear.com/7.x/shapes/svg?seed=GalaxyLab' },
-    { label: 'Anime Hub', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=AnimeServer' },
-  ];
-
   protected updateName(name: string): void {
     this.settingsService.updateCurrentServerOverview({ name });
   }
@@ -100,10 +92,6 @@ export class ServerOverviewTab {
       this.settingsService.updateCurrentServerOverview({ iconUrl: dataUrl });
     };
     reader.readAsDataURL(file);
-  }
-
-  protected selectPresetIcon(url: string): void {
-    this.settingsService.updateCurrentServerOverview({ iconUrl: url });
   }
 
   protected removeServerIcon(): void {

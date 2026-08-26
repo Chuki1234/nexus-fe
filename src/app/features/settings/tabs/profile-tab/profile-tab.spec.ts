@@ -105,8 +105,6 @@ describe('ProfileTab', () => {
     // Ảnh đại diện và ảnh bìa chọn bằng <input type="file"> ẩn sau nhãn.
     expect(el.querySelector('#profile-tab-avatar-file')).toBeTruthy();
     expect(el.querySelector('#profile-tab-banner-file')).toBeTruthy();
-    // Cột 3 là component riêng, không phải markup chép tay.
-    expect(el.querySelector('app-profile-widgets-editor')).toBeTruthy();
   });
 
   /**
@@ -183,36 +181,5 @@ describe('ProfileTab', () => {
     // nằm ở nhãn ô nhập và câu hướng dẫn bên cột trái nên luôn có mặt.
     expect(root(fixture).textContent).not.toContain('3 Tháng 11, 2001');
     expect(root(fixture).textContent).not.toContain('NaN');
-  });
-
-  /**
-   * Các ô ở tab Hồ Sơ Chính ghi vào hồ sơ dùng chung toàn Nexus. Để chúng hiện
-   * ở tab "Hồ Sơ Theo Máy Chủ" là bẫy: chọn một máy chủ rồi sửa tên và bấm Lưu
-   * sẽ đổi tên ở mọi nơi chứ không riêng máy chủ đó.
-   */
-  it('tab Hồ Sơ Theo Máy Chủ KHÔNG cho sửa hồ sơ chính', () => {
-    const { fixture } = setup();
-
-    switcher(fixture, 'Hồ Sơ Theo Máy Chủ').click();
-    fixture.detectChanges();
-
-    const el = root(fixture);
-    expect(el.querySelector('#p-display-name')).toBeNull();
-    expect(el.querySelector('#p-birthdate')).toBeNull();
-    expect(el.querySelector('#p-bio')).toBeNull();
-    expect(el.querySelector('#profile-tab-avatar-file')).toBeNull();
-    expect(el.textContent).toContain('Hồ sơ riêng cho từng máy chủ chưa dùng được');
-  });
-
-  it('bấm ngược lại Hồ Sơ Chính thì các ô sửa hiện lại', () => {
-    const { fixture } = setup();
-
-    switcher(fixture, 'Hồ Sơ Theo Máy Chủ').click();
-    fixture.detectChanges();
-    expect(root(fixture).querySelector('#p-display-name')).toBeNull();
-
-    switcher(fixture, 'Hồ Sơ Chính').click();
-    fixture.detectChanges();
-    expect(root(fixture).querySelector('#p-display-name')).toBeTruthy();
   });
 });

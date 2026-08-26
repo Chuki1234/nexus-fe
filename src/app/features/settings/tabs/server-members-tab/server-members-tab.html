@@ -43,7 +43,7 @@
     <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
       <!-- Search Input -->
       <div class="relative flex-1 w-full">
-        <mat-icon class="absolute left-3.5 top-2.5 text-steel !w-4 !h-4 !text-[18px] pointer-events-none">
+        <mat-icon class="absolute left-3.5 top-1/2 -translate-y-1/2 text-steel !w-4.5 !h-4.5 !text-[18px] pointer-events-none">
           search
         </mat-icon>
         <input
@@ -51,13 +51,13 @@
           [value]="memberSearchQuery()"
           (input)="memberSearchQuery.set($any($event.target).value)"
           placeholder="Tìm kiếm thành viên theo tên hoặc @username..."
-          class="input-base !rounded-xl !pl-10 !py-2 !bg-surface text-caption text-ink"
+          class="w-full bg-surface border border-hairline rounded-xl pl-10 pr-9 py-2 text-caption text-ink font-medium focus:outline-none focus:border-primary transition-colors shadow-2xs"
         />
         @if (memberSearchQuery()) {
           <button
             type="button"
             (click)="memberSearchQuery.set('')"
-            class="absolute right-3 top-2.5 text-steel hover:text-ink cursor-pointer"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-steel hover:text-ink cursor-pointer p-0.5 rounded-full hover:bg-surface-feature"
           >
             <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
           </button>
@@ -65,15 +65,15 @@
       </div>
 
       <!-- Role Filter Dropdown -->
-      <div class="flex items-center gap-2 w-full sm:w-auto">
-        <label for="filter-role-select" class="text-caption text-steel font-medium whitespace-nowrap">
+      <div class="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+        <label for="filter-role-select" class="text-caption text-steel font-bold whitespace-nowrap">
           Lọc vai trò:
         </label>
         <select
           id="filter-role-select"
           [value]="selectedRoleFilter()"
           (change)="selectedRoleFilter.set($any($event.target).value)"
-          class="input-base !rounded-xl !py-2 !px-3 !bg-surface cursor-pointer text-caption font-bold text-ink"
+          class="bg-surface border border-hairline rounded-xl py-2 px-3.5 cursor-pointer text-caption font-bold text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
         >
           <option value="all">Tất cả vai trò</option>
           @for (r of settingsService.serverRoles(); track r.id) {
@@ -412,22 +412,22 @@
 
   <!-- Ban Member Modal Dialog -->
   @if (selectedMemberForBan()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
-      <div class="card-base max-w-md w-full space-y-4 animate-slide-up shadow-modal" (click)="$event.stopPropagation()">
-        <div class="flex items-center justify-between">
+    <div class="fixed inset-0 z-100 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
+      <div class="relative max-w-md w-full p-6 space-y-4 rounded-3xl border border-hairline bg-surface shadow-modal animate-slide-up text-ink ring-1 ring-white/10" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between pb-1 border-b border-hairline/60">
           <span class="text-heading-5 font-bold text-danger">Cấm {{ selectedMemberForBan()?.displayName }}</span>
-          <button type="button" (click)="cancelBan()" class="text-steel hover:text-ink cursor-pointer">
-            <mat-icon class="!w-4 !h-4">close</mat-icon>
+          <button type="button" (click)="cancelBan()" class="text-steel hover:text-ink transition-colors cursor-pointer p-1 rounded-lg hover:bg-surface-feature">
+            <mat-icon class="!w-5 !h-5">close</mat-icon>
           </button>
         </div>
 
-        <p class="text-caption text-steel">
+        <p class="text-caption text-steel leading-relaxed">
           Thành viên này sẽ bị xóa khỏi máy chủ và không thể tham gia lại bằng bất kỳ liên kết mời nào trừ khi bạn gỡ lệnh cấm.
         </p>
 
         <div>
-          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="input-ban-reason">
-            Lý do cấm (Tùy chọn)
+          <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="input-ban-reason">
+            LÝ DO CẤM (TÙY CHỌN)
           </label>
           <input
             id="input-ban-reason"
@@ -435,22 +435,22 @@
             [value]="banReason()"
             (input)="banReason.set($any($event.target).value)"
             placeholder="VD: Spam link lừa đảo, vi phạm quy chuẩn cộng đồng..."
-            class="input-base"
+            class="w-full bg-canvas border border-hairline rounded-xl px-3.5 py-2.5 text-body-sm font-medium text-ink focus:outline-none focus:border-danger transition-colors shadow-2xs"
           />
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-2">
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-hairline/60">
           <button
             type="button"
             (click)="cancelBan()"
-            class="px-4 py-2 text-caption font-semibold text-steel hover:text-ink hover:underline cursor-pointer"
+            class="px-4 py-2 text-caption font-bold text-steel hover:text-ink transition-colors cursor-pointer"
           >
             Hủy
           </button>
           <button
             type="button"
             (click)="confirmBan()"
-            class="btn-danger cursor-pointer"
+            class="py-2 px-5 rounded-xl bg-danger text-white font-bold text-caption shadow-glow hover:opacity-90 active:scale-98 transition-all cursor-pointer"
           >
             Xác Nhận Cấm
           </button>
@@ -461,8 +461,8 @@
 
   <!-- Floating Toast Notification -->
   @if (toastMessage()) {
-    <div class="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-full bg-primary text-on-primary shadow-modal font-bold text-caption flex items-center gap-2 animate-slide-down">
-      <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+    <div class="fixed bottom-8 right-8 z-200 px-4.5 py-3 rounded-2xl bg-surface border border-primary/40 text-ink shadow-modal font-bold text-caption flex items-center gap-2.5 animate-slide-up ring-1 ring-primary/20 backdrop-blur-md">
+      <mat-icon class="!w-5 !h-5 !text-[20px] text-primary">check_circle</mat-icon>
       <span>{{ toastMessage() }}</span>
     </div>
   }

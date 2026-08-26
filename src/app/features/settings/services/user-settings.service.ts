@@ -403,7 +403,7 @@ export class UserSettingsService {
   readonly isUserProfileModalOpen = signal<boolean>(false);
   readonly isColorStudioOpen = signal<boolean>(false);
   readonly userPresence = signal<'online' | 'idle' | 'dnd' | 'offline'>('online');
-  readonly currentTab = signal<SettingsTab>('voice-video');
+  readonly currentTab = signal<SettingsTab>('account');
   readonly searchQuery = signal<string>('');
   readonly preferences = signal<AppPreferences>(this.loadPreferences());
 
@@ -1413,7 +1413,7 @@ export class UserSettingsService {
     });
   }
 
-  open(tab: SettingsTab = 'voice-video'): void {
+  open(tab: SettingsTab = 'account'): void {
     this.currentTab.set(tab);
     this.searchQuery.set('');
     this.isOpen.set(true);
