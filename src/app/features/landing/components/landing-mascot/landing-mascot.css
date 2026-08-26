@@ -1,0 +1,98 @@
+:host {
+  display: inline-block;
+  line-height: 0;
+}
+
+.mascot {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  overflow: visible;
+  /* Màu thân đổi theo variant; dùng chung cho thân, đuôi, chân. */
+  --m-body: var(--color-brand-green);
+  animation: bob 3.6s var(--ease-nexus-out) infinite;
+}
+.mascot--purple {
+  --m-body: var(--color-accent-purple);
+}
+.mascot--orange {
+  --m-body: var(--color-accent-orange);
+}
+
+/* ---- Thân / đuôi / chân ---- */
+.m-body {
+  fill: var(--m-body);
+}
+.m-limb {
+  fill: none;
+  stroke: var(--m-body);
+  stroke-width: 15;
+  stroke-linecap: round;
+}
+.m-tail {
+  fill: none;
+  stroke: var(--m-body);
+  stroke-width: 20;
+  stroke-linecap: round;
+}
+.m-belly {
+  fill: var(--color-brand-green-soft);
+  opacity: 0.9;
+}
+
+/* ---- Mặt ---- */
+.m-eyewhite {
+  fill: var(--color-on-dark);
+}
+.m-face {
+  fill: var(--color-on-primary);
+}
+.m-spark {
+  fill: var(--color-on-dark);
+}
+.m-smile {
+  fill: none;
+  stroke: var(--color-on-primary);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.m-cheek {
+  fill: var(--color-accent-pink);
+  opacity: 0.4;
+}
+
+/* ---- Chân trước vẫy ---- */
+.m-wave {
+  transform-box: view-box;
+  transform-origin: 152px 150px;
+}
+.mascot--waving .m-wave {
+  animation: wave 1.1s ease-in-out infinite;
+}
+
+/* ---- Keyframes ---- */
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes wave {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot,
+  .mascot--waving .m-wave {
+    animation: none;
+  }
+}

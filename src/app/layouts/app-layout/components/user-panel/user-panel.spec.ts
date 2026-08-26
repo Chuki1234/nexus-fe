@@ -1,8 +1,14 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
 import { UserPanel } from './user-panel';
+import { ProfileStore } from '../../../../features/profile/profile-store';
+import { ProfilesApiService } from '../../../../core/api/profiles-api.service';
+import { VoiceRoomService } from '../../../../features/voice/services/voice-room.service';
+
+import { MediaDeviceService } from '../../../../features/voice/services/media-device.service';
 
 class AuthStub {
   user = () => ({ email: 'mon@nexus.test' });
@@ -12,14 +18,35 @@ class AuthStub {
 
 describe('UserPanel', () => {
   let profile: { current: () => unknown; reset: () => void };
+  let mockMediaDevice: {
+    isTestingMic: ReturnType<typeof signal<boolean>>;
+    startMicrophoneTest: ReturnType<typeof vi.fn>;
+    stopMicrophoneTest: ReturnType<typeof vi.fn>;
+    audioLevel: ReturnType<typeof signal<number>>;
+  };
 
   const mount = async () => {
+    const isTesting = signal(false);
+    mockMediaDevice = {
+      isTestingMic: isTesting,
+      startMicrophoneTest: vi.fn().mockImplementation(() => {
+        isTesting.set(true);
+        return Promise.resolve();
+      }),
+      stopMicrophoneTest: vi.fn().mockImplementation(() => {
+        isTesting.set(false);
+      }),
+      audioLevel: signal(0),
+    };
+
     await TestBed.configureTestingModule({
       imports: [UserPanel],
       providers: [
         provideRouter([]),
         { provide: AuthService, useValue: new AuthStub() },
         { provide: ProfileService, useValue: profile },
+        { provide: ProfilesApiService, useValue: { getOwn: () => Promise.resolve(null) } },
+        { provide: MediaDeviceService, useValue: mockMediaDevice },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(UserPanel);
@@ -39,22 +66,19 @@ describe('UserPanel', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Minh Tài');
     expect(
-      fixture.nativeElement.querySelector('button')?.classList.contains('nexus-interactive-row'),
+      fixture.nativeElement.querySelector('.user-panel__identity')?.classList.contains('nexus-interactive-row'),
     ).toBe(true);
   });
 
-  it('giữ trạng thái menu-open trên khối danh tính để hover và active dùng chung tín hiệu', async () => {
+  it('giữ trạng thái popover trên khối danh tính khi mở card', async () => {
     const fixture = await mount();
-    const identity = fixture.nativeElement.querySelector(
-      'button.user-panel__identity',
-    ) as HTMLButtonElement;
+    expect(fixture.componentInstance['popoverOpen']()).toBe(false);
 
-    expect(identity.getAttribute('aria-expanded')).toBe('false');
-    identity.click();
+    fixture.componentInstance['openCard']();
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(identity.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.componentInstance['popoverOpen']()).toBe(true);
   });
 
   it('chưa có tên hiển thị thì rơi về tên đăng nhập', async () => {
@@ -93,8 +117,8 @@ describe('UserPanel', () => {
       fixture.nativeElement.querySelectorAll('button.nexus-icon-control'),
     ) as HTMLButtonElement[];
     const identity = fixture.nativeElement.querySelector(
-      'button.user-panel__identity',
-    ) as HTMLButtonElement;
+      '.user-panel__identity',
+    ) as HTMLElement;
     const controlGroup = fixture.nativeElement.querySelector(
       '.user-panel__controls[role="group"]',
     ) as HTMLDivElement;
@@ -119,36 +143,45 @@ describe('UserPanel', () => {
     expect(settings.disabled).toBe(false);
     expect(settings.textContent).toContain('settings');
     expect(settings.classList.contains('nexus-icon-control')).toBe(true);
-    expect(fixture.nativeElement.ownerDocument.body.querySelector('.nexus-settings-dialog')).toBe(
-      null,
-    );
   });
 
-  it('mở hộp xác nhận xóa tài khoản từ menu hồ sơ', async () => {
+  it('hiển thị banner đã kết nối giọng nói kèm nút test mic và ngắt kết nối khi đang trong phòng voice', async () => {
     const fixture = await mount();
-    (fixture.nativeElement.querySelector('button.user-panel__identity') as HTMLButtonElement).click();
+    const voiceRoom = TestBed.inject(VoiceRoomService);
+    voiceRoom.connectionStatus.set('connected');
+    voiceRoom.currentChannelName.set('Phòng họp');
     fixture.detectChanges();
-    await fixture.whenStable();
 
-    const deleteItem = Array.from(document.body.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Xóa tài khoản'),
+    const voiceStatus = fixture.nativeElement.querySelector('.user-panel__voice-status');
+    expect(voiceStatus).toBeTruthy();
+    expect(voiceStatus.textContent).toContain('Đã Kết Nối Giọng Nói');
+    expect(voiceStatus.textContent).toContain('#Phòng họp');
+
+    const testMicBtn = voiceStatus.querySelectorAll('button')[0];
+    expect(testMicBtn).toBeTruthy();
+
+    const disconnectBtn = voiceStatus.querySelectorAll('button')[1];
+    expect(disconnectBtn).toBeTruthy();
+  });
+
+  it('bật và tắt test mic khi bấm nút Test Mic', async () => {
+    const fixture = await mount();
+    const voiceRoom = TestBed.inject(VoiceRoomService);
+    voiceRoom.connectionStatus.set('connected');
+    voiceRoom.currentChannelName.set('Phòng họp');
+    fixture.detectChanges();
+
+    const testMicBtn = fixture.nativeElement.querySelector(
+      '.user-panel__voice-status button',
     ) as HTMLButtonElement;
-    expect(deleteItem).toBeTruthy();
+    expect(testMicBtn).toBeTruthy();
 
-    deleteItem.click();
+    testMicBtn.click();
     fixture.detectChanges();
-    await fixture.whenStable();
+    expect(fixture.componentInstance['isTestingMic']()).toBe(true);
 
-    const dialog = document.body.querySelector('app-delete-account-dialog') as HTMLElement;
-    const submit = dialog.querySelector('.delete-account__submit') as HTMLButtonElement;
-    const input = dialog.querySelector('input') as HTMLInputElement;
-    expect(dialog.textContent).toContain('Hành động không thể hoàn tác');
-    expect(submit.disabled).toBe(true);
-
-    expect(dialog.textContent).toContain('mon@nexus.test');
-    input.value = 'mon@nexus.test';
-    input.dispatchEvent(new Event('input'));
+    testMicBtn.click();
     fixture.detectChanges();
-    expect(submit.disabled).toBe(false);
+    expect(fixture.componentInstance['isTestingMic']()).toBe(false);
   });
 });

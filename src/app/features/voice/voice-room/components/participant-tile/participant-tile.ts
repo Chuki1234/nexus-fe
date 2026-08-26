@@ -27,6 +27,7 @@ import { VoiceParticipantModel } from '../../../services/voice-room.service';
 export class ParticipantTile implements OnDestroy {
   readonly participant = input.required<VoiceParticipantModel>();
   readonly isScreenShare = input<boolean>(false);
+  readonly isFocused = input<boolean>(false);
 
   readonly watchStream = output<string>();
 

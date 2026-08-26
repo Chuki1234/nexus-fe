@@ -1227,6 +1227,28 @@ export class UserSettingsService {
     { id: 'b2', username: 'toxic_player01', displayName: 'Toxic User' },
   ]);
 
+  // Friend Notes map: Record<friendId, string>
+  readonly friendNotes = signal<Record<string, string>>((() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = localStorage.getItem('nexuscord-friend-notes');
+        if (raw) return JSON.parse(raw);
+      }
+    } catch {}
+    return {};
+  })());
+
+  // Muted Friends list: string[] (user IDs)
+  readonly mutedFriends = signal<string[]>((() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = localStorage.getItem('nexuscord-muted-friends');
+        if (raw) return JSON.parse(raw);
+      }
+    } catch {}
+    return [];
+  })());
+
   constructor() {
     effect(() => {
       const p = this.profileService.current();
@@ -1871,6 +1893,53 @@ export class UserSettingsService {
 
   unblockUser(id: string): void {
     this.blockedUsers.update((users) => users.filter((u) => u.id !== id));
+  }
+
+  blockUser(user: { id: string; username: string; displayName: string }): void {
+    this.blockedUsers.update((users) => {
+      if (users.some((u) => u.id === user.id)) return users;
+      return [...users, user];
+    });
+  }
+
+  isUserBlocked(userId: string): boolean {
+    return this.blockedUsers().some((u) => u.id === userId);
+  }
+
+  getFriendNote(friendId: string): string {
+    return this.friendNotes()[friendId] || '';
+  }
+
+  setFriendNote(friendId: string, note: string): void {
+    this.friendNotes.update((notes) => {
+      const updated = { ...notes, [friendId]: note.trim() };
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem('nexuscord-friend-notes', JSON.stringify(updated));
+        }
+      } catch {}
+      return updated;
+    });
+  }
+
+  isFriendMuted(friendId: string): boolean {
+    return this.mutedFriends().includes(friendId);
+  }
+
+  toggleMuteFriend(friendId: string): boolean {
+    let nowMuted = false;
+    this.mutedFriends.update((list) => {
+      const isMuted = list.includes(friendId);
+      nowMuted = !isMuted;
+      const updated = isMuted ? list.filter((id) => id !== friendId) : [...list, friendId];
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem('nexuscord-muted-friends', JSON.stringify(updated));
+        }
+      } catch {}
+      return updated;
+    });
+    return nowMuted;
   }
 
   revokeSession(id: string): void {

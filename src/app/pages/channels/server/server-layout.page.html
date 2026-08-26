@@ -1,0 +1,66 @@
+<!-- Cột kênh. Ẩn ở mobile để nhường chỗ cho khung chat; quay lại dải máy chủ để
+     đổi phòng. Bản mẫu nên chưa làm ngăn kéo trượt cho màn hẹp. -->
+<nav
+  [attr.aria-label]="'Kênh của ' + (server()?.name ?? '')"
+  class="hidden h-dvh w-60 shrink-0 flex-col border-r border-hairline bg-canvas-soft md:flex"
+>
+  <header class="shrink-0 border-b border-hairline px-4 py-3">
+    <h2 class="truncate text-body-md-strong text-ink-strong">{{ server()?.name ?? '' }}</h2>
+  </header>
+
+  <div class="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+    @for (category of categories(); track category.id) {
+      <div class="mt-4 first:mt-0">
+        <p class="px-2 text-caption-strong text-mute uppercase">{{ category.name }}</p>
+
+        <ul class="mt-1 flex flex-col gap-0.5">
+          @for (channel of category.channels; track channel.id) {
+            <li>
+              <a
+                [routerLink]="['/channels', server()?.id, channel.id]"
+                routerLinkActive="bg-canvas text-ink-strong"
+                #active="routerLinkActive"
+                [attr.aria-current]="active.isActive ? 'page' : null"
+                class="flex items-center gap-2 rounded-sm px-2 py-1.5 text-body-sm text-body hover:bg-canvas hover:text-ink"
+              >
+                <!-- Ký hiệu kiểu kênh: # văn bản, loa cho thoại, ổ khoá cho kênh riêng. -->
+                <span aria-hidden="true" class="shrink-0 text-mute">
+                  @if (channel.isPrivate) {
+                    🔒
+                  } @else if (channel.type === 'voice') {
+                    🔊
+                  } @else {
+                    #
+                  }
+                </span>
+
+                <span class="min-w-0 flex-1 truncate">{{ channel.name }}</span>
+
+                @if (channel.unread) {
+                  <span
+                    class="flex min-w-5 shrink-0 items-center justify-center rounded-pill bg-danger px-1.5 text-caption-strong text-ink-strong"
+                  >
+                    <span aria-hidden="true">{{ channel.unread }}</span>
+                    <span class="sr-only">{{ channel.unread }} tin chưa đọc</span>
+                  </span>
+                }
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+
+  <div class="shrink-0">
+    <a
+      [routerLink]="['/settings/server', server()?.id, 'overview']"
+      class="block border-t border-hairline px-4 py-2 text-body-sm text-body hover:bg-canvas hover:text-ink"
+    >
+      Cài đặt máy chủ
+    </a>
+    <app-user-bar />
+  </div>
+</nav>
+
+<router-outlet />

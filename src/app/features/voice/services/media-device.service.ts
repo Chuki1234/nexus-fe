@@ -24,6 +24,7 @@ export class MediaDeviceService implements OnDestroy {
 
   /** Mức âm lượng mic thời gian thực (0 - 100) dùng cho thước đo trực quan */
   readonly audioLevel = signal<number>(0);
+  readonly isTestingMic = signal<boolean>(false);
 
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
@@ -32,6 +33,7 @@ export class MediaDeviceService implements OnDestroy {
 
   constructor() {
     if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+      void this.enumerateDevices();
       navigator.mediaDevices.ondevicechange = () => {
         void this.enumerateDevices();
       };
@@ -125,6 +127,7 @@ export class MediaDeviceService implements OnDestroy {
 
       this.testStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
       this.hasMicrophonePermission.set(true);
+      this.isTestingMic.set(true);
 
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioContextClass) {
@@ -157,6 +160,7 @@ export class MediaDeviceService implements OnDestroy {
 
       checkLevel();
     } catch (err) {
+      this.isTestingMic.set(false);
       console.warn('Không thể khởi tạo microphone test:', err);
     }
   }
@@ -165,6 +169,7 @@ export class MediaDeviceService implements OnDestroy {
    * Dừng test micro và giải phóng AudioContext, stream tracks.
    */
   stopMicrophoneTest(): void {
+    this.isTestingMic.set(false);
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;

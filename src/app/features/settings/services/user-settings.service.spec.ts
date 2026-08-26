@@ -110,6 +110,8 @@ describe('UserSettingsService', () => {
     );
     expect(service.hasUnsavedChanges()).toBe(true);
 
+    service.resetChanges();
+    expect(service.hasUnsavedChanges()).toBe(false);
     service.close();
 
     expect(service.editAvatarUrl()).not.toBe('blob:pending-avatar');

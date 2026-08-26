@@ -3,8 +3,8 @@
   <div class="flex items-center justify-between border-b border-hairline px-6 py-4">
     <div>
       <h2 class="text-heading-4 font-bold text-ink m-0">Tạo kênh</h2>
-      @if (data.serverName) {
-        <p class="text-caption text-steel mt-0.5 m-0">trong {{ data.serverName }}</p>
+      @if (data.categoryName || data.serverName) {
+        <p class="text-caption text-steel mt-0.5 m-0">trong {{ data.categoryName || data.serverName }}</p>
       }
     </div>
     <button

@@ -7,7 +7,7 @@
   height: 1.125rem !important;
   font-size: 1.125rem !important;
   line-height: 1 !important;
-  margin: 0 0.5rem 0 0 !important;
+  margin: 0 0.375rem 0 0 !important;
   vertical-align: middle !important;
 }
 
@@ -15,9 +15,9 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 1rem !important;
-  height: 1rem !important;
-  font-size: 1rem !important;
+  width: 0.875rem !important;
+  height: 0.875rem !important;
+  font-size: 0.875rem !important;
   line-height: 1 !important;
   transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -31,9 +31,9 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 1rem !important;
-  height: 1rem !important;
-  font-size: 1rem !important;
+  width: 0.875rem !important;
+  height: 0.875rem !important;
+  font-size: 0.875rem !important;
   line-height: 1 !important;
   text-align: center !important;
 }
@@ -42,13 +42,83 @@
   transition: opacity 120ms ease;
 }
 
-.channel-row:hover .channel-actions,
-.channel-row:focus-within .channel-actions {
-  opacity: 1;
-}
-
 .channel-action-btn:hover {
   background-color: var(--surface-feature, rgba(0, 237, 100, 0.08));
+}
+
+/* Voice Live Badge (Crisp, high-contrast, clean sans-serif font) */
+.voice-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background-color: #ed4245;
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.625rem; /* 10px */
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.25rem;
+  box-shadow: 0 0 8px rgba(237, 66, 69, 0.4);
+  text-transform: uppercase;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.voice-live-badge__dot {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 9999px;
+  background-color: #ffffff;
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  flex-shrink: 0;
+}
+
+/* Voice Watch Stream Button (High contrast, vibrant hover, guaranteed text visibility) */
+.voice-watch-stream-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background-color: rgba(0, 237, 100, 0.12);
+  color: var(--color-primary, #00ed64) !important;
+  border: 1px solid rgba(0, 237, 100, 0.3);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.voice-watch-stream-btn mat-icon {
+  width: 0.85rem !important;
+  height: 0.85rem !important;
+  font-size: 0.85rem !important;
+  line-height: 1 !important;
+  color: inherit !important;
+}
+
+.voice-watch-stream-btn span {
+  color: inherit !important;
+  line-height: 1;
+}
+
+.voice-watch-stream-btn:hover {
+  background-color: var(--color-primary, #00ed64) !important;
+  color: #021a12 !important;
+  border-color: var(--color-primary, #00ed64) !important;
+  box-shadow: 0 0 12px rgba(0, 237, 100, 0.5) !important;
+  transform: translateY(-0.5px);
+}
+
+.voice-watch-stream-btn:active {
+  transform: scale(0.96);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -166,4 +236,224 @@
   color: var(--color-on-primary, #001e2b) !important;
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * Drag & Drop Channels (Discord Style UX & Animations)
+ * ════════════════════════════════════════════════════════════════════════════ */
 
+/* Cursor khi có quyền kéo thả */
+.channel-row {
+  user-select: none;
+}
+
+.channel-row:not(.cdk-drag-disabled) {
+  cursor: grab;
+}
+
+.channel-row.cdk-drag-dragging {
+  cursor: grabbing !important;
+  opacity: 0.2;
+}
+
+/* Khoảng trống chèn kênh khi kéo (Drop slot gap indicator) */
+.channel-drag-placeholder {
+  min-height: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface-feature, #003d4f) 40%, transparent);
+  border: 1.5px dashed var(--color-primary, #00ed64);
+  box-shadow: 0 0 12px rgba(0, 237, 100, 0.25);
+  width: 100%;
+  flex: 0 0 34px;
+  margin: 0;
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+/* Preview giữ đúng visual của channel row đang hover: 34px, bo 12px và căn trái. */
+::ng-deep .channel-drag-preview.cdk-drag-preview {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex: 0 0 auto !important;
+  gap: 0.375rem !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 0.5rem !important;
+  overflow: hidden !important;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 68%, transparent) !important;
+  height: 34px !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--color-surface, #002634) 88%, var(--color-primary, #00ed64) 12%) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(0, 237, 100, 0.14) !important;
+  color: var(--color-primary-soft) !important;
+  opacity: 0.98 !important;
+  text-align: left !important;
+  transform-origin: top left !important;
+  pointer-events: none !important;
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+::ng-deep .channel-drag-preview-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 1.125rem !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  margin: 0 !important;
+  font-size: 1.125rem !important;
+  line-height: 1 !important;
+  color: var(--color-steel, #8ca3ad) !important;
+}
+
+::ng-deep .channel-drag-preview-title {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  color: var(--color-slate, #b8c7ce) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  line-height: 1.25rem !important;
+  text-align: left !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+/* Inner voice member preview: width từ [style.width.px], height cố định */
+::ng-deep .voice-member-drag-preview {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.375rem !important;
+  box-sizing: border-box !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  padding: 0 8px !important;
+  background: var(--color-surface, #002634) !important;
+  border: 1.5px solid var(--color-primary, #00ed64) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 237, 100, 0.35) !important;
+  opacity: 0.98 !important;
+  z-index: 99999 !important;
+  pointer-events: none !important;
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+::ng-deep .voice-member-drag-preview .voice-member-drag-preview-title {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: var(--color-ink, #ffffff) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Animation dịch chuyển các kênh xung quanh để mở khoảng trống */
+.cdk-drop-list-dragging .channel-row:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Drop list container */
+.channel-drop-list {
+  min-height: 12px;
+  transition: background 150ms ease;
+}
+
+.channel-drop-list.cdk-drop-list-dragging {
+  border-radius: 8px;
+}
+
+/* Inner voice member preview: width từ [style.width.px], height cố định */
+::ng-deep .voice-member-drag-preview {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.375rem !important;
+  box-sizing: border-box !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  padding: 0 8px !important;
+  background: var(--color-surface, #002634) !important;
+  border: 1.5px solid var(--color-primary, #00ed64) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 237, 100, 0.35) !important;
+  opacity: 0.98 !important;
+  z-index: 99999 !important;
+  pointer-events: none !important;
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+::ng-deep .voice-member-drag-preview .voice-member-drag-preview-title {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: var(--color-ink, #ffffff) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Animation dịch chuyển các kênh xung quanh để mở khoảng trống */
+.cdk-drop-list-dragging .channel-row:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Drop list container */
+.channel-drop-list {
+  min-height: 12px;
+  transition: background 150ms ease;
+}
+
+.channel-drop-list.cdk-drop-list-dragging {
+  border-radius: 8px;
+}
+
+/* Voice Channel Members Row & Badges */
+.voice-member-row {
+  user-select: none;
+}
+
+.voice-member-row:hover {
+  background-color: var(--surface-feature, rgba(255, 255, 255, 0.04));
+}
+
+/* Category Drag & Drop Styling */
+.category-drag-placeholder {
+  min-height: 28px;
+  background: color-mix(in srgb, var(--color-primary, #00ed64) 8%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--color-primary, #00ed64) 40%, transparent);
+  border-radius: 8px;
+  margin: 4px 8px;
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+::ng-deep .category-drag-preview {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  box-sizing: border-box !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  padding: 0 10px !important;
+  background: color-mix(in srgb, var(--color-surface, #002634) 92%, var(--color-primary, #00ed64) 8%) !important;
+  border: 1.5px solid var(--color-primary, #00ed64) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 237, 100, 0.35) !important;
+  opacity: 0.98 !important;
+  z-index: 99999 !important;
+  pointer-events: none !important;
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+.categories-drop-list.cdk-drop-list-dragging .channel-group:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}

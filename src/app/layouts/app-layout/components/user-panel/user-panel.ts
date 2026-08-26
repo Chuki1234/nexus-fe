@@ -9,6 +9,7 @@ import { ProfileService } from '../../../../core/profile/profile.service';
 import { ProfilePopover } from '../../../../features/profile/components/profile-popover/profile-popover';
 import { ProfileStore } from '../../../../features/profile/profile-store';
 import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
+import { MediaDeviceService } from '../../../../features/voice/services/media-device.service';
 import { VoiceRoomService } from '../../../../features/voice/services/voice-room.service';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 
@@ -41,12 +42,14 @@ export class UserPanel {
   private readonly profile = inject(ProfileService);
   private readonly settingsService = inject(UserSettingsService);
   readonly voiceRoom = inject(VoiceRoomService);
+  readonly mediaDevices = inject(MediaDeviceService);
   protected readonly store = inject(ProfileStore);
 
   protected readonly isVoiceConnected = this.voiceRoom.isConnected;
   protected readonly voiceChannelName = this.voiceRoom.currentChannelName;
   protected readonly isCameraOn = this.voiceRoom.isCameraOn;
   protected readonly isScreenSharing = this.voiceRoom.isScreenSharing;
+  protected readonly isTestingMic = this.mediaDevices.isTestingMic;
 
   protected readonly micMuted = signal(false);
   protected readonly deafened = signal(false);
@@ -102,7 +105,18 @@ export class UserPanel {
     this.closeTimer = setTimeout(() => this.popoverOpen.set(false), 160);
   }
 
+  protected async toggleTestMic(): Promise<void> {
+    if (this.isTestingMic()) {
+      this.mediaDevices.stopMicrophoneTest();
+    } else {
+      await this.mediaDevices.startMicrophoneTest();
+    }
+  }
+
   protected disconnectVoice(): void {
+    if (this.isTestingMic()) {
+      this.mediaDevices.stopMicrophoneTest();
+    }
     void this.voiceRoom.leaveRoom();
   }
 

@@ -33,6 +33,16 @@ describe('VoiceStage', () => {
           useValue: {
             allParticipants: mockParticipants,
             screenShareParticipant: mockScreenSharer,
+            isMicMuted: signal(false),
+            isCameraOn: signal(false),
+            isScreenSharing: signal(false),
+            toggleMicrophone: () => {},
+            toggleCamera: () => {},
+            toggleScreenShare: () => {},
+            leaveRoom: () => {},
+            switchAudioInput: () => {},
+            switchVideoInput: () => {},
+            switchAudioOutput: () => {},
           },
         },
       ],
@@ -100,5 +110,56 @@ describe('VoiceStage', () => {
 
     expect(component.focusedParticipantIdentity()).toBeNull();
     expect(component.isWatchingStream()).toBe(false);
+  });
+
+  it('tách riêng ô participant tile và ô stream tile khi có người bật screen share', () => {
+    mockParticipants.set([
+      {
+        identity: 'usr-1',
+        name: 'Minh Tài',
+        isLocal: true,
+        isSpeaking: false,
+        isMuted: false,
+        isCameraOn: false,
+        isScreenSharing: true,
+        connectionQuality: 'excellent',
+      },
+      {
+        identity: 'usr-2',
+        name: 'Giang',
+        isLocal: false,
+        isSpeaking: false,
+        isMuted: false,
+        isCameraOn: false,
+        isScreenSharing: false,
+        connectionQuality: 'excellent',
+      },
+    ]);
+    fixture.detectChanges();
+
+    const items = component.stageItems();
+    // 2 participants + 1 screen share = 3 items
+    expect(items.length).toBe(3);
+    expect(items.find((it) => it.type === 'screen_share')?.participant.identity).toBe('usr-1');
+    expect(component.stageTierClass()).toBe('stage--count-3');
+  });
+
+  it('tự động ẩn thanh điều khiển sau 3s không di chuột và hiện lại khi di chuột', () => {
+    vi.useFakeTimers();
+    component.watchStream('usr-1');
+    expect(component.areControlsVisible()).toBe(true);
+
+    // Sau 3 giây không di chuột
+    vi.advanceTimersByTime(3000);
+    expect(component.areControlsVisible()).toBe(false);
+
+    // Khi di chuột thì hiện lại
+    component.onStreamMouseMove();
+    expect(component.areControlsVisible()).toBe(true);
+
+    // Khi rời chuột ra ngoài thì ẩn ngay
+    component.onStreamMouseLeave();
+    expect(component.areControlsVisible()).toBe(false);
+    vi.useRealTimers();
   });
 });

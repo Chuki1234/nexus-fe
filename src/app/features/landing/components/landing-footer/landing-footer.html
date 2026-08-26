@@ -1,0 +1,42 @@
+<footer class="footer">
+  <div class="footer__inner">
+    <div class="footer__brand">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true"></span>
+        <span class="brand__name">Nexus</span>
+      </div>
+      <p class="footer__tag">Không gian cộng đồng thời gian thực.</p>
+    </div>
+
+    <nav class="footer__cols" aria-label="Liên kết chân trang">
+      <div class="footer__col">
+        <h2 class="footer__heading">Sản phẩm</h2>
+        <ul class="footer__list">
+          @for (item of productLinks; track item.href) {
+            <li><a class="footer__link" [href]="item.href">{{ item.label }}</a></li>
+          }
+        </ul>
+      </div>
+
+      <div class="footer__col">
+        <h2 class="footer__heading">Tài khoản</h2>
+        <ul class="footer__list">
+          @for (item of accountLinks; track item.link) {
+            <li><a class="footer__link" [routerLink]="item.link">{{ item.label }}</a></li>
+          }
+        </ul>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Wordmark khổng lồ + tắc kè ló đầu ngồi trên chữ — chữ ký footer. -->
+  <div class="footer__sign">
+    <app-landing-mascot class="footer__mascot" [waving]="true" />
+    <div class="footer__wordmark" aria-hidden="true">Nexus</div>
+  </div>
+
+  <div class="footer__base">
+    <span>© {{ year }} Nexus · Dự án học tập</span>
+    <span>Dựng bởi nhóm Nexus · Web26A</span>
+  </div>
+</footer>

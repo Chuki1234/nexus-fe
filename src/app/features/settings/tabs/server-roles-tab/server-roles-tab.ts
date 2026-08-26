@@ -6,7 +6,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { UserSettingsService, ServerRoleItem } from '../../services/user-settings.service';
-import { ShellData } from '../../../../core/api/shell-data';
+import { ServersStore } from '../../../../core/servers/servers.store';
 
 @Component({
   selector: 'app-server-roles-tab',
@@ -25,7 +25,7 @@ import { ShellData } from '../../../../core/api/shell-data';
 })
 export class ServerRolesTab {
   protected readonly settingsService = inject(UserSettingsService);
-  private readonly shellData = inject(ShellData);
+  private readonly serversStore = inject(ServersStore);
 
   // View mode: 'list' (Danh sách giống Discord ảnh 3) hoặc 'edit' (Chi tiết chỉnh sửa quyền của vai trò)
   protected readonly viewMode = signal<'list' | 'edit'>('list');
@@ -57,7 +57,7 @@ export class ServerRolesTab {
 
   protected readonly availableChannels = computed(() => {
     const sId = this.settingsService.currentServerId();
-    return this.shellData.channelsOf(sId);
+    return this.serversStore.channelsOf(sId);
   });
 
   protected readonly channelAccess = computed(() => {

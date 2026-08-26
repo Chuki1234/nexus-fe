@@ -111,3 +111,19 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-glow);
 }
+
+/* Mobile / Compact Mode Toolbar Padding: Leave 60px safe area on the left for the floating menu button */
+.dashboard-mobile-container .dashboard-workspace .friends-toolbar,
+.dashboard-mobile-container .dashboard-workspace .chat-toolbar,
+.dashboard-mobile-container .dashboard-workspace .voice-header {
+  padding-left: 3.75rem !important;
+}
+
+.dashboard-mobile-menu-trigger {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--radius-lg) !important;
+}

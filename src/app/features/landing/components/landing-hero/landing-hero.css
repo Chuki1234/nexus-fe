@@ -1,0 +1,373 @@
+:host {
+  display: block;
+}
+
+.hero {
+  max-inline-size: var(--container-band);
+  margin-inline: auto;
+  padding: 96px 24px 72px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 56px;
+}
+
+/* ---------- Cột chữ ---------- */
+.eyebrow {
+  display: inline-block;
+  font-size: var(--text-micro-uppercase);
+  font-weight: var(--text-micro-uppercase--font-weight);
+  letter-spacing: var(--text-micro-uppercase--letter-spacing);
+  text-transform: uppercase;
+  color: var(--color-brand-green);
+  margin-block-end: 20px;
+}
+
+.hero__title {
+  font-size: var(--text-hero-display);
+  line-height: var(--text-hero-display--line-height);
+  letter-spacing: var(--text-hero-display--letter-spacing);
+  font-weight: var(--text-hero-display--font-weight);
+  color: var(--color-ink);
+  margin: 0;
+}
+.hero__accent {
+  color: var(--color-brand-green);
+}
+
+.hero__subtitle {
+  margin-block: 24px 0;
+  max-inline-size: 30rem;
+  font-size: var(--text-subtitle);
+  line-height: var(--text-subtitle--line-height);
+  color: var(--color-slate);
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-block-start: 32px;
+}
+
+.hero__note {
+  margin-block-start: 16px;
+  font-size: var(--text-caption);
+  color: var(--color-steel);
+}
+
+/* ---------- Mock cửa sổ channel ---------- */
+.mock {
+  border-radius: var(--radius-xl);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-hairline);
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+  animation: rise var(--motion-base) var(--ease-nexus-out) both;
+}
+
+.mock__bar {
+  display: flex;
+  gap: 7px;
+  padding: 13px 16px;
+  background-color: var(--color-surface-soft);
+  border-block-end: 1px solid var(--color-hairline-soft);
+}
+.mock__dot {
+  inline-size: 11px;
+  block-size: 11px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-hairline-strong);
+}
+
+.mock__body {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  min-block-size: 340px;
+}
+
+.mock__rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-block: 16px;
+  background-color: var(--color-canvas);
+  border-inline-end: 1px solid var(--color-hairline-soft);
+}
+.mock__server {
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: var(--radius-lg);
+  display: grid;
+  place-items: center;
+  font-size: var(--text-body-sm-medium);
+  font-weight: 600;
+  color: var(--color-slate);
+  background-color: var(--color-surface-feature);
+}
+.mock__server--active {
+  background-color: var(--color-brand-green);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-md);
+}
+.mock__server--add {
+  color: var(--color-brand-green);
+  background-color: transparent;
+  border: 1px dashed var(--color-hairline-strong);
+}
+
+.mock__channel {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface);
+}
+
+.mock__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+  border-block-end: 1px solid var(--color-hairline-soft);
+}
+.mock__hash {
+  color: var(--color-steel);
+  font-weight: 600;
+}
+.mock__chan {
+  color: var(--color-ink);
+  font-weight: 600;
+  font-size: var(--text-body-md-medium);
+}
+.mock__presence {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-caption);
+  color: var(--color-steel);
+}
+.mock__presence .dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-green);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+.mock__stream {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 18px;
+}
+
+.msg {
+  display: flex;
+  gap: 12px;
+  animation: slide-in 0.5s var(--ease-nexus-out) both;
+  animation-delay: calc(0.35s + var(--i) * 0.7s);
+}
+.msg__avatar {
+  flex-shrink: 0;
+  inline-size: 38px;
+  block-size: 38px;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  font-size: var(--text-caption-bold);
+  font-weight: 700;
+  color: #fff;
+}
+.msg__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.msg__author {
+  font-size: var(--text-body-sm-medium);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.msg__time {
+  font-size: var(--text-micro);
+  color: var(--color-stone);
+}
+.msg__text {
+  margin: 2px 0 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-slate);
+}
+
+/* Chỉ báo "đang gõ" — hiện sau các tin nhắn */
+.typing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: fade-in 0.4s var(--ease-nexus-out) both;
+  animation-delay: 2.5s;
+}
+.typing__avatar {
+  inline-size: 38px;
+  block-size: 38px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent-orange);
+  flex-shrink: 0;
+}
+.typing__bubble {
+  display: inline-flex;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-xl);
+  background-color: var(--color-surface-feature);
+}
+.typing__bubble i {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-steel);
+  animation: blink 1.4s ease-in-out infinite;
+}
+.typing__bubble i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing__bubble i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.typing__label {
+  font-size: var(--text-caption);
+  color: var(--color-stone);
+}
+
+.mock__composer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 14px 16px;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+}
+.mock__input {
+  flex: 1;
+  font-size: var(--text-body-sm);
+  color: var(--color-stone);
+}
+.mock__send {
+  inline-size: 26px;
+  block-size: 26px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-green);
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-green) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+@keyframes blink {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding-block: 64px 48px;
+  }
+  .hero__title {
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    letter-spacing: var(--text-display-lg--letter-spacing);
+  }
+  .hero__subtitle {
+    max-inline-size: none;
+  }
+}
+@media (max-width: 480px) {
+  .hero__title {
+    font-size: var(--text-heading-1);
+    letter-spacing: var(--text-heading-1--letter-spacing);
+  }
+}
+
+/* ---------- Linh vật Nexi ló cạnh cửa sổ chat ---------- */
+.hero__stage {
+  position: relative;
+}
+.hero__mascot {
+  position: absolute;
+  inline-size: 152px;
+  inset-inline-start: -48px;
+  inset-block-end: -36px;
+  z-index: 3;
+  filter: drop-shadow(0 10px 20px color-mix(in srgb, var(--color-canvas-dark) 55%, transparent));
+}
+
+@media (max-width: 520px) {
+  .hero__mascot {
+    inline-size: 104px;
+    inset-inline-start: -12px;
+    inset-block-end: -22px;
+  }
+}
+
+/* Tôn trọng người tắt hiệu ứng — hiện mọi tin nhắn ngay, không chuyển động. */
+@media (prefers-reduced-motion: reduce) {
+  .mock,
+  .msg,
+  .typing {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .mock__presence .dot,
+  .typing__bubble i {
+    animation: none;
+  }
+}

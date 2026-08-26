@@ -1,0 +1,108 @@
+<app-settings-section
+  [heading]="'settings.roles.title' | translate"
+  [subheading]="'settings.roles.subtitle' | translate"
+  [mocked]="true"
+  [mockedLabel]="'common.comingSoon' | translate"
+>
+  <div class="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)]">
+    <!-- ══ Danh sách vai trò ══ -->
+    <div>
+      <h2 class="px-1 text-caption-strong text-mute uppercase">
+        {{ 'settings.roles.role' | translate }}
+      </h2>
+
+      <ul class="mt-2 flex flex-col gap-1">
+        @for (role of roles(); track role.id) {
+          <li>
+            <button
+              type="button"
+              (click)="selectedId.set(role.id)"
+              [attr.aria-current]="selectedId() === role.id ? 'true' : null"
+              class="flex w-full items-center gap-2 rounded-sm border-l-2 px-3 py-2 text-left hover:bg-canvas-soft"
+              [class.border-primary]="selectedId() === role.id"
+              [class.bg-canvas-soft]="selectedId() === role.id"
+              [class.border-transparent]="selectedId() !== role.id"
+            >
+              <!-- Màu vai trò là màu tự chọn của từng vai trò, không phải token
+                   theme — nên đặt bằng style binding. -->
+              <span
+                aria-hidden="true"
+                class="size-3 shrink-0 rounded-full"
+                [style.background-color]="role.color"
+              ></span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-body-sm text-ink">{{ role.name }}</span>
+                <span class="block text-caption text-mute">
+                  {{ role.memberCount }} {{ 'settings.roles.members' | translate }}
+                </span>
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+
+      <button
+        type="button"
+        class="mt-3 w-full rounded-sm border border-hairline-strong px-3 py-2 text-body-sm text-ink hover:border-primary"
+      >
+        + {{ 'settings.roles.addRole' | translate }}
+      </button>
+    </div>
+
+    <!-- ══ Quyền của vai trò đang chọn ══ -->
+    <div>
+      @if (selected(); as role) {
+        <div class="rounded-xl border border-hairline bg-canvas-soft/50">
+          <div class="flex items-center gap-2 border-b border-hairline px-4 py-3">
+            <span
+              aria-hidden="true"
+              class="size-3 shrink-0 rounded-full"
+              [style.background-color]="role.color"
+            ></span>
+            <h2 class="min-w-0 truncate text-body-md-strong text-ink">{{ role.name }}</h2>
+            @if (role.isEveryone) {
+              <span class="ml-auto shrink-0 text-caption text-mute">
+                {{ 'settings.roles.members' | translate }}: {{ role.memberCount }}
+              </span>
+            }
+          </div>
+
+          @for (group of groups(); track group.labelKey) {
+            <fieldset class="border-b border-hairline px-4 py-4 last:border-b-0">
+              <legend class="text-caption-strong text-mute uppercase">
+                {{ group.labelKey | translate }}
+              </legend>
+
+              <ul class="mt-3 flex flex-col gap-3">
+                @for (permission of group.permissions; track permission.key) {
+                  <li class="flex items-start gap-4">
+                    <span class="min-w-0 flex-1">
+                      <span [id]="'perm-' + permission.key" class="block text-body-sm text-ink">
+                        {{ permission.label }}
+                      </span>
+                      <span
+                        [id]="'perm-' + permission.key + '-hint'"
+                        class="mt-0.5 block text-caption text-mute"
+                      >
+                        {{ permission.hint }}
+                      </span>
+                    </span>
+
+                    <app-toggle-switch
+                      [checked]="has(permission.key)"
+                      (checkedChange)="toggle(permission.key, $event)"
+                      [labelId]="'perm-' + permission.key"
+                      [describedBy]="'perm-' + permission.key + '-hint'"
+                    />
+                  </li>
+                }
+              </ul>
+            </fieldset>
+          }
+        </div>
+      } @else {
+        <p class="text-body-sm text-mute">{{ 'settings.roles.selectRole' | translate }}</p>
+      }
+    </div>
+  </div>
+</app-settings-section>

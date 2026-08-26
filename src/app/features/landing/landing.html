@@ -1,0 +1,18 @@
+<div class="landing">
+  <app-landing-nav />
+
+  <main id="main">
+    <app-landing-hero />
+    <app-landing-logos />
+
+    @for (feature of features; track feature.variant) {
+      <app-landing-feature-row [feature]="feature" />
+    }
+
+    <app-landing-bento />
+    <app-landing-quote />
+    <app-landing-cta />
+  </main>
+
+  <app-landing-footer />
+</div>

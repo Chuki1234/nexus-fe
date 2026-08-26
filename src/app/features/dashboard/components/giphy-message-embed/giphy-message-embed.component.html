@@ -1,0 +1,43 @@
+@if (media) {
+  <div
+    class="giphy-embed-wrapper"
+    [style.aspect-ratio]="aspectRatioStyle()"
+    [style.max-width.px]="media.width > 480 ? 480 : (media.width || 480)"
+    tabindex="0"
+    role="button"
+    [attr.aria-label]="'Xem ảnh GIF ' + (media.title || '')"
+    (click)="openLightbox($event)"
+    (keydown.enter)="openLightbox($event)"
+  >
+    <!-- Rendition MP4 nếu khả dụng và chưa bị lỗi -->
+    @if (media.mp4Url && !videoFailed()) {
+      <video
+        [src]="media.mp4Url"
+        class="giphy-media-content"
+        autoplay
+        loop
+        muted
+        playsinline
+        preload="metadata"
+        (error)="onVideoError()"
+      ></video>
+    } @else if (!imageFailed()) {
+      <!-- Rendition ảnh WebP / GIF fallback -->
+      <img
+        [src]="media.displayUrl || media.previewUrl"
+        [alt]="media.title || 'GIPHY GIF'"
+        class="giphy-media-content"
+        loading="lazy"
+        (error)="onImageError()"
+      />
+    } @else {
+      <!-- Trạng thái ảnh bị lỗi -->
+      <div class="giphy-fallback-error">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+          <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+        </svg>
+        <span>Không thể tải ảnh GIF</span>
+      </div>
+    }
+  </div>
+}

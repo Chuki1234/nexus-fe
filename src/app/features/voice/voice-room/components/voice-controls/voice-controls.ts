@@ -45,6 +45,10 @@ export class VoiceControls {
     void this.voiceRoom.toggleScreenShare();
   }
 
+  protected switchScreenShare(): void {
+    void this.voiceRoom.switchScreenShare();
+  }
+
   protected toggleFullscreen(): void {
     if (!document.fullscreenElement) {
       void document.documentElement.requestFullscreen().then(() => {

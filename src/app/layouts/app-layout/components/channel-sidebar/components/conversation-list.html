@@ -11,6 +11,14 @@
   >
     <mat-icon matListItemIcon aria-hidden="true">group</mat-icon>
     <span matListItemTitle [class.text-ink]="friends.isActive">Bạn bè</span>
+    @if (pendingFriendRequestsCount() > 0) {
+      <span
+        matListItemMeta
+        class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold rounded-full bg-danger text-white"
+      >
+        {{ pendingFriendRequestsCount() }}
+      </span>
+    }
   </a>
 
   <a
@@ -63,9 +71,8 @@
         #link="routerLinkActive"
         [activated]="link.isActive"
         [attr.aria-current]="link.isActive ? 'page' : null"
-        [lines]="conversation.statusMessage ? 2 : 1"
         [attr.data-conversation-id]="conversation.id"
-        class="conversation-row nexus-nav-item !h-auto !min-h-14 !rounded-lg"
+        class="conversation-row nexus-nav-item !rounded-lg"
       >
         <span
           matListItemIcon
@@ -96,16 +103,11 @@
           class="!flex min-w-0 items-center justify-between gap-1 pr-1"
           [class.text-ink]="!link.isActive && conversation.unread"
         >
-          <span class="truncate">{{ conversation.name }}</span>
+          <app-overflow-marquee class="min-w-0 flex-1" [text]="conversation.name" />
           @if (conversation.unreadCount > 0) {
             <app-unread-badge [count]="conversation.unreadCount" />
           }
         </span>
-        @if (conversation.statusMessage) {
-          <span matListItemLine class="!block min-w-0 truncate pr-1">
-            {{ conversation.statusMessage }}
-          </span>
-        }
       </a>
     } @empty {
       <div class="mx-1 rounded-xl bg-surface-soft px-3 py-5 text-center shadow-glow">

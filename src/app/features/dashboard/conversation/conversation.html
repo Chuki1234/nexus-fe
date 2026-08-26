@@ -60,13 +60,14 @@
 } @else if (hasValidConversation()) {
   <app-chat-toolbar
     [title]="recipientName()"
-    [subtitle]="recipientStatus()"
     leadingIcon="alternate_email"
     [showCallActions]="true"
     [showDetailsAction]="recipientUsername() !== null"
     [detailsOpen]="profilePanelOpen()"
     detailsLabel="hồ sơ"
     (toggleDetails)="profilePanelOpen.set(!profilePanelOpen())"
+    (startAudioCall)="onStartAudioCall()"
+    (startVideoCall)="onStartVideoCall()"
   />
 
   @if (detailsError(); as detErr) {
@@ -374,49 +375,54 @@
                           </time>
                         </header>
                       }
-                      <div class="message-attachments flex flex-col gap-2 max-w-lg">
-                        @for (att of msg.attachments; track att.id) {
-                          @if (!att.signedUrl || att.isAvailable === false || failedAttachmentIds().has(att.id)) {
-                            <div class="attachment-unavailable-card flex items-center gap-2.5 p-2 px-3 rounded-xl bg-surface-soft border border-hairline max-w-sm">
-                              <mat-icon class="!size-4 !text-base text-amber-500">warning_amber</mat-icon>
-                              <div class="min-w-0 flex-1 truncate">
-                                <p class="text-caption-bold text-ink truncate" [matTooltip]="att.filename">{{ att.filename }}</p>
-                                <span class="text-micro text-steel">Tệp tạm thời không khả dụng</span>
+                      @if (msg.attachments && msg.attachments.length > 0) {
+                        <div class="message-attachments flex flex-col gap-2 max-w-lg">
+                          @for (att of msg.attachments; track att.id) {
+                            @if (!att.signedUrl || att.isAvailable === false || failedAttachmentIds().has(att.id)) {
+                              <div class="attachment-unavailable-card flex items-center gap-2.5 p-2 px-3 rounded-xl bg-surface-soft border border-hairline max-w-sm">
+                                <mat-icon class="!size-4 !text-base text-amber-500">warning_amber</mat-icon>
+                                <div class="min-w-0 flex-1 truncate">
+                                  <p class="text-caption-bold text-ink truncate" [matTooltip]="att.filename">{{ att.filename }}</p>
+                                  <span class="text-micro text-steel">Tệp tạm thời không khả dụng</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  (click)="refreshAttachment(msg.id, att.id)"
+                                  class="px-2 py-1 text-micro font-medium rounded-lg bg-surface-feature text-primary underline hover:no-underline cursor-pointer"
+                                  title="Tải lại liên kết tệp"
+                                >
+                                  Tải lại
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                (click)="refreshAttachment(msg.id, att.id)"
-                                class="px-2 py-1 text-micro font-medium rounded-lg bg-surface-feature text-primary underline hover:no-underline cursor-pointer"
-                                title="Tải lại liên kết tệp"
-                              >
-                                Tải lại
-                              </button>
-                            </div>
-                          } @else {
-                            <div class="message-media-wrapper relative group/media inline-block max-w-full">
-                              <img
-                                [src]="att.signedUrl"
-                                [alt]="att.filename"
-                                class="message-media-img cursor-pointer"
-                                (click)="openLightbox(att.signedUrl, att.filename, msg.id, att.id, $event)"
-                                (error)="onAttachmentMediaError(att.id)"
-                                loading="lazy"
-                                tabindex="0"
-                                (keydown.enter)="openLightbox(att.signedUrl, att.filename, msg.id, att.id, $event)"
-                              />
-                              <button
-                                type="button"
-                                class="message-media-download-btn opacity-0 group-hover/media:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 cursor-pointer shadow-md focus-visible:outline-2 focus-visible:outline-white"
-                                (click)="downloadAttachment(msg.id, att.id, att.signedUrl, att.filename, $event)"
-                                [matTooltip]="'Tải xuống ' + att.filename"
-                                [attr.aria-label]="'Tải xuống ảnh ' + att.filename"
-                              >
-                                <mat-icon class="!size-4 !text-base">download</mat-icon>
-                              </button>
-                            </div>
+                            } @else {
+                              <div class="message-media-wrapper relative group/media inline-block max-w-full">
+                                <img
+                                  [src]="att.signedUrl"
+                                  [alt]="att.filename"
+                                  class="message-media-img cursor-pointer"
+                                  (click)="openLightbox(att.signedUrl, att.filename, msg.id, att.id, $event)"
+                                  (error)="onAttachmentMediaError(att.id)"
+                                  loading="lazy"
+                                  tabindex="0"
+                                  (keydown.enter)="openLightbox(att.signedUrl, att.filename, msg.id, att.id, $event)"
+                                />
+                                <button
+                                  type="button"
+                                  class="message-media-download-btn opacity-0 group-hover/media:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 cursor-pointer shadow-md focus-visible:outline-2 focus-visible:outline-white"
+                                  (click)="downloadAttachment(msg.id, att.id, att.signedUrl, att.filename, $event)"
+                                  [matTooltip]="'Tải xuống ' + att.filename"
+                                  [attr.aria-label]="'Tải xuống ảnh ' + att.filename"
+                                >
+                                  <mat-icon class="!size-4 !text-base">download</mat-icon>
+                                </button>
+                              </div>
+                            }
                           }
-                        }
-                      </div>
+                        </div>
+                      }
+                      @if (msg.externalMedia) {
+                        <app-giphy-message-embed [media]="msg.externalMedia" />
+                      }
                     }
 
                     <!-- VARIANT 4: File-Only (Chỉ có Tệp tài liệu) -->
@@ -628,6 +634,9 @@
                           }
                         </div>
                       }
+                      @if (msg.externalMedia) {
+                        <app-giphy-message-embed [media]="msg.externalMedia" />
+                      }
                     }
 
                     <!-- Biểu tượng cảm xúc (Reactions) -->
@@ -718,34 +727,53 @@
       </div>
     }
 
-    @if (showNewMessagesPill() || newMessagesBelowCount() > 0) {
-      <button
-        type="button"
-        (click)="scrollToBottom(true)"
-        class="floating-new-messages-pill"
-        [attr.aria-label]="newMessagesBelowCount() > 0 ? ('Có ' + newMessagesBelowCount() + ' tin nhắn mới bên dưới') : 'Cuộn xuống xem tin nhắn mới'"
-      >
-        <mat-icon class="!size-4 !text-base">arrow_downward</mat-icon>
-        <span>
-          @if (newMessagesBelowCount() > 0) {
-            Có {{ newMessagesBelowCount() }} tin nhắn mới bên dưới
-          } @else {
-            Có tin nhắn mới bên dưới
+    <div #composerWrapper class="composer-container relative shrink-0">
+      @if (scrollController.showScrollDownButton()) {
+        <button
+          type="button"
+          (click)="scrollToLatest()"
+          class="absolute left-1/2 -translate-x-1/2 -top-13 z-30 flex size-11 items-center justify-center rounded-full bg-surface-feature/95 text-ink border border-hairline shadow-md backdrop-blur-md transition-all hover:bg-surface-feature hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none cursor-pointer"
+          [attr.aria-label]="scrollController.unreadCount() > 0 ? ('Đi tới ' + scrollController.unreadCount() + ' tin nhắn mới nhất') : 'Đi tới tin nhắn mới nhất'"
+          matTooltip="Đi tới tin nhắn mới nhất"
+          matTooltipPosition="above"
+        >
+          <mat-icon class="!size-5 !text-[20px]">keyboard_arrow_down</mat-icon>
+          @if (scrollController.unreadCount() > 0) {
+            <span
+              aria-live="polite"
+              class="absolute -top-1.5 -right-1.5 flex min-w-5 h-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-extrabold text-on-primary shadow-xs"
+            >
+              {{ scrollController.unreadCount() > 99 ? '99+' : scrollController.unreadCount() }}
+            </span>
           }
-        </span>
-      </button>
-    }
+        </button>
+      }
 
-    <div #composerWrapper class="composer-container shrink-0">
-      <app-message-composer
-        [target]="'@' + recipientName()"
-        [disabled]="loadingInitial() || storeError() !== null"
-        [context]="composerContext()"
-        (send)="onSendMessage($event)"
-        (typing)="onTyping()"
-        (stoppedTyping)="onStoppedTyping()"
-        (contextClosed)="composerContext.set(null)"
-      />
+      @if (isRecipientBlocked()) {
+        <div class="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-surface-feature/80 border border-hairline text-body-sm text-steel">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <mat-icon class="text-danger !size-5 !text-xl shrink-0">block</mat-icon>
+            <span class="text-ink">Bạn không thể gửi tin nhắn vì đã chặn người dùng này.</span>
+          </div>
+          <button
+            type="button"
+            (click)="unblockRecipient()"
+            class="px-3.5 py-1.5 rounded-xl border border-hairline hover:border-primary text-body-sm font-semibold text-ink hover:text-primary hover:bg-primary/10 transition-all cursor-pointer shrink-0"
+          >
+            Bỏ chặn
+          </button>
+        </div>
+      } @else {
+        <app-message-composer
+          [target]="'@' + recipientName()"
+          [disabled]="loadingInitial() || storeError() !== null"
+          [context]="composerContext()"
+          (send)="onSendMessage($event)"
+          (typing)="onTyping()"
+          (stoppedTyping)="onStoppedTyping()"
+          (contextClosed)="composerContext.set(null)"
+        />
+      }
     </div>
 
     <!-- Forward Message Modal -->
@@ -755,6 +783,17 @@
         [currentConversationId]="conversationId()"
         (close)="closeForwardModal()"
         (forwardSuccess)="onForwardSuccess($event)"
+      />
+    }
+
+    <!-- Delete / Recall Message Modal -->
+    @if (deleteModalMessage(); as delMsg) {
+      <app-delete-message-modal
+        [message]="delMsg"
+        [canRecall]="delMsg.authorId === currentUserId()"
+        [isSubmitting]="isDeletingMessage()"
+        (close)="closeDeleteModal()"
+        (confirm)="onConfirmDelete($event)"
       />
     }
   </div>
