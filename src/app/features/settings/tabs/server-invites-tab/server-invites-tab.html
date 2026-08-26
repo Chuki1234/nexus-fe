@@ -146,26 +146,26 @@
 
   <!-- Create Invite Modal Dialog -->
   @if (showCreateModal()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
-      <div class="card-base max-w-md w-full space-y-4 animate-slide-up shadow-modal" (click)="$event.stopPropagation()">
-        <div class="flex items-center justify-between">
+    <div class="fixed inset-0 z-100 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
+      <div class="relative max-w-md w-full p-6 space-y-4 rounded-3xl border border-hairline bg-surface shadow-modal animate-slide-up text-ink ring-1 ring-white/10" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between pb-1 border-b border-hairline/60">
           <span class="text-heading-5 font-bold text-ink">Tạo liên kết mới</span>
-          <button type="button" (click)="showCreateModal.set(false)" class="text-steel hover:text-ink cursor-pointer">
-            <mat-icon class="!w-4 !h-4">close</mat-icon>
+          <button type="button" (click)="showCreateModal.set(false)" class="text-steel hover:text-ink transition-colors cursor-pointer p-1 rounded-lg hover:bg-surface-feature">
+            <mat-icon class="!w-5 !h-5">close</mat-icon>
           </button>
         </div>
 
-        <div class="space-y-4">
+        <div class="space-y-4 pt-1">
           <!-- Kênh đích -->
           <div>
-            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="select-inv-chan">
-              Gửi người dùng tới kênh
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="select-inv-chan">
+              GỬI NGƯỜI DÙNG TỚI KÊNH
             </label>
             <select
               id="select-inv-chan"
               [value]="targetChannel()"
               (change)="targetChannel.set($any($event.target).value)"
-              class="input-base !bg-canvas cursor-pointer font-semibold text-caption"
+              class="w-full bg-canvas border border-hairline rounded-xl px-3.5 py-2.5 cursor-pointer font-semibold text-caption text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
             >
               <option value="Sảnh"># Sảnh (Kênh chính)</option>
               @for (chan of availableChannels(); track chan.id) {
@@ -176,32 +176,34 @@
 
           <!-- Mã Tùy Chọn -->
           <div>
-            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="input-inv-code">
-              Mã Mời Tùy Chỉnh (Tùy chọn)
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="input-inv-code">
+              MÃ MỜI TÙY CHỈNH (TÙY CHỌN)
             </label>
             <div class="flex items-center gap-2">
-              <span class="text-caption font-mono font-bold text-steel">https://nexus.gg/</span>
+              <span class="text-caption font-mono font-bold text-steel bg-canvas px-2.5 py-2.5 rounded-xl border border-hairline shrink-0">
+                https://nexus.gg/
+              </span>
               <input
                 id="input-inv-code"
                 type="text"
                 [value]="customCode()"
                 (input)="customCode.set($any($event.target).value)"
                 placeholder="FZqeb9Ya3"
-                class="input-base !font-mono font-bold !bg-canvas flex-1"
+                class="w-full bg-canvas border border-hairline rounded-xl px-3.5 py-2.5 text-caption font-mono font-bold text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs flex-1"
               />
             </div>
           </div>
 
           <!-- Thời hạn -->
           <div>
-            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="select-inv-exp">
-              Hết hạn sau
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="select-inv-exp">
+              HẾT HẠN SAU
             </label>
             <select
               id="select-inv-exp"
               [value]="expiration()"
               (change)="expiration.set($any($event.target).value)"
-              class="input-base !bg-canvas cursor-pointer font-semibold text-caption"
+              class="w-full bg-canvas border border-hairline rounded-xl px-3.5 py-2.5 cursor-pointer font-semibold text-caption text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
             >
               <option value="00:30:00">30 phút</option>
               <option value="1:00:00:00">1 ngày</option>
@@ -213,14 +215,14 @@
 
           <!-- Số lượt dùng tối đa -->
           <div>
-            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="select-inv-uses">
-              Số lượt sử dụng tối đa
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="select-inv-uses">
+              SỐ LƯỢT SỬ DỤNG TỐI ĐA
             </label>
             <select
               id="select-inv-uses"
               [value]="maxUses() ?? 'unlimited'"
               (change)="maxUses.set($any($event.target).value === 'unlimited' ? null : +$any($event.target).value)"
-              class="input-base !bg-canvas cursor-pointer font-semibold text-caption"
+              class="w-full bg-canvas border border-hairline rounded-xl px-3.5 py-2.5 cursor-pointer font-semibold text-caption text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
             >
               <option value="unlimited">Không giới hạn</option>
               <option value="1">1 lượt</option>
@@ -233,18 +235,18 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-2">
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-hairline/60">
           <button
             type="button"
             (click)="showCreateModal.set(false)"
-            class="px-4 py-2 text-caption font-semibold text-steel hover:text-ink hover:underline cursor-pointer"
+            class="px-4 py-2 text-caption font-bold text-steel hover:text-ink transition-colors cursor-pointer"
           >
             Hủy
           </button>
           <button
             type="button"
             (click)="createInvite()"
-            class="btn-primary !py-2 !px-5 !rounded-xl font-bold shadow-glow cursor-pointer"
+            class="py-2 px-5 rounded-xl bg-primary text-on-primary font-bold text-caption shadow-glow hover:opacity-90 active:scale-98 transition-all cursor-pointer"
           >
             Tạo liên kết
           </button>

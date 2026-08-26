@@ -428,19 +428,19 @@
 
   <!-- Create Role Modal Dialog -->
   @if (showCreateRoleModal()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
-      <div class="card-base max-w-md w-full space-y-4 animate-slide-up shadow-modal" (click)="$event.stopPropagation()">
-        <div class="flex items-center justify-between">
+    <div class="fixed inset-0 z-100 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
+      <div class="relative max-w-md w-full p-6 space-y-4 rounded-3xl border border-hairline bg-surface shadow-modal animate-slide-up text-ink ring-1 ring-white/10" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between pb-1 border-b border-hairline/60">
           <span class="text-heading-5 font-bold text-ink">Tạo Vai Trò Mới</span>
-          <button type="button" (click)="showCreateRoleModal.set(false)" class="text-steel hover:text-ink cursor-pointer">
-            <mat-icon class="!w-4 !h-4">close</mat-icon>
+          <button type="button" (click)="showCreateRoleModal.set(false)" class="text-steel hover:text-ink transition-colors cursor-pointer p-1 rounded-lg hover:bg-surface-feature">
+            <mat-icon class="!w-5 !h-5">close</mat-icon>
           </button>
         </div>
 
-        <div class="space-y-4">
+        <div class="space-y-4 pt-1">
           <div>
-            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="input-rname">
-              Tên Vai Trò
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="input-rname">
+              TÊN VAI TRÒ
             </label>
             <input
               id="input-rname"
@@ -448,13 +448,13 @@
               [value]="newRoleName"
               (input)="newRoleName = $any($event.target).value"
               placeholder="VD: Jockie Music, member, VIP..."
-              class="input-base !bg-canvas text-body-sm font-bold text-ink"
+              class="w-full bg-canvas border border-hairline rounded-xl px-3.5 py-2.5 text-body-sm font-bold text-ink focus:outline-none focus:border-primary transition-colors shadow-2xs"
             />
           </div>
 
           <div>
-            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1" for="input-rcolor">
-              Màu Hiển Thị Vai Trò
+            <label class="block text-micro-uppercase font-extrabold text-stone uppercase tracking-wider mb-1.5" for="input-rcolor">
+              MÀU HIỂN THỊ VAI TRÒ
             </label>
             <div class="flex items-center gap-3">
               <input
@@ -462,25 +462,27 @@
                 type="color"
                 [value]="newRoleColor"
                 (input)="newRoleColor = $any($event.target).value"
-                class="w-14 h-10 bg-transparent cursor-pointer rounded-xl border border-hairline"
+                class="w-14 h-10 bg-transparent cursor-pointer rounded-xl border border-hairline p-0.5"
               />
-              <span class="font-mono text-caption text-steel font-bold">{{ newRoleColor }}</span>
+              <span class="font-mono text-caption text-steel font-bold bg-canvas px-3 py-2 rounded-xl border border-hairline">
+                {{ newRoleColor }}
+              </span>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-2">
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-hairline/60">
           <button
             type="button"
             (click)="showCreateRoleModal.set(false)"
-            class="px-4 py-2 text-caption font-semibold text-steel hover:text-ink hover:underline cursor-pointer"
+            class="px-4 py-2 text-caption font-bold text-steel hover:text-ink transition-colors cursor-pointer"
           >
             Hủy
           </button>
           <button
             type="button"
             (click)="createRole()"
-            class="btn-primary !py-2 !px-5 !rounded-xl font-bold shadow-glow cursor-pointer"
+            class="py-2 px-5 rounded-xl bg-primary text-on-primary font-bold text-caption shadow-glow hover:opacity-90 active:scale-98 transition-all cursor-pointer"
           >
             Tạo Vai Trò
           </button>

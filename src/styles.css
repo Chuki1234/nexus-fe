@@ -1855,6 +1855,15 @@ app-dashboard-shell
     transform: translateY(-1px);
   }
 
+  .card-base {
+    background-color: var(--color-surface, #002634);
+    border: 1px solid var(--color-hairline, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-2xl, 20px);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-card);
+    color: var(--color-ink, #ffffff);
+  }
+
   .input-base {
     display: block;
     width: 100%;
