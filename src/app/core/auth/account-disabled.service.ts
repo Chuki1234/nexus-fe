@@ -13,6 +13,8 @@ export interface DisabledAccountInfo {
   reason?: string;
 }
 
+export type AccountDisabledInfo = DisabledAccountInfo;
+
 const STORAGE_KEY = 'nexus_disabled_account_v1';
 
 @Injectable({ providedIn: 'root' })

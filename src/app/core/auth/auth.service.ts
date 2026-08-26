@@ -108,6 +108,40 @@ export class AuthService {
   }
 
   /**
+   * Gọi API login và trả kết quả thô (chưa setSession) để caller có thể
+   * can thiệp trước khi kích hoạt phiên (ví dụ luồng 2FA mở khóa tài khoản).
+   */
+  async loginRaw(credentials: SignInCredentials): Promise<LoginResult> {
+    return firstValueFrom(
+      this.http.post<LoginResult>(`${environment.apiUrl}/auth/login`, credentials),
+    );
+  }
+
+  /**
+   * Thiết lập phiên đăng nhập từ tokens đã xác thực.
+   */
+  async establishSession(tokens: { accessToken: string; refreshToken?: string | null }): Promise<Session> {
+    const { data, error } = await this.supabase.client.auth.setSession({
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken || tokens.accessToken,
+    });
+    if (error || !data.session) {
+      throw error ?? new Error('Không nạp được phiên đăng nhập.');
+    }
+    this.currentSession.set(data.session);
+    return data.session;
+  }
+
+  /** Alias cho signIn nhận { email, password } */
+  async signInWithPassword(creds: { email: string; password: string }): Promise<Session | LoginMfaRequired> {
+    return this.signIn({ identifier: creds.email, password: creds.password });
+  }
+
+  async isProviderEnabled(_provider: string): Promise<boolean> {
+    return false;
+  }
+
+  /**
    * Hoàn tất bước 2 của đăng nhập khi 2FA bật.
    * Nhận token AAL1, challengeId và TOTP code (hoặc backup code).
    * Sau khi verify thành công, nạp session AAL2 vào Supabase client.
