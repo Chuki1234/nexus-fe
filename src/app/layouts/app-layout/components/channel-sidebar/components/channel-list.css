@@ -243,6 +243,13 @@
 /* Cursor khi có quyền kéo thả */
 .channel-row {
   user-select: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+:not(.cdk-drop-list-dragging) > .channel-row:not(.cdk-drag-animating),
+:not(.cdk-drop-list-dragging) > .channel-group:not(.cdk-drag-animating) {
+  transform: none !important;
 }
 
 .channel-row:not(.cdk-drag-disabled) {

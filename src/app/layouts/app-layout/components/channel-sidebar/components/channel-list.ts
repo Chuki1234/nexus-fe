@@ -158,6 +158,27 @@ export class ChannelList {
   protected readonly voiceConnectedChannelId = this.voiceRoom.currentChannelId;
   protected readonly voiceParticipants = this.voiceRoom.allParticipants;
 
+  /**
+   * Predicates để bảo đảm CDK DropList chỉ chấp nhận đúng loại dữ liệu kéo thả:
+   * 1. Category DropList chỉ nhận Category Group
+   * 2. Channel DropList chỉ nhận Channel
+   * 3. Voice Member DropList chỉ nhận Voice Member
+   */
+  protected readonly isCategoryPredicate = (drag: CdkDrag<unknown>): boolean => {
+    const data = drag.data as Record<string, unknown> | undefined;
+    return !!data && 'channels' in data && !('type' in data);
+  };
+
+  protected readonly isChannelPredicate = (drag: CdkDrag<unknown>): boolean => {
+    const data = drag.data as Record<string, unknown> | undefined;
+    return !!data && 'type' in data && !('userId' in data);
+  };
+
+  protected readonly isVoiceMemberPredicate = (drag: CdkDrag<unknown>): boolean => {
+    const data = drag.data as Record<string, unknown> | undefined;
+    return !!data && 'userId' in data;
+  };
+
   /** Quản lý quyền hạn capabilities của server */
   protected readonly capabilities = computed(() => {
     const id = this.serverId();

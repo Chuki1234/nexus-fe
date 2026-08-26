@@ -1,36 +1,36 @@
-<!-- Tin nhắn trực tiếp: luôn trên cùng, tách khỏi danh sách server -->
-<div class="server-tile-wrapper relative">
-  <a
-    routerLink="/channels/@me"
-    routerLinkActive
-    #dmLink="routerLinkActive"
-    matTooltip="Tin nhắn trực tiếp"
-    matTooltipPosition="right"
-    [attr.aria-current]="dmLink.isActive ? 'page' : null"
-    class="server-tile nexus-icon-control"
-    [class.server-tile--active]="dmLink.isActive"
-  >
-    <mat-icon aria-hidden="true">forum</mat-icon>
-    <span class="sr-only">Tin nhắn trực tiếp</span>
-  </a>
+<!-- Tin nhắn trực tiếp: luôn trên cùng trong header 48px với đường line thẳng hàng toàn bộ header -->
+<header class="server-rail__header flex h-12 w-full shrink-0 items-center justify-center border-b border-hairline">
+  <div class="server-tile-wrapper relative">
+    <a
+      routerLink="/channels/@me"
+      routerLinkActive
+      #dmLink="routerLinkActive"
+      matTooltip="Tin nhắn trực tiếp"
+      matTooltipPosition="right"
+      [attr.aria-current]="dmLink.isActive ? 'page' : null"
+      class="server-tile nexus-icon-control"
+      [class.server-tile--active]="dmLink.isActive"
+    >
+      <mat-icon aria-hidden="true">forum</mat-icon>
+      <span class="sr-only">Tin nhắn trực tiếp</span>
+    </a>
 
-  <span
-    class="server-pill-indicator"
-    [class.server-pill-indicator--active]="dmLink.isActive"
-    [class.server-pill-indicator--unread]="!dmLink.isActive && totalDmUnreadCount() > 0"
-    aria-hidden="true"
-  ></span>
+    <span
+      class="server-pill-indicator"
+      [class.server-pill-indicator--active]="dmLink.isActive"
+      [class.server-pill-indicator--unread]="!dmLink.isActive && totalDmUnreadCount() > 0"
+      aria-hidden="true"
+    ></span>
 
-  @if (totalDmUnreadCount() > 0) {
-    <app-unread-badge
-      class="pointer-events-none absolute -right-1 -bottom-1"
-      [count]="totalDmUnreadCount()"
-      label="thông báo chưa đọc"
-    />
-  }
-</div>
-
-<hr class="my-1 w-8 border-t border-hairline" aria-hidden="true" />
+    @if (totalDmUnreadCount() > 0) {
+      <app-unread-badge
+        class="pointer-events-none absolute -right-1 -bottom-1"
+        [count]="totalDmUnreadCount()"
+        label="thông báo chưa đọc"
+      />
+    }
+  </div>
+</header>
 
 <span id="server-drag-help" class="sr-only">
   Giữ và kéo một máy chủ lên máy chủ khác để tạo nhóm, thả vào vạch ngang để sắp xếp vị trí, hoặc

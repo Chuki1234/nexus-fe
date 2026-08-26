@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   ConversationsApiService,
@@ -64,6 +64,7 @@ export class ConversationList implements OnInit, OnDestroy {
   private readonly presenceService = inject(PresenceService);
   private readonly auth = inject(AuthService);
   private readonly activeChatStore = inject(ActiveChatStore);
+  private readonly router = inject(Router);
   protected readonly invitationsStore = inject(ServerInvitationsStore);
   protected readonly friendsStore = inject(FriendsStore);
   private readonly subs = new Subscription();
@@ -71,7 +72,7 @@ export class ConversationList implements OnInit, OnDestroy {
   readonly query = input('');
 
   protected readonly pendingFriendRequestsCount = computed(
-    () => this.friendsStore.incomingRequests().length,
+    () => this.friendsStore.incomingRequests().length + this.invitationsStore.pendingCount(),
   );
 
   readonly realConversations = signal<ConversationResponseDto[]>([]);
@@ -141,43 +142,70 @@ export class ConversationList implements OnInit, OnDestroy {
 
   private setupRealtimeListeners(): void {
     // 1. User-room notification: conversation nhận tin nhắn mới từ người khác
-    this.subs.add(
-      this.chatSocket.conversationUpdated$.subscribe(({ conversationId, senderId }) => {
-        const myId = this.auth.user()?.id;
+    if (this.chatSocket.conversationUpdated$) {
+      this.subs.add(
+        this.chatSocket.conversationUpdated$.subscribe(({ conversationId, senderId }) => {
+          const myId = this.auth.user()?.id;
 
-        // Defense-in-depth: skip nếu sender là chính mình (backend đã loại nhưng an toàn thêm)
-        if (senderId === myId) return;
+          // Defense-in-depth: skip nếu sender là chính mình (backend đã loại nhưng an toàn thêm)
+          if (senderId === myId) return;
 
-        // Không tăng unread nếu conversation đó đang được mở (user đang đọc)
-        const activeConvId = this.activeChatStore.conversationId();
-        if (activeConvId === conversationId) return;
+          // Không tăng unread nếu conversation đó đang được mở (user đang đọc)
+          const activeConvId = this.activeChatStore.conversationId();
+          if (activeConvId === conversationId) return;
 
-        this.realConversations.update((list) => {
-          const exists = list.some((c) => c.id === conversationId);
-          if (!exists) {
-            // Conversation chưa có trong sidebar (ví dụ DM mới tạo) — tải lại danh sách
-            void this.loadRealConversations();
-            return list;
-          }
-          return list.map((conv) =>
-            conv.id === conversationId
-              ? { ...conv, unreadCount: conv.unreadCount + 1 }
-              : conv,
-          );
-        });
-      }),
-    );
+          this.realConversations.update((list) => {
+            const exists = list.some((c) => c.id === conversationId);
+            if (!exists) {
+              // Conversation chưa có trong sidebar (ví dụ DM mới tạo) — tải lại danh sách
+              void this.loadRealConversations();
+              return list;
+            }
+            return list.map((conv) =>
+              conv.id === conversationId
+                ? { ...conv, unreadCount: conv.unreadCount + 1 }
+                : conv,
+            );
+          });
+        }),
+      );
+    }
 
     // 2. Read state: reset unread khi user đánh dấu đã đọc
-    this.subs.add(
-      this.chatSocket.messageRead$.subscribe(({ conversationId }) => {
-        this.realConversations.update((list) =>
-          list.map((conv) =>
-            conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv,
-          ),
-        );
-      }),
-    );
+    if (this.chatSocket.messageRead$) {
+      this.subs.add(
+        this.chatSocket.messageRead$.subscribe(({ conversationId }) => {
+          this.realConversations.update((list) =>
+            list.map((conv) =>
+              conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv,
+            ),
+          );
+        }),
+      );
+    }
+
+    // 3. Conversation deleted: xóa khỏi sidebar và điều hướng an toàn nếu đang ở trong đoạn chat đó
+    if (this.chatSocket.conversationDeleted$) {
+      this.subs.add(
+        this.chatSocket.conversationDeleted$.subscribe(({ conversationId, friendId }) => {
+          this.realConversations.update((list) =>
+            list.filter(
+              (c) =>
+                c.id !== conversationId &&
+                (!friendId || c.recipient?.id !== friendId),
+            ),
+          );
+
+          const activeConvId = this.activeChatStore.conversationId();
+          if (
+            activeConvId === conversationId ||
+            this.router.url.includes(`/channels/@me/${conversationId}`)
+          ) {
+            void this.router.navigate(['/channels/@me']);
+          }
+        }),
+      );
+    }
   }
 
   private normalize(value: string): string {
