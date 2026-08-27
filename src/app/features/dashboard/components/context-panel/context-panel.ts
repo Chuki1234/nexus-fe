@@ -26,6 +26,12 @@ export class ContextPanel {
   readonly open = input<boolean>(false);
   readonly pinned = input<boolean>(false);
   readonly showClose = input<boolean>(true);
+  /**
+   * Ẩn hẳn thanh tiêu đề (tên + nút đóng) để nội dung tràn lên sát mép trên.
+   * Dùng cho panel hồ sơ — nó tự có ảnh bìa + tên nên thanh "Hồ sơ" phía trên
+   * chỉ lặp lại thừa. `title` vẫn giữ cho `aria-label` của vùng.
+   */
+  readonly hideHeader = input<boolean>(false);
 
   readonly closed = output<void>();
 
