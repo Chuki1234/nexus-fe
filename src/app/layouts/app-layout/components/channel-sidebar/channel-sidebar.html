@@ -54,11 +54,11 @@
         </button>
       }
 
-      @if (canManageServer()) {
+      @if (canManageServer() || canManageRoles()) {
         <button
           mat-menu-item
           type="button"
-          (click)="openServerSettings('server-overview')"
+          (click)="openServerSettings(canManageServer() ? 'server-overview' : 'server-roles')"
           class="server-menu-item"
         >
           <mat-icon class="server-menu-icon text-steel">settings</mat-icon>

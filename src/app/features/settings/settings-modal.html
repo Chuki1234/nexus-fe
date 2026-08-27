@@ -173,6 +173,28 @@
         <!-- Scrollable Tab Content Container -->
         <div class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-7">
           <div class="w-full max-w-full pb-20 animate-fade-in">
+            @if (previewRole() && settingsService.settingsMode() === 'server') {
+              <div class="mb-5 p-3.5 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-between gap-3 text-ink animate-slide-up shadow-xs">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <mat-icon class="text-primary shrink-0">visibility</mat-icon>
+                  <div class="text-caption">
+                    <span class="font-bold">Đang xem trước với vai trò: </span>
+                    <span class="px-2 py-0.5 rounded-lg text-white font-bold text-micro inline-flex items-center gap-1 shadow-2xs" [style.backgroundColor]="previewRole()!.color">
+                      {{ previewRole()!.name }}
+                    </span>
+                    <span class="text-steel ml-1 hidden md:inline">— Hệ thống chỉ hiển thị đúng các quyền mà vai trò này được cấp.</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  (click)="exitPreviewRole()"
+                  class="px-3 py-1 rounded-xl bg-surface border border-hairline hover:bg-surface-feature text-caption font-bold text-ink shrink-0 cursor-pointer transition-colors"
+                >
+                  Thoát xem trước
+                </button>
+              </div>
+            }
+
             @if (!settingsService.hasPermissionForTab(settingsService.currentTab())) {
               <div class="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[360px] space-y-4">
                 <div class="w-16 h-16 rounded-full bg-danger/15 text-danger flex items-center justify-center border border-danger/30 shadow-xs">

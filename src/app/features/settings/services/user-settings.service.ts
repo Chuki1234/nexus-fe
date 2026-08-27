@@ -178,6 +178,54 @@ export interface RegisteredGameItem {
   icon: string;
 }
 
+export const DEFAULT_ADMIN_ROLE: ServerRoleItem = {
+  id: 'role-admin',
+  name: 'Quản trị viên (Admin)',
+  color: '#00ed64',
+  membersCount: 1,
+  permissions: {
+    administrator: true,
+    manageServer: true,
+    manageRoles: true,
+    kickMembers: true,
+    banMembers: true,
+    manageChannels: true,
+  },
+};
+
+const SERVER_DATA_STORAGE_KEY = 'nexuscord_server_data_map_v3';
+
+function loadPersistedServerData(initial: Record<string, ServerSettingsData>): Record<string, ServerSettingsData> {
+  if (typeof window === 'undefined' || !window.localStorage) return initial;
+  try {
+    const raw = localStorage.getItem(SERVER_DATA_STORAGE_KEY);
+    if (!raw) return initial;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      const merged: Record<string, ServerSettingsData> = { ...initial };
+      for (const [k, v] of Object.entries(parsed)) {
+        const sData = v as ServerSettingsData;
+        if (sData && sData.id) {
+          const roles = sData.roles || [];
+          const hasAdmin = roles.some(
+            (r) =>
+              r.id === 'role-admin' ||
+              r.name === 'Quản trị viên (Admin)' ||
+              r.name === 'Admin' ||
+              Boolean(r.permissions?.administrator),
+          );
+          sData.roles = hasAdmin ? roles : [DEFAULT_ADMIN_ROLE, ...roles];
+          merged[k] = sData;
+        }
+      }
+      return merged;
+    }
+  } catch (e) {
+    console.warn('Lỗi đọc serverDataMap từ localStorage:', e);
+  }
+  return initial;
+}
+
 export interface ActiveSessionItem {
   id: string;
   device: string;
@@ -419,7 +467,12 @@ export class UserSettingsService {
   // Mode switcher: 'user' or 'server'
   readonly settingsMode = signal<'user' | 'server'>('user');
   readonly currentMemberRole = signal<string>('role-everyone');
+  readonly previewRoleId = signal<string | null>(null);
   readonly currentServerId = signal<string>('itss');
+
+  setPreviewRole(roleId: string | null): void {
+    this.previewRoleId.set(roleId);
+  }
 
   closeModal(): void {
     this.close();
@@ -438,7 +491,8 @@ export class UserSettingsService {
   }
 
   // Per-server storage map
-  readonly serverDataMap = signal<Record<string, ServerSettingsData>>({
+  readonly serverDataMap = signal<Record<string, ServerSettingsData>>(
+    loadPersistedServerData({
     itss: {
       id: 'itss',
       name: 'ITSS Lab',
@@ -857,7 +911,7 @@ export class UserSettingsService {
       bannedUsers: [],
       auditLogs: [],
     },
-  });
+  }));
 
   readonly serverNotificationSettingsMap = signal<Record<string, ServerNotificationSettings>>({
     itss: {
@@ -930,7 +984,21 @@ export class UserSettingsService {
 
   readonly currentServerName = computed<string>(() => this.currentServerData().name);
 
-  readonly serverRoles = computed<ServerRoleItem[]>(() => this.currentServerData().roles);
+  readonly serverRoles = computed<ServerRoleItem[]>(() => {
+    const roles = this.currentServerData().roles || [];
+    const hasAdmin = roles.some(
+      (r) =>
+        r.id === 'role-admin' ||
+        r.name === 'Quản trị viên (Admin)' ||
+        r.name === 'Quản Trị Viên (Admin)' ||
+        r.name === 'Admin' ||
+        Boolean(r.permissions?.administrator),
+    );
+    if (!hasAdmin) {
+      return [DEFAULT_ADMIN_ROLE, ...roles];
+    }
+    return roles;
+  });
   readonly serverMembers = computed<ServerMemberItem[]>(() => this.currentServerData().members);
   readonly joinRequests = computed<JoinRequestItem[]>(() => this.currentServerData().joinRequests);
   readonly bannedServerMembers = computed<BannedUserItem[]>(
@@ -938,182 +1006,213 @@ export class UserSettingsService {
   );
   readonly auditLogs = computed<AuditLogItem[]>(() => this.currentServerData().auditLogs);
 
-  // Computed permissions for current user in current server
-  readonly userServerPermissions = computed(() => {
-    const roleId = this.currentMemberRole();
-    const role = this.serverRoles().find((r: ServerRoleItem) => r.id === roleId);
-    if (!role) {
-      return {
-        administrator: false,
-        manageServer: false,
-        manageRoles: false,
-        kickMembers: false,
-        banMembers: false,
-        manageChannels: false,
-      };
+  computePermissionsForServer(targetServerId?: string) {
+    const sId = targetServerId ?? this.currentServerId();
+
+    // 1. Chế độ xem trước vai trò (Preview Role Mode) nếu xem server hiện tại
+    const previewId = this.previewRoleId();
+    if (previewId && sId === this.currentServerId()) {
+      const pRole = this.serverRoles().find((r: ServerRoleItem) => r.id === previewId);
+      if (pRole) {
+        if (pRole.permissions.administrator) {
+          return {
+            administrator: true,
+            manageServer: true,
+            manageRoles: true,
+            kickMembers: true,
+            banMembers: true,
+            manageChannels: true,
+          };
+        }
+        return {
+          administrator: false,
+          manageServer: Boolean(pRole.permissions.manageServer),
+          manageRoles: Boolean(pRole.permissions.manageRoles),
+          kickMembers: Boolean(pRole.permissions.kickMembers),
+          banMembers: Boolean(pRole.permissions.banMembers),
+          manageChannels: Boolean(pRole.permissions.manageChannels),
+        };
+      }
     }
-    return role.permissions;
-  });
+
+    // 2. Kiểm tra capabilities thực tế từ backend (Chủ tạo server = isOwner = Full Quyền)
+    if (this.capabilitiesService) {
+      const caps = this.capabilitiesService.capabilitiesMap().get(sId);
+      if (caps) {
+        if (caps.isOwner) {
+          return {
+            administrator: true,
+            manageServer: true,
+            manageRoles: true,
+            kickMembers: true,
+            banMembers: true,
+            manageChannels: true,
+          };
+        }
+        return {
+          administrator: false,
+          manageServer: Boolean(caps.canManageServer),
+          manageRoles: Boolean(caps.canManageRoles),
+          kickMembers: Boolean(caps.canKickMembers),
+          banMembers: Boolean(caps.canBanMembers),
+          manageChannels: Boolean(caps.canManageChannels),
+        };
+      }
+    }
+
+    // 3. Fallback: Tính toán từ serverDataMap (các vai trò được gán trong server)
+    const currentServer = this.serverDataMap()[sId];
+    if (currentServer) {
+      const username = this.getEffectiveUsername();
+      const currentUserId = this.profileService?.current()?.id;
+      const currentMember = currentServer.members.find(
+        (m: ServerMemberItem) => m.id === currentUserId || (username && m.username.toLowerCase() === username.toLowerCase()),
+      );
+
+      const isOwner = currentMember?.isOwner || currentServer.adminUsernames.some((u: string) => u.toLowerCase() === username);
+      if (isOwner) {
+        return {
+          administrator: true,
+          manageServer: true,
+          manageRoles: true,
+          kickMembers: true,
+          banMembers: true,
+          manageChannels: true,
+        };
+      }
+
+      if (currentMember && Array.isArray(currentMember.roles) && currentMember.roles.length > 0) {
+        const memberRoles = currentServer.roles.filter(
+          (r: ServerRoleItem) => currentMember.roles.includes(r.id) || r.isDefault,
+        );
+        const hasAdmin = memberRoles.some((r) => r.permissions.administrator);
+        return {
+          administrator: hasAdmin,
+          manageServer: hasAdmin || memberRoles.some((r) => r.permissions.manageServer),
+          manageRoles: hasAdmin || memberRoles.some((r) => r.permissions.manageRoles),
+          kickMembers: hasAdmin || memberRoles.some((r) => r.permissions.kickMembers),
+          banMembers: hasAdmin || memberRoles.some((r) => r.permissions.banMembers),
+          manageChannels: hasAdmin || memberRoles.some((r) => r.permissions.manageChannels),
+        };
+      }
+
+      const isMod = currentServer.moderatorUsernames.some((u: string) => u.toLowerCase() === username);
+      if (isMod) {
+        return {
+          administrator: false,
+          manageServer: false,
+          manageRoles: false,
+          kickMembers: true,
+          banMembers: false,
+          manageChannels: true,
+        };
+      }
+    }
+
+    if (sId === this.currentServerId()) {
+      const roleId = this.currentMemberRole();
+      const role = this.serverRoles().find((r: ServerRoleItem) => r.id === roleId);
+      if (role) {
+        return { ...role.permissions };
+      }
+    }
+
+    return {
+      administrator: false,
+      manageServer: false,
+      manageRoles: false,
+      kickMembers: false,
+      banMembers: false,
+      manageChannels: false,
+    };
+  }
+
+  // Computed permissions for current user in current server
+  readonly userServerPermissions = computed(() => this.computePermissionsForServer());
 
   readonly isServerAdmin = computed<boolean>(() => this.canManageOverview());
 
   canAccessServerSettings(targetServerId?: string): boolean {
-    const sId = targetServerId ?? this.currentServerId();
+    const perms = this.computePermissionsForServer(targetServerId);
+    return perms.administrator || perms.manageServer || perms.manageRoles || perms.kickMembers || perms.banMembers;
+  }
 
-    // 1. Kiểm tra capabilities từ backend
-    if (this.capabilitiesService) {
-      const caps = this.capabilitiesService.capabilitiesMap().get(sId);
-      if (caps) {
-        if (
-          caps.isOwner ||
-          caps.canManageServer ||
-          caps.canManageRoles ||
-          caps.canManageChannels ||
-          caps.canInviteMembers
-        ) {
-          return true;
-        }
-        return false;
-      }
-    }
-
-    // 2. Kiểm tra serverDataMap
-    const server = this.serverDataMap()[sId];
-    if (server) {
-      if (this.currentMemberRole() === 'role-admin' || this.currentMemberRole() === 'role-mod')
-        return true;
-      const username = this.getEffectiveUsername();
-      if (username) {
-        const isAdmin = server.adminUsernames.some((u: string) => u.toLowerCase() === username);
-        const isMod = server.moderatorUsernames.some((u: string) => u.toLowerCase() === username);
-        return Boolean(isAdmin || isMod);
-      }
-      return false;
-    }
-
-    // 3. Nếu server có trong store
-    if (this.serversStore && this.serversStore.serverOf(sId)) {
-      this.ensureServerData(sId);
-      return true;
-    }
-
-    return false;
+  canManageServer(targetServerId?: string): boolean {
+    const perms = this.computePermissionsForServer(targetServerId);
+    return perms.administrator || perms.manageServer;
   }
 
   canManageOverview(targetServerId?: string): boolean {
-    const sId = targetServerId ?? this.currentServerId();
-
-    // 1. Kiểm tra capabilities từ backend
-    if (this.capabilitiesService) {
-      const caps = this.capabilitiesService.capabilitiesMap().get(sId);
-      if (caps) {
-        return Boolean(caps.isOwner || caps.canManageServer);
-      }
-    }
-
-    // 2. Kiểm tra serverDataMap
-    const server = this.serverDataMap()[sId];
-    if (server) {
-      if (this.currentMemberRole() === 'role-admin') return true;
-      const username = this.getEffectiveUsername();
-      if (username) {
-        return Boolean(server.adminUsernames.some((u: string) => u.toLowerCase() === username));
-      }
-      return false;
-    }
-
-    if (this.serversStore && this.serversStore.serverOf(sId)) {
-      this.ensureServerData(sId);
-      return true;
-    }
-
-    return false;
+    return this.canManageServer(targetServerId);
   }
 
   canManageRoles(targetServerId?: string): boolean {
-    return this.canManageOverview(targetServerId);
+    const perms = this.computePermissionsForServer(targetServerId);
+    return perms.administrator || perms.manageRoles;
   }
 
   canManageMembers(targetServerId?: string): boolean {
-    return this.canAccessServerSettings(targetServerId);
+    const perms = this.computePermissionsForServer(targetServerId);
+    return perms.administrator || perms.manageServer || perms.manageRoles || perms.kickMembers || perms.banMembers;
+  }
+
+  canKickMembers(targetServerId?: string): boolean {
+    const perms = this.computePermissionsForServer(targetServerId);
+    return perms.administrator || perms.kickMembers;
+  }
+
+  canBanMembers(targetServerId?: string): boolean {
+    const perms = this.computePermissionsForServer(targetServerId);
+    return perms.administrator || perms.banMembers;
+  }
+
+  canManageChannels(targetServerId?: string): boolean {
+    const perms = this.computePermissionsForServer(targetServerId);
+    return perms.administrator || perms.manageChannels;
   }
 
   canManageSafety(targetServerId?: string): boolean {
-    return this.canAccessServerSettings(targetServerId);
+    return this.canManageServer(targetServerId);
   }
 
   canViewAuditLog(targetServerId?: string): boolean {
-    return this.canAccessServerSettings(targetServerId);
+    return this.canManageServer(targetServerId);
+  }
+
+  canInviteMembers(targetServerId?: string): boolean {
+    const sId = targetServerId ?? this.currentServerId();
+    if (this.capabilitiesService) {
+      const caps = this.capabilitiesService.capabilitiesMap().get(sId);
+      if (caps) {
+        return Boolean(caps.isOwner || caps.canInviteMembers || caps.canManageServer);
+      }
+    }
+    const perms = this.computePermissionsForServer(targetServerId);
+    return perms.administrator || perms.manageServer;
   }
 
   hasPermissionForTab(tab: SettingsTab, targetServerId?: string): boolean {
     if (!tab.startsWith('server-')) return true;
-    const sId = targetServerId ?? this.currentServerId();
 
-    // 1. Kiểm tra capabilities thực tế từ backend (Chủ tạo server = isOwner = Full Quyền)
-    if (this.capabilitiesService) {
-      const caps = this.capabilitiesService.capabilitiesMap().get(sId);
-      if (caps) {
-        if (caps.isOwner) return true;
-        if (caps.canManageServer) return true;
-        if (tab === 'server-roles' && caps.canManageRoles) return true;
-        if (tab === 'server-invites' && (caps.canInviteMembers || caps.canManageServer))
-          return true;
-        if (tab === 'server-members' && (caps.canManageServer || caps.canInviteMembers))
-          return true;
-        if (
-          (tab === 'server-access' || tab === 'server-safety' || tab === 'server-audit-log') &&
-          caps.canManageServer
-        )
-          return true;
+    const perms = this.computePermissionsForServer(targetServerId);
+    if (perms.administrator) return true;
+
+    switch (tab) {
+      case 'server-overview':
+        return perms.manageServer;
+      case 'server-roles':
+        return perms.manageRoles;
+      case 'server-members':
+        return perms.manageServer || perms.manageRoles || perms.kickMembers || perms.banMembers;
+      case 'server-invites':
+        return perms.manageServer || this.canInviteMembers(targetServerId);
+      case 'server-access':
+      case 'server-safety':
+      case 'server-audit-log':
+        return perms.manageServer;
+      default:
         return false;
-      }
     }
-
-    // 2. Kiểm tra serverDataMap
-    const server = this.serverDataMap()[sId];
-    if (!server) {
-      if (this.serversStore && this.serversStore.serverOf(sId)) {
-        this.ensureServerData(sId);
-        return true;
-      }
-      if (sId === 'itss' || sId === 'peak') return true;
-      return false;
-    }
-
-    // Check role first
-    if (this.currentMemberRole() === 'role-admin') return true;
-    if (this.currentMemberRole() === 'role-mod') {
-      return (
-        tab === 'server-members' ||
-        tab === 'server-invites' ||
-        tab === 'server-access' ||
-        tab === 'server-safety' ||
-        tab === 'server-audit-log'
-      );
-    }
-
-    const username = this.getEffectiveUsername();
-    if (username) {
-      const isAdmin = server.adminUsernames.some((u: string) => u.toLowerCase() === username);
-      if (isAdmin) return true;
-
-      const isMod = server.moderatorUsernames.some((u: string) => u.toLowerCase() === username);
-      if (isMod) {
-        return (
-          tab === 'server-members' ||
-          tab === 'server-invites' ||
-          tab === 'server-access' ||
-          tab === 'server-safety' ||
-          tab === 'server-audit-log'
-        );
-      }
-      return false;
-    }
-
-    if (sId === 'itss' || sId === 'peak') return true;
-
-    return false;
   }
 
   setCurrentMemberRole(roleId: string): void {
@@ -1438,6 +1537,16 @@ export class UserSettingsService {
         // ignore
       }
     });
+
+    // Tự động lưu trữ bền vững trạng thái vai trò và cài đặt server
+    effect(() => {
+      const data = this.serverDataMap();
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem(SERVER_DATA_STORAGE_KEY, JSON.stringify(data));
+        }
+      } catch {}
+    });
   }
 
   open(tab: SettingsTab = 'account'): void {
@@ -1657,7 +1766,9 @@ export class UserSettingsService {
   }
 
   async loadServerRoles(serverId: string): Promise<void> {
-    if (!serverId || !this.serversApi) return;
+    if (!serverId) return;
+    this.ensureServerData(serverId);
+    if (!this.serversApi) return;
     try {
       const roles = await this.serversApi.getServerRoles(serverId);
       if (!Array.isArray(roles) || roles.length === 0) return;
@@ -1679,19 +1790,41 @@ export class UserSettingsService {
         },
       }));
 
+      // Luôn đảm bảo vai trò Quản trị viên (Admin) có mặt
+      const hasAdmin = mappedRoles.some(
+        (r) =>
+          r.id === 'role-admin' ||
+          r.name === 'Quản trị viên (Admin)' ||
+          r.name === 'Quản Trị Viên (Admin)' ||
+          r.name === 'Admin' ||
+          Boolean(r.permissions?.administrator),
+      );
+
+      const existingRoles = this.serverDataMap()[serverId]?.roles || [];
+      const currentCustomRoles = existingRoles.filter(
+        (r) => !r.isDefault && r.id !== 'role-admin' && r.name !== 'Quản trị viên (Admin)',
+      );
+
+      const finalRoles = hasAdmin ? mappedRoles : [DEFAULT_ADMIN_ROLE, ...mappedRoles];
+      for (const localRole of currentCustomRoles) {
+        if (!finalRoles.some((r) => r.id === localRole.id || r.name === localRole.name)) {
+          finalRoles.push(localRole);
+        }
+      }
+
       this.serverDataMap.update((map) => {
-        const existing = map[serverId];
-        if (!existing) return map;
+        const existing = map[serverId] ?? this.buildDefaultServerData(serverId);
         return {
           ...map,
           [serverId]: {
             ...existing,
-            roles: mappedRoles,
+            roles: finalRoles,
           },
         };
       });
     } catch {
-      // Bỏ qua lỗi nạp roles
+      // Bỏ qua lỗi nạp roles và giữ roles hiện tại
+      this.ensureServerData(serverId);
     }
   }
 
@@ -1772,15 +1905,14 @@ export class UserSettingsService {
     }
   }
 
-  ensureServerData(serverId: string): void {
-    if (this.serverDataMap()[serverId]) return;
+  buildDefaultServerData(serverId: string): ServerSettingsData {
     const sSummary = this.serversStore?.serverOf(serverId);
     const serverName = sSummary?.name ?? 'Máy chủ';
     const username = this.getEffectiveUsername() || 'admin_nexus';
     const displayName = this.profileService.current()?.displayName || username;
     const initials = serverName.slice(0, 3).toUpperCase();
 
-    const newServerData: ServerSettingsData = {
+    return {
       id: serverId,
       name: serverName,
       description: '',
@@ -1793,20 +1925,7 @@ export class UserSettingsService {
       moderatorUsernames: [],
       invites: [],
       roles: [
-        {
-          id: 'role-admin',
-          name: 'Quản trị viên (Admin)',
-          color: '#00ed64',
-          membersCount: 1,
-          permissions: {
-            administrator: true,
-            manageServer: true,
-            manageRoles: true,
-            kickMembers: true,
-            banMembers: true,
-            manageChannels: true,
-          },
-        },
+        DEFAULT_ADMIN_ROLE,
         {
           id: 'role-everyone',
           name: '@everyone',
@@ -1838,7 +1957,32 @@ export class UserSettingsService {
       bannedUsers: [],
       auditLogs: [],
     };
+  }
 
+  ensureServerData(serverId: string): void {
+    const existing = this.serverDataMap()[serverId];
+    if (existing) {
+      const hasAdmin = (existing.roles || []).some(
+        (r) =>
+          r.id === 'role-admin' ||
+          r.name === 'Quản trị viên (Admin)' ||
+          r.name === 'Quản Trị Viên (Admin)' ||
+          r.name === 'Admin' ||
+          Boolean(r.permissions?.administrator),
+      );
+      if (!hasAdmin) {
+        this.serverDataMap.update((map) => ({
+          ...map,
+          [serverId]: {
+            ...existing,
+            roles: [DEFAULT_ADMIN_ROLE, ...(existing.roles || [])],
+          },
+        }));
+      }
+      return;
+    }
+
+    const newServerData = this.buildDefaultServerData(serverId);
     this.serverDataMap.update((map) => ({
       ...map,
       [serverId]: newServerData,
@@ -1853,8 +1997,10 @@ export class UserSettingsService {
     void this.seedProfileDraft();
   }
 
-  addServerRole(name: string, color: string): void {
+  async addServerRole(name: string, color: string): Promise<string> {
     const sId = this.currentServerId();
+    this.ensureServerData(sId);
+
     const tempId = `role-${Date.now()}`;
     const newRole: ServerRoleItem = {
       id: tempId,
@@ -1871,8 +2017,7 @@ export class UserSettingsService {
       },
     };
     this.serverDataMap.update((map) => {
-      const current = map[sId];
-      if (!current) return map;
+      const current = map[sId] ?? this.buildDefaultServerData(sId);
       return {
         ...map,
         [sId]: {
@@ -1883,34 +2028,85 @@ export class UserSettingsService {
     });
 
     if (this.serversApi && sId) {
-      this.serversApi
-        .createServerRole(sId, { name, color })
-        .then((created) => {
-          if (created?.id) {
-            this.serverDataMap.update((map) => {
-              const current = map[sId];
-              if (!current) return map;
-              return {
-                ...map,
-                [sId]: {
-                  ...current,
-                  roles: current.roles.map((r) =>
-                    r.id === tempId
-                      ? {
-                          ...r,
-                          id: created.id,
-                          position: created.position ?? r.position,
-                        }
-                      : r,
-                  ),
-                },
-              };
-            });
-          }
-        })
-        .catch((err) => {
-          console.error('Không thể tạo vai trò trên server:', err);
+      try {
+        const created = await this.serversApi.createServerRole(sId, { name, color });
+        if (created?.id) {
+          this.serverDataMap.update((map) => {
+            const current = map[sId] ?? this.buildDefaultServerData(sId);
+            return {
+              ...map,
+              [sId]: {
+                ...current,
+                roles: current.roles.map((r) =>
+                  r.id === tempId
+                    ? {
+                        ...r,
+                        id: created.id,
+                        position: created.position ?? r.position,
+                      }
+                    : r,
+                ),
+              },
+            };
+          });
+          return created.id;
+        }
+      } catch (err) {
+        console.warn('Lưu vai trò lên backend chưa hoàn tất, giữ dữ liệu cục bộ:', err);
+      }
+    }
+    return tempId;
+  }
+
+  async updateServerRole(
+    roleId: string,
+    updates: {
+      name?: string;
+      color?: string;
+      permissions?: Partial<ServerRoleItem['permissions']>;
+    },
+  ): Promise<void> {
+    const sId = this.currentServerId();
+    if (!sId) return;
+    this.ensureServerData(sId);
+
+    // Không cho phép chỉnh sửa quyền của Quản trị viên
+    if (roleId === 'role-admin') {
+      delete updates.permissions;
+    }
+
+    this.serverDataMap.update((map) => {
+      const current = map[sId] ?? this.buildDefaultServerData(sId);
+      return {
+        ...map,
+        [sId]: {
+          ...current,
+          roles: current.roles.map((r: ServerRoleItem) => {
+            if (r.id !== roleId) return r;
+            const updatedPerms = updates.permissions
+              ? { ...r.permissions, ...updates.permissions }
+              : r.permissions;
+            return {
+              ...r,
+              name: updates.name !== undefined ? updates.name : r.name,
+              color: updates.color !== undefined ? updates.color : r.color,
+              permissions: updatedPerms,
+            };
+          }),
+        },
+      };
+    });
+
+    if (this.serversApi && !roleId.startsWith('role-everyone') && !roleId.startsWith('role-admin')) {
+      try {
+        await this.serversApi.updateServerRole(sId, roleId, {
+          name: updates.name,
+          color: updates.color,
+          permissions: updates.permissions,
         });
+      } catch (err) {
+        console.warn('Không thể lưu cập nhật vai trò lên server, đã lưu cục bộ:', err);
+      }
     }
   }
 
@@ -1935,22 +2131,31 @@ export class UserSettingsService {
   }
 
   deleteServerRole(id: string): void {
+    if (id === 'role-admin' || id === 'role-everyone') return;
     const sId = this.currentServerId();
+    this.ensureServerData(sId);
+
     this.serverDataMap.update((map) => {
-      const current = map[sId];
-      if (!current) return map;
+      const current = map[sId] ?? this.buildDefaultServerData(sId);
       return {
         ...map,
         [sId]: {
           ...current,
-          roles: current.roles.filter((r: ServerRoleItem) => r.id !== id && !r.isDefault),
+          roles: current.roles.filter(
+            (r: ServerRoleItem) =>
+              r.id !== id &&
+              !r.isDefault &&
+              r.id !== 'role-admin' &&
+              r.name !== 'Quản trị viên (Admin)' &&
+              r.name !== 'Quản Trị Viên (Admin)',
+          ),
         },
       };
     });
 
-    if (this.serversApi && sId && !id.startsWith('role-everyone')) {
+    if (this.serversApi && sId && !id.startsWith('role-everyone') && !id.startsWith('role-admin')) {
       this.serversApi.deleteServerRole(sId, id).catch((err) => {
-        console.error('Không thể xóa vai trò trên server:', err);
+        console.warn('Không thể xóa vai trò trên server:', err);
       });
     }
   }

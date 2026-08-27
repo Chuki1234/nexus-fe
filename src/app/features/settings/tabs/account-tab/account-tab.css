@@ -252,6 +252,26 @@
   border-color: var(--color-primary);
 }
 
+.settings-field-input--error {
+  border-color: var(--color-danger) !important;
+  background: color-mix(in srgb, var(--color-danger) 4%, var(--color-surface)) !important;
+}
+
+.settings-field-input--error:focus {
+  border-color: var(--color-danger) !important;
+  box-shadow: 0 0 0 1px var(--color-danger) !important;
+}
+
+.settings-field-input--success {
+  border-color: #00ed64 !important;
+  background: color-mix(in srgb, #00ed64 4%, var(--color-surface)) !important;
+}
+
+.settings-field-input--success:focus {
+  border-color: #00ed64 !important;
+  box-shadow: 0 0 0 1px #00ed64 !important;
+}
+
 .settings-inline-form-actions {
   display: flex;
   justify-content: flex-end;

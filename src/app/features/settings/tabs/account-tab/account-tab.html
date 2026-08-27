@@ -169,7 +169,7 @@
       <button
         type="button"
         id="btn-change-password"
-        (click)="showChangePasswordModal.set(!showChangePasswordModal())"
+        (click)="toggleChangePasswordModal()"
         class="settings-row-btn"
       >
         Chỉnh sửa
@@ -184,7 +184,7 @@
           <button
             type="button"
             id="btn-close-change-password"
-            (click)="showChangePasswordModal.set(false)"
+            (click)="toggleChangePasswordModal()"
             class="settings-inline-form-close"
             aria-label="Đóng"
           >
@@ -193,57 +193,181 @@
         </div>
 
         <div class="settings-inline-form-fields">
+          <!-- 1. MẬT KHẨU HIỆN TẠI -->
           <div class="settings-field-group">
-            <label class="settings-field-label" for="input-current-pw">Mật khẩu hiện tại</label>
-            <input
-              id="input-current-pw"
-              type="password"
-              [(ngModel)]="currentPassword"
-              placeholder="Nhập mật khẩu hiện tại"
-              class="settings-field-input"
-            />
+            <label class="settings-field-label" for="input-current-pw">MẬT KHẨU HIỆN TẠI</label>
+            <div class="relative flex items-center">
+              <input
+                id="input-current-pw"
+                [type]="showCurrentPassword() ? 'text' : 'password'"
+                [value]="currentPassword"
+                (input)="onCurrentPasswordInput($any($event.target).value)"
+                placeholder="Nhập mật khẩu hiện tại"
+                class="settings-field-input !pr-20 w-full"
+                [class.settings-field-input--error]="currentPasswordStatus() === 'invalid'"
+                [class.settings-field-input--success]="currentPasswordStatus() === 'valid'"
+              />
+              <div class="absolute right-3 flex items-center gap-1.5 pointer-events-auto">
+                @if (currentPasswordStatus() === 'checking') {
+                  <mat-icon class="text-steel animate-spin !w-4 !h-4 !text-[16px]">sync</mat-icon>
+                }
+                @if (currentPasswordStatus() === 'valid') {
+                  <mat-icon class="text-success !w-5 !h-5 !text-[20px] animate-scale-in" matTooltip="Mật khẩu hiện tại chính xác">check_circle</mat-icon>
+                }
+                @if (currentPasswordStatus() === 'invalid') {
+                  <mat-icon class="text-danger !w-5 !h-5 !text-[20px] animate-scale-in" matTooltip="Mật khẩu không chính xác">cancel</mat-icon>
+                }
+                <button
+                  type="button"
+                  (click)="showCurrentPassword.set(!showCurrentPassword())"
+                  class="text-steel hover:text-ink cursor-pointer p-0.5 transition-colors"
+                  [attr.aria-label]="showCurrentPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                >
+                  <mat-icon class="!w-4 !h-4 !text-[18px]">{{ showCurrentPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+              </div>
+            </div>
+            <!-- Thông báo nhỏ dưới khung mật khẩu hiện tại -->
+            @if (currentPasswordStatus() === 'invalid') {
+              <div class="flex items-center gap-1.5 text-danger text-[12px] font-medium pt-0.5 animate-fade-in">
+                <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">error</mat-icon>
+                <span>{{ currentPasswordError() }}</span>
+              </div>
+            }
+            @if (currentPasswordStatus() === 'valid') {
+              <div class="flex items-center gap-1.5 text-success text-[12px] font-medium pt-0.5 animate-fade-in">
+                <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">check_circle</mat-icon>
+                <span>Mật khẩu hiện tại chính xác.</span>
+              </div>
+            }
           </div>
+
+          <!-- 2. MẬT KHẨU MỚI -->
           <div class="settings-field-group">
-            <label class="settings-field-label" for="input-new-pw">Mật khẩu mới</label>
-            <input
-              id="input-new-pw"
-              type="password"
-              [(ngModel)]="newPassword"
-              placeholder="Tối thiểu 8 ký tự"
-              class="settings-field-input"
-            />
+            <label class="settings-field-label" for="input-new-pw">MẬT KHẨU MỚI</label>
+            <div class="relative flex items-center">
+              <input
+                id="input-new-pw"
+                [type]="showNewPassword() ? 'text' : 'password'"
+                [value]="newPassword"
+                (input)="onNewPasswordInput($any($event.target).value)"
+                placeholder="Tối thiểu 8 ký tự"
+                class="settings-field-input !pr-20 w-full"
+                [class.settings-field-input--error]="newPasswordStatus() === 'invalid'"
+                [class.settings-field-input--success]="newPasswordStatus() === 'valid'"
+              />
+              <div class="absolute right-3 flex items-center gap-1.5 pointer-events-auto">
+                @if (newPasswordStatus() === 'valid') {
+                  <mat-icon class="text-success !w-5 !h-5 !text-[20px] animate-scale-in">check_circle</mat-icon>
+                }
+                @if (newPasswordStatus() === 'invalid') {
+                  <mat-icon class="text-danger !w-5 !h-5 !text-[20px] animate-scale-in">cancel</mat-icon>
+                }
+                <button
+                  type="button"
+                  (click)="showNewPassword.set(!showNewPassword())"
+                  class="text-steel hover:text-ink cursor-pointer p-0.5 transition-colors"
+                  [attr.aria-label]="showNewPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                >
+                  <mat-icon class="!w-4 !h-4 !text-[18px]">{{ showNewPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+              </div>
+            </div>
+            @if (newPasswordStatus() === 'invalid') {
+              <div class="flex items-center gap-1.5 text-danger text-[12px] font-medium pt-0.5 animate-fade-in">
+                <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">error</mat-icon>
+                <span>{{ newPasswordError() }}</span>
+              </div>
+            }
+            @if (newPasswordStatus() === 'valid') {
+              <div class="flex items-center gap-1.5 text-success text-[12px] font-medium pt-0.5 animate-fade-in">
+                <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">check_circle</mat-icon>
+                <span>Mật khẩu mới hợp lệ (đủ độ dài).</span>
+              </div>
+            }
           </div>
+
+          <!-- 3. XÁC NHẬN MẬT KHẨU MỚI -->
           <div class="settings-field-group">
-            <label class="settings-field-label" for="input-confirm-pw">Xác nhận mật khẩu mới</label>
-            <input
-              id="input-confirm-pw"
-              type="password"
-              [(ngModel)]="confirmPassword"
-              placeholder="Nhập lại mật khẩu mới"
-              class="settings-field-input"
-            />
+            <label class="settings-field-label" for="input-confirm-pw">XÁC NHẬN MẬT KHẨU MỚI</label>
+            <div class="relative flex items-center">
+              <input
+                id="input-confirm-pw"
+                [type]="showConfirmPassword() ? 'text' : 'password'"
+                [value]="confirmPassword"
+                (input)="onConfirmPasswordInput($any($event.target).value)"
+                placeholder="Nhập lại mật khẩu mới"
+                class="settings-field-input !pr-20 w-full"
+                [class.settings-field-input--error]="confirmPasswordStatus() === 'invalid'"
+                [class.settings-field-input--success]="confirmPasswordStatus() === 'valid'"
+              />
+              <div class="absolute right-3 flex items-center gap-1.5 pointer-events-auto">
+                @if (confirmPasswordStatus() === 'valid') {
+                  <mat-icon class="text-success !w-5 !h-5 !text-[20px] animate-scale-in">check_circle</mat-icon>
+                }
+                @if (confirmPasswordStatus() === 'invalid') {
+                  <mat-icon class="text-danger !w-5 !h-5 !text-[20px] animate-scale-in">cancel</mat-icon>
+                }
+                <button
+                  type="button"
+                  (click)="showConfirmPassword.set(!showConfirmPassword())"
+                  class="text-steel hover:text-ink cursor-pointer p-0.5 transition-colors"
+                  [attr.aria-label]="showConfirmPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                >
+                  <mat-icon class="!w-4 !h-4 !text-[18px]">{{ showConfirmPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+              </div>
+            </div>
+            <!-- Thông báo lỗi khi mật khẩu xác nhận không khớp -->
+            @if (confirmPasswordStatus() === 'invalid') {
+              <div class="flex items-center gap-1.5 text-danger text-[12px] font-medium pt-0.5 animate-fade-in">
+                <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">error</mat-icon>
+                <span>{{ confirmPasswordError() }}</span>
+              </div>
+            }
+            @if (confirmPasswordStatus() === 'valid') {
+              <div class="flex items-center gap-1.5 text-success text-[12px] font-medium pt-0.5 animate-fade-in">
+                <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">check_circle</mat-icon>
+                <span>Mật khẩu xác nhận trùng khớp.</span>
+              </div>
+            }
           </div>
         </div>
+
+        <!-- Lỗi toàn cục khi gửi đổi mật khẩu thất bại -->
+        @if (changePasswordError()) {
+          <div class="p-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-caption font-semibold flex items-center gap-2 animate-fade-in">
+            <mat-icon class="!w-4 !h-4 !text-[16px] shrink-0">error</mat-icon>
+            <span>{{ changePasswordError() }}</span>
+          </div>
+        }
 
         <div class="settings-inline-form-actions">
           <button
             type="button"
             id="btn-save-password"
             (click)="submitChangePassword()"
-            class="settings-btn-primary"
+            [disabled]="!canSavePassword()"
+            class="settings-btn-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
-            Lưu mật khẩu mới
+            @if (isSubmittingPassword()) {
+              <mat-icon class="animate-spin !w-4 !h-4 !text-[16px]">sync</mat-icon>
+              <span>Đang lưu...</span>
+            } @else {
+              <span>Lưu mật khẩu mới</span>
+            }
           </button>
           <button
             type="button"
-            (click)="showChangePasswordModal.set(false)"
-            class="settings-btn-ghost"
+            (click)="toggleChangePasswordModal()"
+            [disabled]="isSubmittingPassword()"
+            class="settings-btn-ghost cursor-pointer"
           >
             Hủy
           </button>
           @if (passwordChangedSuccess()) {
-            <span class="settings-success-msg">
-              <mat-icon class="!w-4 !h-4 !text-[16px]">check</mat-icon>
+            <span class="settings-success-msg animate-fade-in flex items-center gap-1">
+              <mat-icon class="!w-4 !h-4 !text-[16px] text-success">check_circle</mat-icon>
               Đã đổi mật khẩu thành công!
             </span>
           }
@@ -277,7 +401,7 @@
         <button type="button" (click)="tfa.loadStatus()" class="settings-row-btn">Thử lại</button>
       </div>
 
-    } @else if (!tfa.status()!.enabled && wizardStep() === 'idle') {
+    } @else if (!tfa.status()!.enabled) {
       <!-- 2FA chưa bật -->
       <div class="settings-row">
         <div class="settings-row-label">
@@ -294,13 +418,13 @@
           type="button"
           (click)="startEnable2FA()"
           [disabled]="tfa.processing()"
-          class="settings-row-btn settings-row-btn--primary"
+          class="settings-row-btn settings-row-btn--primary cursor-pointer"
         >
           @if (tfa.processing()) { Đang xử lý... } @else { Bật 2FA }
         </button>
       </div>
 
-    } @else if (tfa.status()!.enabled && wizardStep() === 'idle') {
+    } @else if (tfa.status()!.enabled) {
       <!-- 2FA đã bật -->
       <div class="settings-row">
         <div class="settings-row-label">
@@ -318,15 +442,15 @@
             type="button"
             (click)="doRegenerateBackupCodes()"
             [disabled]="tfa.processing()"
-            class="settings-row-btn"
+            class="settings-row-btn cursor-pointer"
           >
             Mã dự phòng
           </button>
           <button
             id="btn-disable-2fa"
             type="button"
-            (click)="wizardStep.set('confirm-disable')"
-            class="settings-row-btn settings-row-btn--danger"
+            (click)="openDisable2faModal()"
+            class="settings-row-btn settings-row-btn--danger cursor-pointer"
           >
             Tắt 2FA
           </button>
@@ -334,8 +458,22 @@
       </div>
     }
 
-    <!-- Error hiện ngoài wizard (vd: enroll thất bại từ idle) -->
-    @if (tfa.error() && wizardStep() === 'idle') {
+    <!-- Thông báo kết quả thao tác 2FA -->
+    @if (disable2faSuccess()) {
+      <div class="p-3.5 rounded-xl bg-brand-green/15 border border-brand-green/30 text-brand-green text-caption font-bold flex items-center gap-2 animate-fade-in mx-4 my-2">
+        <mat-icon class="!w-5 !h-5 !text-[20px]">check_circle</mat-icon>
+        <span>Đã tắt xác thực hai yếu tố thành công!</span>
+      </div>
+    }
+    @if (enrollSuccess()) {
+      <div class="p-3.5 rounded-xl bg-brand-green/15 border border-brand-green/30 text-brand-green text-caption font-bold flex items-center gap-2 animate-fade-in mx-4 my-2">
+        <mat-icon class="!w-5 !h-5 !text-[20px]">check_circle</mat-icon>
+        <span>Đã kích hoạt xác thực hai yếu tố thành công!</span>
+      </div>
+    }
+
+    <!-- Error hiện ngoài modal -->
+    @if (tfa.error() && !showEnable2faModal() && !showDisable2faModal()) {
       <div class="settings-row" style="background: var(--color-danger-surface, #fff1f0);">
         <div class="settings-row-label">
           <span class="tfa-error">
@@ -348,209 +486,6 @@
         </button>
       </div>
     }
-
-    <!-- ── Wizard: confirm disable ─────────────────────────────── -->
-    @if (wizardStep() === 'confirm-disable') {
-      <div class="settings-inline-form animate-slide-up">
-        <div class="tfa-wizard-header">
-          <span class="settings-inline-form-title">Tắt xác thực hai yếu tố?</span>
-          <button type="button" (click)="cancelWizard()" class="settings-inline-form-close" aria-label="Đóng">
-            <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
-          </button>
-        </div>
-        <p class="settings-row-value">
-          Tắt 2FA sẽ làm tài khoản kém bảo mật hơn. Bạn có chắc muốn tiếp tục?
-        </p>
-        @if (tfa.error()) {
-          <p class="tfa-error">{{ tfa.error() }}</p>
-        }
-        <div class="settings-inline-form-actions">
-          <button
-            id="btn-confirm-disable-2fa"
-            type="button"
-            (click)="disable2FA()"
-            [disabled]="tfa.processing()"
-            class="settings-btn-danger"
-          >
-            @if (tfa.processing()) { Đang xử lý... } @else { Xác nhận tắt 2FA }
-          </button>
-          <button type="button" (click)="cancelWizard()" class="settings-btn-ghost">Hủy</button>
-        </div>
-      </div>
-    }
-
-    <!-- ── Wizard Step 1: QR Code ─────────────────────────────── -->
-    @if (wizardStep() === 'enroll-qr') {
-      <div class="settings-inline-form animate-slide-up">
-        <div class="tfa-wizard-header">
-          <div>
-            <span class="tfa-step-label">Bước 1 / 3</span>
-            <span class="settings-inline-form-title">Quét mã QR</span>
-          </div>
-          <button type="button" (click)="cancelWizard()" class="settings-inline-form-close" aria-label="Hủy">
-            <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
-          </button>
-        </div>
-
-        <p class="settings-row-value">
-          Mở ứng dụng <strong>Google Authenticator</strong> (hoặc Authy, 1Password...) và quét mã QR bên dưới.
-        </p>
-
-        <!-- QR Code -->
-        @if (tfa.enrollData()) {
-          <div class="tfa-qr-wrapper">
-            <img
-              [src]="tfa.enrollData()!.qrCodeUrl"
-              alt="QR Code 2FA"
-              class="tfa-qr-img"
-              width="200"
-              height="200"
-            />
-          </div>
-
-          <!-- Secret text (toggle) -->
-          <div class="tfa-secret-row">
-            <button
-              type="button"
-              id="btn-show-secret"
-              (click)="showSecret.set(!showSecret())"
-              class="tfa-secret-toggle"
-            >
-              <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">{{ showSecret() ? 'visibility_off' : 'visibility' }}</mat-icon>
-              {{ showSecret() ? 'Ẩn khoá bí mật' : 'Không quét được QR? Xem khoá bí mật' }}
-            </button>
-            @if (showSecret()) {
-              <div class="tfa-secret-box">
-                <code class="tfa-secret-text">{{ tfa.enrollData()!.secret }}</code>
-                <p class="tfa-secret-hint">Nhập khoá này vào ứng dụng xác thực nếu không quét được QR.</p>
-              </div>
-            }
-          </div>
-        }
-
-        <div class="settings-inline-form-actions">
-          <button
-            id="btn-proceed-confirm"
-            type="button"
-            (click)="proceedToConfirm()"
-            class="settings-btn-primary"
-          >
-            Tiếp theo
-            <mat-icon class="!w-4 !h-4 !text-[16px]">arrow_forward</mat-icon>
-          </button>
-          <button type="button" (click)="cancelWizard()" class="settings-btn-ghost">Hủy</button>
-        </div>
-      </div>
-    }
-
-    <!-- ── Wizard Step 2: Nhập mã xác nhận ──────────────────── -->
-    @if (wizardStep() === 'enroll-confirm') {
-      <div class="settings-inline-form animate-slide-up">
-        <div class="tfa-wizard-header">
-          <div>
-            <span class="tfa-step-label">Bước 2 / 3</span>
-            <span class="settings-inline-form-title">Xác nhận ứng dụng</span>
-          </div>
-          <button type="button" (click)="cancelWizard()" class="settings-inline-form-close" aria-label="Hủy">
-            <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
-          </button>
-        </div>
-
-        <p class="settings-row-value">
-          Nhập mã 6 chữ số đang hiển thị trong ứng dụng xác thực để xác nhận kết nối thành công.
-        </p>
-
-        <div class="settings-field-group">
-          <label class="settings-field-label" for="input-2fa-code">Mã xác thực</label>
-          <input
-            id="input-2fa-code"
-            type="text"
-            inputmode="numeric"
-            autocomplete="one-time-code"
-            maxlength="6"
-            [ngModel]="tfaCode()"
-            (ngModelChange)="tfaCode.set($event.replace(/\D/g, ''))"
-            placeholder="000000"
-            class="tfa-code-input"
-          />
-        </div>
-
-        @if (tfa.error()) {
-          <p class="tfa-error">{{ tfa.error() }}</p>
-        }
-
-        <div class="settings-inline-form-actions">
-          <button
-            id="btn-confirm-2fa-code"
-            type="button"
-            (click)="confirmEnroll()"
-            [disabled]="tfa.processing() || tfaCode().length < 6"
-            class="settings-btn-primary"
-          >
-            @if (tfa.processing()) {
-              <mat-icon class="!w-4 !h-4 !text-[16px] animate-spin">progress_activity</mat-icon>
-              Đang xác nhận...
-            } @else {
-              Kích hoạt 2FA
-            }
-          </button>
-          <button type="button" (click)="wizardStep.set('enroll-qr')" class="settings-btn-ghost">Quay lại</button>
-        </div>
-      </div>
-    }
-
-    <!-- ── Wizard Step 3: Backup Codes ──────────────────────── -->
-    @if (wizardStep() === 'enroll-done') {
-      <div class="settings-inline-form animate-slide-up">
-        <div class="tfa-wizard-header">
-          <div>
-            <span class="tfa-step-label">Bước 3 / 3</span>
-            <span class="settings-inline-form-title">Lưu mã dự phòng</span>
-          </div>
-        </div>
-
-        <div class="tfa-success-banner">
-          <mat-icon class="!w-5 !h-5 !text-[20px] text-brand-green">check_circle</mat-icon>
-          <span>2FA đã được kích hoạt thành công!</span>
-        </div>
-
-        <p class="settings-row-value">
-          Đây là <strong>8 mã dự phòng</strong> dùng khi mất truy cập vào điện thoại.
-          Mỗi mã chỉ dùng được <strong>một lần</strong>. Hãy lưu vào nơi an toàn ngay bây giờ — bạn sẽ không xem lại được.
-        </p>
-
-        @if (tfa.newBackupCodes()) {
-          <div class="tfa-backup-grid" role="list" aria-label="Mã dự phòng">
-            @for (code of tfa.newBackupCodes()!; track code) {
-              <div class="tfa-backup-code" role="listitem">
-                <code>{{ code }}</code>
-              </div>
-            }
-          </div>
-        }
-
-        <div class="settings-inline-form-actions">
-          <button
-            id="btn-download-backup-codes"
-            type="button"
-            (click)="downloadBackupCodes()"
-            class="settings-btn-primary"
-          >
-            <mat-icon class="!w-4 !h-4 !text-[16px]">download</mat-icon>
-            Tải về (.txt)
-          </button>
-          <button
-            id="btn-done-2fa"
-            type="button"
-            (click)="doneWizard()"
-            class="settings-btn-ghost"
-          >
-            Đã lưu, Đóng
-          </button>
-        </div>
-      </div>
-    }
-
   </div>
 
   <!-- ═══════════════════════════════════════════
@@ -738,6 +673,304 @@
             }
           </button>
         </div>
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════
+       MODAL 3: TẮT XÁC THỰC HAI YẾU TỐ (2FA)
+  ════════════════════════════════════════════ -->
+  @if (showDisable2faModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-fade-in">
+      <div class="w-full max-w-md rounded-2xl bg-surface border border-hairline p-6 shadow-2xl space-y-5 animate-scale-up">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3 text-danger">
+            <div class="w-10 h-10 rounded-full bg-danger/15 border border-danger/30 flex items-center justify-center shrink-0">
+              <mat-icon class="!w-5 !h-5 !text-[20px] text-danger">lock_open</mat-icon>
+            </div>
+            <div>
+              <h3 class="text-heading-4 font-bold text-ink">Tắt Xác Thực Hai Yếu Tố</h3>
+              <p class="text-caption text-steel">Xác thực qua Google Authenticator</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="closeDisable2faModal()"
+            class="text-steel hover:text-ink cursor-pointer p-1 rounded-lg hover:bg-surface-feature transition-all"
+            aria-label="Đóng"
+          >
+            <mat-icon class="!w-5 !h-5 !text-[20px]">close</mat-icon>
+          </button>
+        </div>
+
+        <p class="text-body-sm text-charcoal leading-relaxed">
+          Để đảm bảo an toàn cho tài khoản của bạn, vui lòng mở ứng dụng <strong>Google Authenticator</strong> và nhập mã xác thực 6 chữ số để xác nhận tắt 2FA.
+        </p>
+
+        <div class="space-y-2">
+          <label class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider" for="input-disable-2fa-code">
+            MÃ XÁC THỰC GOOGLE AUTHENTICATOR
+          </label>
+          <input
+            id="input-disable-2fa-code"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            [value]="disable2faCode()"
+            (input)="onDisableCodeInput($event)"
+            placeholder="000000"
+            class="w-full text-center text-2xl font-mono tracking-[10px] py-3.5 px-4 rounded-xl bg-canvas border border-hairline text-ink focus:border-danger focus:ring-1 focus:ring-danger outline-none transition-all"
+            autofocus
+          />
+          <p class="text-[12px] text-stone">
+            * Bạn cũng có thể nhập một trong các mã dự phòng (Backup code) đã lưu.
+          </p>
+        </div>
+
+        @if (disable2faError()) {
+          <div class="p-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-caption font-semibold flex items-center gap-2 animate-fade-in">
+            <mat-icon class="!w-4 !h-4 !text-[16px] shrink-0">error</mat-icon>
+            <span>{{ disable2faError() }}</span>
+          </div>
+        }
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            (click)="closeDisable2faModal()"
+            [disabled]="isDisabling2fa()"
+            class="px-4 py-2.5 rounded-xl text-caption font-bold text-steel hover:text-ink hover:bg-surface-feature transition-all cursor-pointer"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            type="button"
+            id="btn-confirm-disable-2fa-submit"
+            (click)="confirmDisable2fa()"
+            [disabled]="isDisabling2fa() || disable2faCode().length < 6"
+            class="px-5 py-2.5 rounded-xl text-caption font-bold bg-danger hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all shadow-sm cursor-pointer flex items-center gap-2"
+          >
+            @if (isDisabling2fa()) {
+              <mat-icon class="!w-4 !h-4 !text-[16px] animate-spin">sync</mat-icon>
+              <span>Đang tắt 2FA...</span>
+            } @else {
+              <mat-icon class="!w-4 !h-4 !text-[16px]">lock_open</mat-icon>
+              <span>Xác nhận tắt 2FA</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════
+       MODAL 4: BẬT XÁC THỰC HAI YẾU TỐ (2FA)
+  ════════════════════════════════════════════ -->
+  @if (showEnable2faModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-fade-in">
+      <div class="w-full max-w-lg rounded-2xl bg-surface border border-hairline p-6 shadow-2xl space-y-5 animate-scale-up max-h-[90vh] overflow-y-auto">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-hairline pb-4">
+          <div class="flex items-center gap-3 text-brand-green">
+            <div class="w-10 h-10 rounded-full bg-brand-green/15 border border-brand-green/30 flex items-center justify-center shrink-0">
+              <mat-icon class="!w-5 !h-5 !text-[20px] text-brand-green">security</mat-icon>
+            </div>
+            <div>
+              <h3 class="text-heading-4 font-bold text-ink">Bật Xác Thực Hai Yếu Tố (2FA)</h3>
+              <p class="text-caption text-steel">
+                @if (wizardStep() === 'enroll-qr') { Bước 1 / 3: Quét mã QR }
+                @else if (wizardStep() === 'enroll-confirm') { Bước 2 / 3: Xác thực mã }
+                @else if (wizardStep() === 'enroll-done') { Bước 3 / 3: Lưu mã dự phòng }
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="closeEnable2faModal()"
+            class="text-steel hover:text-ink cursor-pointer p-1 rounded-lg hover:bg-surface-feature transition-all"
+            aria-label="Đóng"
+          >
+            <mat-icon class="!w-5 !h-5 !text-[20px]">close</mat-icon>
+          </button>
+        </div>
+
+        <!-- Step 1: Quét mã QR -->
+        @if (wizardStep() === 'enroll-qr') {
+          <div class="space-y-4 animate-fade-in">
+            <p class="text-body-sm text-charcoal leading-relaxed">
+              Mở ứng dụng <strong>Google Authenticator</strong> (hoặc Authy) trên điện thoại và quét mã QR bên dưới:
+            </p>
+
+            @if (tfa.processing() && !tfa.enrollData()) {
+              <div class="flex flex-col items-center justify-center py-10 gap-3">
+                <mat-icon class="animate-spin !w-8 !h-8 !text-[32px] text-primary">sync</mat-icon>
+                <span class="text-caption text-steel">Đang tạo mã kết nối...</span>
+              </div>
+            } @else if (tfa.enrollData()) {
+              <div class="flex justify-center p-4 bg-white rounded-2xl border border-hairline shadow-inner max-w-[220px] mx-auto">
+                <img
+                  [src]="tfa.enrollData()!.qrCodeUrl"
+                  alt="QR Code 2FA"
+                  class="w-48 h-48 object-contain"
+                />
+              </div>
+
+              <!-- Secret Key toggle -->
+              <div class="text-center pt-1">
+                <button
+                  type="button"
+                  (click)="showSecret.set(!showSecret())"
+                  class="text-caption text-primary hover:underline font-semibold cursor-pointer inline-flex items-center gap-1"
+                >
+                  <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">{{ showSecret() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  <span>{{ showSecret() ? 'Ẩn khóa bí mật' : 'Không quét được? Nhập khóa bí mật' }}</span>
+                </button>
+                @if (showSecret()) {
+                  <div class="mt-2.5 p-3 rounded-xl bg-canvas border border-hairline">
+                    <code class="text-caption font-mono text-ink tracking-wider select-all font-bold">{{ tfa.enrollData()!.secret }}</code>
+                    <p class="text-[12px] text-stone mt-1">Nhập khóa này thủ công vào Google Authenticator nếu không thể quét QR.</p>
+                  </div>
+                }
+              </div>
+            }
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-hairline">
+              <button
+                type="button"
+                (click)="closeEnable2faModal()"
+                class="px-4 py-2.5 rounded-xl text-caption font-bold text-steel hover:text-ink hover:bg-surface-feature transition-all cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                (click)="proceedToConfirm()"
+                [disabled]="!tfa.enrollData()"
+                class="px-5 py-2.5 rounded-xl text-caption font-bold bg-primary hover:opacity-90 disabled:opacity-50 text-white transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Tiếp tục</span>
+                <mat-icon class="!w-4 !h-4 !text-[16px]">arrow_forward</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Step 2: Xác nhận mã từ Google Authenticator -->
+        @if (wizardStep() === 'enroll-confirm') {
+          <div class="space-y-4 animate-fade-in">
+            <p class="text-body-sm text-charcoal leading-relaxed">
+              Nhập mã xác thực <strong>6 chữ số</strong> đang hiển thị trong ứng dụng <strong>Google Authenticator</strong> để hoàn tất liên kết:
+            </p>
+
+            <div class="space-y-2">
+              <label class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider" for="input-enable-2fa-code">
+                MÃ XÁC THỰC 6 CHỮ SỐ
+              </label>
+              <input
+                id="input-enable-2fa-code"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                [ngModel]="tfaCode()"
+                (ngModelChange)="tfaCode.set($event.replace(/\D/g, ''))"
+                placeholder="000000"
+                class="w-full text-center text-2xl font-mono tracking-[10px] py-3.5 px-4 rounded-xl bg-canvas border border-hairline text-ink focus:border-brand-green focus:ring-1 focus:ring-brand-green outline-none transition-all"
+                autofocus
+              />
+            </div>
+
+            @if (enrollError()) {
+              <div class="p-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-caption font-semibold flex items-center gap-2 animate-fade-in">
+                <mat-icon class="!w-4 !h-4 !text-[16px] shrink-0">error</mat-icon>
+                <span>{{ enrollError() }}</span>
+              </div>
+            }
+
+            <div class="flex items-center justify-between gap-3 pt-3 border-t border-hairline">
+              <button
+                type="button"
+                (click)="wizardStep.set('enroll-qr')"
+                [disabled]="isEnrolling()"
+                class="px-4 py-2.5 rounded-xl text-caption font-bold text-steel hover:text-ink hover:bg-surface-feature transition-all cursor-pointer flex items-center gap-1"
+              >
+                <mat-icon class="!w-4 !h-4 !text-[16px]">arrow_back</mat-icon>
+                <span>Quay lại</span>
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-enable-2fa-submit"
+                (click)="submit2faCode()"
+                [disabled]="isEnrolling() || tfaCode().length < 6"
+                class="px-5 py-2.5 rounded-xl text-caption font-bold bg-brand-green hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+              >
+                @if (isEnrolling()) {
+                  <mat-icon class="!w-4 !h-4 !text-[16px] animate-spin">sync</mat-icon>
+                  <span>Đang xác nhận...</span>
+                } @else {
+                  <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+                  <span>Kích hoạt 2FA</span>
+                }
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Step 3: Lưu mã dự phòng -->
+        @if (wizardStep() === 'enroll-done') {
+          <div class="space-y-4 animate-fade-in">
+            <div class="p-3.5 rounded-xl bg-brand-green/15 border border-brand-green/30 text-brand-green font-bold text-body-sm flex items-center gap-2">
+              <mat-icon class="!w-5 !h-5 !text-[20px]">check_circle</mat-icon>
+              <span>Xác thực hai yếu tố (2FA) đã được bật thành công!</span>
+            </div>
+
+            <p class="text-body-sm text-charcoal leading-relaxed">
+              Dưới đây là <strong>mã dự phòng</strong> giúp bạn truy cập tài khoản khi không có điện thoại. Mỗi mã chỉ sử dụng được <strong>một lần</strong>. Hãy lưu lại ngay vào nơi an toàn:
+            </p>
+
+            @if (tfa.newBackupCodes()) {
+              <div class="grid grid-cols-2 gap-2 p-3 bg-canvas rounded-xl border border-hairline font-mono text-center text-caption font-bold text-ink">
+                @for (code of tfa.newBackupCodes()!; track code) {
+                  <div class="py-1.5 px-2 bg-surface rounded-lg border border-hairline/50 select-all">
+                    {{ code }}
+                  </div>
+                }
+              </div>
+
+              <div class="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  (click)="copyAllBackupCodes()"
+                  class="flex-1 py-2 px-3 rounded-xl bg-surface-feature hover:bg-hairline text-caption font-bold text-ink transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <mat-icon class="!w-4 !h-4 !text-[16px]">content_copy</mat-icon>
+                  <span>Sao chép tất cả</span>
+                </button>
+                <button
+                  type="button"
+                  (click)="downloadBackupCodes()"
+                  class="flex-1 py-2 px-3 rounded-xl bg-surface-feature hover:bg-hairline text-caption font-bold text-ink transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <mat-icon class="!w-4 !h-4 !text-[16px]">download</mat-icon>
+                  <span>Tải file .txt</span>
+                </button>
+              </div>
+            }
+
+            <div class="flex justify-end pt-3 border-t border-hairline">
+              <button
+                type="button"
+                (click)="doneWizard()"
+                class="px-6 py-2.5 rounded-xl text-caption font-bold bg-primary hover:opacity-90 text-white transition-all shadow-sm cursor-pointer"
+              >
+                Hoàn tất
+              </button>
+            </div>
+          </div>
+        }
+
       </div>
     </div>
   }

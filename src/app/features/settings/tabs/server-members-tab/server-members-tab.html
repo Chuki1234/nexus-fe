@@ -23,18 +23,20 @@
         <span>Thành Viên ({{ settingsService.serverMembers().length }})</span>
       </button>
 
-      <button
-        type="button"
-        (click)="activeTab.set('banned')"
-        class="px-3 py-1.5 rounded-lg text-caption font-bold transition-all cursor-pointer flex items-center gap-1.5"
-        [class.bg-danger-surface]="activeTab() === 'banned'"
-        [class.text-danger]="activeTab() === 'banned'"
-        [class.shadow-2xs]="activeTab() === 'banned'"
-        [class.text-steel]="activeTab() !== 'banned'"
-      >
-        <mat-icon class="!w-4 !h-4 !text-[16px]">block</mat-icon>
-        <span>Đã Cấm / Ban ({{ settingsService.bannedServerMembers().length }})</span>
-      </button>
+      @if (settingsService.canBanMembers()) {
+        <button
+          type="button"
+          (click)="activeTab.set('banned')"
+          class="px-3 py-1.5 rounded-lg text-caption font-bold transition-all cursor-pointer flex items-center gap-1.5"
+          [class.bg-danger-surface]="activeTab() === 'banned'"
+          [class.text-danger]="activeTab() === 'banned'"
+          [class.shadow-2xs]="activeTab() === 'banned'"
+          [class.text-steel]="activeTab() !== 'banned'"
+        >
+          <mat-icon class="!w-4 !h-4 !text-[16px]">block</mat-icon>
+          <span>Đã Cấm / Ban ({{ settingsService.bannedServerMembers().length }})</span>
+        </button>
+      }
     </div>
   </div>
 
@@ -241,26 +243,30 @@
                       <span class="truncate">{{ getRoleName(roleId) }}</span>
 
                       <!-- Remove Role Button -->
-                      <button
-                        type="button"
-                        (click)="toggleRole(m.id, roleId, $event)"
-                        class="text-steel hover:text-danger opacity-60 group-hover/role:opacity-100 transition-opacity cursor-pointer flex items-center justify-center p-0.5 rounded hover:bg-danger-surface shrink-0"
-                        title="Gỡ vai trò này"
-                      >
-                        <mat-icon class="!w-2.5 !h-2.5 !text-[10px]">close</mat-icon>
-                      </button>
+                      @if (settingsService.canManageRoles()) {
+                        <button
+                          type="button"
+                          (click)="toggleRole(m.id, roleId, $event)"
+                          class="text-steel hover:text-danger opacity-60 group-hover/role:opacity-100 transition-opacity cursor-pointer flex items-center justify-center p-0.5 rounded hover:bg-danger-surface shrink-0"
+                          title="Gỡ vai trò này"
+                        >
+                          <mat-icon class="!w-2.5 !h-2.5 !text-[10px]">close</mat-icon>
+                        </button>
+                      }
                     </span>
                   }
 
                   <!-- Add Role Floating Popup Button -->
-                  <button
-                    type="button"
-                    [matMenuTriggerFor]="roleAssignMenu"
-                    matTooltip="Gán / đổi vai trò"
-                    class="w-5 h-5 rounded-full border border-hairline bg-canvas text-steel hover:text-primary hover:border-primary flex items-center justify-center cursor-pointer transition-all shadow-2xs shrink-0"
-                  >
-                    <mat-icon class="!w-3 !h-3 !text-[13px]">add</mat-icon>
-                  </button>
+                  @if (settingsService.canManageRoles()) {
+                    <button
+                      type="button"
+                      [matMenuTriggerFor]="roleAssignMenu"
+                      matTooltip="Gán / đổi vai trò"
+                      class="w-5 h-5 rounded-full border border-hairline bg-canvas text-steel hover:text-primary hover:border-primary flex items-center justify-center cursor-pointer transition-all shadow-2xs shrink-0"
+                    >
+                      <mat-icon class="!w-3 !h-3 !text-[13px]">add</mat-icon>
+                    </button>
+                  }
 
                   <!-- Floating Pop-up Menu for Role Assignment -->
                   <mat-menu #roleAssignMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal !p-2 !min-w-[220px]">
@@ -303,24 +309,32 @@
                 </button>
 
                 <mat-menu #memberMenu="matMenu" class="!rounded-2xl !border !border-hairline !bg-surface shadow-modal">
-                  <button mat-menu-item type="button" (click)="toggleRoleMenu(m.id, $event)">
-                    <mat-icon>admin_panel_settings</mat-icon>
-                    <span>Gán / Đổi vai trò</span>
-                  </button>
+                  @if (settingsService.canManageRoles()) {
+                    <button mat-menu-item type="button" (click)="toggleRoleMenu(m.id, $event)">
+                      <mat-icon>admin_panel_settings</mat-icon>
+                      <span>Gán / Đổi vai trò</span>
+                    </button>
+                  }
                   <button mat-menu-item type="button" (click)="copyUserId(m.id)">
                     <mat-icon>content_copy</mat-icon>
                     <span>Sao chép ID thành viên</span>
                   </button>
                   @if (!m.isOwner) {
-                    <div class="my-1 border-t border-hairline"></div>
-                    <button mat-menu-item type="button" (click)="kick(m.id)" class="text-warning-text">
-                      <mat-icon class="!text-warning-text">person_remove</mat-icon>
-                      <span class="text-warning-text font-bold">Kick khỏi server</span>
-                    </button>
-                    <button mat-menu-item type="button" (click)="openBanModal(m)" class="text-danger">
-                      <mat-icon class="!text-danger">gavel</mat-icon>
-                      <span class="text-danger font-bold">Cấm (Ban) thành viên</span>
-                    </button>
+                    @if (settingsService.canKickMembers() || settingsService.canBanMembers()) {
+                      <div class="my-1 border-t border-hairline"></div>
+                    }
+                    @if (settingsService.canKickMembers()) {
+                      <button mat-menu-item type="button" (click)="kick(m.id)" class="text-warning-text">
+                        <mat-icon class="!text-warning-text">person_remove</mat-icon>
+                        <span class="text-warning-text font-bold">Kick khỏi server</span>
+                      </button>
+                    }
+                    @if (settingsService.canBanMembers()) {
+                      <button mat-menu-item type="button" (click)="openBanModal(m)" class="text-danger">
+                        <mat-icon class="!text-danger">gavel</mat-icon>
+                        <span class="text-danger font-bold">Cấm (Ban) thành viên</span>
+                      </button>
+                    }
                   }
                 </mat-menu>
               </td>
@@ -340,7 +354,7 @@
   <!-- ══════════════════════════════════════════════════════════════════════
        TAB 2: DANH SÁCH THÀNH VIÊN ĐÃ BỊ CẤM BAN
        ══════════════════════════════════════════════════════════════════════ -->
-  @if (activeTab() === 'banned') {
+  @if (activeTab() === 'banned' && settingsService.canBanMembers()) {
     <div class="rounded-2xl border border-danger/30 bg-surface overflow-hidden shadow-card">
       <div class="px-6 py-4 border-b border-danger/20 bg-danger-surface/50 flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -391,13 +405,15 @@
       <div class="h-4 w-px bg-hairline"></div>
 
       <div class="flex items-center gap-2">
-        <button
-          type="button"
-          (click)="bulkKick()"
-          class="px-3 py-1 rounded-xl text-micro font-bold border border-warning-text/40 text-warning-text hover:bg-warning-bg transition-colors cursor-pointer"
-        >
-          Kick hàng loạt
-        </button>
+        @if (settingsService.canKickMembers()) {
+          <button
+            type="button"
+            (click)="bulkKick()"
+            class="px-3 py-1 rounded-xl text-micro font-bold border border-warning-text/40 text-warning-text hover:bg-warning-bg transition-colors cursor-pointer"
+          >
+            Kick hàng loạt
+          </button>
+        }
 
         <button
           type="button"
