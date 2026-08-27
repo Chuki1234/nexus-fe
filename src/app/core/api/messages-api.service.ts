@@ -21,20 +21,6 @@ export interface AttachmentResponseDto {
   height: number | null;
   signedUrl: string | null;
   isAvailable?: boolean;
-  isSensitive?: boolean;
-  sensitive?: boolean;
-  isNsfw?: boolean;
-  nsfw?: boolean;
-  adult?: boolean;
-  contentWarning?: string | null;
-  safetyLabels?: string[];
-  safetyFlags?: string[];
-  moderationLabels?: string[];
-  moderation?: {
-    flagged?: boolean;
-    labels?: string[];
-    categories?: Record<string, boolean>;
-  };
 }
 
 export interface ReactionSummaryDto {
