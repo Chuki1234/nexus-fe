@@ -46,8 +46,9 @@
            trạng thái phẳng cũ. -->
       @if (status(); as statusMessage) {
         <div class="status-cloud" role="note" [attr.aria-label]="'Trạng thái: ' + statusMessage">
-          <span class="status-tail-lg" aria-hidden="true"></span>
           <span class="status-bubble">{{ statusMessage }}</span>
+          <span class="status-tail status-tail--md" aria-hidden="true"></span>
+          <span class="status-tail status-tail--sm" aria-hidden="true"></span>
         </div>
       }
     </div>

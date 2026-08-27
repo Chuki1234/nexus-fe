@@ -44,8 +44,9 @@
          hai chấm nhỏ làm đuôi nối lên bong bóng chứa dòng trạng thái. -->
     @if (person.statusMessage; as status) {
       <div class="status-cloud" role="note" [attr.aria-label]="'Trạng thái: ' + status">
-        <span class="status-tail-lg" aria-hidden="true"></span>
         <span class="status-bubble">{{ status }}</span>
+        <span class="status-tail status-tail--md" aria-hidden="true"></span>
+        <span class="status-tail status-tail--sm" aria-hidden="true"></span>
       </div>
     }
   </div>
