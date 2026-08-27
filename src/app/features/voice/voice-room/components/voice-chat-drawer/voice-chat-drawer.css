@@ -1,3 +1,27 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-x: hidden;
+  background: var(--color-surface, #002634);
+  border-left: 1px solid var(--color-hairline, rgba(255, 255, 255, 0.08));
+}
+
+/* Triệt tiêu hoàn toàn thanh cuộn ngang trong khung chat phòng thoại */
+:host,
+:host * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+:host .nexus-scrollbar,
+:host .overflow-y-auto {
+  overflow-x: hidden !important;
+}
+
 .intro-card {
   background: color-mix(in srgb, var(--color-surface-feature) 60%, var(--color-surface));
 }
@@ -79,7 +103,34 @@ button mat-icon,
 
 .message-row {
   position: relative;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   transition: background-color var(--motion-fast, 0.15s) var(--ease-nexus-out, ease);
+}
+
+.message-body {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.message-attachments,
+.message-media-tile,
+.message-file-tile,
+app-giphy-message-embed {
+  max-width: 100% !important;
+}
+
+app-giphy-message-embed img,
+app-giphy-message-embed video,
+.message-media-tile img,
+.message-media-tile video {
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain;
 }
 
 .message-row:hover,

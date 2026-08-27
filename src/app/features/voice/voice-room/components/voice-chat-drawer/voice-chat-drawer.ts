@@ -215,19 +215,33 @@ export class VoiceChatDrawer implements OnInit {
         });
       });
     });
+
+    // Tự động load channel khi serverId hoặc channel thay đổi (kể cả khi drawer vẫn đang mở)
+    effect(() => {
+      const sId = this.serverId();
+      const ch = this.channel();
+      if (sId && ch?.id) {
+        untracked(() => {
+          void this.initDrawer(sId, ch.id);
+        });
+      }
+    });
   }
 
   ngOnInit(): void {
     void this.profileStore.ensureLoaded();
-    const sId = this.serverId();
-    const ch = this.channel();
-    if (sId && ch?.id) {
-      const targetKey = `${sId}:${ch.id}`;
-      this.scrollController.reset(targetKey);
-      this.processedMessageIds.clear();
-      void this.channelChat.loadInitial(sId, ch.id);
-      void this.loadServerMembers(sId);
-    }
+  }
+
+  private async initDrawer(serverId: string, channelId: string): Promise<void> {
+    const targetKey = `${serverId}:${channelId}`;
+    this.scrollController.reset(targetKey);
+    this.processedMessageIds.clear();
+    this.composerContext.set(null);
+    this.forwardModalMessage.set(null);
+    this.editingMessageId.set(null);
+    this.pinsOpen.set(false);
+    await this.channelChat.loadInitial(serverId, channelId);
+    void this.loadServerMembers(serverId);
   }
 
   private async loadServerMembers(serverId: string): Promise<void> {

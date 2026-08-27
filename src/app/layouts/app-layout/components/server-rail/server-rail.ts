@@ -126,6 +126,7 @@ import { ServerCapabilitiesService } from '../../../../core/servers/server-capab
 import { ServerInvitationsStore } from '../../../../core/servers/server-invitations.store';
 import { ServersStore } from '../../../../core/servers/servers.store';
 import { NotificationStore } from '../../../../core/notification/notification-store';
+import { ServerVoiceStatesStore } from '../../../../core/servers/server-voice-states.store';
 
 /**
  * Cột 1 — dải icon server dọc mép trái chuẩn Discord.
@@ -164,6 +165,7 @@ export class ServerRail implements OnDestroy {
   private readonly friendsStore = inject(FriendsStore);
   private readonly invitationsStore = inject(ServerInvitationsStore);
   private readonly notificationStore = inject(NotificationStore);
+  private readonly voiceStatesStore = inject(ServerVoiceStatesStore);
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
   private readonly dialog = inject(MatDialog);
@@ -1033,6 +1035,18 @@ export class ServerRail implements OnDestroy {
       userId: friend.id,
       conversationId: existingConv?.id,
       searchableText: `${displayName} ${friend.username ?? ''} ${friend.statusMessage ?? ''} bạn bè tin nhắn dm`,
+    };
+  }
+
+  /** Trả về thông tin hoạt động voice của một server để hiện badge trên tile. */
+  protected serverVoiceActivity(serverId: string): { hasVoice: boolean; hasScreenShare: boolean; hasCamera: boolean; memberCount: number } {
+    const states = this.voiceStatesStore.getServerVoiceStates(serverId);
+    if (states.length === 0) return { hasVoice: false, hasScreenShare: false, hasCamera: false, memberCount: 0 };
+    return {
+      hasVoice: true,
+      hasScreenShare: states.some((s) => s.isScreenSharing),
+      hasCamera: states.some((s) => s.isCameraOn),
+      memberCount: states.length,
     };
   }
 

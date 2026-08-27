@@ -113,6 +113,19 @@
               label="tin nhắn chưa đọc"
             />
           }
+
+          @let vActivity = serverVoiceActivity(item.server.id);
+          @if (vActivity.hasVoice) {
+            <span class="server-voice-badge" [attr.aria-label]="vActivity.memberCount + ' người trong voice'">
+              @if (vActivity.hasScreenShare) {
+                <mat-icon class="server-voice-badge__icon" aria-hidden="true">present_to_all</mat-icon>
+              } @else if (vActivity.hasCamera) {
+                <mat-icon class="server-voice-badge__icon" aria-hidden="true">videocam</mat-icon>
+              } @else {
+                <mat-icon class="server-voice-badge__icon" aria-hidden="true">volume_up</mat-icon>
+              }
+            </span>
+          }
         </div>
       </li>
     }
