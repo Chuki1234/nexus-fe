@@ -24,13 +24,7 @@ import { StipopPickerComponent } from '../stipop-picker/stipop-picker.component'
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 
 export type MessageComposerContextKind =
-  | 'reply'
-  | 'edit'
-  | 'forward'
-  | 'delete'
-  | 'pin'
-  | 'unpin'
-  | 'copy';
+  'reply' | 'edit' | 'forward' | 'delete' | 'pin' | 'unpin' | 'copy';
 
 export interface MessageComposerContext {
   kind: MessageComposerContextKind;
@@ -87,69 +81,420 @@ export const EMOJI_CATEGORIES: EmojiCategory[] = [
     name: 'Mặt cười & Cảm xúc',
     icon: 'sentiment_satisfied',
     emojis: [
-      '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
-      '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😋',
-      '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐',
-      '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌',
-      '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🥵',
-      '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐', '😕',
-      '😟', '🙁', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨',
-      '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩',
-      '😫', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️',
+      '😀',
+      '😃',
+      '😄',
+      '😁',
+      '😆',
+      '😅',
+      '🤣',
+      '😂',
+      '🙂',
+      '🙃',
+      '😉',
+      '😊',
+      '😇',
+      '🥰',
+      '😍',
+      '🤩',
+      '😘',
+      '😗',
+      '😚',
+      '😋',
+      '😛',
+      '😜',
+      '🤪',
+      '😝',
+      '🤑',
+      '🤗',
+      '🤭',
+      '🤫',
+      '🤔',
+      '🤐',
+      '🤨',
+      '😐',
+      '😑',
+      '😶',
+      '😏',
+      '😒',
+      '🙄',
+      '😬',
+      '🤥',
+      '😌',
+      '😔',
+      '😪',
+      '🤤',
+      '😴',
+      '😷',
+      '🤒',
+      '🤕',
+      '🤢',
+      '🤮',
+      '🥵',
+      '🥶',
+      '🥴',
+      '😵',
+      '🤯',
+      '🤠',
+      '🥳',
+      '😎',
+      '🤓',
+      '🧐',
+      '😕',
+      '😟',
+      '🙁',
+      '😮',
+      '😯',
+      '😲',
+      '😳',
+      '🥺',
+      '😦',
+      '😧',
+      '😨',
+      '😰',
+      '😥',
+      '😢',
+      '😭',
+      '😱',
+      '😖',
+      '😣',
+      '😞',
+      '😓',
+      '😩',
+      '😫',
+      '🥱',
+      '😤',
+      '😡',
+      '😠',
+      '🤬',
+      '😈',
+      '👿',
+      '💀',
+      '☠️',
     ],
   },
   {
     name: 'Cử chỉ & Con người',
     icon: 'pan_tool',
     emojis: [
-      '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞',
-      '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍',
-      '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝',
-      '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂',
-      '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅',
-      '👄', '👶', '🧒', '👦', '👧', '🧑', '👱', '👨', '🧔', '👩',
+      '👋',
+      '🤚',
+      '🖐️',
+      '✋',
+      '🖖',
+      '👌',
+      '🤌',
+      '🤏',
+      '✌️',
+      '🤞',
+      '🤟',
+      '🤘',
+      '🤙',
+      '👈',
+      '👉',
+      '👆',
+      '🖕',
+      '👇',
+      '☝️',
+      '👍',
+      '👎',
+      '✊',
+      '👊',
+      '🤛',
+      '🤜',
+      '👏',
+      '🙌',
+      '👐',
+      '🤲',
+      '🤝',
+      '🙏',
+      '✍️',
+      '💅',
+      '🤳',
+      '💪',
+      '🦾',
+      '🦿',
+      '🦵',
+      '🦶',
+      '👂',
+      '🦻',
+      '👃',
+      '🧠',
+      '🫀',
+      '🫁',
+      '🦷',
+      '🦴',
+      '👀',
+      '👁️',
+      '👅',
+      '👄',
+      '👶',
+      '🧒',
+      '👦',
+      '👧',
+      '🧑',
+      '👱',
+      '👨',
+      '🧔',
+      '👩',
     ],
   },
   {
     name: 'Động vật & Thiên nhiên',
     icon: 'pets',
     emojis: [
-      '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯',
-      '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆',
-      '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋',
-      '🐌', '🐞', '🐜', '🦟', '🦗', '🕷️', '🦂', '🐢', '🐍', '🦎',
-      '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟',
-      '🐬', '🐳', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘',
+      '🐶',
+      '🐱',
+      '🐭',
+      '🐹',
+      '🐰',
+      '🦊',
+      '🐻',
+      '🐼',
+      '🐨',
+      '🐯',
+      '🦁',
+      '🐮',
+      '🐷',
+      '🐸',
+      '🐵',
+      '🐔',
+      '🐧',
+      '🐦',
+      '🐤',
+      '🦆',
+      '🦅',
+      '🦉',
+      '🦇',
+      '🐺',
+      '🐗',
+      '🐴',
+      '🦄',
+      '🐝',
+      '🐛',
+      '🦋',
+      '🐌',
+      '🐞',
+      '🐜',
+      '🦟',
+      '🦗',
+      '🕷️',
+      '🦂',
+      '🐢',
+      '🐍',
+      '🦎',
+      '🦖',
+      '🦕',
+      '🐙',
+      '🦑',
+      '🦐',
+      '🦞',
+      '🦀',
+      '🐡',
+      '🐠',
+      '🐟',
+      '🐬',
+      '🐳',
+      '🦈',
+      '🐊',
+      '🐅',
+      '🐆',
+      '🦓',
+      '🦍',
+      '🦧',
+      '🐘',
     ],
   },
   {
     name: 'Đồ ăn & Thức uống',
     icon: 'restaurant',
     emojis: [
-      '🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐',
-      '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🥑', '🥦',
-      '🌽', '🌶️', '🥒', '🥬', '🥕', '🧄', '🧅', '🥔', '🍠', '🥐',
-      '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓',
-      '🥩', '🍗', '🍖', '🦴', '🌭', '🍔', '🍟', '🍕', '🥪', '🥙',
-      '🧆', '🌮', '🌯', '🥗', '🥘', '🥫', '🍝', '🍜', '🍲', '🍛',
-      '🍣', '🍱', '🥟', '🦪', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠',
-      '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮',
-      '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🌰', '🥜', '🍯', '🥛',
-      '☕', '🍵', '🧃', '🥤', '🧋', '🍶', '🍺', '🍻', '🥂', '🍷',
+      '🍏',
+      '🍎',
+      '🍐',
+      '🍊',
+      '🍋',
+      '🍌',
+      '🍉',
+      '🍇',
+      '🍓',
+      '🫐',
+      '🍈',
+      '🍒',
+      '🍑',
+      '🥭',
+      '🍍',
+      '🥥',
+      '🥝',
+      '🍅',
+      '🥑',
+      '🥦',
+      '🌽',
+      '🌶️',
+      '🥒',
+      '🥬',
+      '🥕',
+      '🧄',
+      '🧅',
+      '🥔',
+      '🍠',
+      '🥐',
+      '🍞',
+      '🥖',
+      '🥨',
+      '🧀',
+      '🥚',
+      '🍳',
+      '🧈',
+      '🥞',
+      '🧇',
+      '🥓',
+      '🥩',
+      '🍗',
+      '🍖',
+      '🦴',
+      '🌭',
+      '🍔',
+      '🍟',
+      '🍕',
+      '🥪',
+      '🥙',
+      '🧆',
+      '🌮',
+      '🌯',
+      '🥗',
+      '🥘',
+      '🥫',
+      '🍝',
+      '🍜',
+      '🍲',
+      '🍛',
+      '🍣',
+      '🍱',
+      '🥟',
+      '🦪',
+      '🍤',
+      '🍙',
+      '🍚',
+      '🍘',
+      '🍥',
+      '🥠',
+      '🍢',
+      '🍡',
+      '🍧',
+      '🍨',
+      '🍦',
+      '🥧',
+      '🧁',
+      '🍰',
+      '🎂',
+      '🍮',
+      '🍭',
+      '🍬',
+      '🍫',
+      '🍿',
+      '🍩',
+      '🍪',
+      '🌰',
+      '🥜',
+      '🍯',
+      '🥛',
+      '☕',
+      '🍵',
+      '🧃',
+      '🥤',
+      '🧋',
+      '🍶',
+      '🍺',
+      '🍻',
+      '🥂',
+      '🍷',
     ],
   },
   {
     name: 'Biểu tượng & Trái tim',
     icon: 'favorite',
     emojis: [
-      '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
-      '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️',
-      '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐',
-      '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐',
-      '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳',
-      '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🛑', '✨', '⭐', '🌟',
-      '💫', '💥', '🔥', '⚡', '🌈', '☀️', '🌤️', '⛅', '🌥️', '☁️',
-      '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '🎯', '💯',
+      '❤️',
+      '🧡',
+      '💛',
+      '💚',
+      '💙',
+      '💜',
+      '🖤',
+      '🤍',
+      '🤎',
+      '💔',
+      '❣️',
+      '💕',
+      '💞',
+      '💓',
+      '💗',
+      '💖',
+      '💘',
+      '💝',
+      '💟',
+      '☮️',
+      '✝️',
+      '☪️',
+      '🕉️',
+      '☸️',
+      '✡️',
+      '🔯',
+      '🕎',
+      '☯️',
+      '☦️',
+      '🛐',
+      '⛎',
+      '♈',
+      '♉',
+      '♊',
+      '♋',
+      '♌',
+      '♍',
+      '♎',
+      '♏',
+      '♐',
+      '♑',
+      '♒',
+      '♓',
+      '🆔',
+      '⚛️',
+      '🉑',
+      '☢️',
+      '☣️',
+      '📴',
+      '📳',
+      '🈶',
+      '🈚',
+      '🈸',
+      '🈺',
+      '🈷️',
+      '✴️',
+      '🛑',
+      '✨',
+      '⭐',
+      '🌟',
+      '💫',
+      '💥',
+      '🔥',
+      '⚡',
+      '🌈',
+      '☀️',
+      '🌤️',
+      '⛅',
+      '🌥️',
+      '☁️',
+      '🎉',
+      '🎊',
+      '🎈',
+      '🎁',
+      '🏆',
+      '🥇',
+      '🥈',
+      '🥉',
+      '🎯',
+      '💯',
     ],
   },
 ];
@@ -188,10 +533,8 @@ function formatFileSize(bytes: number): string {
   styleUrl: './message-composer.css',
 })
 export class MessageComposer implements OnDestroy {
-  readonly textareaEl =
-    viewChild<ElementRef<HTMLTextAreaElement>>('messageTextarea');
-  readonly fileInputEl =
-    viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  readonly textareaEl = viewChild<ElementRef<HTMLTextAreaElement>>('messageTextarea');
+  readonly fileInputEl = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
   /** Tên kênh hoặc người nhận, hiện trong placeholder. */
   readonly target = input.required<string>();
@@ -249,6 +592,12 @@ export class MessageComposer implements OnDestroy {
 
   dragEnterCounter = 0;
 
+  /** Safari/macOS có thể báo isComposing=false ở keydown rồi phát input cũ sau send. */
+  private isImeComposing = false;
+  private suppressedPostSubmitValue: string | null = null;
+  private postSubmitResetGeneration = 0;
+  private postSubmitSuppressionTimer: ReturnType<typeof setTimeout> | null = null;
+
   protected readonly emojiCategories = EMOJI_CATEGORIES;
 
   constructor() {
@@ -284,6 +633,9 @@ export class MessageComposer implements OnDestroy {
     this.clearCooldown();
     this.revokePendingUrls();
     this.closeMentionPopup();
+    if (this.postSubmitSuppressionTimer) {
+      clearTimeout(this.postSubmitSuppressionTimer);
+    }
   }
 
   startCooldown(seconds: number): void {
@@ -479,7 +831,7 @@ export class MessageComposer implements OnDestroy {
         return;
       }
       if (event.key === 'Enter' || event.key === 'Tab') {
-        if (!event.shiftKey && !event.isComposing) {
+        if (!event.shiftKey && !this.isCompositionEvent(event)) {
           event.preventDefault();
           if (candidates.length > 0) {
             const selected = candidates[this.selectedMentionIndex()] || candidates[0];
@@ -498,13 +850,23 @@ export class MessageComposer implements OnDestroy {
     }
 
     if (event.key === 'Enter' && !event.shiftKey) {
-      if (event.isComposing) return;
+      if (this.isCompositionEvent(event)) return;
       event.preventDefault();
       this.submit();
     }
   }
 
   onInput(value: string): void {
+    if (
+      this.suppressedPostSubmitValue !== null &&
+      this.normalizeImeValue(value) === this.normalizeImeValue(this.suppressedPostSubmitValue)
+    ) {
+      this.forceClearTextarea();
+      return;
+    }
+    if (value) {
+      this.suppressedPostSubmitValue = null;
+    }
     this.text.set(value);
     this.adjustTextareaHeight();
     this.checkMentionTrigger();
@@ -523,6 +885,23 @@ export class MessageComposer implements OnDestroy {
 
   onBlur(): void {
     this.stoppedTyping.emit();
+  }
+
+  onCompositionStart(): void {
+    this.isImeComposing = true;
+  }
+
+  onCompositionEnd(event: CompositionEvent): void {
+    this.isImeComposing = false;
+    if (this.suppressedPostSubmitValue !== null) {
+      this.forceClearTextarea();
+      return;
+    }
+
+    const value = (event.target as HTMLTextAreaElement | null)?.value;
+    if (typeof value === 'string' && value !== this.text()) {
+      this.onInput(value);
+    }
   }
 
   openFileDialog(): void {
@@ -664,19 +1043,12 @@ export class MessageComposer implements OnDestroy {
       const isAllowedMime = allowedMimes.includes(f.type) || isAllowedByExt;
 
       if (!isAllowedMime) {
-        this.fileErrorMessage.set(
-          `Định dạng file "${f.name}" không được hỗ trợ.`,
-        );
+        this.fileErrorMessage.set(`Định dạng file "${f.name}" không được hỗ trợ.`);
         continue;
       }
 
-      if (
-        currentTotalBytes + runningBatchBytes + f.size >
-        ATTACHMENT_LIMITS.MAX_TOTAL_SIZE_BYTES
-      ) {
-        this.fileErrorMessage.set(
-          `Tổng dung lượng tệp đính kèm vượt quá giới hạn 30MB.`,
-        );
+      if (currentTotalBytes + runningBatchBytes + f.size > ATTACHMENT_LIMITS.MAX_TOTAL_SIZE_BYTES) {
+        this.fileErrorMessage.set(`Tổng dung lượng tệp đính kèm vượt quá giới hạn 30MB.`);
         continue;
       }
 
@@ -687,7 +1059,21 @@ export class MessageComposer implements OnDestroy {
       const isAudio = f.type === 'audio/mpeg' || f.type === 'audio/mp3' || ext === '.mp3';
       const isVideo =
         f.type.startsWith('video/') ||
-        ['.mp4', '.m4v', '.webm', '.ogv', '.mov', '.qt', '.mkv', '.avi', '.mpeg', '.mpg', '.3gp', '.wmv', '.flv'].includes(ext);
+        [
+          '.mp4',
+          '.m4v',
+          '.webm',
+          '.ogv',
+          '.mov',
+          '.qt',
+          '.mkv',
+          '.avi',
+          '.mpeg',
+          '.mpg',
+          '.3gp',
+          '.wmv',
+          '.flv',
+        ].includes(ext);
       const canPreviewVideo =
         isVideo &&
         (['video/mp4', 'video/x-m4v', 'video/webm', 'video/ogg'].includes(f.type) ||
@@ -759,10 +1145,7 @@ export class MessageComposer implements OnDestroy {
     const payload: SendMessagePayload = {
       content: '',
       externalMedia: gif,
-      replyToId:
-        currentContext?.kind === 'reply'
-          ? currentContext.replyToId
-          : undefined,
+      replyToId: currentContext?.kind === 'reply' ? currentContext.replyToId : undefined,
     };
 
     this.send.emit(payload);
@@ -786,10 +1169,7 @@ export class MessageComposer implements OnDestroy {
     const payload: SendMessagePayload = {
       content: '',
       externalMedia: sticker,
-      replyToId:
-        currentContext?.kind === 'reply'
-          ? currentContext.replyToId
-          : undefined,
+      replyToId: currentContext?.kind === 'reply' ? currentContext.replyToId : undefined,
     };
 
     this.send.emit(payload);
@@ -839,9 +1219,7 @@ export class MessageComposer implements OnDestroy {
 
     textarea.style.height = 'auto';
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-    const maxAllowedHeight = isMobile
-      ? Math.min(160, Math.floor(window.innerHeight * 0.32))
-      : 200;
+    const maxAllowedHeight = isMobile ? Math.min(160, Math.floor(window.innerHeight * 0.32)) : 200;
 
     const newHeight = Math.min(Math.max(textarea.scrollHeight, 24), maxAllowedHeight);
     textarea.style.height = `${newHeight}px`;
@@ -884,14 +1262,8 @@ export class MessageComposer implements OnDestroy {
         !isEditMode && pending.length > 0
           ? pending.map((p) => ({ file: p.file, previewUrl: p.previewUrl }))
           : undefined,
-      replyToId:
-        currentContext?.kind === 'reply'
-          ? currentContext.replyToId
-          : undefined,
-      editMessageId:
-        isEditMode
-          ? currentContext.messageId
-          : undefined,
+      replyToId: currentContext?.kind === 'reply' ? currentContext.replyToId : undefined,
+      editMessageId: isEditMode ? currentContext.messageId : undefined,
     };
 
     this.send.emit(payload);
@@ -913,11 +1285,54 @@ export class MessageComposer implements OnDestroy {
 
     const textarea = this.textareaEl()?.nativeElement;
     if (textarea) {
+      textarea.value = '';
       textarea.style.height = 'auto';
     }
+
+    this.guardAgainstLateImeInput(raw);
 
     if (currentContext) {
       this.contextClosed.emit();
     }
+  }
+
+  private isCompositionEvent(event: KeyboardEvent): boolean {
+    return this.isImeComposing || event.isComposing || event.keyCode === 229;
+  }
+
+  private normalizeImeValue(value: string): string {
+    return value.normalize('NFC');
+  }
+
+  private forceClearTextarea(): void {
+    this.text.set('');
+    const textarea = this.textareaEl()?.nativeElement;
+    if (textarea) {
+      textarea.value = '';
+      textarea.style.height = 'auto';
+    }
+  }
+
+  private guardAgainstLateImeInput(submittedValue: string): void {
+    const generation = ++this.postSubmitResetGeneration;
+    this.suppressedPostSubmitValue = submittedValue;
+
+    queueMicrotask(() => {
+      if (generation !== this.postSubmitResetGeneration) return;
+      const current = this.text();
+      if (!current || this.normalizeImeValue(current) === this.normalizeImeValue(submittedValue)) {
+        this.forceClearTextarea();
+      }
+    });
+
+    if (this.postSubmitSuppressionTimer) {
+      clearTimeout(this.postSubmitSuppressionTimer);
+    }
+    this.postSubmitSuppressionTimer = setTimeout(() => {
+      if (generation === this.postSubmitResetGeneration) {
+        this.suppressedPostSubmitValue = null;
+      }
+      this.postSubmitSuppressionTimer = null;
+    }, 300);
   }
 }

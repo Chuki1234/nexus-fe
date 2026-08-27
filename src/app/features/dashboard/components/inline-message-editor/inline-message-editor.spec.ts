@@ -109,18 +109,19 @@ describe('InlineMessageEditor', () => {
     expect(saved).toBeNull();
   });
 
-  it('chặn submit và hiển thị bộ đếm khi vượt quá 4000 ký tự', () => {
+  it('cho phép chỉnh sửa nội dung dài hơn 4000 ký tự', () => {
+    let saved: string | null = null;
+    component.save.subscribe((value) => (saved = value));
     const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
     textarea.value = 'a'.repeat(4001);
     textarea.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
     const saveBtn = fixture.nativeElement.querySelector('.inline-editor-save-btn') as HTMLButtonElement;
-    expect(saveBtn.disabled).toBe(true);
-
-    const counter = fixture.nativeElement.querySelector('.inline-editor-counter');
-    expect(counter).toBeTruthy();
-    expect(counter.textContent).toContain('4001/4000');
+    expect(saveBtn.disabled).toBe(false);
+    saveBtn.click();
+    expect(saved).toBe('a'.repeat(4001));
+    expect(textarea.hasAttribute('maxlength')).toBe(false);
   });
 
   it('khi expired=true: hiển thị cảnh báo hết hạn và khóa nút Lưu', () => {

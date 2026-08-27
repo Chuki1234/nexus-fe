@@ -51,6 +51,10 @@ import { canEditMessage } from '../../../../../../shared/dto/messages.dto';
 import { ProfileStore } from '../../../../profile/profile-store';
 import { extractErrorMessage } from '../../../../../core/utils/error.util';
 import { computed } from '@angular/core';
+import {
+  ServersApiService,
+  type ServerMemberDto,
+} from '../../../../../core/api/servers-api.service';
 
 @Component({
   selector: 'app-voice-chat-drawer',
@@ -85,6 +89,7 @@ export class VoiceChatDrawer implements OnInit {
   private readonly injector = inject(Injector);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly serversApi = inject(ServersApiService);
 
   readonly serverId = input.required<string>();
   readonly channel = input.required<ChannelSummary>();
@@ -118,6 +123,15 @@ export class VoiceChatDrawer implements OnInit {
   readonly pinBusyIds = signal<Set<string>>(new Set());
   readonly pinError = signal<string | null>(null);
   readonly highlightedMessageId = signal<string | null>(null);
+  readonly serverMembers = signal<ServerMemberDto[]>([]);
+  protected readonly typingText = computed(() => {
+    const ids = this.channelChat.typingUserIds();
+    const latestUserId = ids[ids.length - 1];
+    if (!latestUserId) return null;
+    const member = this.serverMembers().find((item) => item.userId === latestUserId);
+    const displayName = member?.nickname || member?.displayName || member?.username;
+    return `${displayName || 'Một thành viên'} đang gõ...`;
+  });
 
   private readonly processedMessageIds = new Set<string>();
 
@@ -208,6 +222,15 @@ export class VoiceChatDrawer implements OnInit {
       this.scrollController.reset(targetKey);
       this.processedMessageIds.clear();
       void this.channelChat.loadInitial(sId, ch.id);
+      void this.loadServerMembers(sId);
+    }
+  }
+
+  private async loadServerMembers(serverId: string): Promise<void> {
+    try {
+      this.serverMembers.set(await this.serversApi.getServerMembers(serverId));
+    } catch {
+      this.serverMembers.set([]);
     }
   }
 

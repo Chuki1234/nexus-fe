@@ -77,12 +77,12 @@
       [name]="displayName()"
       [src]="avatarUrl()"
       size="sm"
-      presence="online"
+      [presence]="currentPresence()"
       ring="canvas"
     />
     <span class="user-panel__identity-copy">
       <span class="user-panel__name">{{ displayName() }}</span>
-      <span class="user-panel__status">Trực tuyến</span>
+      <span class="user-panel__status">{{ currentPresenceLabel() }}</span>
     </span>
   </button>
 

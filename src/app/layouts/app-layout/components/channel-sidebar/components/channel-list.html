@@ -74,9 +74,18 @@
               </div>
             </ng-template>
 
-            <mat-icon matListItemIcon aria-hidden="true" class="channel-icon text-steel group-hover:text-ink transition-colors">
-              {{ item.channel.type === 'voice' ? 'volume_up' : (item.channel.type === 'forum' ? 'forum' : 'tag') }}
-            </mat-icon>
+            <span matListItemIcon class="channel-icon-slot relative !mr-1.5 !flex !size-5 !min-w-5 !items-center !justify-center !overflow-visible">
+              <mat-icon aria-hidden="true" class="channel-icon text-steel group-hover:text-ink transition-colors">
+                {{ item.channel.type === 'voice' ? 'volume_up' : (item.channel.type === 'forum' ? 'forum' : 'tag') }}
+              </mat-icon>
+              @if (channelMention(item.channel.id) > 0) {
+                <app-unread-badge
+                  class="pointer-events-none absolute -right-2 -top-2 z-20 origin-top-right scale-75"
+                  [count]="channelMention(item.channel.id)"
+                  label="lượt nhắc tên chưa đọc"
+                />
+              }
+            </span>
 
             <span matListItemTitle class="min-w-0 text-body-sm font-medium text-slate group-hover:text-ink transition-colors" [class.text-ink]="!link.isActive && channelHasUnread(item.channel.id)" [class.font-semibold]="link.isActive || channelHasUnread(item.channel.id)">
               <app-overflow-marquee [text]="item.channel.name" />
@@ -132,13 +141,6 @@
                 }
               </div>
 
-              <!-- Unread Badge -->
-              @if (channelMention(item.channel.id) > 0) {
-                <app-unread-badge
-                  [count]="channelMention(item.channel.id)"
-                  label="lượt nhắc tên chưa đọc"
-                />
-              }
             </div>
           </a>
           <!-- Active Voice Channel Connected Members List (Discord Style) -->
@@ -277,24 +279,27 @@
                 [attr.aria-expanded]="!isGroupCollapsed(item.category.id)"
                 [attr.aria-controls]="'channel-group-' + item.category.id"
               >
-                <mat-icon
-                  class="channel-group-chevron !size-4 !text-base transition-transform duration-200"
-                  [class.channel-group-chevron--collapsed]="isGroupCollapsed(item.category.id)"
-                >
-                  expand_more
-                </mat-icon>
+                <span class="relative flex size-4 shrink-0 items-center justify-center overflow-visible">
+                  <mat-icon
+                    class="channel-group-chevron !size-4 !text-base transition-transform duration-200"
+                    [class.channel-group-chevron--collapsed]="isGroupCollapsed(item.category.id)"
+                  >
+                    expand_more
+                  </mat-icon>
+                  @if (isGroupCollapsed(item.category.id) && getGroupMentionCount(item) > 0) {
+                    <app-unread-badge
+                      class="pointer-events-none absolute -right-2 -top-2 z-20 origin-top-right scale-75"
+                      [count]="getGroupMentionCount(item)"
+                      label="lượt nhắc tên chưa đọc"
+                    />
+                  }
+                </span>
                 <app-overflow-marquee
                   class="min-w-0 flex-1 text-micro-uppercase font-bold tracking-wider"
                   [text]="item.category.name"
                 />
                 @if (isGroupCollapsed(item.category.id)) {
-                  @if (getGroupMentionCount(item) > 0) {
-                    <app-unread-badge
-                      class="ml-1 shrink-0"
-                      [count]="getGroupMentionCount(item)"
-                      label="lượt nhắc tên chưa đọc"
-                    />
-                  } @else if (getGroupHasUnread(item)) {
+                  @if (getGroupMentionCount(item) === 0 && getGroupHasUnread(item)) {
                     <span class="size-2 rounded-full bg-primary shrink-0 ml-1" aria-label="Có tin nhắn chưa đọc"></span>
                   }
                 }
@@ -385,9 +390,18 @@
                       </div>
                     </ng-template>
 
-                    <mat-icon matListItemIcon aria-hidden="true" class="channel-icon text-steel group-hover:text-ink transition-colors">
-                      {{ channel.type === 'voice' ? 'volume_up' : (channel.type === 'forum' ? 'forum' : 'tag') }}
-                    </mat-icon>
+                    <span matListItemIcon class="channel-icon-slot relative !mr-1.5 !flex !size-5 !min-w-5 !items-center !justify-center !overflow-visible">
+                      <mat-icon aria-hidden="true" class="channel-icon text-steel group-hover:text-ink transition-colors">
+                        {{ channel.type === 'voice' ? 'volume_up' : (channel.type === 'forum' ? 'forum' : 'tag') }}
+                      </mat-icon>
+                      @if (channelMention(channel.id) > 0) {
+                        <app-unread-badge
+                          class="pointer-events-none absolute -right-2 -top-2 z-20 origin-top-right scale-75"
+                          [count]="channelMention(channel.id)"
+                          label="lượt nhắc tên chưa đọc"
+                        />
+                      }
+                    </span>
 
                     <span matListItemTitle class="min-w-0 text-body-sm font-medium text-slate group-hover:text-ink transition-colors" [class.text-ink]="!link.isActive && channelHasUnread(channel.id)" [class.font-semibold]="link.isActive || channelHasUnread(channel.id)">
                       <app-overflow-marquee [text]="channel.name" />
@@ -443,13 +457,6 @@
                         }
                       </div>
 
-                      <!-- Unread Badge -->
-                      @if (channelMention(channel.id) > 0) {
-                        <app-unread-badge
-                          [count]="channelMention(channel.id)"
-                          label="lượt nhắc tên chưa đọc"
-                        />
-                      }
                     </div>
                   </a>
                   <!-- Active Voice Channel Connected Members List (Discord Style) -->

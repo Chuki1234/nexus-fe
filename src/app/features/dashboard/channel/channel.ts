@@ -234,6 +234,14 @@ export class ChannelPage implements OnInit, AfterViewInit {
   protected readonly permissions = this.channelChat.permissions;
   protected readonly messages = this.channelChat.allMessages;
   protected readonly typingUserIds = this.channelChat.typingUserIds;
+  protected readonly typingText = computed(() => {
+    const ids = this.typingUserIds();
+    const latestUserId = ids[ids.length - 1];
+    if (!latestUserId) return null;
+    const member = this.serverMembers().find((item) => item.userId === latestUserId);
+    const displayName = member?.nickname || member?.displayName || member?.username;
+    return `${displayName || 'Một thành viên'} đang gõ...`;
+  });
 
   // Thành viên server kèm live presence
   protected readonly membersWithPresence = computed(() => {
@@ -890,5 +898,47 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
   protected formatMessageTime(dateStr: string | null | undefined): string {
     return formatMessageTimestamp(dateStr);
+  }
+
+  getMessageExcerpt(msg: ChannelChatUiMessage): string {
+    if (msg.deletedAt) {
+      return 'Tin nhắn đã bị xóa';
+    }
+    if (msg.content && msg.content.trim().length > 0) {
+      return msg.content;
+    }
+    if (msg.externalMedia) {
+      const type = msg.externalMedia.mediaType || (msg.externalMedia as { type?: string }).type;
+      const title = (msg.externalMedia as { title?: string }).title;
+      if (type === 'sticker' || msg.externalMedia.provider === 'stipop') {
+        return title ? `[Nhãn dán] ${title}` : '[Nhãn dán]';
+      }
+      return title ? `[GIF] ${title}` : '[GIF]';
+    }
+    if (msg.attachments && msg.attachments.length > 0) {
+      const first = msg.attachments[0];
+      const isImg =
+        first.mimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(first.filename);
+      const isVid =
+        first.mimeType?.startsWith('video/') || /\.(mp4|webm|mov|mkv)$/i.test(first.filename);
+      const isAud =
+        first.mimeType?.startsWith('audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(first.filename);
+
+      if (isImg) {
+        return msg.attachments.length > 1
+          ? `[${msg.attachments.length} hình ảnh] ${first.filename}`
+          : `[Hình ảnh] ${first.filename}`;
+      }
+      if (isVid) {
+        return msg.attachments.length > 1
+          ? `[${msg.attachments.length} video] ${first.filename}`
+          : `[Video] ${first.filename}`;
+      }
+      if (isAud) {
+        return `[Tin nhắn thoại] ${first.filename}`;
+      }
+      return `[Tệp đính kèm] ${first.filename}`;
+    }
+    return '[Nội dung đính kèm]';
   }
 }

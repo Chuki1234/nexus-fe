@@ -521,7 +521,7 @@
                             <app-message-actions
                               [messageId]="msg.id"
                               [author]="msg.author?.displayName || msg.author?.username || 'User'"
-                              [excerpt]="msg.content || 'Đính kèm tệp'"
+                              [excerpt]="getMessageExcerpt(msg)"
                               [ownMessage]="isMine(msg)"
                               [canEdit]="canEdit(msg)"
                               [pinned]="channelChat.pinnedIds().has(msg.id)"
@@ -568,14 +568,14 @@
             }
 
             <!-- Typing Indicator Banner -->
-            @if (typingUserIds().length > 0) {
+            @if (typingText(); as text) {
               <div class="typing-banner px-4 py-1.5 text-micro text-steel flex items-center gap-2">
                 <div class="typing-dots">
                   <span></span>
                   <span></span>
                   <span></span>
                 </div>
-                <span>Ai đó đang gõ...</span>
+                <span>{{ text }}</span>
               </div>
             }
 

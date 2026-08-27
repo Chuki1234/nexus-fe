@@ -21,7 +21,7 @@
               [name]="displayName()"
               [src]="settingsService.editAvatarUrl()"
               size="md"
-              presence="online"
+              [presence]="currentPresence()"
               ring="surface"
             />
             <div class="min-w-0 flex-1">

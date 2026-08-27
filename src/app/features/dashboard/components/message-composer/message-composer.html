@@ -26,7 +26,9 @@
 
 <!-- Lỗi file đính kèm nếu có -->
 @if (fileErrorMessage(); as fileErr) {
-  <div class="composer-file-alert mb-2.5 flex items-center justify-between gap-3 rounded-xl bg-danger/10 px-3.5 py-2 border border-danger/30 text-danger text-body-sm shadow-sm animate-fade-in">
+  <div
+    class="composer-file-alert mb-2.5 flex items-center justify-between gap-3 rounded-xl bg-danger/10 px-3.5 py-2 border border-danger/30 text-danger text-body-sm shadow-sm animate-fade-in"
+  >
     <div class="flex items-center gap-2 min-w-0">
       <mat-icon class="!size-5 !text-[20px] text-danger shrink-0 leading-none">error</mat-icon>
       <span class="truncate font-medium text-danger">{{ fileErr }}</span>
@@ -44,14 +46,21 @@
 
 <!-- Chế độ chậm (Slowmode Countdown Banner) -->
 @if (cooldownRemaining() > 0) {
-  <div class="composer-slowmode-banner mb-2 flex items-center justify-between gap-2.5 rounded-xl bg-surface-feature/70 border border-primary/30 px-3.5 py-2 text-caption text-steel shadow-xs animate-fade-in">
+  <div
+    class="composer-slowmode-banner mb-2 flex items-center justify-between gap-2.5 rounded-xl bg-surface-feature/70 border border-primary/30 px-3.5 py-2 text-caption text-steel shadow-xs animate-fade-in"
+  >
     <div class="flex items-center gap-2 min-w-0">
-      <mat-icon class="!size-4 !text-base text-primary animate-pulse shrink-0">hourglass_top</mat-icon>
+      <mat-icon class="!size-4 !text-base text-primary animate-pulse shrink-0"
+        >hourglass_top</mat-icon
+      >
       <span class="truncate font-medium text-ink">
-        Chế độ chậm: Bạn có thể gửi tin nhắn tiếp theo sau <strong class="text-primary font-bold">{{ cooldownRemaining() }}s</strong>
+        Chế độ chậm: Bạn có thể gửi tin nhắn tiếp theo sau
+        <strong class="text-primary font-bold">{{ cooldownRemaining() }}s</strong>
       </span>
     </div>
-    <span class="text-micro font-mono text-primary font-bold px-2 py-0.5 rounded-md bg-primary/15 border border-primary/25 shrink-0">
+    <span
+      class="text-micro font-mono text-primary font-bold px-2 py-0.5 rounded-md bg-primary/15 border border-primary/25 shrink-0"
+    >
       {{ cooldownRemaining() }}s
     </span>
   </div>
@@ -59,11 +68,19 @@
 
 <!-- Khay xem trước File đính kèm -->
 @if (pendingFiles().length > 0) {
-  <div class="composer-preview-tray mb-2.5 flex flex-wrap gap-2.5 p-2.5 rounded-xl bg-surface-feature/30 border border-nexus-border-subtle shadow-sm">
+  <div
+    class="composer-preview-tray mb-2.5 flex flex-wrap gap-2.5 p-2.5 rounded-xl bg-surface-feature/30 border border-nexus-border-subtle shadow-sm"
+  >
     @for (item of pendingFiles(); track item.id) {
-      <div class="preview-item relative group flex items-center gap-2.5 rounded-xl bg-surface p-2 pr-3 border border-nexus-border-subtle hover:border-primary/40 shadow-xs transition-all">
+      <div
+        class="preview-item relative group flex items-center gap-2.5 rounded-xl bg-surface p-2 pr-3 border border-nexus-border-subtle hover:border-primary/40 shadow-xs transition-all"
+      >
         @if (item.mediaKind === 'image' && item.previewUrl) {
-          <img [src]="item.previewUrl" [alt]="item.name" class="size-11 object-cover rounded-lg border border-nexus-border-subtle shrink-0 shadow-2xs" />
+          <img
+            [src]="item.previewUrl"
+            [alt]="item.name"
+            class="size-11 object-cover rounded-lg border border-nexus-border-subtle shrink-0 shadow-2xs"
+          />
         } @else if (item.mediaKind === 'video' && item.canPreviewVideo && item.previewUrl) {
           <video
             [src]="item.previewUrl"
@@ -74,20 +91,28 @@
             aria-hidden="true"
           ></video>
         } @else if (item.mediaKind === 'video') {
-          <div class="size-11 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20">
+          <div
+            class="size-11 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20"
+          >
             <mat-icon class="!size-6 !text-2xl">movie</mat-icon>
           </div>
         } @else if (item.mediaKind === 'audio') {
-          <div class="size-11 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20">
+          <div
+            class="size-11 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20"
+          >
             <mat-icon class="!size-6 !text-2xl">audio_file</mat-icon>
           </div>
         } @else {
-          <div class="size-11 rounded-lg bg-surface-feature/70 flex items-center justify-center text-primary-soft shrink-0 border border-nexus-border-subtle">
+          <div
+            class="size-11 rounded-lg bg-surface-feature/70 flex items-center justify-center text-primary-soft shrink-0 border border-nexus-border-subtle"
+          >
             <mat-icon class="!size-6 !text-2xl">description</mat-icon>
           </div>
         }
         <div class="min-w-0 flex-1 max-w-[150px]">
-          <p class="truncate text-body-sm-medium text-ink font-semibold" [title]="item.name">{{ item.name }}</p>
+          <p class="truncate text-body-sm-medium text-ink font-semibold" [title]="item.name">
+            {{ item.name }}
+          </p>
           <span class="text-micro text-steel">{{ item.formattedSize }}</span>
         </div>
         <button
@@ -114,8 +139,12 @@
   (drop)="onDrop($event)"
 >
   @if (isDraggingOver()) {
-    <div class="drag-overlay absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-primary/20 backdrop-blur-sm border-2 border-dashed border-primary">
-      <div class="flex items-center gap-2 text-sm font-medium text-primary-soft bg-surface/90 px-4 py-2 rounded-lg shadow-lg">
+    <div
+      class="drag-overlay absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-primary/20 backdrop-blur-sm border-2 border-dashed border-primary"
+    >
+      <div
+        class="flex items-center gap-2 text-sm font-medium text-primary-soft bg-surface/90 px-4 py-2 rounded-lg shadow-lg"
+      >
         <mat-icon>cloud_upload</mat-icon>
         <span>Thả file vào đây để gửi</span>
       </div>
@@ -139,7 +168,13 @@
       [disabled]="disabled() || attachmentsDisabled() || context()?.kind === 'edit'"
       (click)="openFileDialog()"
       class="composer-action hover:text-primary-soft !size-8.5 !rounded-lg"
-      [matTooltip]="context()?.kind === 'edit' ? 'Không thể đính kèm tệp khi đang chỉnh sửa tin nhắn' : (attachmentsDisabled() ? attachmentsDisabledReason() : 'Đính kèm tệp/ảnh (tối đa 5 file, 10MB/file)')"
+      [matTooltip]="
+        context()?.kind === 'edit'
+          ? 'Không thể đính kèm tệp khi đang chỉnh sửa tin nhắn'
+          : attachmentsDisabled()
+            ? attachmentsDisabledReason()
+            : 'Đính kèm tệp/ảnh (tối đa 5 file, 10MB/file)'
+      "
     >
       <mat-icon class="!size-5 !text-[20px] leading-none">add_circle</mat-icon>
       <span class="sr-only">Đính kèm tệp</span>
@@ -150,12 +185,22 @@
       #messageTextarea
       rows="1"
       [disabled]="disabled() || cooldownRemaining() > 0"
-      [attr.aria-label]="cooldownRemaining() > 0 ? ('Chế độ chậm: vui lòng chờ ' + cooldownRemaining() + 's...') : placeholderText()"
-      [placeholder]="cooldownRemaining() > 0 ? ('Chế độ chậm: vui lòng chờ ' + cooldownRemaining() + 's...') : placeholderText()"
+      [attr.aria-label]="
+        cooldownRemaining() > 0
+          ? 'Chế độ chậm: vui lòng chờ ' + cooldownRemaining() + 's...'
+          : placeholderText()
+      "
+      [placeholder]="
+        cooldownRemaining() > 0
+          ? 'Chế độ chậm: vui lòng chờ ' + cooldownRemaining() + 's...'
+          : placeholderText()
+      "
       [ngModel]="text()"
       (ngModelChange)="onInput($event)"
       (keydown)="onKeydown($event)"
       (keyup)="onKeyup($event)"
+      (compositionstart)="onCompositionStart()"
+      (compositionend)="onCompositionEnd($event)"
       (blur)="onBlur()"
       (paste)="onPaste($event)"
       class="composer-textarea min-w-0 flex-1 bg-transparent py-0 text-body-sm text-ink placeholder:text-steel focus:outline-none disabled:cursor-not-allowed resize-none leading-[22px]"
@@ -186,11 +231,7 @@
       matTooltip="Chọn emoji Unicode"
       aria-label="Chọn emoji Unicode"
     >
-      <svg
-        class="composer-media-icon composer-emoji-icon"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
+      <svg class="composer-media-icon composer-emoji-icon" viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="9.25" class="composer-icon-fill" />
         <circle cx="8.75" cy="10" r="1.15" class="composer-icon-cutout-fill" />
         <circle cx="15.25" cy="10" r="1.15" class="composer-icon-cutout-fill" />
@@ -223,11 +264,7 @@
       matTooltip="Chọn nhãn dán từ Stipop"
       aria-label="Chọn nhãn dán từ Stipop"
     >
-      <svg
-        class="composer-media-icon composer-sticker-icon"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
+      <svg class="composer-media-icon composer-sticker-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path
           class="composer-icon-fill"
           fill-rule="evenodd"
@@ -235,7 +272,10 @@
         />
         <circle cx="8.25" cy="9.25" r="1.05" class="composer-icon-cutout-fill" />
         <circle cx="14.75" cy="9.25" r="1.05" class="composer-icon-cutout-fill" />
-        <path d="M7.75 12.75c1 1.15 2.25 1.72 3.75 1.72s2.75-.57 3.75-1.72" class="composer-icon-cutout-stroke" />
+        <path
+          d="M7.75 12.75c1 1.15 2.25 1.72 3.75 1.72s2.75-.57 3.75-1.72"
+          class="composer-icon-cutout-stroke"
+        />
       </svg>
       <span class="sr-only">Chọn nhãn dán</span>
     </button>
@@ -244,10 +284,16 @@
     <button
       mat-icon-button
       type="button"
-      [disabled]="disabled() || cooldownRemaining() > 0 || (!text().trim() && pendingFiles().length === 0)"
+      [disabled]="
+        disabled() || cooldownRemaining() > 0 || (!text().trim() && pendingFiles().length === 0)
+      "
       (click)="submit()"
       class="composer-send"
-      [matTooltip]="cooldownRemaining() > 0 ? ('Chế độ chậm: còn ' + cooldownRemaining() + 's') : 'Gửi tin nhắn (Enter)'"
+      [matTooltip]="
+        cooldownRemaining() > 0
+          ? 'Chế độ chậm: còn ' + cooldownRemaining() + 's'
+          : 'Gửi tin nhắn (Enter)'
+      "
       [attr.aria-label]="'Gửi tin nhắn'"
     >
       <mat-icon>arrow_upward</mat-icon>
@@ -263,9 +309,13 @@
       id="composer-mention-listbox"
       aria-label="Danh sách gợi ý nhắc tên"
     >
-      <div class="composer-mention-palette rounded-2xl bg-surface border border-nexus-border-subtle shadow-glow overflow-hidden flex flex-col max-h-72 w-80">
+      <div
+        class="composer-mention-palette rounded-2xl bg-surface border border-nexus-border-subtle shadow-glow overflow-hidden flex flex-col max-h-72 w-80"
+      >
         <!-- Header -->
-        <div class="px-3.5 py-2 border-b border-nexus-border-subtle bg-surface-feature/40 flex items-center justify-between">
+        <div
+          class="px-3.5 py-2 border-b border-nexus-border-subtle bg-surface-feature/40 flex items-center justify-between"
+        >
           <span class="text-micro font-bold uppercase tracking-wider text-steel">
             @if (mentionQuery()) {
               Thành viên khớp với "{{ mentionQuery() }}"
@@ -279,13 +329,18 @@
         </div>
 
         <!-- Danh sách gợi ý -->
-        <div class="mention-list overflow-y-auto nexus-scrollbar p-1.5 flex flex-col gap-0.5 max-h-56" tabindex="-1">
+        <div
+          class="mention-list overflow-y-auto nexus-scrollbar p-1.5 flex flex-col gap-0.5 max-h-56"
+          tabindex="-1"
+        >
           @if (loadingMentions()) {
             <div class="py-6 text-center text-body-sm text-steel">
               <span>Đang tải danh sách thành viên...</span>
             </div>
           } @else if (filteredMentionCandidates().length === 0) {
-            <div class="py-6 text-center text-body-sm text-steel flex flex-col items-center gap-1.5">
+            <div
+              class="py-6 text-center text-body-sm text-steel flex flex-col items-center gap-1.5"
+            >
               <mat-icon class="!size-5 !text-xl text-stone">person_off</mat-icon>
               <span>Không tìm thấy người dùng phù hợp</span>
             </div>
@@ -302,14 +357,18 @@
                 (mousedown)="$event.preventDefault(); selectMentionCandidate(candidate)"
               >
                 @if (candidate.isEveryone) {
-                  <div class="size-8 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                  <div
+                    class="size-8 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0"
+                  >
                     <mat-icon class="!size-4.5 !text-lg">campaign</mat-icon>
                   </div>
                   <div class="flex flex-col min-w-0 flex-1">
                     <div class="flex items-center gap-1.5">
                       <span class="font-bold text-primary text-body-sm">&#64;everyone</span>
                     </div>
-                    <span class="text-micro text-steel truncate">{{ candidate.description || 'Thông báo tới tất cả thành viên' }}</span>
+                    <span class="text-micro text-steel truncate">{{
+                      candidate.description || 'Thông báo tới tất cả thành viên'
+                    }}</span>
                   </div>
                 } @else {
                   <app-avatar
@@ -320,12 +379,19 @@
                   />
                   <div class="flex flex-col min-w-0 flex-1">
                     <div class="flex items-center gap-1.5">
-                      <span class="font-semibold text-body-sm text-ink truncate">{{ candidate.displayName }}</span>
+                      <span class="font-semibold text-body-sm text-ink truncate">{{
+                        candidate.displayName
+                      }}</span>
                       @if (candidate.role) {
-                        <span class="text-micro px-1.5 py-0.5 rounded bg-surface-feature text-steel font-mono capitalize">{{ candidate.role }}</span>
+                        <span
+                          class="text-micro px-1.5 py-0.5 rounded bg-surface-feature text-steel font-mono capitalize"
+                          >{{ candidate.role }}</span
+                        >
                       }
                     </div>
-                    <span class="text-micro text-steel truncate">&#64;{{ candidate.username }}</span>
+                    <span class="text-micro text-steel truncate"
+                      >&#64;{{ candidate.username }}</span
+                    >
                   </div>
                 }
               </button>
@@ -337,10 +403,16 @@
   }
 
   @if (showEmojiPicker()) {
-    <div class="composer-picker-popover composer-emoji-popover animate-in fade-in zoom-in-95 duration-150">
-      <div class="composer-emoji-palette rounded-2xl bg-surface border border-border-subtle shadow-2xl overflow-hidden flex flex-col">
+    <div
+      class="composer-picker-popover composer-emoji-popover animate-in fade-in zoom-in-95 duration-150"
+    >
+      <div
+        class="composer-emoji-palette rounded-2xl bg-surface border border-border-subtle shadow-2xl overflow-hidden flex flex-col"
+      >
         <!-- Header phân loại emoji -->
-        <div class="emoji-tabs flex items-center justify-between border-b border-border-subtle bg-surface-soft/80 p-1 px-2">
+        <div
+          class="emoji-tabs flex items-center justify-between border-b border-border-subtle bg-surface-soft/80 p-1 px-2"
+        >
           @for (cat of emojiCategories; track cat.name; let i = $index) {
             <button
               type="button"
@@ -360,7 +432,9 @@
         </div>
 
         <!-- Lưới Emoji -->
-        <div class="emoji-grid grid grid-cols-8 gap-1 p-2 max-h-52 overflow-y-auto custom-scrollbar">
+        <div
+          class="emoji-grid grid grid-cols-8 gap-1 p-2 max-h-52 overflow-y-auto custom-scrollbar"
+        >
           @for (emoji of emojiCategories[activeEmojiCategoryIndex()].emojis; track emoji) {
             <button
               type="button"
@@ -376,7 +450,9 @@
   }
 
   @if (showGiphyPicker()) {
-    <div class="composer-picker-popover composer-giphy-popover animate-in fade-in zoom-in-95 duration-150">
+    <div
+      class="composer-picker-popover composer-giphy-popover animate-in fade-in zoom-in-95 duration-150"
+    >
       <app-giphy-picker
         (gifSelected)="onGifSelected($event)"
         (closePicker)="showGiphyPicker.set(false)"
@@ -385,7 +461,9 @@
   }
 
   @if (showStipopPicker()) {
-    <div class="composer-picker-popover composer-stipop-popover animate-in fade-in zoom-in-95 duration-150">
+    <div
+      class="composer-picker-popover composer-stipop-popover animate-in fade-in zoom-in-95 duration-150"
+    >
       <app-stipop-picker
         (stickerSelected)="onStickerSelected($event)"
         (closePicker)="showStipopPicker.set(false)"

@@ -44,8 +44,8 @@
 .server-tile-unread-badge {
   position: absolute;
   right: calc(50% - 24px);
-  bottom: calc(50% - 24px);
-  transform: translate(20%, 20%);
+  top: calc(50% - 24px);
+  transform: translate(20%, -20%);
   z-index: 20;
   pointer-events: none;
 }

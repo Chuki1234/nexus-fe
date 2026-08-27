@@ -61,6 +61,10 @@
   <app-chat-toolbar
     [title]="recipientName()"
     [subtitle]="recipientStatusSubtitle()"
+    [showAvatar]="true"
+    [avatarSrc]="recipientAvatar()"
+    [avatarUserId]="conversationDetails()?.recipient?.id ?? null"
+    [avatarPresence]="recipientPresence()"
     leadingIcon="alternate_email"
     [showCallActions]="!isRecipientBlocked() && !isRelationshipInvalidated()"
     [showDetailsAction]="recipientUsername() !== null"

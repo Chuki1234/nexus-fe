@@ -58,7 +58,8 @@
   padding-left: 3.75rem !important;
 }
 
-:host-context(.dashboard-mobile-container) .chat-toolbar__identity-icon {
+:host-context(.dashboard-mobile-container) .chat-toolbar__identity-icon,
+:host-context(.dashboard-mobile-container) .chat-toolbar__avatar {
   display: none !important;
 }
 
@@ -68,7 +69,8 @@
     padding-right: 1rem !important;
   }
 
-  .chat-toolbar__identity-icon {
+  .chat-toolbar__identity-icon,
+  .chat-toolbar__avatar {
     display: none !important;
   }
 }

@@ -52,7 +52,7 @@ import { firstTextChannel, MOCK_SERVER_LIST } from '../mock/chat-mock';
             <!-- Số nằm trong span có sr-only text riêng để trình đọc màn hình
                  nói "3 tin chưa đọc" chứ không phải mỗi con số trần. -->
             <span
-              class="absolute -right-1 -bottom-1 flex min-w-5 items-center justify-center rounded-pill bg-danger px-1.5 text-caption-strong text-ink-strong"
+              class="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-pill bg-danger px-1.5 text-caption-strong text-ink-strong"
             >
               <span aria-hidden="true">{{ server.unread }}</span>
               <span class="sr-only">{{ server.unread }} tin chưa đọc</span>

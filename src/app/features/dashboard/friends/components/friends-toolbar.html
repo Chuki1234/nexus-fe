@@ -21,11 +21,12 @@
         type="button"
         (click)="tab.set(option.id)"
         [attr.aria-pressed]="tab() === option.id"
-        class="nexus-filter-tab min-h-8 shrink-0 rounded-full border px-3.5 text-body-sm-medium flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+        [class.!pr-7]="option.id === 'pending' && pendingCount() > 0"
+        class="nexus-filter-tab relative min-h-8 shrink-0 rounded-full border px-3.5 text-body-sm-medium flex items-center gap-1.5 cursor-pointer whitespace-nowrap overflow-visible"
       >
         <span>{{ option.label }}</span>
         @if (option.id === 'pending' && pendingCount() > 0) {
-          <span class="inline-flex items-center justify-center px-1.5 py-0.5 min-w-4.5 h-4.5 rounded-full bg-danger text-white text-[11px] font-bold leading-none">
+          <span class="pointer-events-none absolute right-1 top-1 z-10 inline-flex min-w-4.5 h-4.5 origin-top-right scale-75 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-bold leading-none text-white shadow-xs ring-2 ring-surface">
             {{ pendingCount() }}
           </span>
         }

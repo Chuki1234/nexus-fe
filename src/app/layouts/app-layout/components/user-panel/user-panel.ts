@@ -6,6 +6,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { ProfileService } from '../../../../core/profile/profile.service';
+import { PresenceService } from '../../../../core/presence/presence.service';
+import { PRESENCE_LABEL } from '../../../../../shared/dto/common';
 import { ProfileDialogService } from '../../../../features/profile/profile-dialog.service';
 import { ProfilePopover } from '../../../../features/profile/components/profile-popover/profile-popover';
 import { ProfileStore } from '../../../../features/profile/profile-store';
@@ -41,6 +43,7 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
 export class UserPanel {
   private readonly router = inject(Router);
   private readonly profile = inject(ProfileService);
+  private readonly presenceService = inject(PresenceService);
   private readonly settingsService = inject(UserSettingsService);
   private readonly profileDialog = inject(ProfileDialogService);
   readonly voiceRoom = inject(VoiceRoomService);
@@ -68,6 +71,13 @@ export class UserPanel {
 
   protected readonly displayName = computed(
     () => this.profile.current()?.displayName ?? this.profile.current()?.username ?? 'Bạn',
+  );
+
+  protected readonly currentPresence = computed(() =>
+    this.presenceService.resolvePresence(this.profile.current()?.id),
+  );
+  protected readonly currentPresenceLabel = computed(
+    () => PRESENCE_LABEL[this.currentPresence()],
   );
 
   /** Username để điều hướng sang trang hồ sơ đầy đủ. */
