@@ -274,6 +274,7 @@ import { FriendsStore } from '../friends/services/friends-store';
  */
 @Component({
   selector: 'app-conversation-page',
+  standalone: true,
   imports: [
     Avatar,
     ChatToolbar,
@@ -492,6 +493,8 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   protected readonly chatError = this.activeChatStore.chatError;
   protected readonly paginationError = this.activeChatStore.paginationError;
   protected readonly typingUserIds = this.activeChatStore.typingUserIds;
+  protected readonly pinnedMessages = this.activeChatStore.pinnedMessages;
+  protected readonly pinnedIds = this.activeChatStore.pinnedIds;
 
   /**
    * Tính toán danh sách presentation stream bao gồm Date Dividers, Unread Dividers và Messages:

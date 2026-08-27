@@ -174,21 +174,30 @@
                       <!-- Bấm vào avatar mở thẻ hồ sơ nổi của người gửi. Chỉ gắn
                          khi có username: directive cần nó để tra `/profiles/:username`,
                          không có thì thành một nút bấm vào chẳng ra gì. -->
-                      @if (msg.author?.username; as authorUsername) {
-                        <app-avatar
-                          [appProfileTrigger]="authorUsername"
-                          [attr.aria-label]="
-                            'Xem hồ sơ của ' + (msg.author?.displayName || authorUsername)
-                          "
-                          [name]="msg.author?.displayName || authorUsername"
-                          [src]="msg.author?.avatarUrl ?? null"
-                          size="md"
-                          ring="canvas"
-                        />
+                      @if (msg.author; as author) {
+                        @if (author.username; as authorUsername) {
+                          <app-avatar
+                            [appProfileTrigger]="authorUsername"
+                            [attr.aria-label]="
+                              'Xem hồ sơ của ' + (author.displayName || authorUsername)
+                            "
+                            [name]="author.displayName || authorUsername"
+                            [src]="author.avatarUrl ?? null"
+                            size="md"
+                            ring="canvas"
+                          />
+                        } @else {
+                          <app-avatar
+                            [name]="author.displayName || 'User'"
+                            [src]="author.avatarUrl ?? null"
+                            size="md"
+                            ring="canvas"
+                          />
+                        }
                       } @else {
                         <app-avatar
-                          [name]="msg.author?.displayName || 'User'"
-                          [src]="msg.author?.avatarUrl ?? null"
+                          name="User"
+                          [src]="null"
                           size="md"
                           ring="canvas"
                         />

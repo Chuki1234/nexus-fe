@@ -60,6 +60,7 @@ import {
 
 @Component({
   selector: 'app-voice-chat-drawer',
+  standalone: true,
   imports: [
     FormsModule,
     Avatar,
@@ -122,12 +123,12 @@ export class VoiceChatDrawer implements OnInit {
   readonly editingMessageId = signal<string | null>(null);
   readonly editingSaving = signal<boolean>(false);
   readonly editingError = signal<string | null>(null);
-  readonly pinsOpen = signal(false);
-  readonly pinBusyIds = signal<Set<string>>(new Set());
-  readonly pinError = signal<string | null>(null);
-  readonly highlightedMessageId = signal<string | null>(null);
+  pinsOpen = signal(false);
+  pinBusyIds = signal<Set<string>>(new Set());
+  pinError = signal<string | null>(null);
+  highlightedMessageId = signal<string | null>(null);
   readonly serverMembers = signal<ServerMemberDto[]>([]);
-  protected readonly typingText = computed(() => {
+  readonly typingText = computed(() => {
     const ids = this.channelChat.typingUserIds();
     const latestUserId = ids[ids.length - 1];
     if (!latestUserId) return null;
@@ -138,9 +139,9 @@ export class VoiceChatDrawer implements OnInit {
 
   private readonly processedMessageIds = new Set<string>();
 
-  protected readonly messageListContainer =
+  readonly messageListContainer =
     viewChild<ElementRef<HTMLDivElement>>('messageListContainer');
-  protected readonly messageContent = viewChild<ElementRef<HTMLDivElement>>('messageContent');
+  readonly messageContent = viewChild<ElementRef<HTMLDivElement>>('messageContent');
 
   readonly scrollController = new ChatScrollController({
     getContainer: () => this.messageListContainer()?.nativeElement,
@@ -381,7 +382,7 @@ export class VoiceChatDrawer implements OnInit {
     }
   }
 
-  protected async unpinFromPanel(message: MessageResponseDto): Promise<void> {
+  async unpinFromPanel(message: MessageResponseDto): Promise<void> {
     await this.setMessagePinned(message.id, false);
   }
 
@@ -411,7 +412,7 @@ export class VoiceChatDrawer implements OnInit {
     }
   }
 
-  protected jumpFromPins(message: MessageResponseDto): void {
+  jumpFromPins(message: MessageResponseDto): void {
     this.channelChat.revealPinnedMessage(message);
     this.pinsOpen.set(false);
     setTimeout(() => {
@@ -427,41 +428,41 @@ export class VoiceChatDrawer implements OnInit {
     });
   }
 
-  protected async onDeleteMessage(messageId: string): Promise<void> {
+  async onDeleteMessage(messageId: string): Promise<void> {
     if (confirm('Bạn có chắc chắn muốn xóa tin nhắn này không?')) {
       await this.channelChat.deleteMessage(messageId);
     }
   }
 
-  protected async onToggleReaction(messageId: string, emoji: string): Promise<void> {
+  async onToggleReaction(messageId: string, emoji: string): Promise<void> {
     const msg = this.channelChat.allMessages().find((m) => m.id === messageId);
     const reaction = msg?.reactions?.find((r) => r.emoji === emoji);
     const reactedByMe = reaction?.reactedByMe ?? false;
     await this.channelChat.setReaction(messageId, emoji, !reactedByMe);
   }
 
-  protected onComposerTyping(): void {
+  onComposerTyping(): void {
     this.channelChat.startTyping();
   }
 
-  protected onRetry(clientNonce: string): void {
+  onRetry(clientNonce: string): void {
     void this.channelChat.retrySendMessage(clientNonce);
   }
 
-  protected onCancel(clientNonce: string): void {
+  onCancel(clientNonce: string): void {
     this.channelChat.cancelOptimisticMessage(clientNonce);
   }
 
-  protected formatMessageTime(dateStr: string | null | undefined): string {
+  formatMessageTime(dateStr: string | null | undefined): string {
     return formatMessageTimestamp(dateStr);
   }
 
-  protected isImage(att: AttachmentResponseDto): boolean {
+  isImage(att: AttachmentResponseDto): boolean {
     if (att.mimeType && att.mimeType.startsWith('image/')) return true;
     return /\.(jpg|jpeg|jfif|png|webp|gif|svg|avif|bmp)$/i.test(att.filename || '');
   }
 
-  protected isAudio(att: AttachmentResponseDto): boolean {
+  isAudio(att: AttachmentResponseDto): boolean {
     return (
       att.mimeType === 'audio/mpeg' ||
       att.mimeType === 'audio/mp3' ||
@@ -469,21 +470,21 @@ export class VoiceChatDrawer implements OnInit {
     );
   }
 
-  protected isVideo(att: AttachmentResponseDto): boolean {
+  isVideo(att: AttachmentResponseDto): boolean {
     return (
       Boolean(att.mimeType?.startsWith('video/')) ||
       /\.(mp4|m4v|webm|ogv|mov|qt|mkv|avi|mpeg|mpg|3gp|wmv|flv)$/i.test(att.filename || '')
     );
   }
 
-  protected isBrowserPlayableVideo(att: AttachmentResponseDto): boolean {
+  isBrowserPlayableVideo(att: AttachmentResponseDto): boolean {
     return (
       ['video/mp4', 'video/x-m4v', 'video/webm', 'video/ogg'].includes(att.mimeType) ||
       /\.(mp4|m4v|webm|ogv)$/i.test(att.filename || '')
     );
   }
 
-  protected formatAttachmentSize(bytes: number): string {
+  formatAttachmentSize(bytes: number): string {
     if (!bytes) return '0 B';
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
