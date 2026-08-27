@@ -2208,26 +2208,7 @@ export class UserSettingsService {
     this.serverDataMap.update((map) => {
       const current = map[sId];
       if (!current) return map;
-<<<<<<< HEAD
 
-=======
-      let diff = 0;
-      const targetMember = current.members.find((m: ServerMemberItem) => m.id === memberId);
-      const targetRole = current.roles.find((r: ServerRoleItem) => r.id === roleId);
-      const willHave = targetMember ? !targetMember.roles.includes(roleId) : false;
-      if (targetMember && targetRole) {
-        setTimeout(
-          () =>
-            this.addAuditLog(
-              willHave ? 'Gán vai trò thành viên' : 'Gỡ vai trò thành viên',
-              `${targetRole.name} cho ${targetMember.displayName}`,
-              'admin_panel_settings',
-              sId,
-            ),
-          0,
-        );
-      }
->>>>>>> f7c20ffb00eb1b07967a283b5de799bcfd140ed6
       const updatedMembers = current.members.map((m: ServerMemberItem) => {
         if (m.id !== memberId) return m;
         return {
