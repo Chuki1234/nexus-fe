@@ -36,7 +36,6 @@ const envVars = {
   ...parseDotEnv(envLocalPath),
 };
 
-const giphyKey = envVars.GIPHY_API_KEY || process.env.GIPHY_API_KEY || '';
 const apiUrl = envVars.API_URL || process.env.API_URL || 'http://localhost:3000/api';
 const apiBaseUrl = envVars.API_BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000';
 const supabaseUrl = envVars.SUPABASE_URL || process.env.SUPABASE_URL || 'https://ubdgjtjxcytwctsbtpjy.supabase.co';
@@ -48,7 +47,6 @@ export interface AppEnvironment {
   supabaseKey: string;
   apiUrl: string;
   apiBaseUrl: string;
-  giphyApiKey: string;
 }
 
 export const environment: AppEnvironment = {
@@ -56,7 +54,6 @@ export const environment: AppEnvironment = {
   supabaseKey: '${supabaseKey}',
   apiUrl: '${apiUrl}',
   apiBaseUrl: '${apiBaseUrl}',
-  giphyApiKey: '${giphyKey}',
 };
 `;
 

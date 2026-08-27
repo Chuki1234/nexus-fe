@@ -68,11 +68,7 @@ import { InlineMessageEditor } from '../components/inline-message-editor/inline-
 import { MessageClockService } from '../../../core/utils/message-clock.service';
 import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import { parseMessageContent, type MessageContentToken } from './utils/message-content-parser';
-<<<<<<< HEAD
-import { SensitiveMediaGuard } from '../components/sensitive-media-guard/sensitive-media-guard';
 import { copyToClipboard, extractMessageCopyableContent } from '../../../core/utils/clipboard.util';
-=======
->>>>>>> 7fee15d0bd245fe68600bac37eb7c94b3ef17260
 
 export interface ConversationHttpError {
   status?: number;

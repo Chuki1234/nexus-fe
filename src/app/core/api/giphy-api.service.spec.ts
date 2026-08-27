@@ -44,8 +44,8 @@ describe('GiphyApiService', () => {
     httpMock.verify();
   });
 
-  it('hasApiKey() trả về true khi apiUrl được định nghĩa', () => {
-    expect(service.hasApiKey()).toBe(true);
+  it('isConfigured() trả về true khi backend apiUrl được định nghĩa', () => {
+    expect(service.isConfigured()).toBe(true);
   });
 
   it('getTrending() gửi đúng params tới endpoint backend proxy', async () => {
