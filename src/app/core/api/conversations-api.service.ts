@@ -22,6 +22,11 @@ export interface ConversationResponseDto {
   recipient?: ConversationParticipantProfile;
   lastReadMessageId?: string | null;
   unreadCount: number;
+  lastMessage?: {
+    id: string;
+    content: string | null;
+    createdAt: string;
+  };
   createdAt: string;
 }
 

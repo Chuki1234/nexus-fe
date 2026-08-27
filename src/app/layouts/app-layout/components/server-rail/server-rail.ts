@@ -949,6 +949,11 @@ export class ServerRail implements OnDestroy {
     return this.notificationStore.serverMention(serverId);
   }
 
+  /** Tổng tin chưa đọc của server — badge đỏ trên góc tile. */
+  protected serverUnreadCount(serverId: string): number {
+    return this.notificationStore.serverUnreadCount(serverId);
+  }
+
   /** Server có kênh nào chưa đọc không — để hiện chấm/pill. */
   protected serverHasUnread(serverId: string): boolean {
     return this.notificationStore.serverHasUnread(serverId);
@@ -957,6 +962,13 @@ export class ServerRail implements OnDestroy {
   protected groupMentions(servers: ServerSummary[]): number {
     return servers.reduce(
       (total, server) => total + this.notificationStore.serverMention(server.id),
+      0,
+    );
+  }
+
+  protected groupUnreadCount(servers: ServerSummary[]): number {
+    return servers.reduce(
+      (total, server) => total + this.notificationStore.serverUnreadCount(server.id),
       0,
     );
   }
