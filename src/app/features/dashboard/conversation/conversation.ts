@@ -252,7 +252,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly dialog = inject(MatDialog);
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
-  private readonly userSettings = inject(UserSettingsService);
+  protected readonly userSettings = inject(UserSettingsService);
   private readonly notificationService = inject(NotificationService, { optional: true });
   private readonly friendsStore = inject(FriendsStore);
   private readonly profileDialog = inject(ProfileDialogService);
@@ -262,6 +262,57 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly injector = inject(Injector);
+
+  // ── CÁC TIỆN ÍCH CHO TEXT & IMAGES PREFERENCES ──
+  protected get showSpoilers(): 'click' | 'always' {
+    return this.userSettings?.preferences()?.showSpoilers ?? 'click';
+  }
+
+  protected get displayLinkPreviews(): boolean {
+    return this.userSettings?.preferences()?.displayLinkPreviews ?? true;
+  }
+
+  protected get displayMediaInline(): boolean {
+    return this.userSettings?.preferences()?.displayMediaInline ?? true;
+  }
+
+  private readonly revealedSpoilerKeys = signal<Set<string>>(new Set());
+
+  protected isSpoilerRevealed(key: string): boolean {
+    if (this.showSpoilers === 'always') return true;
+    return this.revealedSpoilerKeys().has(key);
+  }
+
+  protected toggleSpoiler(key: string): void {
+    const set = new Set(this.revealedSpoilerKeys());
+    if (set.has(key)) {
+      set.delete(key);
+    } else {
+      set.add(key);
+    }
+    this.revealedSpoilerKeys.set(set);
+  }
+
+  protected getFirstLink(tokens: MessageContentToken[] | undefined): MessageContentToken | null {
+    if (!tokens) return null;
+    return tokens.find((t) => t.type === 'link') || null;
+  }
+
+  protected getLinkDomain(url: string | undefined): string {
+    if (!url) return '';
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return url;
+    }
+  }
+
+  protected formatBytes(bytes?: number): string {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
 
   readonly editingMessageId = signal<string | null>(null);
   readonly editingSaving = signal<boolean>(false);
