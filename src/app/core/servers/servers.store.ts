@@ -267,6 +267,16 @@ export class ServersStore {
     return this.serverList().find((s) => s.id === serverId);
   }
 
+  /**
+   * Cập nhật một phần thông tin server (name, iconUrl, ...) mà không cần cung cấp channels.
+   * Dùng khi lưu cài đặt tổng quan máy chủ để đồng bộ sidebar ngay lập tức.
+   */
+  patchServer(serverId: string, updates: Partial<Omit<ServerSummary, 'id'>>): void {
+    this.serverList.update((current) =>
+      current.map((s) => (s.id === serverId ? { ...s, ...updates } : s)),
+    );
+  }
+
   getServer(serverId: string): ServerSummary | undefined {
     return this.serverOf(serverId);
   }

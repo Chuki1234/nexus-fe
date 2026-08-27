@@ -120,6 +120,8 @@ export class ServerProfileModal {
 
   protected onImageError(event: Event, fallbackTitle: string): void {
     const target = event.target as HTMLImageElement;
+    if (target.dataset['hasError']) return;
+    target.dataset['hasError'] = 'true';
     target.src = `https://placehold.co/300x400/1e1f22/ffffff?text=${encodeURIComponent(fallbackTitle)}`;
   }
 

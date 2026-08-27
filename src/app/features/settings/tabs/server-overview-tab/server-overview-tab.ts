@@ -99,6 +99,14 @@ export class ServerOverviewTab {
   }
 
   protected saveServerOverview(): void {
+    // Sync changes back to the central ServersStore so sidebar icon/name update immediately
+    const sId = this.settingsService.currentServerId();
+    const data = this.serverData();
+    this.serversStore.patchServer(sId, {
+      name: data.name,
+      iconUrl: data.iconUrl ?? null,
+    });
+
     this.savedNotice.set(true);
     setTimeout(() => this.savedNotice.set(false), 2500);
   }
