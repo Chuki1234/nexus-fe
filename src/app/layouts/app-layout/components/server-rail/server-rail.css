@@ -58,7 +58,8 @@
 .server-tile,
 .server-group-tile,
 .server-folder-toggle,
-.server-rail-action {
+.server-rail-action,
+.server-rail-add-btn {
   display: flex;
   width: 3rem;
   height: 3rem;
@@ -128,6 +129,21 @@
 .server-rail-action:not(:active):is(:hover, :focus-visible) {
   color: var(--color-primary);
   background: var(--nexus-surface-hover);
+}
+
+/* Nút Thêm máy chủ nằm ngay cuối danh sách máy chủ */
+.server-rail-add-btn {
+  color: var(--color-primary, #00ed64);
+  background: var(--nexus-surface-well);
+}
+
+.server-rail-add-btn:not(:active):is(:hover, :focus-visible) {
+  border-radius: 16px;
+  background: var(--color-primary, #00ed64);
+  color: var(--color-on-primary, #001e2b);
+  box-shadow:
+    0 0 16px rgba(0, 237, 100, 0.45),
+    var(--shadow-glow);
 }
 
 .server-tile[aria-current='page'] {

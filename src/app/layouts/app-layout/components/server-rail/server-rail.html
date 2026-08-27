@@ -287,41 +287,28 @@
       <span class="server-drop-indicator"></span>
     </li>
   }
+
+  <!-- Nút Thêm máy chủ nằm ngay dưới máy chủ cuối cùng -->
+  <li class="server-rail-item">
+    <div class="server-tile-wrapper">
+      <button
+        type="button"
+        aria-label="Thêm máy chủ"
+        matTooltip="Thêm máy chủ"
+        matTooltipPosition="right"
+        class="server-tile server-rail-add-btn"
+        (click)="openAddServer(addServerDialog)"
+      >
+        <mat-icon aria-hidden="true" class="!size-5 !text-[20px]">add</mat-icon>
+        <span class="sr-only">Thêm máy chủ</span>
+      </button>
+    </div>
+  </li>
 </ul>
 
 <!-- Live announcer for accessibility -->
 <div class="sr-only" aria-live="polite" aria-atomic="true">
   {{ dropAnnouncement() }}
-</div>
-
-<!-- Server Rail Bottom Actions Footer: search and add server with proper spacing and divider -->
-<div class="server-rail-footer flex flex-col items-center gap-2 py-2.5 shrink-0">
-  <div class="h-px w-8 bg-hairline shrink-0" aria-hidden="true"></div>
-
-  <button
-    type="button"
-    (click)="openCommandCenter(commandDialog)"
-    matTooltip="Đi tới máy chủ, kênh hoặc tin nhắn riêng"
-    matTooltipPosition="right"
-    aria-label="Điều hướng tới máy chủ, kênh hoặc tin nhắn trực tiếp"
-    aria-keyshortcuts="Control+K Meta+K"
-    data-action="global-search"
-    class="server-rail-action flex size-11 items-center justify-center rounded-full"
-  >
-    <mat-icon aria-hidden="true">search</mat-icon>
-  </button>
-
-  <button
-    type="button"
-    aria-label="Thêm máy chủ"
-    matTooltip="Thêm máy chủ"
-    matTooltipPosition="right"
-    class="server-rail-action flex size-11 items-center justify-center rounded-full"
-    (click)="openAddServer(addServerDialog)"
-  >
-    <mat-icon aria-hidden="true">add</mat-icon>
-    <span class="sr-only">Thêm máy chủ</span>
-  </button>
 </div>
 
 <ng-template #commandDialog>

@@ -40,6 +40,7 @@
         [activated]="link.isActive"
         [attr.aria-current]="link.isActive ? 'page' : null"
         [attr.data-conversation-id]="conversation.id"
+        (click)="onConversationOpened(conversation.id)"
         (contextmenu)="onConversationContextMenu($event, conversation)"
         class="conversation-row nexus-nav-item !rounded-lg"
       >

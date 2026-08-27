@@ -29,4 +29,6 @@ export interface DisplayConversation {
   statusMessage: string | null;
   unread: boolean;
   unreadCount: number;
+  /** Mốc hoạt động gần nhất dùng để sắp xếp sidebar DM. */
+  lastActivityAt: number;
 }

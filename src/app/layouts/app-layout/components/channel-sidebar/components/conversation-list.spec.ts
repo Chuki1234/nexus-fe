@@ -16,10 +16,12 @@ describe('ConversationList', () => {
   let mockConversationsApi: { listConversations: any };
   let mockChatSocket: {
     conversationUpdated$: Subject<any>;
+    messageCreated$: Subject<any>;
     conversationDeleted$: Subject<any>;
     messageRead$: Subject<any>;
     invitationReceived$: Subject<any>;
     invitationUpdated$: Subject<any>;
+    capabilitiesUpdated$: Subject<any>;
     connect: any;
   };
   let mockAuthService: any;
@@ -30,6 +32,7 @@ describe('ConversationList', () => {
   let activeConversationIdSignal: ReturnType<typeof signal<string | null>>;
 
   beforeEach(() => {
+    localStorage.clear();
     mockConversationsApi = {
       listConversations: vi.fn().mockResolvedValue([
         {
@@ -50,10 +53,12 @@ describe('ConversationList', () => {
     };
     mockChatSocket = {
       conversationUpdated$: new Subject<any>(),
+      messageCreated$: new Subject<any>(),
       conversationDeleted$: new Subject<any>(),
       messageRead$: new Subject<any>(),
       invitationReceived$: new Subject<any>(),
       invitationUpdated$: new Subject<any>(),
+      capabilitiesUpdated$: new Subject<any>(),
       connect: vi.fn(),
     };
     mockAuthService = {
@@ -152,6 +157,74 @@ describe('ConversationList', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('4');
+  });
+
+  it('đưa cuộc trò chuyện vừa nhận tin lên đầu danh sách', async () => {
+    mockConversationsApi.listConversations.mockResolvedValue([
+      {
+        id: 'conv-old',
+        type: 'dm',
+        recipient: { id: 'user-old', username: 'old', displayName: 'Old chat', presence: 'online' },
+        unreadCount: 0,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'conv-new',
+        type: 'dm',
+        recipient: { id: 'user-new', username: 'new', displayName: 'New chat', presence: 'online' },
+        unreadCount: 0,
+        createdAt: '2026-08-01T00:00:00Z',
+      },
+    ]);
+    const fixture = await mount();
+
+    mockChatSocket.conversationUpdated$.next({
+      conversationId: 'conv-old',
+      senderId: 'user-old',
+      lastMessageAt: '2026-08-27T10:00:00Z',
+      unreadDelta: 1,
+    });
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('[data-conversation-id]');
+    expect(rows[0].getAttribute('data-conversation-id')).toBe('conv-old');
+  });
+
+  it('đưa người vừa mở hoặc vừa gửi tin lên đầu trong nhóm đã đọc', async () => {
+    mockConversationsApi.listConversations.mockResolvedValue([
+      {
+        id: 'conv-old',
+        type: 'dm',
+        recipient: { id: 'user-old', username: 'old', displayName: 'Old chat', presence: 'online' },
+        unreadCount: 0,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'conv-new',
+        type: 'dm',
+        recipient: { id: 'user-new', username: 'new', displayName: 'New chat', presence: 'online' },
+        unreadCount: 0,
+        createdAt: '2026-08-01T00:00:00Z',
+      },
+    ]);
+    const fixture = await mount();
+
+    fixture.componentInstance['onConversationOpened']('conv-old');
+    fixture.detectChanges();
+    let rows = fixture.nativeElement.querySelectorAll('[data-conversation-id]');
+    expect(rows[0].getAttribute('data-conversation-id')).toBe('conv-old');
+
+    mockChatSocket.messageCreated$.next({
+      message: {
+        id: '900',
+        conversationId: 'conv-new',
+        channelId: null,
+        createdAt: '2099-08-27T11:00:00Z',
+      },
+    });
+    fixture.detectChanges();
+    rows = fixture.nativeElement.querySelectorAll('[data-conversation-id]');
+    expect(rows[0].getAttribute('data-conversation-id')).toBe('conv-new');
   });
 
   it('xóa unread count khi người dùng mở đúng cuộc trò chuyện (activeConversationId khớp)', async () => {
