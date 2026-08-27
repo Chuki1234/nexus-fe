@@ -492,6 +492,44 @@ export class ServersApiService {
   }
 
   /**
+   * Cập nhật thông tin máy chủ (tên, ảnh icon): PATCH /api/servers/:serverId
+   */
+  async updateServer(
+    serverId: string,
+    dto: { name?: string; iconUrl?: string | null },
+  ): Promise<{ id: string; name: string; iconUrl: string | null }> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.patch<{ id: string; name: string; iconUrl: string | null }>(
+        `${environment.apiUrl}/servers/${serverId}`,
+        dto,
+        { headers },
+      ),
+    );
+  }
+
+  /**
+   * Upload icon máy chủ: POST /api/servers/:serverId/icon (multipart).
+   * Trả về public URL sau khi backend resize + lưu Storage.
+   */
+  async uploadServerIcon(serverId: string, file: File): Promise<{ id: string; iconUrl: string }> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    const body = new FormData();
+    body.append('file', file, file.name);
+
+    return firstValueFrom(
+      this.http.post<{ id: string; iconUrl: string }>(
+        `${environment.apiUrl}/servers/${serverId}/icon`,
+        body,
+        { headers },
+      ),
+    );
+  }
+
+  /**
    * Xóa máy chủ (Chỉ dành cho Owner): DELETE /api/servers/:serverId
    */
   async deleteServer(serverId: string): Promise<{ success: boolean; serverId: string }> {

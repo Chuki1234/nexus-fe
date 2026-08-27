@@ -75,7 +75,16 @@ export class ServerRealtimeCoordinator implements OnDestroy {
       );
     }
 
-    // 2. Lắng nghe server:deleted
+    // 2. Lắng nghe server:updated
+    if (this.chatSocket.serverUpdated$) {
+      this.subs.add(
+        this.chatSocket.serverUpdated$.subscribe(({ serverId, name, iconUrl }) => {
+          this.serversStore.patchServer(serverId, { name, iconUrl });
+        }),
+      );
+    }
+
+    // 3. Lắng nghe server:deleted
     if (this.chatSocket.serverDeleted$) {
       this.subs.add(
         this.chatSocket.serverDeleted$.subscribe(async ({ serverId }) => {

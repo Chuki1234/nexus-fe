@@ -43,20 +43,21 @@
 /* Unread & Mention Badges on Server Tiles & DM Tile chuẩn phong cách Discord */
 .server-tile-unread-badge {
   position: absolute;
-  right: calc(50% - 24px);
-  top: calc(50% - 24px);
-  transform: translate(20%, -20%);
+  top: -2px;
+  right: -2px;
   z-index: 20;
   pointer-events: none;
 }
 
-.server-tile-unread-badge span {
-  box-shadow: 0 0 0 2px var(--color-surface, #002634);
+/* ::ng-deep vì app-unread-badge là child component — emulated encapsulation
+   không cho parent style xuyên vào nếu không dùng ::ng-deep */
+::ng-deep .server-tile-unread-badge .unread-badge {
   min-width: 16px;
   height: 16px;
-  padding: 0 0.2rem;
-  font-size: 0.5625rem; /* 9px — đồng nhất với voice badge 16px */
+  padding: 0 3px;
+  font-size: 9px;
   letter-spacing: 0;
+  box-shadow: 0 0 0 2px var(--color-surface, #002634);
 }
 
 /* Voice activity badge on server tiles */
