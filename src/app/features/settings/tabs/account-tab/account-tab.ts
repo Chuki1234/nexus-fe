@@ -22,6 +22,7 @@ export class AccountTab implements OnInit {
   protected readonly settingsService = inject(UserSettingsService);
   protected readonly profileService = inject(ProfileService);
   protected readonly tfa = inject(TwoFactorService);
+  protected readonly authService = inject(AuthService);
 
   protected readonly showEmail = signal<boolean>(false);
   protected readonly showPhone = signal<boolean>(false);
@@ -39,16 +40,48 @@ export class AccountTab implements OnInit {
   protected readonly phoneNumber = signal<string>('');
   protected readonly tempPhone = signal<string>('');
 
-  // 2FA Wizard state
+  // 2FA Wizard & Popup Modal state
   /** 'idle' | 'enroll-qr' | 'enroll-confirm' | 'enroll-done' | 'confirm-disable' */
   protected readonly wizardStep = signal<'idle' | 'enroll-qr' | 'enroll-confirm' | 'enroll-done' | 'confirm-disable'>('idle');
   protected readonly tfaCode = signal<string>('');
   protected readonly showSecret = signal<boolean>(false);
+  protected readonly showEnable2faModal = signal<boolean>(false);
+  protected readonly isEnrolling = signal<boolean>(false);
+  protected readonly enrollError = signal<string | null>(null);
+  protected readonly enrollSuccess = signal<boolean>(false);
 
-  // Change password inputs
+  // Disable 2FA Popup state
+  protected readonly showDisable2faModal = signal<boolean>(false);
+  protected readonly disable2faCode = signal<string>('');
+  protected readonly disable2faError = signal<string | null>(null);
+  protected readonly isDisabling2fa = signal<boolean>(false);
+  protected readonly disable2faSuccess = signal<boolean>(false);
+
+  // Change password state
   protected currentPassword = '';
   protected newPassword = '';
   protected confirmPassword = '';
+
+  protected readonly showCurrentPassword = signal(false);
+  protected readonly showNewPassword = signal(false);
+  protected readonly showConfirmPassword = signal(false);
+
+  /** 'idle' | 'checking' | 'valid' | 'invalid' */
+  protected readonly currentPasswordStatus = signal<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  protected readonly currentPasswordError = signal<string>('');
+
+  /** 'idle' | 'valid' | 'invalid' */
+  protected readonly newPasswordStatus = signal<'idle' | 'valid' | 'invalid'>('idle');
+  protected readonly newPasswordError = signal<string>('');
+
+  /** 'idle' | 'valid' | 'invalid' */
+  protected readonly confirmPasswordStatus = signal<'idle' | 'valid' | 'invalid'>('idle');
+  protected readonly confirmPasswordError = signal<string>('');
+
+  protected readonly isSubmittingPassword = signal(false);
+  protected readonly changePasswordError = signal<string | null>(null);
+
+  private verifyTimeout: any = null;
 
   protected readonly profile = computed(() => this.profileService.current());
   protected readonly username = computed(
@@ -122,70 +155,209 @@ export class AccountTab implements OnInit {
     this.editingPhone.set(false);
   }
 
-  protected submitChangePassword(): void {
-    if (this.newPassword && this.newPassword === this.confirmPassword) {
+  protected toggleChangePasswordModal(): void {
+    const next = !this.showChangePasswordModal();
+    this.showChangePasswordModal.set(next);
+    if (!next) {
+      this.resetPasswordForm();
+    }
+  }
+
+  protected onCurrentPasswordInput(val: string): void {
+    this.currentPassword = val;
+    this.changePasswordError.set(null);
+
+    if (!val) {
+      this.currentPasswordStatus.set('idle');
+      this.currentPasswordError.set('');
+      return;
+    }
+
+    const known = this.authService.getKnownPassword();
+    if (known) {
+      if (val === known) {
+        this.currentPasswordStatus.set('valid');
+        this.currentPasswordError.set('');
+      } else {
+        this.currentPasswordStatus.set('invalid');
+        this.currentPasswordError.set('Mật khẩu hiện tại không chính xác.');
+      }
+      this.validateNewPassword();
+      return;
+    }
+
+    clearTimeout(this.verifyTimeout);
+    this.currentPasswordStatus.set('checking');
+    this.verifyTimeout = setTimeout(async () => {
+      if (!this.currentPassword) {
+        this.currentPasswordStatus.set('idle');
+        return;
+      }
+      const isValid = await this.authService.verifyPassword(this.currentPassword);
+      if (isValid) {
+        this.currentPasswordStatus.set('valid');
+        this.currentPasswordError.set('');
+      } else {
+        this.currentPasswordStatus.set('invalid');
+        this.currentPasswordError.set('Mật khẩu hiện tại không chính xác.');
+      }
+      this.validateNewPassword();
+    }, 400);
+  }
+
+  protected onNewPasswordInput(val: string): void {
+    this.newPassword = val;
+    this.changePasswordError.set(null);
+    this.validateNewPassword();
+    this.validateConfirmPassword();
+  }
+
+  private validateNewPassword(): void {
+    const val = this.newPassword;
+    if (!val) {
+      this.newPasswordStatus.set('idle');
+      this.newPasswordError.set('');
+      return;
+    }
+
+    if (val.length < 8) {
+      this.newPasswordStatus.set('invalid');
+      this.newPasswordError.set('Mật khẩu mới phải có tối thiểu 8 ký tự.');
+      return;
+    }
+
+    if (this.currentPasswordStatus() === 'valid' && val === this.currentPassword) {
+      this.newPasswordStatus.set('invalid');
+      this.newPasswordError.set('Mật khẩu mới không được trùng với mật khẩu hiện tại.');
+      return;
+    }
+
+    this.newPasswordStatus.set('valid');
+    this.newPasswordError.set('');
+  }
+
+  protected onConfirmPasswordInput(val: string): void {
+    this.confirmPassword = val;
+    this.changePasswordError.set(null);
+    this.validateConfirmPassword();
+  }
+
+  private validateConfirmPassword(): void {
+    const val = this.confirmPassword;
+    if (!val) {
+      this.confirmPasswordStatus.set('idle');
+      this.confirmPasswordError.set('');
+      return;
+    }
+
+    if (val !== this.newPassword) {
+      this.confirmPasswordStatus.set('invalid');
+      this.confirmPasswordError.set('Mật khẩu xác nhận không khớp với mật khẩu mới.');
+      return;
+    }
+
+    this.confirmPasswordStatus.set('valid');
+    this.confirmPasswordError.set('');
+  }
+
+  protected readonly canSavePassword = computed(() => {
+    return (
+      this.currentPasswordStatus() === 'valid' &&
+      this.newPasswordStatus() === 'valid' &&
+      this.confirmPasswordStatus() === 'valid' &&
+      !this.isSubmittingPassword()
+    );
+  });
+
+  protected async submitChangePassword(): Promise<void> {
+    if (!this.canSavePassword()) return;
+
+    this.isSubmittingPassword.set(true);
+    this.changePasswordError.set(null);
+
+    try {
+      await this.authService.changePassword(this.currentPassword, this.newPassword);
       this.passwordChangedSuccess.set(true);
       setTimeout(() => {
         this.passwordChangedSuccess.set(false);
         this.showChangePasswordModal.set(false);
-        this.currentPassword = '';
-        this.newPassword = '';
-        this.confirmPassword = '';
+        this.resetPasswordForm();
       }, 1500);
+    } catch (err: any) {
+      const msg = err?.error?.message || err?.message || 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại.';
+      this.changePasswordError.set(msg);
+    } finally {
+      this.isSubmittingPassword.set(false);
     }
   }
 
-  // 2FA Actions
+  protected resetPasswordForm(): void {
+    this.currentPassword = '';
+    this.newPassword = '';
+    this.confirmPassword = '';
+    this.currentPasswordStatus.set('idle');
+    this.currentPasswordError.set('');
+    this.newPasswordStatus.set('idle');
+    this.newPasswordError.set('');
+    this.confirmPasswordStatus.set('idle');
+    this.confirmPasswordError.set('');
+    this.changePasswordError.set(null);
+    this.isSubmittingPassword.set(false);
+    this.showCurrentPassword.set(false);
+    this.showNewPassword.set(false);
+    this.showConfirmPassword.set(false);
+  }
+
+  // ── 2FA ENABLE MODAL ACTIONS ──
   protected startEnable2FA(): void {
-    this.startEnable2fa();
+    this.tfaCode.set('');
+    this.showSecret.set(false);
+    this.enrollError.set(null);
+    this.tfa.error.set(null);
+    this.wizardStep.set('enroll-qr');
+    this.showEnable2faModal.set(true);
+    void this.tfa.startEnroll();
   }
 
-  protected startEnable2fa(): void {
-    this.tfa.startEnroll().then(() => {
-      this.wizardStep.set('enroll-qr');
-    });
-  }
-
-  protected doRegenerateBackupCodes(): void {
-    this.tfa.regenerateBackupCodes();
+  protected closeEnable2faModal(): void {
+    this.showEnable2faModal.set(false);
+    this.wizardStep.set('idle');
+    this.tfaCode.set('');
+    this.enrollError.set(null);
+    this.tfa.resetWizard();
   }
 
   protected proceedToConfirm(): void {
+    this.enrollError.set(null);
     this.wizardStep.set('enroll-confirm');
   }
 
-  protected proceedToCodeStep(): void {
-    this.wizardStep.set('enroll-confirm');
-  }
+  protected async submit2faCode(): Promise<void> {
+    const code = this.tfaCode().trim();
+    if (!code || code.length < 6) return;
 
-  protected disable2FA(): void {
-    this.confirmDisable2fa();
-  }
+    this.isEnrolling.set(true);
+    this.enrollError.set(null);
 
-  protected submit2faCode(): void {
-    this.tfa.verifyEnroll(this.tfaCode()).then((codes) => {
-      if (codes) {
-        this.wizardStep.set('enroll-done');
-        this.tfaCode.set('');
-      }
-    });
-  }
+    const codes = await this.tfa.verifyEnroll(code);
+    this.isEnrolling.set(false);
 
-  protected cancelWizard(): void {
-    this.close2faWizard();
-  }
-
-  protected confirmEnroll(): void {
-    this.submit2faCode();
-  }
-
-  protected close2faWizard(): void {
-    this.wizardStep.set('idle');
-    this.tfaCode.set('');
+    if (codes) {
+      this.wizardStep.set('enroll-done');
+      this.tfaCode.set('');
+      this.enrollSuccess.set(true);
+      setTimeout(() => this.enrollSuccess.set(false), 3000);
+    } else {
+      this.enrollError.set(this.tfa.error() || 'Mã xác thực không hợp lệ. Vui lòng kiểm tra lại ứng dụng Google Authenticator.');
+    }
   }
 
   protected doneWizard(): void {
-    this.close2faWizard();
+    this.closeEnable2faModal();
+  }
+
+  protected doRegenerateBackupCodes(): void {
+    void this.tfa.regenerateBackupCodes();
   }
 
   protected downloadBackupCodes(): void {
@@ -200,24 +372,66 @@ export class AccountTab implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  protected promptDisable2fa(): void {
-    this.wizardStep.set('confirm-disable');
+  protected copyAllBackupCodes(): void {
+    const codes = this.tfa.newBackupCodes();
+    if (!codes) return;
+    void navigator.clipboard.writeText(codes.join('\n'));
   }
 
-  protected confirmDisable2fa(): void {
-    this.tfa.unenroll().then(() => {
-      this.wizardStep.set('idle');
-    });
+  // ── 2FA DISABLE MODAL ACTIONS ──
+  protected openDisable2faModal(): void {
+    this.disable2faCode.set('');
+    this.disable2faError.set(null);
+    this.tfa.error.set(null);
+    this.showDisable2faModal.set(true);
   }
 
-  protected cancelDisable2fa(): void {
-    this.wizardStep.set('idle');
+  protected closeDisable2faModal(): void {
+    this.showDisable2faModal.set(false);
+    this.disable2faCode.set('');
+    this.disable2faError.set(null);
+    this.tfa.error.set(null);
+  }
+
+  protected onDisableCodeInput(evt: Event): void {
+    const target = evt.target as HTMLInputElement;
+    const val = (target.value || '').replace(/\D/g, '');
+    this.disable2faCode.set(val);
+    target.value = val;
+    this.disable2faError.set(null);
+    if (val.length === 6) {
+      void this.confirmDisable2fa();
+    }
+  }
+
+  protected async confirmDisable2fa(): Promise<void> {
+    const code = this.disable2faCode().trim();
+    if (!code || code.length < 6) {
+      this.disable2faError.set('Vui lòng nhập đủ 6 chữ số mã xác thực.');
+      return;
+    }
+
+    this.isDisabling2fa.set(true);
+    this.disable2faError.set(null);
+
+    const success = await this.tfa.unenroll(code);
+    this.isDisabling2fa.set(false);
+
+    if (success) {
+      this.showDisable2faModal.set(false);
+      this.disable2faCode.set('');
+      this.disable2faSuccess.set(true);
+      setTimeout(() => this.disable2faSuccess.set(false), 3500);
+    } else {
+      this.disable2faError.set(
+        this.tfa.error() || 'Mã xác thực không chính xác. Vui lòng kiểm tra lại ứng dụng Google Authenticator.',
+      );
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════
   // DANGER ZONE ACTIONS (Vô hiệu hóa & Xóa tài khoản)
   // ══════════════════════════════════════════════════════════════════════
-  protected readonly authService = inject(AuthService);
   protected readonly accountDisabled = inject(AccountDisabledService);
   protected readonly router = inject(Router);
 

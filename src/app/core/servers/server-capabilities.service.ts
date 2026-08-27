@@ -13,6 +13,8 @@ export const DEFAULT_DENIED_CAPABILITIES: CurrentServerCapabilities = {
   canManageServer: false,
   canManageChannels: false,
   canManageRoles: false,
+  canKickMembers: false,
+  canBanMembers: false,
 };
 
 @Injectable({ providedIn: 'root' })

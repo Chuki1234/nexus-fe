@@ -238,6 +238,16 @@ export class SettingsModal {
     return tab;
   });
 
+  protected readonly previewRole = computed(() => {
+    const pId = this.settingsService.previewRoleId();
+    if (!pId) return null;
+    return this.settingsService.serverRoles().find((r) => r.id === pId) || null;
+  });
+
+  protected exitPreviewRole(): void {
+    this.settingsService.setPreviewRole(null);
+  }
+
   private readonly dialog = inject(MatDialog);
 
   constructor() {

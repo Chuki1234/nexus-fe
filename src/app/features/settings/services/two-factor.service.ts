@@ -101,8 +101,8 @@ export class TwoFactorService {
     }
   }
 
-  /** Tắt 2FA. */
-  async unenroll(): Promise<boolean> {
+  /** Tắt 2FA với mã xác thực từ Google Authenticator hoặc mã dự phòng. */
+  async unenroll(code: string): Promise<boolean> {
     const factorId = this.status()?.factorId;
     if (!factorId) return false;
 
@@ -110,7 +110,7 @@ export class TwoFactorService {
     this.error.set(null);
     try {
       await firstValueFrom(
-        this.http.post(`${this.apiBase}/unenroll`, { factorId }),
+        this.http.post(`${this.apiBase}/unenroll`, { factorId, code }),
       );
       this.status.set({ enabled: false, factorId: null });
       this.newBackupCodes.set(null);

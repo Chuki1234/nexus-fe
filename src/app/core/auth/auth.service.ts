@@ -27,6 +27,9 @@ export class AuthService {
 
   private readonly currentSession = signal<Session | null>(null);
   readonly blockedGoogleAttempt = signal<{ email: string; disabledInfo: any } | null>(null);
+  private readonly lastKnownPassword = signal<string>(
+    (typeof window !== 'undefined' ? sessionStorage.getItem('nexus_user_pwd') : null) || '',
+  );
 
   /**
    * Restoring a session from storage is async, so anything that reads
@@ -129,6 +132,7 @@ export class AuthService {
     }
 
     this.currentSession.set(data.session);
+    this.setKnownPassword(password);
     return data.session;
   }
 
@@ -321,6 +325,69 @@ export class AuthService {
       throw error;
     }
     this.currentSession.set(null);
+    this.clearKnownPassword();
+  }
+
+  setKnownPassword(pwd: string): void {
+    this.lastKnownPassword.set(pwd);
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('nexus_user_pwd', pwd);
+      } catch {}
+    }
+  }
+
+  clearKnownPassword(): void {
+    this.lastKnownPassword.set('');
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem('nexus_user_pwd');
+      } catch {}
+    }
+  }
+
+  getKnownPassword(): string {
+    return this.lastKnownPassword() || (typeof window !== 'undefined' ? sessionStorage.getItem('nexus_user_pwd') || '' : '');
+  }
+
+  async verifyPassword(password: string): Promise<boolean> {
+    const known = this.getKnownPassword();
+    if (known) {
+      return known === password;
+    }
+    const token = this.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    try {
+      const res = await firstValueFrom(
+        this.http.post<{ valid: boolean }>(
+          `${environment.apiUrl}/auth/verify-password`,
+          { password },
+          { headers },
+        ),
+      );
+      if (res?.valid) {
+        this.setKnownPassword(password);
+      }
+      return Boolean(res?.valid);
+    } catch {
+      return false;
+    }
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const token = this.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    const res = await firstValueFrom(
+      this.http.post<{ success: boolean; message: string }>(
+        `${environment.apiUrl}/auth/change-password`,
+        { currentPassword, newPassword },
+        { headers },
+      ),
+    );
+    if (res?.success) {
+      this.setKnownPassword(newPassword);
+    }
+    return res;
   }
 
   /** Xóa vĩnh viễn tài khoản hiện tại rồi dọn phiên cục bộ. */
