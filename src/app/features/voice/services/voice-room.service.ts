@@ -37,6 +37,7 @@ export interface VoiceParticipantModel {
   isLocal: boolean;
   isSpeaking: boolean;
   isMuted: boolean;
+  isDeafened?: boolean;
   isCameraOn: boolean;
   isScreenSharing: boolean;
   connectionQuality: 'excellent' | 'good' | 'poor' | 'unknown';
@@ -75,6 +76,7 @@ export class VoiceRoomService implements OnDestroy {
   readonly currentChannelName = signal<string | null>(null);
   readonly callDurationSeconds = signal<number>(0);
   readonly errorMessage = signal<string | null>(null);
+  readonly microphoneReady = signal(false);
 
   readonly localParticipant = signal<VoiceParticipantModel | null>(null);
   readonly remoteParticipants = signal<VoiceParticipantModel[]>([]);
@@ -92,6 +94,7 @@ export class VoiceRoomService implements OnDestroy {
   readonly isConnected = computed(() => this.connectionStatus() === 'connected');
   readonly isConnecting = computed(() => this.connectionStatus() === 'connecting');
   readonly isMicMuted = computed(() => this.localParticipant()?.isMuted ?? false);
+  readonly isDeafened = signal<boolean>(false);
   readonly isCameraOn = computed(() => this.localParticipant()?.isCameraOn ?? false);
   readonly isScreenSharing = computed(() => this.localParticipant()?.isScreenSharing ?? false);
 
@@ -280,6 +283,9 @@ export class VoiceRoomService implements OnDestroy {
    */
   async setMicrophoneActive(enabled: boolean): Promise<void> {
     if (!this.room) return;
+    if (enabled && this.isDeafened()) {
+      return;
+    }
     try {
       await this.room.localParticipant.setMicrophoneEnabled(enabled);
       if (enabled) {
@@ -331,7 +337,28 @@ export class VoiceRoomService implements OnDestroy {
     );
     if (audioEl) {
       audioEl.volume = effectiveVolume;
+      audioEl.muted = this.isDeafened();
     }
+  }
+
+  private muteAllRemoteAudio(): void {
+    if (typeof document === 'undefined') return;
+    const audioEls = document.querySelectorAll<HTMLAudioElement>('[data-voice-participant-audio]');
+    audioEls.forEach((el) => {
+      el.muted = true;
+    });
+  }
+
+  private unmuteAllRemoteAudio(): void {
+    if (typeof document === 'undefined') return;
+    const audioEls = document.querySelectorAll<HTMLAudioElement>('[data-voice-participant-audio]');
+    audioEls.forEach((el) => {
+      el.muted = false;
+      const identity = el.getAttribute('data-voice-participant-audio');
+      if (identity) {
+        this.applyLocalAudioVolume(identity);
+      }
+    });
   }
 
   toggleChatDrawer(): void {
@@ -417,19 +444,27 @@ export class VoiceRoomService implements OnDestroy {
       // 4. Bật micro / camera theo options ban đầu và chế độ nhập (Voice Activity vs PTT)
       const isPttMode = this.userSettings.preferences().inputMode === 'push-to-talk';
       if (enableAudio && !isPttMode) {
-        await this.room.localParticipant.setMicrophoneEnabled(true);
+        const publication = await this.room.localParticipant.setMicrophoneEnabled(true);
         const micPub = this.room.localParticipant.getTrackPublication(Track.Source.Microphone);
-        if (micPub?.audioTrack?.mediaStreamTrack) {
-          this.startLocalFastVad(micPub.audioTrack.mediaStreamTrack);
+        const micTrack =
+          publication?.audioTrack?.mediaStreamTrack ?? micPub?.audioTrack?.mediaStreamTrack;
+        if (!micTrack || micTrack.readyState !== 'live') {
+          throw new Error(
+            'Microphone chưa được LiveKit publish. Hãy kiểm tra quyền micro và thiết bị đầu vào.',
+          );
         }
+        this.microphoneReady.set(true);
+        this.startLocalFastVad(micTrack);
       } else {
         await this.room.localParticipant.setMicrophoneEnabled(false);
+        this.microphoneReady.set(false);
       }
       if (enableVideo) {
         await this.room.localParticipant.setCameraEnabled(true);
       }
 
       this.connectionStatus.set('connected');
+      this.isDeafened.set(false);
       this.startDurationTimer();
       this.updateLocalParticipantState();
       this.syncRemoteParticipants();
@@ -461,6 +496,9 @@ export class VoiceRoomService implements OnDestroy {
    */
   async toggleMicrophone(): Promise<void> {
     if (!this.room) return;
+    if (this.isDeafened()) {
+      return;
+    }
     const isMuted = this.isMicMuted();
     try {
       await this.room.localParticipant.setMicrophoneEnabled(isMuted);
@@ -477,6 +515,52 @@ export class VoiceRoomService implements OnDestroy {
       this.broadcastVoiceState(this.currentChannelId());
     } catch (err) {
       console.warn('Lỗi khi bật/tắt microphone:', err);
+    }
+  }
+
+  /**
+   * Bật / Tắt trạng thái Điếc (Deafen/Headphones).
+   * - Deafen: Tắt toàn bộ âm thanh remote nhận được và tắt luôn micro của local user.
+   * - Undeafen: Mở lại âm thanh remote nhận được và bật lại micro của local user.
+   */
+  async toggleDeafen(): Promise<void> {
+    if (!this.room) return;
+    const nextDeafened = !this.isDeafened();
+
+    try {
+      if (nextDeafened) {
+        // 1. Mute toàn bộ remote audio
+        this.muteAllRemoteAudio();
+
+        // 2. Tắt luôn micro của local user
+        if (this.room.localParticipant.isMicrophoneEnabled) {
+          await this.room.localParticipant.setMicrophoneEnabled(false);
+          this.stopLocalFastVad();
+        }
+        this.wasMutedBeforeTest = true;
+
+        this.isDeafened.set(true);
+      } else {
+        // 1. Bật lại toàn bộ remote audio
+        this.unmuteAllRemoteAudio();
+        void this.room.startAudio().catch(() => {});
+
+        // 2. Bật lại micro của local user
+        await this.room.localParticipant.setMicrophoneEnabled(true);
+        const micPub = this.room.localParticipant.getTrackPublication(Track.Source.Microphone);
+        if (micPub?.audioTrack?.mediaStreamTrack) {
+          this.startLocalFastVad(micPub.audioTrack.mediaStreamTrack);
+        }
+        this.wasMutedBeforeTest = false;
+
+        this.isDeafened.set(false);
+      }
+
+      this.updateLocalParticipantState();
+      this.broadcastVoiceState(this.currentChannelId());
+    } catch (err) {
+      console.warn('Lỗi khi bật/tắt deafen:', err);
+      this.updateLocalParticipantState();
     }
   }
 
@@ -583,6 +667,7 @@ export class VoiceRoomService implements OnDestroy {
         this.connectionStatus.set('connected');
         this.updateLocalParticipantState();
         this.syncRemoteParticipants();
+        this.broadcastVoiceState(this.currentChannelId());
       })
       .on(RoomEvent.Disconnected, () => {
         this.leaveRoom();
@@ -595,12 +680,14 @@ export class VoiceRoomService implements OnDestroy {
       })
       .on(RoomEvent.LocalTrackPublished, (pub: LocalTrackPublication) => {
         if (pub.source === Track.Source.Microphone && pub.audioTrack?.mediaStreamTrack) {
+          this.microphoneReady.set(pub.audioTrack.mediaStreamTrack.readyState === 'live');
           this.startLocalFastVad(pub.audioTrack.mediaStreamTrack);
         }
         this.updateLocalParticipantState();
       })
       .on(RoomEvent.LocalTrackUnpublished, (pub: LocalTrackPublication) => {
         if (pub.source === Track.Source.Microphone) {
+          this.microphoneReady.set(false);
           this.stopLocalFastVad();
         }
         this.updateLocalParticipantState();
@@ -664,6 +751,7 @@ export class VoiceRoomService implements OnDestroy {
       isLocal: true,
       isSpeaking,
       isMuted: !p.isMicrophoneEnabled,
+      isDeafened: this.isDeafened(),
       isCameraOn: p.isCameraEnabled,
       isScreenSharing: p.isScreenShareEnabled,
       connectionQuality: this.mapConnectionQuality(p.connectionQuality),
@@ -736,7 +824,7 @@ export class VoiceRoomService implements OnDestroy {
       serverId,
       channelId,
       isMuted: this.isMicMuted(),
-      isDeafened: false,
+      isDeafened: this.isDeafened(),
       isCameraOn: this.isCameraOn(),
       isScreenSharing: this.isScreenSharing(),
     });
@@ -745,8 +833,10 @@ export class VoiceRoomService implements OnDestroy {
   private cleanup(): void {
     this.stopDurationTimer();
     this.stopLocalFastVad();
+    this.microphoneReady.set(false);
     this.isTestingMicActive = false;
     this.wasMutedBeforeTest = false;
+    this.isDeafened.set(false);
 
     const serverId = this.currentServerId();
     if (serverId) {

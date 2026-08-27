@@ -16,6 +16,8 @@ import {
       target="#đồ-án"
       [disabled]="disabled()"
       [context]="context()"
+      [mentionCandidates]="mentionCandidates()"
+      [loadingMentions]="loadingMentions()"
       (send)="onSend($event)"
       (typing)="onTyping()"
       (stoppedTyping)="onStoppedTyping()"
@@ -26,6 +28,8 @@ import {
 class Host {
   readonly disabled = signal<boolean>(false);
   readonly context = signal<MessageComposerContext | null>(null);
+  readonly mentionCandidates = signal<any[]>([]);
+  readonly loadingMentions = signal<boolean>(false);
   readonly sentPayloads: SendMessagePayload[] = [];
   typingCount = 0;
   stoppedTypingCount = 0;
@@ -337,18 +341,20 @@ describe('MessageComposer', () => {
       const validMimes = [
         new File([''], 'img.jpg', { type: 'image/jpeg' }),
         new File([''], 'img.png', { type: 'image/png' }),
-        new File([''], 'img.webp', { type: 'image/webp' }),
-        new File([''], 'img.gif', { type: 'image/gif' }),
+        new File([''], 'voice.mp3', { type: 'audio/mpeg' }),
+        new File([''], 'clip.mp4', { type: 'video/mp4' }),
         new File([''], 'doc.pdf', { type: 'application/pdf' }),
       ];
 
       composer.addFiles(validMimes);
       fixture.detectChanges();
       expect(composer.pendingFiles().length).toBe(5);
+      expect(composer.pendingFiles().find((item) => item.name === 'voice.mp3')?.mediaKind).toBe('audio');
+      expect(composer.pendingFiles().find((item) => item.name === 'clip.mp4')?.mediaKind).toBe('video');
 
       // Thử file MIME không được hỗ trợ
       composer.removeFile(composer.pendingFiles()[0].id);
-      const invalidMimeFile = new File(['video'], 'video.mp4', { type: 'video/mp4' });
+      const invalidMimeFile = new File(['binary'], 'program.exe', { type: 'application/x-msdownload' });
       composer.addFiles([invalidMimeFile]);
       fixture.detectChanges();
 
@@ -453,6 +459,138 @@ describe('MessageComposer', () => {
       expect(composer.showStipopPicker()).toBe(false);
       expect(host.sentPayloads).toHaveLength(1);
       expect(host.sentPayloads[0].externalMedia).toEqual(mockSticker);
+    });
+
+    describe('Mention Autocomplete (@username & @everyone)', () => {
+      const mockCandidates = [
+        {
+          id: 'user-1',
+          username: 'minhtai',
+          displayName: 'Minh Tài',
+          avatarUrl: null,
+          role: 'Admin',
+        },
+        {
+          id: 'user-2',
+          username: 'alex_dev',
+          displayName: 'Alex Developer',
+          avatarUrl: null,
+          role: 'Member',
+        },
+        {
+          id: 'everyone',
+          username: 'everyone',
+          displayName: 'everyone',
+          avatarUrl: null,
+          isEveryone: true,
+          description: 'Thông báo tới tất cả thành viên',
+        },
+      ];
+
+      it('khi gõ ký tự @ xuất hiện mention popup và lọc theo query', async () => {
+        const fixture = await mount();
+        const host = fixture.componentInstance;
+        const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+        host.mentionCandidates.set(mockCandidates);
+        fixture.detectChanges();
+
+        const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+        textarea.value = 'Chào @minh';
+        textarea.selectionStart = 10;
+        textarea.selectionEnd = 10;
+        composer.onInput('Chào @minh');
+        fixture.detectChanges();
+
+        expect(composer.showMentionPopup()).toBe(true);
+        expect(composer.mentionQuery()).toBe('minh');
+        expect(composer.filteredMentionCandidates()).toHaveLength(1);
+        expect(composer.filteredMentionCandidates()[0].username).toBe('minhtai');
+      });
+
+      it('bấm nút Mention (@) trên toolbar chèn @ và mở popup', async () => {
+        const fixture = await mount();
+        const host = fixture.componentInstance;
+        const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+        host.mentionCandidates.set(mockCandidates);
+        fixture.detectChanges();
+
+        composer.triggerMentionFromButton();
+        fixture.detectChanges();
+
+        expect(composer.showMentionPopup()).toBe(true);
+        expect(composer.text()).toBe('@');
+        expect(composer.filteredMentionCandidates()).toHaveLength(3);
+      });
+
+      it('điều hướng phím ArrowDown, ArrowUp và nhấn Enter chọn candidate chèn @username vào text', async () => {
+        const fixture = await mount();
+        const host = fixture.componentInstance;
+        const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+        host.mentionCandidates.set(mockCandidates);
+        fixture.detectChanges();
+
+        const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+        textarea.value = '@';
+        textarea.selectionStart = 1;
+        textarea.selectionEnd = 1;
+        composer.onInput('@');
+        fixture.detectChanges();
+
+        expect(composer.showMentionPopup()).toBe(true);
+        expect(composer.selectedMentionIndex()).toBe(0);
+
+        // ArrowDown -> chuyển sang item 1 (alex_dev)
+        composer.onKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+        expect(composer.selectedMentionIndex()).toBe(1);
+
+        // Enter -> chọn alex_dev
+        const enterEvt = new KeyboardEvent('keydown', { key: 'Enter' });
+        composer.onKeydown(enterEvt);
+        fixture.detectChanges();
+
+        expect(composer.showMentionPopup()).toBe(false);
+        expect(composer.text()).toBe('@alex_dev ');
+        // Đảm bảo không gửi tin nhắn ngay lập tức khi nhấn Enter để chọn mention
+        expect(host.sentPayloads).toHaveLength(0);
+      });
+
+      it('nhấn Escape khi đang mở mention popup chỉ đóng popup mà không hủy composer context', async () => {
+        const fixture = await mount();
+        const host = fixture.componentInstance;
+        const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+        host.mentionCandidates.set(mockCandidates);
+        fixture.detectChanges();
+
+        composer.triggerMentionFromButton();
+        fixture.detectChanges();
+        expect(composer.showMentionPopup()).toBe(true);
+
+        composer.onEscape();
+        fixture.detectChanges();
+        expect(composer.showMentionPopup()).toBe(false);
+      });
+
+      it('tính độc quyền: mở Emoji / GIF / Sticker picker sẽ đóng Mention Popup và ngược lại', async () => {
+        const fixture = await mount();
+        const host = fixture.componentInstance;
+        const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+        host.mentionCandidates.set(mockCandidates);
+        fixture.detectChanges();
+
+        // Mở mention popup
+        composer.triggerMentionFromButton();
+        expect(composer.showMentionPopup()).toBe(true);
+
+        // Mở Emoji picker
+        composer.toggleEmojiPicker();
+        expect(composer.showMentionPopup()).toBe(false);
+        expect(composer.showEmojiPicker()).toBe(true);
+
+        // Mở lại mention popup
+        composer.openMentionPopup();
+        expect(composer.showMentionPopup()).toBe(true);
+        expect(composer.showEmojiPicker()).toBe(false);
+      });
     });
   });
 });

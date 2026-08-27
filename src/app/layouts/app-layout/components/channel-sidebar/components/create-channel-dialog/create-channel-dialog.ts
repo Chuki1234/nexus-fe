@@ -30,14 +30,8 @@ export interface CreateChannelDialogData {
   categoryName?: string;
 }
 
-function formatChannelNameInput(raw: string, type: 'text' | 'voice'): string {
-  if (type === 'text') {
-    return raw
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-_àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
-  }
-  return raw.trim();
+function formatChannelNameInput(raw: string, _type: 'text' | 'voice'): string {
+  return raw;
 }
 
 @Component({

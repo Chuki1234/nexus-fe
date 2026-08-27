@@ -1,41 +1,61 @@
-.channel-settings-container {
-  min-height: 540px;
+.nexus-channel-settings-dialog {
+  width: 540px;
+  max-width: 95vw;
+  height: 560px;
+  max-height: 85vh;
+  border-radius: var(--radius-2xl, 1.25rem);
+  position: relative;
 }
 
-.channel-settings-container button,
-.channel-settings-container mat-icon {
+.nexus-channel-settings-dialog button,
+.nexus-channel-settings-dialog mat-icon {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   line-height: 1 !important;
 }
 
-.settings-nav-item {
-  color: var(--color-steel);
+.settings-tab-btn {
+  color: var(--color-steel, #8ca0ac);
+  background-color: transparent;
 }
 
-.settings-nav-item:hover {
-  background-color: var(--color-surface-feature);
-  color: var(--color-ink);
+.settings-tab-btn:hover {
+  background-color: var(--color-surface-feature, rgba(0, 237, 100, 0.06));
+  color: var(--color-ink, #ffffff);
 }
 
-.settings-nav-item--active {
-  background-color: var(--color-surface-feature);
-  color: var(--color-ink);
+.settings-tab-btn--active {
+  background-color: var(--color-surface-feature, rgba(0, 237, 100, 0.12));
+  color: var(--color-primary, #00ed64);
   font-weight: 600;
 }
 
-.floating-save-bar {
-  animation: slideUp 200ms cubic-bezier(0.16, 1, 0.3, 1);
+.nexus-save-channel-btn:not(:disabled) {
+  background-color: var(--color-primary, #00ed64);
+  color: var(--color-on-primary, #001e2b);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.15));
 }
 
-@keyframes slideUp {
-  from {
+.nexus-save-channel-btn:not(:disabled):hover {
+  background-color: var(--color-primary-soft, #00b545);
+}
+
+.nexus-save-channel-btn:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+@keyframes toastSlideUpFade {
+  0% {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translate(-50%, 12px) scale(0.96);
   }
-  to {
+  100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, 0) scale(1);
   }
+}
+
+.animate-slide-up {
+  animation: toastSlideUpFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

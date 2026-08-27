@@ -1,20 +1,66 @@
 <!-- Header -->
-<header class="flex h-14 shrink-0 items-center justify-between border-b border-hairline/60 bg-surface/90 px-4">
+<header
+  class="flex h-14 shrink-0 items-center justify-between border-b border-hairline/60 bg-surface/90 px-4"
+>
   <div class="flex items-center gap-2 min-w-0">
     <mat-icon class="!size-5 !text-xl text-steel">chat_bubble_outline</mat-icon>
     <h3 class="truncate text-body-sm-medium font-bold text-ink">#{{ channel().name }}</h3>
   </div>
 
-  <button
-    type="button"
-    (click)="closed.emit()"
-    aria-label="Đóng trò chuyện thoại"
-    matTooltip="Đóng"
-    class="flex size-8 items-center justify-center rounded-lg text-steel hover:bg-surface-feature hover:text-ink transition-colors cursor-pointer"
-  >
-    <mat-icon class="!size-5 !text-xl">close</mat-icon>
-  </button>
+  <div class="flex items-center gap-1">
+    <button
+      type="button"
+      (click)="pinsOpen.set(!pinsOpen())"
+      [attr.aria-pressed]="pinsOpen()"
+      aria-label="Tin nhắn đã ghim"
+      matTooltip="Tin nhắn đã ghim"
+      class="flex size-8 items-center justify-center rounded-lg text-steel hover:bg-surface-feature hover:text-ink transition-colors cursor-pointer"
+      [class.pins-toggle--active]="pinsOpen()"
+    >
+      <mat-icon class="!size-5 !text-xl">push_pin</mat-icon>
+    </button>
+    <button
+      type="button"
+      (click)="closed.emit()"
+      aria-label="Đóng trò chuyện thoại"
+      matTooltip="Đóng"
+      class="flex size-8 items-center justify-center rounded-lg text-steel hover:bg-surface-feature hover:text-ink transition-colors cursor-pointer"
+    >
+      <mat-icon class="!size-5 !text-xl">close</mat-icon>
+    </button>
+  </div>
 </header>
+
+@if (pinsOpen()) {
+  <section class="pins-drawer-overlay" aria-label="Tin nhắn đã ghim">
+    <div class="pins-drawer-overlay__heading">
+      <div>
+        <p class="text-micro-uppercase text-primary">Mục lục hội thoại</p>
+        <h4 class="text-body-md font-bold text-ink">Tin nhắn đã ghim</h4>
+      </div>
+      <button
+        type="button"
+        class="pins-drawer-overlay__close"
+        (click)="pinsOpen.set(false)"
+        aria-label="Đóng danh sách ghim"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    @if (pinError(); as error) {
+      <p class="pins-drawer-overlay__error" role="alert">{{ error }}</p>
+    }
+    <div class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
+      <app-pinned-messages-list
+        [messages]="channelChat.pinnedMessages()"
+        [busyIds]="pinBusyIds()"
+        emptyLabel="Chưa có tin nhắn nào được ghim trong phòng thoại này."
+        (jump)="jumpFromPins($event)"
+        (unpin)="unpinFromPanel($event)"
+      />
+    </div>
+  </section>
+}
 
 <!-- Message Timeline -->
 <div
@@ -22,12 +68,28 @@
   (scroll)="onScroll()"
   class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-4"
 >
-  @if (channelChat.loadingInitial()) {
+  @if (isAgeRestricted() && !isUserAllowedAge()) {
+    <div
+      class="flex flex-1 flex-col items-center justify-center p-6 text-center text-steel select-none my-auto"
+    >
+      <div
+        class="size-16 rounded-2xl bg-danger/10 border border-danger/30 flex items-center justify-center text-danger mb-4 shadow-glow"
+      >
+        <mat-icon class="!size-8 !text-3xl">no_adult_content</mat-icon>
+      </div>
+      <h4 class="text-heading-5 font-bold text-ink mb-1.5">Khung chat 18+</h4>
+      <p class="text-caption text-steel max-w-xs leading-relaxed">
+        Bạn chưa đủ 18 tuổi để tham gia trò chuyện văn bản trong kênh thoại này.
+      </p>
+    </div>
+  } @else if (channelChat.loadingInitial()) {
     <div class="flex flex-1 items-center justify-center py-8">
       <mat-spinner diameter="32" />
     </div>
   } @else if (channelChat.chatError()) {
-    <div class="flex flex-col items-center justify-center py-6 text-center text-status-danger text-body-sm">
+    <div
+      class="flex flex-col items-center justify-center py-6 text-center text-status-danger text-body-sm"
+    >
       <mat-icon class="!size-6 !text-2xl mb-1">error_outline</mat-icon>
       <p>{{ channelChat.chatError() }}</p>
     </div>
@@ -35,20 +97,32 @@
     <!-- Message Content Wrapper -->
     <div #messageContent class="flex flex-col gap-4">
       <!-- Intro Hero -->
-      <div class="intro-card flex flex-col items-start gap-3 rounded-2xl bg-surface-feature/40 p-4 border border-hairline/40">
-        <div class="flex size-10 items-center justify-center rounded-xl bg-surface-feature text-primary">
+      <div
+        class="intro-card flex flex-col items-start gap-3 rounded-2xl bg-surface-feature/40 p-4 border border-hairline/40"
+      >
+        <div
+          class="flex size-10 items-center justify-center rounded-xl bg-surface-feature text-primary"
+        >
           <mat-icon class="!size-6 !text-2xl">chat</mat-icon>
         </div>
         <div>
-          <h4 class="text-heading-5 font-bold text-heading text-ink">Chào mừng bạn đến với #{{ channel().name }}!</h4>
-          <p class="mt-1 text-body-sm text-steel">Đây là sự khởi đầu của kênh thoại {{ channel().name }}.</p>
+          <h4 class="text-heading-5 font-bold text-heading text-ink">
+            Chào mừng bạn đến với #{{ channel().name }}!
+          </h4>
+          <p class="mt-1 text-body-sm text-steel">
+            Đây là sự khởi đầu của kênh thoại {{ channel().name }}.
+          </p>
         </div>
       </div>
 
       <!-- Messages List -->
       <div class="flex flex-col gap-2.5">
         @for (msg of channelChat.allMessages(); track msg.id || msg.clientNonce) {
-          <div class="message-row group relative flex items-start gap-2.5 rounded-xl p-2 transition-colors">
+          <div
+            class="message-row group relative flex items-start gap-2.5 rounded-xl p-2 transition-colors"
+            [attr.data-message-id]="msg.id"
+            [class.message-row--highlighted]="highlightedMessageId() === msg.id"
+          >
             <app-avatar
               [name]="msg.author?.displayName || msg.author?.username || 'Người dùng'"
               [src]="msg.author?.avatarUrl || null"
@@ -58,7 +132,9 @@
             <div class="min-w-0 flex-1 flex flex-col items-start">
               <!-- Reply context header -->
               @if (msg.replyToId) {
-                <div class="message-reply mb-1 flex items-center gap-1 text-micro text-steel cursor-pointer">
+                <div
+                  class="message-reply mb-1 flex items-center gap-1 text-micro text-steel cursor-pointer"
+                >
                   <mat-icon class="!size-3 !text-xs text-steel">reply</mat-icon>
                   <span>Đang trả lời một tin nhắn</span>
                 </div>
@@ -70,7 +146,9 @@
                 </strong>
                 <span class="text-micro text-stone">{{ formatMessageTime(msg.createdAt) }}</span>
                 @if (msg.isForwarded) {
-                  <span class="forwarded-badge inline-flex items-center gap-0.5 text-micro text-steel italic">
+                  <span
+                    class="forwarded-badge inline-flex items-center gap-0.5 text-micro text-steel italic"
+                  >
                     <mat-icon class="!size-3 !text-xs">forward</mat-icon>
                     Đã chuyển tiếp
                   </span>
@@ -94,18 +172,44 @@
                   />
                 </div>
               } @else if (msg.content) {
-                <div class="message-body text-body-sm text-charcoal leading-relaxed break-words whitespace-pre-wrap select-text">
-                  @for (token of parseContent(msg.content, msg.id || msg.clientNonce || '0'); track $index) {
+                <div
+                  class="message-body text-body-sm text-charcoal leading-relaxed break-words whitespace-pre-wrap select-text"
+                >
+                  @for (
+                    token of parseContent(msg.content, msg.id || msg.clientNonce || '0');
+                    track $index
+                  ) {
                     @if (token.type === 'text') {
                       <span>{{ token.value }}</span>
                     } @else if (token.type === 'link') {
-                      <a [href]="token.url || token.value" target="_blank" rel="noopener noreferrer" class="chat-link text-primary underline">
+                      <a
+                        [href]="token.url || token.value"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="chat-link text-primary underline"
+                      >
                         {{ token.value }}
                       </a>
                     } @else if (token.type === 'mention') {
-                      <span class="chat-mention font-medium text-primary">@{{ token.value }}</span>
+                      <span
+                        class="inline-flex items-baseline px-1.5 py-0.5 rounded font-medium text-xs transition-colors cursor-pointer select-none"
+                        [class.bg-primary/15]="!token.isEveryone"
+                        [class.text-primary]="!token.isEveryone"
+                        [class.hover:bg-primary/25]="!token.isEveryone"
+                        [class.bg-amber-500/20]="token.isEveryone"
+                        [class.text-amber-400]="token.isEveryone"
+                        [class.hover:bg-amber-500/30]="token.isEveryone"
+                        [title]="
+                          token.isEveryone
+                            ? 'Nhắc tới tất cả mọi người'
+                            : 'Người dùng: @' + token.value
+                        "
+                        >@{{ token.value }}</span
+                      >
                     } @else if (token.type === 'channel') {
-                      <span class="chat-channel-mention font-medium text-primary">#{{ token.value }}</span>
+                      <span class="chat-channel-mention font-medium text-primary"
+                        >#{{ token.value }}</span
+                      >
                     }
                   }
                   @if (msg.editedAt) {
@@ -116,16 +220,86 @@
 
               <!-- Attachments Slot -->
               @if (!msg.deletedAt && msg.attachments && msg.attachments.length > 0) {
-                <div class="message-attachments mt-2 grid gap-2 w-full" [class.grid-cols-2]="msg.attachments.length > 1">
+                <div class="message-attachments mt-2 flex flex-col gap-2 w-full">
                   @for (att of msg.attachments; track att.id) {
-                    @if (att.mimeType && att.mimeType.startsWith('image/')) {
-                      <div class="message-media-tile overflow-hidden rounded-xl border border-hairline max-h-48">
+                    @if (isImage(att)) {
+                      <div
+                        class="message-media-tile overflow-hidden rounded-xl border border-hairline max-h-48"
+                      >
                         <img
                           [src]="att.signedUrl"
                           [alt]="att.filename"
                           class="size-full object-cover"
                           loading="lazy"
                         />
+                      </div>
+                    } @else if (isVideo(att)) {
+                      <div
+                        class="overflow-hidden rounded-xl border border-hairline bg-canvas w-full"
+                      >
+                        @if (isBrowserPlayableVideo(att)) {
+                          <video
+                            [src]="att.signedUrl"
+                            class="block max-h-64 w-full bg-black object-contain"
+                            controls
+                            playsinline
+                            preload="metadata"
+                            [attr.aria-label]="'Video ' + att.filename"
+                          ></video>
+                        } @else {
+                          <div class="flex min-h-24 items-center gap-3 px-3 py-4">
+                            <mat-icon class="!size-7 !text-2xl text-primary">movie</mat-icon>
+                            <p class="text-micro text-steel">Định dạng này cần tải xuống để xem.</p>
+                          </div>
+                        }
+                        <div class="flex items-center gap-2 px-2.5 py-2">
+                          <mat-icon class="!size-4 !text-base text-primary">movie</mat-icon>
+                          <span class="min-w-0 flex-1 truncate text-caption font-medium text-ink">{{
+                            att.filename
+                          }}</span>
+                          <span class="text-micro text-steel">{{
+                            formatAttachmentSize(att.sizeBytes)
+                          }}</span>
+                          <a
+                            [href]="att.signedUrl"
+                            [download]="att.filename"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="nexus-icon-control flex !size-7 items-center justify-center"
+                            [attr.aria-label]="'Tải xuống video ' + att.filename"
+                          >
+                            <mat-icon class="!size-4 !text-base">download</mat-icon>
+                          </a>
+                        </div>
+                      </div>
+                    } @else if (isAudio(att)) {
+                      <div class="rounded-xl border border-hairline bg-canvas p-2.5 w-full">
+                        <div class="mb-2 flex items-center gap-2">
+                          <mat-icon class="!size-5 !text-xl text-primary">audio_file</mat-icon>
+                          <span class="min-w-0 flex-1 truncate text-caption font-medium text-ink">{{
+                            att.filename
+                          }}</span>
+                          <span class="text-micro text-steel">{{
+                            formatAttachmentSize(att.sizeBytes)
+                          }}</span>
+                          <a
+                            [href]="att.signedUrl"
+                            [download]="att.filename"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="nexus-icon-control flex !size-7 items-center justify-center"
+                            [attr.aria-label]="'Tải xuống audio ' + att.filename"
+                          >
+                            <mat-icon class="!size-4 !text-base">download</mat-icon>
+                          </a>
+                        </div>
+                        <audio
+                          [src]="att.signedUrl"
+                          class="block h-10 w-full"
+                          controls
+                          preload="metadata"
+                          [attr.aria-label]="'Audio ' + att.filename"
+                        ></audio>
                       </div>
                     } @else {
                       <a
@@ -135,10 +309,16 @@
                         rel="noopener noreferrer"
                         class="message-file-tile flex items-center gap-2 p-2 rounded-xl bg-canvas border border-hairline text-ink hover:border-primary/50 transition-colors"
                       >
-                        <mat-icon class="!size-5 !text-xl text-primary shrink-0">description</mat-icon>
+                        <mat-icon class="!size-5 !text-xl text-primary shrink-0"
+                          >description</mat-icon
+                        >
                         <div class="min-w-0 flex-1 flex flex-col">
-                          <span class="truncate text-caption font-semibold text-ink">{{ att.filename }}</span>
-                          <span class="text-micro text-steel">{{ (att.sizeBytes / 1024).toFixed(1) }} KB</span>
+                          <span class="truncate text-caption font-semibold text-ink">{{
+                            att.filename
+                          }}</span>
+                          <span class="text-micro text-steel">{{
+                            formatAttachmentSize(att.sizeBytes)
+                          }}</span>
                         </div>
                         <mat-icon class="!size-4 !text-base text-steel shrink-0">download</mat-icon>
                       </a>
@@ -208,6 +388,7 @@
                   [excerpt]="msg.content || 'Đính kèm tệp'"
                   [ownMessage]="isMine(msg)"
                   [canEdit]="canEdit(msg)"
+                  [pinned]="channelChat.pinnedIds().has(msg.id)"
                   (action)="onAction($event)"
                   (reaction)="onToggleReaction(msg.id, $event)"
                 />
@@ -228,7 +409,11 @@
       type="button"
       (click)="scrollToLatest()"
       class="absolute left-1/2 -translate-x-1/2 -top-13 z-30 flex size-11 items-center justify-center rounded-full bg-surface-feature/95 text-ink border border-hairline shadow-md backdrop-blur-md transition-all hover:bg-surface-feature hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none cursor-pointer"
-      [attr.aria-label]="scrollController.unreadCount() > 0 ? ('Đi tới ' + scrollController.unreadCount() + ' tin nhắn mới nhất') : 'Đi tới tin nhắn mới nhất'"
+      [attr.aria-label]="
+        scrollController.unreadCount() > 0
+          ? 'Đi tới ' + scrollController.unreadCount() + ' tin nhắn mới nhất'
+          : 'Đi tới tin nhắn mới nhất'
+      "
       matTooltip="Đi tới tin nhắn mới nhất"
       matTooltipPosition="above"
     >
@@ -244,42 +429,48 @@
     </button>
   }
 
-  <!-- Typing Indicator Banner -->
-  @if (channelChat.typingUserIds().length > 0) {
-    <div class="typing-banner px-4 py-1 text-micro text-steel flex items-center gap-2">
-      <div class="typing-dots">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-      <span>Ai đó đang gõ...</span>
-    </div>
+  <!-- Message Composer Footer -->
+  @if (!isAgeRestricted() || isUserAllowedAge()) {
+    <footer class="shrink-0 bg-surface">
+      <!-- Typing Indicator Banner -->
+      @if (channelChat.typingUserIds().length > 0) {
+        <div class="typing-banner px-4 py-1 text-micro text-steel flex items-center gap-2">
+          <div class="typing-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <span>Ai đó đang gõ...</span>
+        </div>
+      }
+
+      <!-- Message Composer with Permission Gating -->
+      @if (channelChat.permissions().canSend) {
+        <app-message-composer
+          [target]="'#' + channel().name"
+          [slowmode]="channel().slowmode || 0"
+          [context]="composerContext()"
+          [attachmentsDisabled]="!channelChat.permissions().canAttach"
+          attachmentsDisabledReason="Bạn không có quyền đính kèm tệp trong kênh này"
+          (contextClosed)="composerContext.set(null)"
+          (send)="onSendMessage($event)"
+          (typing)="onComposerTyping()"
+        />
+      } @else {
+        <div class="p-4 bg-surface-feature/30 text-center text-body-sm text-steel font-medium">
+          <mat-icon class="!size-4 !text-base align-middle mr-1 text-stone">lock</mat-icon>
+          <span>Bạn không có quyền gửi tin nhắn trong kênh này.</span>
+        </div>
+      }
+    </footer>
   }
 
-  <!-- Message Composer with Permission Gating -->
-  @if (channelChat.permissions().canSend) {
-    <app-message-composer
-      [target]="'#' + channel().name"
-      [context]="composerContext()"
-      [attachmentsDisabled]="!channelChat.permissions().canAttach"
-      attachmentsDisabledReason="Bạn không có quyền đính kèm tệp trong kênh này"
-      (contextClosed)="composerContext.set(null)"
-      (send)="onSendMessage($event)"
-      (typing)="onComposerTyping()"
+  <!-- Forward Message Modal -->
+  @if (forwardModalMessage(); as fwdMsg) {
+    <app-forward-message-modal
+      [message]="fwdMsg"
+      [currentChannelId]="channel().id"
+      (close)="forwardModalMessage.set(null)"
     />
-  } @else {
-    <div class="p-4 bg-surface-feature/30 text-center text-body-sm text-steel font-medium">
-      <mat-icon class="!size-4 !text-base align-middle mr-1 text-stone">lock</mat-icon>
-      <span>Bạn không có quyền gửi tin nhắn trong kênh này.</span>
-    </div>
   }
 </footer>
-
-<!-- Forward Message Modal -->
-@if (forwardModalMessage(); as fwdMsg) {
-  <app-forward-message-modal
-    [message]="fwdMsg"
-    [currentChannelId]="channel().id"
-    (close)="forwardModalMessage.set(null)"
-  />
-}

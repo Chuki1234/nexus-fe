@@ -1,10 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
-import {
-  MessageResponseDto,
-  MessagesApiService,
-} from '../../../core/api/messages-api.service';
+import { MessageResponseDto, MessagesApiService } from '../../../core/api/messages-api.service';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
 import { ActiveChatStore } from './active-chat.store';
 
@@ -20,6 +17,9 @@ describe('ActiveChatStore', () => {
     markAsRead: any;
     getAttachmentSignedUrl: any;
     setReaction: any;
+    getConversationPins: any;
+    pinMessage: any;
+    unpinMessage: any;
   };
   let chatSocketMock: {
     joinConversation: any;
@@ -34,6 +34,7 @@ describe('ActiveChatStore', () => {
     messageRead$: Subject<any>;
     typingUpdated$: Subject<any>;
     joinError$: Subject<any>;
+    messagePinUpdated$: Subject<any>;
   };
   let authMock: {
     user: any;
@@ -93,6 +94,9 @@ describe('ActiveChatStore', () => {
         conversationId: 'conv-1',
         reactions: [{ emoji: '❤️', count: 1, reactedByMe: true }],
       }),
+      getConversationPins: vi.fn().mockResolvedValue([]),
+      pinMessage: vi.fn(),
+      unpinMessage: vi.fn(),
     };
 
     chatSocketMock = {
@@ -108,6 +112,7 @@ describe('ActiveChatStore', () => {
       messageRead$: new Subject(),
       typingUpdated$: new Subject(),
       joinError$: new Subject(),
+      messagePinUpdated$: new Subject(),
     };
 
     authMock = {
@@ -265,9 +270,7 @@ describe('ActiveChatStore', () => {
       chatSocketMock.messageCreated$.next({ message: incomingMessage });
 
       expect(store.messages().some((m) => m.id === '120')).toBe(true);
-      expect(store.messages()[store.messages().length - 1].content).toBe(
-        'Incoming from socket',
-      );
+      expect(store.messages()[store.messages().length - 1].content).toBe('Incoming from socket');
     });
 
     it('bỏ qua tin nhắn mới từ conversation khác', async () => {
@@ -548,13 +551,11 @@ describe('ActiveChatStore', () => {
     it('editMessage thất bại: rollback lại nội dung và editedAt snapshot ban đầu và re-throw error', async () => {
       await store.setActiveConversation('conv-1');
 
-      messagesApiMock.editMessage.mockRejectedValue(
-        new Error('Lỗi server khi sửa'),
-      );
+      messagesApiMock.editMessage.mockRejectedValue(new Error('Lỗi server khi sửa'));
 
-      await expect(
-        store.editMessage('100', 'Nội dung sửa thất bại'),
-      ).rejects.toThrow('Lỗi server khi sửa');
+      await expect(store.editMessage('100', 'Nội dung sửa thất bại')).rejects.toThrow(
+        'Lỗi server khi sửa',
+      );
 
       const target = store.messages().find((m) => m.id === '100');
       expect(target?.content).toBe('Hello 100');
@@ -575,9 +576,7 @@ describe('ActiveChatStore', () => {
     it('hideMessage thất bại: rollback lại message tại đúng vị trí canonical', async () => {
       await store.setActiveConversation('conv-1');
 
-      messagesApiMock.hideMessage.mockRejectedValue(
-        new Error('Lỗi server khi ẩn tin nhắn'),
-      );
+      messagesApiMock.hideMessage.mockRejectedValue(new Error('Lỗi server khi ẩn tin nhắn'));
 
       await expect(store.hideMessage('100')).rejects.toThrow('Lỗi server khi ẩn tin nhắn');
 
@@ -603,9 +602,7 @@ describe('ActiveChatStore', () => {
     it('recallMessage thất bại: rollback lại trạng thái trước khi thu hồi', async () => {
       await store.setActiveConversation('conv-1');
 
-      messagesApiMock.recallMessage.mockRejectedValue(
-        new Error('Lỗi server khi thu hồi'),
-      );
+      messagesApiMock.recallMessage.mockRejectedValue(new Error('Lỗi server khi thu hồi'));
 
       await expect(store.recallMessage('100')).rejects.toThrow('Lỗi server khi thu hồi');
 
@@ -677,9 +674,7 @@ describe('ActiveChatStore', () => {
 
       const all = store.allMessages();
       expect(all.length).toBe(3); // 2 persisted + 1 optimistic
-      expect(all.some((m) => m.status === 'persisted' && m.id === '100')).toBe(
-        true,
-      );
+      expect(all.some((m) => m.status === 'persisted' && m.id === '100')).toBe(true);
       expect(all.some((m) => m.status === 'sending')).toBe(true);
     });
 
@@ -882,9 +877,7 @@ describe('ActiveChatStore', () => {
         error: 'Bạn không có quyền tham gia cuộc trò chuyện này',
       });
 
-      expect(store.error()).toBe(
-        'Bạn không có quyền tham gia cuộc trò chuyện này',
-      );
+      expect(store.error()).toBe('Bạn không có quyền tham gia cuộc trò chuyện này');
     });
 
     it('joinConversation bị rejected phản ánh lỗi ngay vào store', async () => {
@@ -1169,6 +1162,71 @@ describe('ActiveChatStore', () => {
       // State không bị đè bởi duplicate socket event
       const msg = store.messages().find((m) => m.id === '100');
       expect(msg?.reactions).toEqual([{ emoji: '🔥', count: 1, reactedByMe: true }]);
+    });
+  });
+
+  describe('Pinned messages trong DM', () => {
+    const pinnedMessage: MessageResponseDto = {
+      ...sampleMessages[0],
+      pinnedAt: '2026-08-27T05:00:00Z',
+      pinnedBy: 'user-me',
+    };
+
+    it('nạp danh sách ghim cùng conversation và cập nhật qua pin/unpin API', async () => {
+      messagesApiMock.getConversationPins.mockResolvedValueOnce([pinnedMessage]);
+      await store.setActiveConversation('conv-1');
+      await Promise.resolve();
+
+      expect(messagesApiMock.getConversationPins).toHaveBeenCalledWith('conv-1');
+      expect(store.pinnedMessages()).toEqual([pinnedMessage]);
+
+      const secondPin = { ...sampleMessages[1], pinnedAt: '2026-08-27T05:01:00Z' };
+      messagesApiMock.pinMessage.mockResolvedValueOnce(secondPin);
+      await store.pinMessage('105');
+      expect(store.pinnedIds().has('105')).toBe(true);
+
+      messagesApiMock.unpinMessage.mockResolvedValueOnce(secondPin);
+      await store.unpinMessage('105');
+      expect(store.pinnedIds().has('105')).toBe(false);
+    });
+
+    it('đồng bộ realtime đúng conversation và bỏ ghim khi tin bị thu hồi', async () => {
+      await store.setActiveConversation('conv-1');
+
+      chatSocketMock.messagePinUpdated$.next({
+        conversationId: 'conv-1',
+        channelId: null,
+        message: pinnedMessage,
+        pinned: true,
+      });
+      expect(store.pinnedIds().has('100')).toBe(true);
+
+      chatSocketMock.messagePinUpdated$.next({
+        conversationId: 'conv-other',
+        channelId: null,
+        message: { ...pinnedMessage, id: '999' },
+        pinned: true,
+      });
+      expect(store.pinnedIds().has('999')).toBe(false);
+
+      chatSocketMock.messageDeleted$.next({
+        conversationId: 'conv-1',
+        channelId: null,
+        messageId: '100',
+      });
+      expect(store.pinnedIds().has('100')).toBe(false);
+    });
+
+    it('đưa snapshot ghim cũ vào timeline để tạo vị trí nhảy', async () => {
+      await store.setActiveConversation('conv-1');
+      const oldPin = { ...pinnedMessage, id: '10', content: 'Tin ghim rất cũ' };
+
+      store.revealPinnedMessage(oldPin);
+
+      expect(store.messages().find((message) => message.id === '10')?.content).toBe(
+        'Tin ghim rất cũ',
+      );
+      expect(store.messages()[0].id).toBe('10');
     });
   });
 });

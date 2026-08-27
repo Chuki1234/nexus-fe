@@ -4,7 +4,10 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { VoiceChatDrawer } from './voice-chat-drawer';
 import { AuthService } from '../../../../../core/auth/auth.service';
-import { ChannelChatStore, type ChannelChatUiMessage } from '../../../../dashboard/services/channel-chat.store';
+import {
+  ChannelChatStore,
+  type ChannelChatUiMessage,
+} from '../../../../dashboard/services/channel-chat.store';
 import type { ChannelSummary } from '../../../../../core/servers/server.models';
 import { ConversationsApiService } from '../../../../../core/api/conversations-api.service';
 import { MessagesApiService } from '../../../../../core/api/messages-api.service';
@@ -22,12 +25,19 @@ describe('VoiceChatDrawer', () => {
   const mockLoadingMoreSignal = signal<boolean>(false);
   const mockChatErrorSignal = signal<string | null>(null);
   const mockTypingUserIdsSignal = signal<string[]>([]);
-  const mockPermissionsSignal = signal<{ canSend: boolean; canAttach: boolean; canView: boolean; canManageMessages: boolean }>({
+  const mockPermissionsSignal = signal<{
+    canSend: boolean;
+    canAttach: boolean;
+    canView: boolean;
+    canManageMessages: boolean;
+  }>({
     canView: true,
     canSend: true,
     canAttach: true,
     canManageMessages: true,
   });
+  const mockPinnedMessagesSignal = signal<any[]>([]);
+  const mockPinnedIdsSignal = signal(new Set<string>());
 
   const mockChannelChatStore = {
     allMessages: mockMessagesSignal.asReadonly(),
@@ -38,6 +48,8 @@ describe('VoiceChatDrawer', () => {
     typingUserIds: mockTypingUserIdsSignal.asReadonly(),
     permissions: mockPermissionsSignal.asReadonly(),
     lastReadMessageId: signal('msg-1').asReadonly(),
+    pinnedMessages: mockPinnedMessagesSignal.asReadonly(),
+    pinnedIds: mockPinnedIdsSignal.asReadonly(),
     loadInitial: vi.fn().mockResolvedValue(undefined),
     loadMore: vi.fn().mockResolvedValue(undefined),
     sendMessage: vi.fn().mockResolvedValue(undefined),
@@ -48,6 +60,9 @@ describe('VoiceChatDrawer', () => {
     markAsRead: vi.fn().mockResolvedValue(undefined),
     retrySendMessage: vi.fn(),
     cancelOptimisticMessage: vi.fn(),
+    pinMessage: vi.fn().mockResolvedValue(undefined),
+    unpinMessage: vi.fn().mockResolvedValue(undefined),
+    revealPinnedMessage: vi.fn(),
     clear: vi.fn(),
   };
 
@@ -69,7 +84,12 @@ describe('VoiceChatDrawer', () => {
     mockLoadingInitialSignal.set(false);
     mockChatErrorSignal.set(null);
     mockTypingUserIdsSignal.set([]);
-    mockPermissionsSignal.set({ canView: true, canSend: true, canAttach: true, canManageMessages: true });
+    mockPermissionsSignal.set({
+      canView: true,
+      canSend: true,
+      canAttach: true,
+      canManageMessages: true,
+    });
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
@@ -79,10 +99,19 @@ describe('VoiceChatDrawer', () => {
         provideHttpClientTesting(),
         MessageClockService,
         { provide: AuthService, useValue: mockAuthService },
-        { provide: ConversationsApiService, useValue: { listConversations: vi.fn().mockResolvedValue([]) } },
-        { provide: MessagesApiService, useValue: { forwardChannelMessage: vi.fn().mockResolvedValue({}) } },
+        {
+          provide: ConversationsApiService,
+          useValue: { listConversations: vi.fn().mockResolvedValue([]) },
+        },
+        {
+          provide: MessagesApiService,
+          useValue: { forwardChannelMessage: vi.fn().mockResolvedValue({}) },
+        },
         { provide: ServersApiService, useValue: { listChannels: vi.fn().mockResolvedValue([]) } },
-        { provide: ServersStore, useValue: { servers: signal([]), channelsOf: vi.fn().mockReturnValue([]) } },
+        {
+          provide: ServersStore,
+          useValue: { servers: signal([]), channelsOf: vi.fn().mockReturnValue([]) },
+        },
         { provide: FriendsStore, useValue: { friends: signal([]) } },
       ],
     })
@@ -157,7 +186,9 @@ describe('VoiceChatDrawer', () => {
     const closeSpy = vi.fn();
     component.closed.subscribe(closeSpy);
 
-    const closeBtn = (fixture.nativeElement as HTMLElement).querySelector('button[aria-label="Đóng trò chuyện thoại"]');
+    const closeBtn = (fixture.nativeElement as HTMLElement).querySelector(
+      'button[aria-label="Đóng trò chuyện thoại"]',
+    );
     (closeBtn as HTMLButtonElement)?.click();
 
     expect(closeSpy).toHaveBeenCalled();
@@ -165,7 +196,9 @@ describe('VoiceChatDrawer', () => {
 
   it('ở đáy -> nút Đi tới tin nhắn mới nhất không tồn tại trong DOM', () => {
     fixture.detectChanges();
-    const scrollDownBtn = (fixture.nativeElement as HTMLElement).querySelector('button[aria-label*="Đi tới"]');
+    const scrollDownBtn = (fixture.nativeElement as HTMLElement).querySelector(
+      'button[aria-label*="Đi tới"]',
+    );
     expect(scrollDownBtn).toBeNull();
   });
 
@@ -195,7 +228,9 @@ describe('VoiceChatDrawer', () => {
     component.scrollController.unreadCount.set(3);
     fixture.detectChanges();
 
-    const scrollDownBtn = (fixture.nativeElement as HTMLElement).querySelector('button[aria-label*="Đi tới"]') as HTMLButtonElement;
+    const scrollDownBtn = (fixture.nativeElement as HTMLElement).querySelector(
+      'button[aria-label*="Đi tới"]',
+    ) as HTMLButtonElement;
     expect(scrollDownBtn).toBeTruthy();
     expect(scrollDownBtn.getAttribute('aria-label')).toBe('Đi tới 3 tin nhắn mới nhất');
     expect(scrollDownBtn.textContent).toContain('3');
@@ -268,7 +303,10 @@ describe('VoiceChatDrawer', () => {
 
     // Save inline edit success -> clears editingMessageId
     await component['saveInlineEdit']('msg-v-1', 'Tin nhắn thoại đã sửa');
-    expect(mockChannelChatStore.editMessage).toHaveBeenCalledWith('msg-v-1', 'Tin nhắn thoại đã sửa');
+    expect(mockChannelChatStore.editMessage).toHaveBeenCalledWith(
+      'msg-v-1',
+      'Tin nhắn thoại đã sửa',
+    );
     expect(component.editingMessageId()).toBeNull();
 
     // Save inline edit failure -> retains editingMessageId and sets editingError

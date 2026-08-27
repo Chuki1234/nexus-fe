@@ -33,19 +33,15 @@ import {
   MessageComposer,
   type MessageComposerContext,
   type SendMessagePayload,
+  type MentionCandidate,
 } from '../components/message-composer/message-composer';
 import { MessageActions } from '../components/message-actions/message-actions';
+import { PinnedMessagesList } from '../components/pinned-messages-list/pinned-messages-list';
 import { DashboardState } from '../components/dashboard-state/dashboard-state';
 import { DashboardUiState } from '../services/dashboard-ui-state';
 import { AuthService } from '../../../core/auth/auth.service';
-import {
-  ServersApiService,
-  type ServerMemberDto,
-} from '../../../core/api/servers-api.service';
-import {
-  ChannelChatStore,
-  type ChannelChatUiMessage,
-} from '../services/channel-chat.store';
+import { ServersApiService, type ServerMemberDto } from '../../../core/api/servers-api.service';
+import { ChannelChatStore, type ChannelChatUiMessage } from '../services/channel-chat.store';
 import { compareMessageOrder } from '../../../core/utils/safe-message-comparator';
 import {
   MessagesApiService,
@@ -61,15 +57,15 @@ import { ProfileTrigger } from '../../profile/profile-trigger';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { ChannelSettingsModal } from '../../settings/modals/channel-settings-modal/channel-settings-modal';
 import { ForwardMessageModal } from '../components/forward-message-modal/forward-message-modal';
-import { DeleteMessageModal } from '../components/delete-message-modal/delete-message-modal';
+import {
+  DeleteMessageModal,
+  type DeleteMessageModalData,
+} from '../components/delete-message-modal/delete-message-modal';
 import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.service';
 import type { LightboxMediaItem } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.types';
 import { VoiceRoom } from '../../voice/voice-room/voice-room';
 import { GiphyMessageEmbedComponent } from '../components/giphy-message-embed/giphy-message-embed.component';
-import {
-  formatMessageTimestamp,
-  formatCompactTime,
-} from '../../../core/utils/date-format.util';
+import { formatMessageTimestamp, formatCompactTime } from '../../../core/utils/date-format.util';
 import {
   parseMessageContent,
   type MessageContentToken,
@@ -87,6 +83,8 @@ import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import { extractErrorMessage } from '../../../core/utils/error.util';
 import type { AttachmentResponseDto } from '../../../core/api/messages-api.service';
 
+import { ProfileStore } from '../../profile/profile-store';
+
 /** Kênh trong server — `/channels/:serverId/:channelId`. */
 @Component({
   selector: 'app-channel-page',
@@ -96,7 +94,6 @@ import type { AttachmentResponseDto } from '../../../core/api/messages-api.servi
     ContextPanel,
     DashboardState,
     DatePipe,
-    DeleteMessageModal,
     EmptyState,
     ForwardMessageModal,
     GiphyMessageEmbedComponent,
@@ -107,6 +104,7 @@ import type { AttachmentResponseDto } from '../../../core/api/messages-api.servi
     MatTooltipModule,
     MessageActions,
     MessageComposer,
+    PinnedMessagesList,
     ProfileTrigger,
     VoiceRoom,
   ],
@@ -124,13 +122,16 @@ export class ChannelPage implements OnInit, AfterViewInit {
   private readonly coordinator = inject(ServerRealtimeCoordinator, { optional: true });
   readonly channelChat = inject(ChannelChatStore, { optional: true }) ?? inject(ChannelChatStore);
   protected readonly auth = inject(AuthService, { optional: true }) ?? inject(AuthService);
+  protected readonly profileStore = inject(ProfileStore);
   readonly messageClock = inject(MessageClockService);
-  private readonly presenceService = inject(PresenceService, { optional: true }) ?? inject(PresenceService);
+  private readonly presenceService =
+    inject(PresenceService, { optional: true }) ?? inject(PresenceService);
   private readonly dialog = inject(MatDialog);
 
   readonly editingMessageId = signal<string | null>(null);
   readonly editingSaving = signal<boolean>(false);
   readonly editingError = signal<string | null>(null);
+  readonly failedAttachmentIds = signal<Set<string>>(new Set());
   private readonly lightbox = inject(LightboxGalleryService);
   private readonly uiState = inject(DashboardUiState);
   private readonly toast = inject(ToastService);
@@ -167,6 +168,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
   protected readonly detailsOpen = signal<boolean>(false);
   protected readonly searchOpen = signal<boolean>(false);
   protected readonly pinsOpen = signal<boolean>(false);
+  protected readonly pinBusyIds = signal<Set<string>>(new Set());
   protected readonly searchResults = signal<MessageResponseDto[]>([]);
   protected readonly searchLoading = signal<boolean>(false);
   protected readonly searchQuery = signal<string>('');
@@ -207,6 +209,24 @@ export class ChannelPage implements OnInit, AfterViewInit {
     return this.serversStore?.channelsOf(sId).find((c) => c.id === cId);
   });
 
+  /** Kiểm tra kênh có bật giới hạn độ tuổi không */
+  protected readonly isAgeRestricted = computed(() => {
+    const ch = this.channel();
+    return Boolean(ch?.isAgeRestricted || ch?.contentVisibility === 'age_restricted');
+  });
+
+  /** Kiểm tra người dùng có đủ từ 18 tuổi trở lên hay không */
+  protected readonly isUserAllowedAge = computed(() => {
+    if (!this.isAgeRestricted()) return true;
+    const birthdate = this.profileStore.profile()?.birthdate;
+    if (!birthdate) return true;
+    const parts = birthdate.split('-');
+    const birthYear = parseInt(parts[0], 10);
+    if (isNaN(birthYear)) return true;
+    const currentYear = new Date().getFullYear();
+    return currentYear - birthYear >= 18;
+  });
+
   protected readonly permissions = this.channelChat.permissions;
   protected readonly messages = this.channelChat.allMessages;
   protected readonly typingUserIds = this.channelChat.typingUserIds;
@@ -231,6 +251,32 @@ export class ChannelPage implements OnInit, AfterViewInit {
   protected readonly offlineMembers = computed(() =>
     this.membersWithPresence().filter((m) => m.presence === 'offline'),
   );
+
+  protected readonly mentionCandidates = computed<MentionCandidate[]>(() => {
+    const members = this.serverMembers();
+    const list: MentionCandidate[] = [
+      {
+        id: 'everyone',
+        username: 'everyone',
+        displayName: 'everyone',
+        avatarUrl: null,
+        isEveryone: true,
+        description: 'Thông báo tới tất cả thành viên trong kênh',
+      },
+    ];
+
+    for (const m of members) {
+      list.push({
+        id: m.userId,
+        username: m.username,
+        displayName: m.nickname || m.displayName || m.username,
+        avatarUrl: m.avatarUrl,
+        role: m.role,
+      });
+    }
+
+    return list;
+  });
 
   private previousIsMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
 
@@ -289,10 +335,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
             const k = m.id || m.clientNonce;
             if (k) this.processedMessageIds.add(k);
           }
-          this.scrollController.handleInitialRender(
-            targetKey,
-            this.scrollController.generation,
-          );
+          this.scrollController.handleInitialRender(targetKey, this.scrollController.generation);
           return;
         }
 
@@ -314,20 +357,17 @@ export class ChannelPage implements OnInit, AfterViewInit {
           (m) => m.authorId !== myId && m.status === 'persisted',
         ).length;
 
-        this.scrollController.handleRealtimeAppend(
-          targetKey,
-          this.scrollController.generation,
-          {
-            isMine: hasOwnMessage,
-            wasNearBottom,
-            count: inboundCount,
-          },
-        );
+        this.scrollController.handleRealtimeAppend(targetKey, this.scrollController.generation, {
+          isMine: hasOwnMessage,
+          wasNearBottom,
+          count: inboundCount,
+        });
       });
     });
   }
 
   async ngOnInit(): Promise<void> {
+    void this.profileStore.ensureLoaded();
     if (this.serversStore && this.serversApi) {
       await this.serversStore.ensureHydrated(this.serversApi);
     }
@@ -403,7 +443,8 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
     const prev = index > 0 ? list[index - 1] : null;
     const isCurrUnread = compareMessageOrder(curr, { id: lastRead }) > 0;
-    const isPrevRead = !prev || prev.status !== 'persisted' || compareMessageOrder(prev, { id: lastRead }) <= 0;
+    const isPrevRead =
+      !prev || prev.status !== 'persisted' || compareMessageOrder(prev, { id: lastRead }) <= 0;
 
     return isCurrUnread && isPrevRead;
   }
@@ -449,6 +490,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
     await this.channelChat.sendMessage({
       content: payload.content,
       files: payload.files,
+      attachments: payload.attachments,
       replyToId,
       externalMedia: payload.externalMedia,
     });
@@ -464,6 +506,29 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
   protected closeDeleteModal(): void {
     this.deleteModalMessage.set(null);
+  }
+
+  protected openDeleteModal(msg: ChannelChatUiMessage): void {
+    const canRecall = msg.authorId === this.auth.user()?.id || this.permissions().canManageMessages;
+    const dialogRef = this.dialog.open<
+      DeleteMessageModal,
+      DeleteMessageModalData,
+      'for_me' | 'everyone'
+    >(DeleteMessageModal, {
+      data: {
+        message: msg,
+        canRecall,
+      },
+      panelClass: 'nexus-dialog-clean-panel',
+      backdropClass: 'nexus-dialog-backdrop-blur',
+      autoFocus: false,
+    });
+
+    dialogRef.afterClosed().subscribe((scope) => {
+      if (scope) {
+        void this.channelChat.deleteMessage(msg.id, scope);
+      }
+    });
   }
 
   protected async onConfirmDelete(scope: 'for_me' | 'everyone'): Promise<void> {
@@ -530,7 +595,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
     if (event.kind === 'delete' && event.messageId) {
       const msg = this.messages().find((m) => m.id === event.messageId);
       if (msg) {
-        this.deleteModalMessage.set(msg);
+        this.openDeleteModal(msg);
       }
       return;
     }
@@ -539,11 +604,11 @@ export class ChannelPage implements OnInit, AfterViewInit {
       return;
     }
     if (event.kind === 'pin' && event.messageId) {
-      void this.channelChat.pinMessage(event.messageId);
+      void this.setMessagePinned(event.messageId, true);
       return;
     }
     if (event.kind === 'unpin' && event.messageId) {
-      void this.channelChat.unpinMessage(event.messageId);
+      void this.setMessagePinned(event.messageId, false);
       return;
     }
     this.composerContext.set(event);
@@ -554,7 +619,10 @@ export class ChannelPage implements OnInit, AfterViewInit {
     const msg = this.messages().find((m) => m.id === messageId);
     const text = msg?.content ?? '';
     if (!text) {
-      this.toast.show({ message: 'Tin nhắn này không có nội dung văn bản để sao chép.', type: 'info' });
+      this.toast.show({
+        message: 'Tin nhắn này không có nội dung văn bản để sao chép.',
+        type: 'info',
+      });
       return;
     }
     if (!isPlatformBrowser(this.platformId) || !navigator.clipboard) {
@@ -609,11 +677,49 @@ export class ChannelPage implements OnInit, AfterViewInit {
     this.pinsOpen.set(true);
   }
 
+  protected async unpinFromPanel(message: MessageResponseDto): Promise<void> {
+    await this.setMessagePinned(message.id, false);
+  }
+
+  private async setMessagePinned(messageId: string, pinned: boolean): Promise<void> {
+    if (this.pinBusyIds().has(messageId)) return;
+    this.pinBusyIds.update((ids) => new Set(ids).add(messageId));
+    try {
+      if (pinned) {
+        await this.channelChat.pinMessage(messageId);
+      } else {
+        await this.channelChat.unpinMessage(messageId);
+      }
+      this.toast.show({
+        message: pinned ? 'Đã ghim tin nhắn.' : 'Đã bỏ ghim tin nhắn.',
+        type: 'success',
+      });
+    } catch (error: unknown) {
+      this.toast.show({
+        message: extractErrorMessage(
+          error,
+          pinned ? 'Không thể ghim tin nhắn.' : 'Không thể bỏ ghim tin nhắn.',
+        ),
+        type: 'error',
+      });
+    } finally {
+      this.pinBusyIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(messageId);
+        return next;
+      });
+    }
+  }
+
   /** Nhảy tới tin nhắn từ panel (kết quả tìm kiếm / danh sách ghim) rồi đóng panel. */
-  protected jumpFromPanel(messageId: string): void {
+  protected jumpFromPanel(messageOrId: MessageResponseDto | string): void {
+    const messageId = typeof messageOrId === 'string' ? messageOrId : messageOrId.id;
+    if (typeof messageOrId !== 'string') {
+      this.channelChat.revealPinnedMessage(messageOrId);
+    }
     this.searchOpen.set(false);
     this.pinsOpen.set(false);
-    this.jumpToMessage(messageId);
+    setTimeout(() => this.jumpToMessage(messageId));
   }
 
   protected onComposerTyping(): void {
@@ -635,11 +741,10 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
     const ref = this.dialog.open(ChannelSettingsModal, {
       data: { channel: ch, serverId: sId },
-      width: '900px',
-      maxWidth: '96vw',
-      height: '620px',
-      maxHeight: '92vh',
-      panelClass: 'channel-settings-dialog-panel',
+      panelClass: 'nexus-dialog-overlay',
+      maxWidth: '92vw',
+      maxHeight: '88vh',
+      autoFocus: false,
     });
 
     ref.afterClosed().subscribe((res) => {
@@ -655,9 +760,51 @@ export class ChannelPage implements OnInit, AfterViewInit {
     });
   }
 
+  protected isImage(att: AttachmentResponseDto): boolean {
+    if (att.mimeType && att.mimeType.startsWith('image/')) return true;
+    return /\.(jpg|jpeg|jfif|png|webp|gif|svg|avif|bmp)$/i.test(att.filename || '');
+  }
+
+  protected isAudio(att: AttachmentResponseDto): boolean {
+    return (
+      att.mimeType === 'audio/mpeg' ||
+      att.mimeType === 'audio/mp3' ||
+      /\.mp3$/i.test(att.filename || '')
+    );
+  }
+
+  protected isVideo(att: AttachmentResponseDto): boolean {
+    return (
+      Boolean(att.mimeType?.startsWith('video/')) ||
+      /\.(mp4|m4v|webm|ogv|mov|qt|mkv|avi|mpeg|mpg|3gp|wmv|flv)$/i.test(att.filename || '')
+    );
+  }
+
+  protected isBrowserPlayableVideo(att: AttachmentResponseDto): boolean {
+    return (
+      ['video/mp4', 'video/x-m4v', 'video/webm', 'video/ogg'].includes(att.mimeType) ||
+      /\.(mp4|m4v|webm|ogv)$/i.test(att.filename || '')
+    );
+  }
+
+  protected formatAttachmentSize(bytes: number): string {
+    if (!bytes) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  protected onAttachmentMediaError(attId: string): void {
+    this.failedAttachmentIds.update((set) => {
+      const next = new Set(set);
+      next.add(attId);
+      return next;
+    });
+  }
+
   protected openLightbox(msg: ChannelChatUiMessage, att: AttachmentResponseDto): void {
     if (!att.signedUrl) return;
-    const allAttachments = (msg.attachments || []).filter((a) => a.mimeType?.startsWith('image/'));
+    const allAttachments = (msg.attachments || []).filter((a) => this.isImage(a));
     const items: LightboxMediaItem[] = allAttachments.map((a) => ({
       messageId: msg.id,
       attachmentId: a.id,

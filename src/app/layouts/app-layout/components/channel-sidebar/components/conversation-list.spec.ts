@@ -10,6 +10,7 @@ import { UserSettingsService } from '../../../../../features/settings/services/u
 import { FriendsStore } from '../../../../../features/dashboard/friends/services/friends-store';
 import { ActiveChatStore } from '../../../../../features/dashboard/services/active-chat.store';
 import { ConversationList } from './conversation-list';
+import { PresenceService } from '../../../../../core/presence/presence.service';
 
 describe('ConversationList', () => {
   let mockConversationsApi: { listConversations: any };
@@ -72,6 +73,7 @@ describe('ConversationList', () => {
     mockFriendsStore = {
       incomingRequests: signal([]).asReadonly(),
       removeFriend: vi.fn().mockResolvedValue(undefined),
+      blockUser: vi.fn().mockResolvedValue(null),
     };
     activeConversationIdSignal = signal<string | null>(null);
     mockActiveChatStore = {
@@ -94,6 +96,10 @@ describe('ConversationList', () => {
         { provide: DirectCallCoordinatorService, useValue: mockDirectCallCoordinator },
         { provide: UserSettingsService, useValue: mockUserSettingsService },
         { provide: FriendsStore, useValue: mockFriendsStore },
+        {
+          provide: PresenceService,
+          useValue: { resolvePresence: () => 'online' },
+        },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(ConversationList);

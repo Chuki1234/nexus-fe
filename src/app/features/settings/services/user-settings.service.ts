@@ -10,6 +10,7 @@ import { ProfilesApiService } from '../../../core/api/profiles-api.service';
 import { formatApiError } from '../../../core/api/servers-api.service';
 import { ServerCapabilitiesService } from '../../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../../core/servers/servers.store';
+import { FriendsStore } from '../../dashboard/friends/services/friends-store';
 
 export type SettingsTab =
   | 'account'
@@ -379,6 +380,7 @@ export class UserSettingsService {
   private readonly profileStore = inject(ProfileStore);
   private readonly capabilitiesService = inject(ServerCapabilitiesService, { optional: true });
   private readonly serversStore = inject(ServersStore, { optional: true });
+  private readonly friendsStore = inject(FriendsStore, { optional: true });
 
   private getEffectiveUsername(): string {
     const fromProfile = this.profileService.current()?.username;
@@ -577,22 +579,7 @@ export class UserSettingsService {
           answers: 'Tham gia từ nhóm lập trình Web',
         },
       ],
-      bannedUsers: [
-        {
-          id: 'b1',
-          username: 'spammer_bot99',
-          displayName: 'Free Nitro Bot',
-          bannedAt: '18/08/2026',
-          reason: 'Gửi tin nhắn rác & link lừa đảo Nitro',
-        },
-        {
-          id: 'b2',
-          username: 'toxic_player01',
-          displayName: 'Toxic User',
-          bannedAt: '10/08/2026',
-          reason: 'Vi phạm quy tắc ứng xử voice chat',
-        },
-      ],
+      bannedUsers: [],
       auditLogs: [
         {
           id: 'a1',
@@ -609,14 +596,6 @@ export class UserSettingsService {
           target: 'Code Dạo (@cyber_coder)',
           timestamp: '1 giờ trước',
           icon: 'check_circle',
-        },
-        {
-          id: 'a3',
-          action: 'Cấm thành viên khỏi server',
-          executor: 'Nghiện Khó Phai',
-          target: 'Free Nitro Bot (@spammer_bot99)',
-          timestamp: 'Hôm qua',
-          icon: 'block',
         },
       ],
       iconUrl: null,
@@ -991,11 +970,10 @@ export class UserSettingsService {
       if (username) {
         const isAdmin = server.adminUsernames.some((u: string) => u.toLowerCase() === username);
         const isMod = server.moderatorUsernames.some((u: string) => u.toLowerCase() === username);
-        if (isAdmin || isMod) return true;
+        return Boolean(isAdmin || isMod);
       }
+      return false;
     }
-
-    if (sId === 'itss' || sId === 'peak') return true;
 
     // 3. Nếu server có trong store
     if (this.serversStore && this.serversStore.serverOf(sId)) {
@@ -1022,12 +1000,11 @@ export class UserSettingsService {
     if (server) {
       if (this.currentMemberRole() === 'role-admin') return true;
       const username = this.getEffectiveUsername();
-      if (username && server.adminUsernames.some((u: string) => u.toLowerCase() === username)) {
-        return true;
+      if (username) {
+        return Boolean(server.adminUsernames.some((u: string) => u.toLowerCase() === username));
       }
+      return false;
     }
-
-    if (sId === 'itss' || sId === 'peak') return true;
 
     if (this.serversStore && this.serversStore.serverOf(sId)) {
       this.ensureServerData(sId);
@@ -1296,11 +1273,16 @@ export class UserSettingsService {
     },
   ]);
 
-  // Blocked users list
-  readonly blockedUsers = signal<{ id: string; username: string; displayName: string; avatarUrl?: string | null }[]>([
-    { id: 'b1', username: 'spammer_bot99', displayName: 'Free Nitro Bot', avatarUrl: null },
-    { id: 'b2', username: 'toxic_player01', displayName: 'Toxic User', avatarUrl: null },
-  ]);
+  // Blocked users list: kết nối canonical data từ FriendsStore
+  readonly blockedUsers = computed<{ id: string; username: string; displayName: string; avatarUrl?: string | null }[]>(() => {
+    const list = this.friendsStore?.blocked() || [];
+    return list.map((u) => ({
+      id: u.id,
+      username: u.username,
+      displayName: u.displayName || u.username,
+      avatarUrl: u.avatarUrl,
+    }));
+  });
 
   // Friend Notes map: Record<friendId, string>
   readonly friendNotes = signal<Record<string, string>>((() => {
@@ -2079,18 +2061,22 @@ export class UserSettingsService {
   }
 
   unblockUser(id: string): void {
-    this.blockedUsers.update((users) => users.filter((u) => u.id !== id));
+    if (this.friendsStore) {
+      void this.friendsStore.unblockUser(id);
+    }
   }
 
   blockUser(user: { id: string; username: string; displayName: string }): void {
-    this.blockedUsers.update((users) => {
-      if (users.some((u) => u.id === user.id)) return users;
-      return [...users, user];
-    });
+    if (this.friendsStore) {
+      void this.friendsStore.blockUser(user.id);
+    }
   }
 
   isUserBlocked(userId: string): boolean {
-    return this.blockedUsers().some((u) => u.id === userId);
+    if (this.friendsStore) {
+      return this.friendsStore.isBlocked(userId);
+    }
+    return false;
   }
 
   getFriendNote(friendId: string): string {
