@@ -6,7 +6,7 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { toAuthErrorMessage } from '../../../core/auth/auth-error';
 import { PASSWORD_MIN_LENGTH } from '../models/register';
@@ -20,8 +20,11 @@ const passwordsMatch = (group: AbstractControl): ValidationErrors | null => {
 
 export const CODE_LENGTH = 6;
 
-/** Ba bước của luồng khôi phục, đi thẳng một chiều. */
-type Step = 'email' | 'code' | 'password';
+/**
+ * Các bước của luồng khôi phục, đi thẳng một chiều. Bước `mfa` chỉ chèn vào khi
+ * tài khoản bật 2FA (Supabase bắt buộc nâng phiên lên AAL2 mới cho đổi mật khẩu).
+ */
+type Step = 'email' | 'code' | 'mfa' | 'password';
 
 /**
  * Khôi phục mật khẩu bằng MÃ XÁC THỰC (NEXUS_CONTEXT §3.10).
@@ -65,8 +68,22 @@ export class ForgotPasswordPage {
     email: ['', [Validators.required, Validators.email]],
   });
 
+  constructor() {
+    // Đến từ trang đăng nhập kèm ?email= thì điền sẵn bước 1, người dùng khỏi
+    // gõ lại địa chỉ vừa nhập bên login. Không có tham số thì để trống như cũ.
+    const prefill = inject(ActivatedRoute).snapshot.queryParamMap.get('email');
+    if (prefill) {
+      this.emailForm.controls.email.setValue(prefill.trim());
+    }
+  }
+
   protected readonly codeForm = this.formBuilder.group({
     code: ['', [Validators.required, Validators.pattern(`^\\d{${CODE_LENGTH}}$`)]],
+  });
+
+  /** Mã 2FA (TOTP 6 số HOẶC mã dự phòng) — chỉ dùng ở bước `mfa`. */
+  protected readonly mfaForm = this.formBuilder.group({
+    code: ['', [Validators.required]],
   });
 
   protected readonly passwordForm = this.formBuilder.group(
@@ -81,25 +98,36 @@ export class ForgotPasswordPage {
     this.passwordVisible.update((visible) => !visible);
   }
 
+  // Chỉ báo lỗi khi ô CÓ nội dung sai — ô trống không bao giờ đỏ; xoá sạch thì tắt.
   protected showEmailError(): boolean {
     const control = this.emailForm.controls.email;
-    return control.invalid && (control.touched || this.submitted());
+    const hasContent = (control.value ?? '').trim().length > 0;
+    return control.invalid && hasContent && (control.touched || this.submitted());
   }
 
   protected showCodeError(): boolean {
     const control = this.codeForm.controls.code;
-    return control.invalid && (control.touched || this.submitted());
+    const hasContent = (control.value ?? '').trim().length > 0;
+    return control.invalid && hasContent && (control.touched || this.submitted());
+  }
+
+  protected showMfaError(): boolean {
+    const control = this.mfaForm.controls.code;
+    const hasContent = (control.value ?? '').trim().length > 0;
+    return control.invalid && hasContent && (control.touched || this.submitted());
   }
 
   protected showPasswordError(): boolean {
     const control = this.passwordForm.controls.password;
-    return control.invalid && (control.touched || this.submitted());
+    const hasContent = (control.value ?? '').trim().length > 0;
+    return control.invalid && hasContent && (control.touched || this.submitted());
   }
 
   protected showConfirmError(): boolean {
     const control = this.passwordForm.controls.confirm;
+    const hasContent = (control.value ?? '').trim().length > 0;
     const mismatch = this.passwordForm.hasError('mismatch') && control.value !== '';
-    return (control.invalid || mismatch) && (control.touched || this.submitted());
+    return hasContent && (control.invalid || mismatch) && (control.touched || this.submitted());
   }
 
   /**
@@ -130,17 +158,42 @@ export class ForgotPasswordPage {
     this.goTo('code');
   }
 
-  /** Bước 2 — đổi mã lấy phiên tạm. */
+  /** Bước 2 — đổi mã lấy phiên tạm. Tài khoản bật 2FA thì rẽ qua bước nhập mã 2FA. */
   protected async onSubmitCode(): Promise<void> {
     if (!this.startSubmit(this.codeForm)) {
       return;
     }
 
+    let mfaRequired = false;
     try {
-      await this.auth.verifyPasswordResetCode(this.email(), this.codeForm.getRawValue().code);
+      const result = await this.auth.verifyPasswordResetCode(
+        this.email(),
+        this.codeForm.getRawValue().code,
+      );
+      mfaRequired = result.mfaRequired;
     } catch (error) {
       this.fail(toAuthErrorMessage(error));
       this.codeForm.reset();
+      return;
+    }
+
+    this.goTo(mfaRequired ? 'mfa' : 'password');
+  }
+
+  /**
+   * Bước 2b (chỉ khi bật 2FA) — nhập mã TOTP để nâng phiên lên AAL2, đủ quyền
+   * đổi mật khẩu. Không có bước này, `updateUser` bị 401 `insufficient_aal`.
+   */
+  protected async onSubmitMfa(): Promise<void> {
+    if (!this.startSubmit(this.mfaForm)) {
+      return;
+    }
+
+    try {
+      await this.auth.elevateRecoveryWithTotp(this.mfaForm.getRawValue().code);
+    } catch (error) {
+      this.fail(toAuthErrorMessage(error));
+      this.mfaForm.reset();
       return;
     }
 
@@ -198,7 +251,8 @@ export class ForgotPasswordPage {
 
     if (form.invalid) {
       form.markAllAsTouched();
-      this.focusFirst('[aria-invalid="true"]');
+      // Ô trống không hiện lỗi đỏ; đưa con trỏ tới ô đầu tiên chưa hợp lệ để nhắc.
+      this.focusFirst('input.ng-invalid, select.ng-invalid');
       return false;
     }
     if (this.submitting()) {

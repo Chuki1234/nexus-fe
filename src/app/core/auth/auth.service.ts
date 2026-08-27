@@ -1,5 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { AuthError } from '@supabase/supabase-js';
 import type { Session, User } from '@supabase/supabase-js';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -238,7 +239,10 @@ export class AuthService {
    *
    * Ném `AuthError` khi mã sai hoặc hết hạn.
    */
-  async verifyPasswordResetCode(email: string, code: string): Promise<void> {
+  async verifyPasswordResetCode(
+    email: string,
+    code: string,
+  ): Promise<{ mfaRequired: boolean }> {
     const { data, error } = await this.supabase.client.auth.verifyOtp({
       email,
       token: code,
@@ -247,12 +251,62 @@ export class AuthService {
     if (error) {
       throw error;
     }
+    if (!data.session) {
+      // Xác thực xong nhưng KHÔNG có phiên = mã không hợp lệ/hết hạn.
+      throw new AuthError('Mã không đúng hoặc đã hết hạn.', 401, 'otp_expired');
+    }
     this.currentSession.set(data.session);
+
+    // Tài khoản bật 2FA: phiên khôi phục chỉ là AAL1, mà Supabase bắt buộc AAL2
+    // mới cho đổi mật khẩu (lỗi `insufficient_aal`). Báo cho luồng biết để chèn
+    // bước nhập mã 2FA trước khi đặt mật khẩu mới.
+    const { data: aal } =
+      await this.supabase.client.auth.mfa.getAuthenticatorAssuranceLevel();
+    const mfaRequired = aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal2';
+    return { mfaRequired };
+  }
+
+  /**
+   * Nâng phiên khôi phục (AAL1) lên AAL2 bằng mã TOTP, để đủ quyền đổi mật khẩu
+   * cho tài khoản đã bật 2FA. Không có bước này, `updateUser` trả 401
+   * `insufficient_aal`.
+   */
+  async elevateRecoveryWithTotp(code: string): Promise<void> {
+    const { data: factors, error: listErr } =
+      await this.supabase.client.auth.mfa.listFactors();
+    if (listErr) {
+      throw listErr;
+    }
+    const factor = factors?.totp?.[0];
+    if (!factor) {
+      throw new AuthError(
+        'Không tìm thấy thiết bị 2FA của tài khoản này.',
+        400,
+        'no_factor',
+      );
+    }
+    const { data: challenge, error: chErr } =
+      await this.supabase.client.auth.mfa.challenge({ factorId: factor.id });
+    if (chErr) {
+      throw chErr;
+    }
+    const { error: vErr } = await this.supabase.client.auth.mfa.verify({
+      factorId: factor.id,
+      challengeId: challenge.id,
+      code: code.trim(),
+    });
+    if (vErr) {
+      throw new AuthError('Mã 2FA không đúng hoặc đã hết hạn.', 401, 'totp_invalid');
+    }
+    // Sau verify, phiên đã được nâng lên AAL2.
+    const { data: sess } = await this.supabase.client.auth.getSession();
+    this.currentSession.set(sess.session);
   }
 
   /**
    * Đặt mật khẩu mới cho user đang có phiên — dùng cho cả luồng khôi phục
-   * (phiên tạm từ link email) lẫn đổi mật khẩu khi đã đăng nhập.
+   * (phiên tạm từ mã email, đã nâng AAL2 nếu bật 2FA) lẫn đổi mật khẩu khi đã
+   * đăng nhập.
    */
   async updatePassword(password: string): Promise<void> {
     const { error } = await this.supabase.client.auth.updateUser({ password });

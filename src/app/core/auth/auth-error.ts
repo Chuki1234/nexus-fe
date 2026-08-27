@@ -17,6 +17,10 @@ const MESSAGES: Record<string, string> = {
   // Supabase trả `otp_expired` cho cả mã sai LẪN mã hết hạn (không phân biệt được),
   // nên câu chữ phải phủ cả hai để không gây hiểu nhầm là gõ đúng nhưng trễ giờ.
   otp_expired: 'Mã không đúng hoặc đã hết hạn. Hãy thử lại hoặc bấm gửi lại mã.',
+  session_expired: 'Phiên đã hết hạn. Vui lòng thực hiện lại từ đầu.',
+  totp_invalid: 'Mã 2FA không đúng hoặc đã hết hạn. Vui lòng thử lại.',
+  no_factor: 'Không tìm thấy thiết bị 2FA của tài khoản này.',
+  insufficient_aal: 'Cần xác thực 2FA trước khi đổi mật khẩu.',
 };
 
 /**
