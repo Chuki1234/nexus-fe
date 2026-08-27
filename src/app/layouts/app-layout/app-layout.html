@@ -31,6 +31,11 @@
         (dblclick)="resetNavWidth()"
         (keydown)="handleNavKeyDown($event)"
       ></div>
+
+      <!-- Thanh người dùng ĐÈ (overlay) lên đáy cả server-rail + channel-sidebar,
+           không đẩy cột thu lại. Nav-shell có `pr-0` (padding trái 8px, phải 0)
+           nên left phải 16px (left-4) mới hở đều 8px hai bên như right-2. -->
+      <app-user-panel class="absolute bottom-2 left-4 right-2 z-30" />
     </div>
 
     <!-- Desktop Main Workspace Area (Normal-Flow Sibling) -->
@@ -56,6 +61,9 @@
             class="w-60 sm:w-72 max-w-[calc(100vw-5.5rem)]"
             [style.width.px]="layoutService.navWidth()"
           />
+          <!-- Thanh người dùng ĐÈ lên đáy 2 cột. Nav-shell mobile padding cân
+               (p-2) nên hở đều 8px hai bên = left-4/right-4. -->
+          <app-user-panel class="absolute bottom-2 left-4 right-4 z-30" />
         </div>
       </mat-sidenav>
 
@@ -84,29 +92,46 @@
   <!-- Global Toast Notification Banner -->
   @if (toastService.currentToast(); as toast) {
     <div
-      class="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-surface-raised/95 border border-nexus-subtle shadow-2xl backdrop-blur-xl text-body-sm text-ink animate-fade-in"
+      class="global-toast-banner"
       role="status"
       aria-live="polite"
+      [class.global-toast-banner--success]="toast.type === 'success'"
+      [class.global-toast-banner--warning]="toast.type === 'warning'"
+      [class.global-toast-banner--error]="toast.type === 'error'"
     >
-      <span>{{ toast.message }}</span>
+      <div class="global-toast-icon">
+        @if (toast.type === 'success') {
+          <mat-icon>check_circle</mat-icon>
+        } @else if (toast.type === 'warning') {
+          <mat-icon>warning_amber</mat-icon>
+        } @else if (toast.type === 'error') {
+          <mat-icon>error_outline</mat-icon>
+        } @else {
+          <mat-icon>notifications_active</mat-icon>
+        }
+      </div>
+
+      <div class="global-toast-message">
+        {{ toast.message }}
+      </div>
+
       @if (toast.action) {
         <button
           type="button"
           (click)="toast.onAction?.(); toastService.dismiss()"
-          class="px-2.5 py-1 rounded-lg bg-mint-500 hover:bg-mint-400 text-surface-base font-semibold text-caption transition-colors cursor-pointer"
+          class="global-toast-action-btn"
         >
           {{ toast.action }}
         </button>
       }
+
       <button
         type="button"
         (click)="toastService.dismiss()"
-        class="p-1 rounded-md text-ink-muted hover:text-ink transition-colors cursor-pointer"
+        class="global-toast-close-btn"
         aria-label="Đóng thông báo"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        <mat-icon>close</mat-icon>
       </button>
     </div>
   }

@@ -28,6 +28,7 @@ import { ToastService } from '../../core/toast/toast.service';
 import { SettingsModal } from '../../features/settings/settings-modal';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
 import { ServerRail } from './components/server-rail/server-rail';
+import { UserPanel } from './components/user-panel/user-panel';
 import { IncomingCallOverlayComponent } from '../../features/dashboard/components/incoming-call-overlay/incoming-call-overlay.component';
 import { DirectCallStageComponent } from '../../features/dashboard/components/direct-call-stage/direct-call-stage.component';
 import { DirectCallCoordinatorService } from '../../core/calls/direct-call-coordinator.service';
@@ -55,6 +56,7 @@ import {
   selector: 'app-dashboard-shell',
   imports: [
     ChannelSidebar,
+    UserPanel,
     MatButtonModule,
     MatIconModule,
     MatSidenavModule,

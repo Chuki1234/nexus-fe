@@ -59,6 +59,16 @@
   background-color: var(--surface-feature, rgba(0, 237, 100, 0.08));
 }
 
+/* Voice channel active indicator — green icon with subtle glow */
+.voice-icon-active {
+  color: var(--color-primary, #00ed64) !important;
+  filter: drop-shadow(0 0 4px rgba(0, 237, 100, 0.5));
+}
+
+.voice-count-chip {
+  line-height: 1;
+}
+
 /* Voice Live Badge (Crisp, high-contrast, clean sans-serif font) */
 .voice-live-badge {
   display: inline-flex;

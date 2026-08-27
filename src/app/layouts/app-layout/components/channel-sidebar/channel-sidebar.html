@@ -192,12 +192,10 @@
   }
 </header>
 
-<nav class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-2 py-2" [attr.aria-label]="title()">
+<nav class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-2 pt-2 pb-16" [attr.aria-label]="title()">
   @if (serverId(); as id) {
     <app-channel-list [serverId]="id" />
   } @else {
     <app-conversation-list [query]="conversationQuery()" />
   }
 </nav>
-
-<app-user-panel />

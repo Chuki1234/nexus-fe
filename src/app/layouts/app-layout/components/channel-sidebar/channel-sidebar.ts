@@ -23,7 +23,6 @@ import {
   UserSettingsService,
 } from '../../../../features/settings/services/user-settings.service';
 import { CommandCenterService } from '../../services/command-center.service';
-import { UserPanel } from '../user-panel/user-panel';
 import { ChannelList } from './components/channel-list';
 import { CreateCategoryDialog } from './components/create-category-dialog/create-category-dialog';
 import { CreateChannelDialog } from './components/create-channel-dialog/create-channel-dialog';
@@ -46,7 +45,6 @@ import { LeaveServerDialog } from './components/leave-server-dialog/leave-server
     OverflowMarquee,
     ChannelList,
     ConversationList,
-    UserPanel,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface' },
