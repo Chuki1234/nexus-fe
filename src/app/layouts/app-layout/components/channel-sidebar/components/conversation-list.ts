@@ -16,6 +16,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { ProfileDialogService } from '../../../../../features/profile/profile-dialog.service';
 import { Subscription } from 'rxjs';
 import {
   ConversationsApiService,
@@ -75,6 +76,7 @@ export class ConversationList implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly activeChatStore = inject(ActiveChatStore);
   private readonly router = inject(Router);
+  private readonly profileDialog = inject(ProfileDialogService);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService, { optional: true });
   private readonly userSettingsService = inject(UserSettingsService, { optional: true });
   private readonly dialog = inject(MatDialog);
@@ -316,7 +318,7 @@ export class ConversationList implements OnInit, OnDestroy {
   protected onViewProfile(conv: DisplayConversation): void {
     const target = conv.username || conv.name || conv.recipientId;
     if (target) {
-      void this.router.navigate(['/u', target]);
+      this.profileDialog.open(target);
     }
   }
 

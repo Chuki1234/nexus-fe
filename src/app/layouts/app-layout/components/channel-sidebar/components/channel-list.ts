@@ -41,6 +41,7 @@ import { ChannelSummary, ServerCategorySummary } from '../../../../../core/serve
 import { ServerCapabilitiesService } from '../../../../../core/servers/server-capabilities.service';
 import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
 import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
+import { ProfileDialogService } from '../../../../../features/profile/profile-dialog.service';
 import { ChannelSettingsModal } from '../../../../../features/settings/modals/channel-settings-modal/channel-settings-modal';
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { UnreadBadge } from '../../../../../shared/ui/unread-badge/unread-badge';
@@ -128,6 +129,7 @@ export class ChannelList implements OnDestroy {
   private readonly chatSocket = inject(ChatSocketService);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
+  private readonly profileDialog = inject(ProfileDialogService);
   private readonly route = inject(ActivatedRoute);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly userSettings = inject(UserSettingsService);
@@ -1231,7 +1233,7 @@ export class ChannelList implements OnDestroy {
 
   protected onViewMemberProfile(member: VoiceChannelMemberViewModel): void {
     if (member.name) {
-      void this.router.navigate(['/u', member.name]);
+      this.profileDialog.open(member.name);
     }
   }
 
