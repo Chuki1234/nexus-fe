@@ -30,6 +30,72 @@
   background: linear-gradient(to top, rgba(0, 15, 22, 0.88) 0%, rgba(0, 15, 22, 0) 100%);
 }
 
+.participant-tile__menu-button {
+  pointer-events: auto;
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--color-hairline-strong) 62%, transparent);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-canvas) 86%, transparent);
+  color: var(--color-ink);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.34);
+  backdrop-filter: blur(10px);
+  transition:
+    background 140ms var(--ease-nexus-out),
+    border-color 140ms var(--ease-nexus-out),
+    color 140ms var(--ease-nexus-out),
+    transform 140ms var(--ease-nexus-out);
+}
+
+.participant-tile__menu-button:hover,
+.participant-tile__menu-button:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-hairline-strong));
+  background: color-mix(in srgb, var(--color-surface-feature) 88%, transparent);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.participant-tile__menu-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.participant-tile__menu-button mat-icon {
+  width: 1.1rem !important;
+  height: 1.1rem !important;
+  font-size: 1.1rem !important;
+  line-height: 1 !important;
+}
+
+.participant-tile__menu-button--floating {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 30;
+}
+
+.participant-tile__status {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid color-mix(in srgb, var(--color-hairline-strong) 48%, transparent);
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--color-canvas) 84%, transparent);
+  padding: 0 0.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.participant-tile__status mat-icon {
+  width: 1rem !important;
+  height: 1rem !important;
+  font-size: 1rem !important;
+  line-height: 1 !important;
+}
+
 .watch-stream-overlay {
   transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -41,4 +107,3 @@
 .watch-stream-btn {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
-

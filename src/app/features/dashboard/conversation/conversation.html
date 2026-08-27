@@ -80,6 +80,30 @@
     (startVideoCall)="onStartVideoCall()"
   />
 
+  <!-- Nút "Kết bạn" LUÔN hiện khi hai người chưa là bạn bè (kể cả đã chấp nhận
+       nhắn tin) — vì nhắn tin không đồng nghĩa với kết bạn. -->
+  @if (!peerIsFriend() && conversationDetails()?.recipient) {
+    <div
+      class="mx-4 mt-2 flex items-center justify-between gap-3 rounded-lg bg-surface-feature/70 border border-hairline px-3 py-1.5 text-body-sm"
+    >
+      <span class="flex items-center gap-2 min-w-0 text-steel">
+        <mat-icon class="!size-4 !text-base text-steel shrink-0">person_add_disabled</mat-icon>
+        <span class="truncate">Bạn và {{ recipientName() }} chưa là bạn bè.</span>
+      </span>
+      @if (friendRequestSent()) {
+        <span class="shrink-0 text-caption text-steel italic">Đã gửi lời mời</span>
+      } @else {
+        <button
+          type="button"
+          (click)="addFriend()"
+          class="shrink-0 px-3 py-1 rounded-full bg-primary/15 text-primary text-body-sm font-semibold hover:bg-primary/25 transition-colors cursor-pointer"
+        >
+          Kết bạn
+        </button>
+      }
+    </div>
+  }
+
   @if (detailsError(); as detErr) {
     <div
       class="mx-4 mt-2 flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-2 text-body-sm text-amber-600 dark:text-amber-400"
@@ -1380,6 +1404,34 @@
             <div class="flex items-center gap-2.5 min-w-0">
               <mat-icon class="text-steel !size-5 !text-xl shrink-0">info</mat-icon>
               <span class="text-ink font-medium">Không thể tương tác với người dùng này.</span>
+            </div>
+          </div>
+        } @else if (isPendingRequest()) {
+          <!-- Message request từ người lạ: chỉ đọc tới khi Chấp nhận/Từ chối. -->
+          <div
+            class="flex flex-col gap-3 p-4 rounded-2xl bg-surface-feature/80 border border-hairline text-body-sm"
+          >
+            <div class="flex items-center gap-2.5 min-w-0">
+              <mat-icon class="text-primary !size-5 !text-xl shrink-0">mark_chat_unread</mat-icon>
+              <span class="text-ink">
+                <strong>{{ recipientName() }}</strong> muốn nhắn tin với bạn. Chấp nhận để trả lời và gọi điện.
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                (click)="acceptRequest()"
+                class="flex-1 px-3.5 py-2 rounded-xl bg-primary text-on-primary text-body-sm font-semibold hover:brightness-110 transition-all cursor-pointer"
+              >
+                Chấp nhận
+              </button>
+              <button
+                type="button"
+                (click)="declineRequest()"
+                class="flex-1 px-3.5 py-2 rounded-xl border border-hairline text-body-sm font-semibold text-ink hover:text-danger hover:border-danger hover:bg-danger/10 transition-all cursor-pointer"
+              >
+                Từ chối
+              </button>
             </div>
           </div>
         } @else {

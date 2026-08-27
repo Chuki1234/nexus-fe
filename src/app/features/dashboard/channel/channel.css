@@ -213,6 +213,98 @@
   outline: none;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   System Message Rows (system_join / system_leave)
+   ══════════════════════════════════════════════════════════════════════════ */
+.message-row--system {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 1rem;
+  margin: 0.25rem 0;
+  width: 100%;
+}
+
+.system-message-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.85rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-surface, #002634) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-hairline, #1c4553) 60%, transparent);
+  color: var(--color-slate, #c1ccd3);
+  font-size: var(--text-body-sm, 0.875rem);
+  line-height: 1.4;
+  user-select: text;
+  max-width: 100%;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.system-message-content:hover {
+  background: var(--color-surface, #002634);
+  border-color: var(--color-hairline, #1c4553);
+}
+
+.system-message-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.system-message-icon mat-icon {
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 16px !important;
+  line-height: 16px !important;
+}
+
+.system-message-icon--join {
+  color: var(--color-primary, #00ed64);
+}
+
+.system-message-icon--leave {
+  color: #f59e0b;
+}
+
+.system-message-author {
+  font-weight: 600;
+  color: var(--color-ink, #ffffff);
+  cursor: pointer;
+}
+
+.system-message-author:hover {
+  text-decoration: underline;
+  color: var(--color-primary-soft, #00ed64);
+}
+
+.system-message-action {
+  margin-left: 0.25rem;
+  color: var(--color-slate, #c1ccd3);
+}
+
+.system-message-time {
+  margin-left: 0.5rem;
+  color: var(--color-stone, #7c8c9a);
+  font-size: var(--text-micro, 0.6875rem);
+  flex-shrink: 0;
+}
+
+:host-context(html[data-theme='light']) .system-message-content,
+:host-context(html[data-theme='warm-light']) .system-message-content {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+:host-context(html[data-theme='light']) .system-message-author,
+:host-context(html[data-theme='warm-light']) .system-message-author {
+  color: #0f172a;
+}
+
 .message-row--head {
   margin-top: 0.875rem;
   padding-top: 0.25rem;

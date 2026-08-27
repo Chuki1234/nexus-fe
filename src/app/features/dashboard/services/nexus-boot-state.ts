@@ -13,7 +13,7 @@ import {
 
 export const NEXUS_BOOT_REVEAL_DELAY = 160;
 export const NEXUS_BOOT_MIN_VISIBLE = 680;
-export const NEXUS_BOOT_PREVIEW_VISIBLE = 2400;
+export const NEXUS_BOOT_PREVIEW_VISIBLE = 5200;
 export const NEXUS_BOOT_EXIT_DURATION = 220;
 
 @Injectable({

@@ -23,6 +23,7 @@ export class VoiceApiService {
     serverId: string,
     channelId: string,
     displayName?: string,
+    avatarUrl?: string | null,
   ): Promise<VoiceTokenResponse> {
     const token = this.auth.accessToken();
 
@@ -42,6 +43,7 @@ export class VoiceApiService {
         serverId,
         channelId,
         displayName,
+        avatarUrl: avatarUrl ?? undefined,
       }),
     });
 

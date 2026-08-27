@@ -527,6 +527,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
     const prev = list[index - 1];
     const curr = list[index];
 
+    if (prev.type !== 'default' || curr.type !== 'default') return false;
     if (prev.authorId !== curr.authorId) return false;
     if (this.shouldShowDateDivider(index)) return false;
     if (this.isUnreadDivider(index)) return false;

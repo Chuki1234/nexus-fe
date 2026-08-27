@@ -1,4 +1,14 @@
-import { Injectable, OnDestroy, computed, effect, inject, signal, untracked } from '@angular/core';
+import {
+  Injectable,
+  OnDestroy,
+  PLATFORM_ID,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Subscription } from 'rxjs';
 import {
   ConnectionQuality,
@@ -16,7 +26,9 @@ import {
 } from 'livekit-client';
 import { VoiceApiService } from '../../../core/api/voice-api.service';
 import { ProfileService } from '../../../core/profile/profile.service';
+import { ProfileStore } from '../../profile/profile-store';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import { UserSettingsService } from '../../settings/services/user-settings.service';
 import { MediaDeviceService } from './media-device.service';
 
@@ -33,6 +45,7 @@ export type VoiceConnectionStatus =
 export interface VoiceParticipantModel {
   identity: string;
   name: string;
+  username?: string | null;
   avatarUrl?: string | null;
   isLocal: boolean;
   isSpeaking: boolean;
@@ -51,9 +64,15 @@ export interface VoiceParticipantModel {
 export class VoiceRoomService implements OnDestroy {
   private readonly voiceApi = inject(VoiceApiService);
   private readonly profile = inject(ProfileService);
+  private readonly profileStore = inject(ProfileStore);
   private readonly mediaDevices = inject(MediaDeviceService);
   private readonly chatSocket = inject(ChatSocketService);
   private readonly userSettings = inject(UserSettingsService);
+  private readonly auth = inject(AuthService);
+  private readonly platformId = inject(PLATFORM_ID);
+
+  /** Khoá localStorage nhớ phòng thoại đang ở, để tự vào lại sau khi F5/đóng-mở tab. */
+  private static readonly ACTIVE_VOICE_KEY = 'nexus:activeVoice';
 
   private room: Room | null = null;
   private timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -122,6 +141,9 @@ export class VoiceRoomService implements OnDestroy {
   readonly isChatDrawerOpen = signal<boolean>(false);
 
   constructor() {
+    // 0. Sau khi F5/mở lại tab: tự vào lại phòng thoại đang dở (nếu có).
+    void this.restoreActiveSession();
+
     // 1. Lắng nghe lệnh ép chuyển kênh thoại (Force Move từ Chủ Server / Admin)
     if (this.chatSocket?.voiceForceMove$) {
       this.socketSubs.add(
@@ -161,6 +183,17 @@ export class VoiceRoomService implements OnDestroy {
                 this.broadcastVoiceState(this.currentChannelId());
               });
             }
+          }
+        }),
+      );
+    }
+
+    // 4. Lắng nghe lệnh ép tắt tiếng nghe trên máy chủ (Force Deafen)
+    if (this.chatSocket?.voiceForceDeafen$) {
+      this.socketSubs.add(
+        this.chatSocket.voiceForceDeafen$.subscribe((payload) => {
+          if (this.currentServerId() === payload.serverId) {
+            void this.setDeafenActive(payload.isDeafened);
           }
         }),
       );
@@ -303,6 +336,11 @@ export class VoiceRoomService implements OnDestroy {
     }
   }
 
+  private async setDeafenActive(enabled: boolean): Promise<void> {
+    if (this.isDeafened() === enabled) return;
+    await this.toggleDeafen();
+  }
+
   /**
    * Điều chỉnh âm lượng cục bộ của một thành viên (0% - 200%).
    */
@@ -416,9 +454,14 @@ export class VoiceRoomService implements OnDestroy {
     try {
       const displayName =
         this.profile.current()?.displayName ?? this.profile.current()?.username ?? 'Nexus Member';
+      // Avatar lấy từ ProfileStore (nguồn UI đang hiển thị) — `ProfileService.current()`
+      // thường chưa có avatarUrl. Đảm bảo store đã tải trước khi đọc.
+      await this.profileStore.ensureLoaded();
+      const avatarUrl = this.profileStore.profile()?.avatarUrl ?? null;
 
-      // 1. Xin token LiveKit từ backend NestJS
-      const tokenRes = await this.voiceApi.getVoiceToken(serverId, channelId, displayName);
+      // 1. Xin token LiveKit từ backend NestJS (kèm avatar để nhét vào metadata,
+      //    nhờ đó tile người tham gia hiện đúng ảnh thay vì chữ cái).
+      const tokenRes = await this.voiceApi.getVoiceToken(serverId, channelId, displayName, avatarUrl);
 
       // 2. Tạo đối tượng Room của LiveKit
       this.room = new Room({
@@ -469,6 +512,8 @@ export class VoiceRoomService implements OnDestroy {
       this.updateLocalParticipantState();
       this.syncRemoteParticipants();
       this.broadcastVoiceState(channelId);
+      // Nhớ phòng để F5/mở lại tab vẫn tự vào lại đúng phòng này.
+      this.persistActiveSession(serverId, channelId, channelName);
     } catch (err: unknown) {
       console.error('Lỗi khi tham gia phòng thoại LiveKit:', err);
       const error = err as Error;
@@ -482,6 +527,8 @@ export class VoiceRoomService implements OnDestroy {
    * Rời khỏi phòng thoại và tắt sạch mọi tracks (tắt đèn camera & mic).
    */
   async leaveRoom(): Promise<void> {
+    // Rời chủ động → quên phòng, để lần F5 sau KHÔNG tự vào lại nữa.
+    this.clearActiveSession();
     this.cleanup();
     this.connectionStatus.set('disconnected');
     setTimeout(() => {
@@ -489,6 +536,81 @@ export class VoiceRoomService implements OnDestroy {
         this.connectionStatus.set('idle');
       }
     }, 1500);
+  }
+
+  // ══ NHỚ & TỰ VÀO LẠI PHÒNG SAU KHI F5 ══════════════════════════════════════
+
+  private persistActiveSession(serverId: string, channelId: string, channelName: string): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      localStorage.setItem(
+        VoiceRoomService.ACTIVE_VOICE_KEY,
+        JSON.stringify({ serverId, channelId, channelName }),
+      );
+    } catch {
+      /* storage bị chặn — chỉ mất tính năng tự vào lại, không sao */
+    }
+  }
+
+  private clearActiveSession(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      localStorage.removeItem(VoiceRoomService.ACTIVE_VOICE_KEY);
+    } catch {
+      /* bỏ qua */
+    }
+  }
+
+  private readActiveSession(): {
+    serverId: string;
+    channelId: string;
+    channelName: string;
+  } | null {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    try {
+      const raw = localStorage.getItem(VoiceRoomService.ACTIVE_VOICE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as {
+        serverId?: string;
+        channelId?: string;
+        channelName?: string;
+      };
+      if (!parsed.serverId || !parsed.channelId) return null;
+      return {
+        serverId: parsed.serverId,
+        channelId: parsed.channelId,
+        channelName: parsed.channelName ?? '',
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Sau khi tải lại trang: nếu trước đó đang ở một phòng thoại thì tự vào lại
+   * ĐÚNG phòng đó. Chờ auth sẵn sàng trước (token cần Authorization), vào ở trạng
+   * thái TẮT MIC cho an toàn (không hot-mic bất ngờ sau reload). Vào lại lỗi thì
+   * quên phòng để lần F5 sau không kẹt trong vòng lặp lỗi.
+   */
+  private async restoreActiveSession(): Promise<void> {
+    const saved = this.readActiveSession();
+    if (!saved) return;
+
+    await this.auth.whenReady();
+    if (!this.auth.isAuthenticated()) {
+      this.clearActiveSession();
+      return;
+    }
+    if (this.isConnected() || this.connectionStatus() === 'connecting') return;
+
+    await this.joinRoom(saved.serverId, saved.channelId, saved.channelName, {
+      audio: false,
+      video: false,
+    });
+
+    if (this.connectionStatus() === 'error') {
+      this.clearActiveSession();
+    }
   }
 
   /**
@@ -754,6 +876,9 @@ export class VoiceRoomService implements OnDestroy {
     this.localParticipant.set({
       identity: p.identity,
       name: p.name || 'Bạn',
+      // Tile của chính mình: lấy thẳng avatar từ ProfileStore (không phụ thuộc
+      // metadata token / BE), fallback về metadata nếu store chưa có.
+      avatarUrl: this.profileStore.profile()?.avatarUrl ?? this.avatarFromMetadata(p.metadata),
       isLocal: true,
       isSpeaking,
       isMuted: !p.isMicrophoneEnabled,
@@ -780,6 +905,7 @@ export class VoiceRoomService implements OnDestroy {
       list.push({
         identity: p.identity,
         name: p.name || `Member_${p.identity.slice(0, 5)}`,
+        avatarUrl: this.avatarFromMetadata(p.metadata),
         isLocal: false,
         isSpeaking: p.isSpeaking,
         isMuted: !p.isMicrophoneEnabled,
@@ -792,6 +918,20 @@ export class VoiceRoomService implements OnDestroy {
     });
 
     this.remoteParticipants.set(list);
+  }
+
+  /**
+   * Đọc `avatarUrl` từ metadata của participant LiveKit (backend nhét JSON
+   * `{ avatarUrl }` vào token). Metadata hỏng/thiếu thì trả null để tile rơi về
+   * chữ cái đầu như cũ.
+   */
+  private avatarFromMetadata(metadata: string | undefined): string | null {
+    if (!metadata) return null;
+    try {
+      return (JSON.parse(metadata) as { avatarUrl?: string | null }).avatarUrl ?? null;
+    } catch {
+      return null;
+    }
   }
 
   private mapConnectionQuality(q: ConnectionQuality): 'excellent' | 'good' | 'poor' | 'unknown' {

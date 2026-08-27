@@ -22,7 +22,16 @@ export interface ConversationResponseDto {
   recipient?: ConversationParticipantProfile;
   lastReadMessageId?: string | null;
   unreadCount: number;
+  lastMessage?: {
+    id: string;
+    content: string | null;
+    createdAt: string;
+  };
   createdAt: string;
+  /** 'pending' = message request từ người lạ (chỉ đọc tới khi duyệt); 'accepted' = bình thường. */
+  requestState?: 'pending' | 'accepted';
+  /** Người bên kia đã là bạn bè accepted chưa. */
+  isFriend?: boolean;
 }
 
 @Injectable({
@@ -73,6 +82,34 @@ export class ConversationsApiService {
         .get<ConversationResponseDto>(`${this.baseUrl}/${conversationId}`, {
           headers,
         })
+        .pipe(timeout(10000)),
+    );
+  }
+
+  /** Chấp nhận một message request từ người lạ — mở khoá nhắn tin/gọi. */
+  async acceptRequest(conversationId: string): Promise<void> {
+    const headers = await this.getAuthHeaders();
+    await firstValueFrom(
+      this.http
+        .post<{ success: boolean }>(
+          `${this.baseUrl}/${conversationId}/accept`,
+          {},
+          { headers },
+        )
+        .pipe(timeout(10000)),
+    );
+  }
+
+  /** Từ chối một message request — xoá hẳn cuộc trò chuyện. */
+  async declineRequest(conversationId: string): Promise<void> {
+    const headers = await this.getAuthHeaders();
+    await firstValueFrom(
+      this.http
+        .post<{ success: boolean }>(
+          `${this.baseUrl}/${conversationId}/decline`,
+          {},
+          { headers },
+        )
         .pipe(timeout(10000)),
     );
   }

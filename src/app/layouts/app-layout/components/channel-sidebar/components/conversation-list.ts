@@ -97,12 +97,13 @@ export class ConversationList implements OnInit, OnDestroy {
   readonly realConversations = signal<ConversationResponseDto[]>([]);
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
+  private readonly recentActivity = signal<Record<string, number>>({});
 
   protected readonly hasQuery = computed(() => this.normalize(this.query()).length > 0);
 
-  protected readonly conversations = computed<DisplayConversation[]>(() => {
-    const query = this.normalize(this.query());
-
+  /** Toàn bộ DM đã map + sắp xếp (chưa lọc theo query, chưa tách người-lạ). */
+  private readonly allConversations = computed<DisplayConversation[]>(() => {
+    const activity = this.recentActivity();
     const list: DisplayConversation[] = this.realConversations().map((c) => {
       const name =
         c.recipient?.displayName ||
@@ -124,17 +125,48 @@ export class ConversationList implements OnInit, OnDestroy {
         // server/route). Store đã được seed từ REST bên dưới.
         unread: this.notificationStore.dmUnread(c.id) > 0,
         unreadCount: this.notificationStore.dmUnread(c.id),
+        lastActivityAt: Math.max(
+          activity[c.id] ?? 0,
+          this.toTimestamp(c.lastMessage?.createdAt),
+          this.toTimestamp(c.createdAt),
+        ),
+        requestState: c.requestState ?? 'accepted',
+        isFriend: c.isFriend ?? false,
       };
     });
 
-    if (!query) {
-      return list;
-    }
+    list.sort((a, b) => {
+      // Tin chưa đọc luôn nổi lên trước. Trong cùng một nhóm, hoạt động mới nhất
+      // đứng trên để danh sách phản ánh đúng người vừa nhắn/gần đây vừa mở.
+      if (a.unread !== b.unread) return a.unread ? -1 : 1;
+      const byActivity = b.lastActivityAt - a.lastActivityAt;
+      return byActivity !== 0 ? byActivity : a.name.localeCompare(b.name, 'vi');
+    });
 
-    return list.filter((conversation) =>
-      this.normalize(`${conversation.name} ${conversation.statusMessage ?? ''}`).includes(query),
-    );
+    return list;
   });
+
+  private matchesQuery(conversation: DisplayConversation): boolean {
+    const query = this.normalize(this.query());
+    if (!query) return true;
+    return this.normalize(
+      `${conversation.name} ${conversation.statusMessage ?? ''}`,
+    ).includes(query);
+  }
+
+  /** DM thường (đã chấp nhận / là bạn) — hiển thị ở mục "Tin nhắn trực tiếp". */
+  protected readonly conversations = computed<DisplayConversation[]>(() =>
+    this.allConversations().filter(
+      (c) => c.requestState !== 'pending' && this.matchesQuery(c),
+    ),
+  );
+
+  /** Message request từ người lạ (chưa duyệt) — hiển thị ở mục "Người lạ". */
+  protected readonly messageRequests = computed<DisplayConversation[]>(() =>
+    this.allConversations().filter(
+      (c) => c.requestState === 'pending' && this.matchesQuery(c),
+    ),
+  );
 
   protected readonly sectionTitle = computed(() =>
     this.hasQuery() ? `Kết quả · ${this.conversations().length}` : 'Tin nhắn trực tiếp',
@@ -154,6 +186,7 @@ export class ConversationList implements OnInit, OnDestroy {
     try {
       const list = await this.conversationsApi.listConversations();
       this.realConversations.set(list ?? []);
+      this.hydrateRecentActivity(list ?? []);
       this.notificationStore.seedDmUnread(
         (list ?? []).map((c) => ({ id: c.id, unreadCount: c.unreadCount })),
       );
@@ -170,12 +203,24 @@ export class ConversationList implements OnInit, OnDestroy {
     //    cần phát hiện DM MỚI chưa có trong sidebar để tải lại danh sách.
     if (this.chatSocket.conversationUpdated$) {
       this.subs.add(
-        this.chatSocket.conversationUpdated$.subscribe(({ conversationId, senderId }) => {
+        this.chatSocket.conversationUpdated$.subscribe(({ conversationId, senderId, lastMessageAt }) => {
+          this.touchConversation(conversationId, this.toTimestamp(lastMessageAt));
           if (senderId === this.auth.user()?.id) return;
           const exists = this.realConversations().some((c) => c.id === conversationId);
           if (!exists) {
             void this.loadRealConversations();
           }
+        }),
+      );
+    }
+
+    // `conversation:updated` không phát ngược về sender. `message:created` giúp
+    // cuộc trò chuyện vừa gửi cũng lập tức lên đầu mà không cần tải lại REST.
+    if (this.chatSocket.messageCreated$) {
+      this.subs.add(
+        this.chatSocket.messageCreated$.subscribe(({ message }) => {
+          if (!message.conversationId) return;
+          this.touchConversation(message.conversationId, this.toTimestamp(message.createdAt));
         }),
       );
     }
@@ -204,12 +249,47 @@ export class ConversationList implements OnInit, OnDestroy {
     }
   }
 
+  /** Mở đoạn chat của message request (chế độ chỉ đọc — component chat tự hiện banner). */
+  protected onOpenRequest(conv: DisplayConversation): void {
+    void this.router.navigate(['/channels/@me', conv.id]);
+  }
+
+  /** Chấp nhận nhanh từ danh sách "Người lạ" → mở khoá nhắn tin rồi mở đoạn chat. */
+  protected async onAcceptRequest(conv: DisplayConversation, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    try {
+      await this.conversationsApi.acceptRequest(conv.id);
+    } catch {
+      // Bỏ qua — reload sẽ phản ánh trạng thái đúng.
+    }
+    await this.loadRealConversations();
+    void this.router.navigate(['/channels/@me', conv.id]);
+  }
+
+  /** Từ chối nhanh → xoá hẳn đoạn chat khỏi danh sách. */
+  protected async onDeclineRequest(conv: DisplayConversation, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    try {
+      await this.conversationsApi.declineRequest(conv.id);
+    } catch {
+      // Bỏ qua — realtime conversation:deleted sẽ dọn danh sách.
+    }
+    this.realConversations.update((list) => list.filter((c) => c.id !== conv.id));
+    if (this.activeChatStore.conversationId() === conv.id) {
+      void this.router.navigate(['/channels/@me']);
+    }
+  }
+
   protected onConversationContextMenu(event: MouseEvent, conv: DisplayConversation): void {
     event.preventDefault();
     event.stopPropagation();
     this.selectedConversation.set(conv);
     this.contextMenuPosition.set({ x: event.clientX, y: event.clientY });
     this.contextMenuTrigger?.openMenu();
+  }
+
+  protected onConversationOpened(conversationId: string): void {
+    this.touchConversation(conversationId);
   }
 
   protected onStartAudioCall(conv: DisplayConversation): void {
@@ -296,5 +376,68 @@ export class ConversationList implements OnInit, OnDestroy {
       .toLocaleLowerCase('vi')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  private hydrateRecentActivity(conversations: ConversationResponseDto[]): void {
+    const persisted = this.readPersistedActivity();
+    const next = { ...persisted };
+    for (const conversation of conversations) {
+      const serverActivity = Math.max(
+        this.toTimestamp(conversation.lastMessage?.createdAt),
+        this.toTimestamp(conversation.createdAt),
+      );
+      next[conversation.id] = Math.max(next[conversation.id] ?? 0, serverActivity);
+    }
+    this.recentActivity.set(next);
+    this.persistActivity(next);
+  }
+
+  private touchConversation(conversationId: string, timestamp = Date.now()): void {
+    if (!conversationId) return;
+    const safeTimestamp = Number.isFinite(timestamp) && timestamp > 0 ? timestamp : Date.now();
+    this.recentActivity.update((current) => {
+      const next = { ...current, [conversationId]: Math.max(current[conversationId] ?? 0, safeTimestamp) };
+      this.persistActivity(next);
+      return next;
+    });
+  }
+
+  private toTimestamp(value?: string | null): number {
+    if (!value) return 0;
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  }
+
+  private activityStorageKey(): string | null {
+    const userId = this.auth.user()?.id;
+    return userId ? `nexuscord_dm_activity_v1_${userId}` : null;
+  }
+
+  private readPersistedActivity(): Record<string, number> {
+    const key = this.activityStorageKey();
+    if (!key || typeof localStorage === 'undefined') return {};
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? '{}');
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      const sanitized: Record<string, number> = {};
+      for (const [conversationId, timestamp] of Object.entries(parsed)) {
+        if (conversationId && typeof timestamp === 'number' && Number.isFinite(timestamp) && timestamp > 0) {
+          sanitized[conversationId] = timestamp;
+        }
+      }
+      return sanitized;
+    } catch {
+      return {};
+    }
+  }
+
+  private persistActivity(activity: Record<string, number>): void {
+    const key = this.activityStorageKey();
+    if (!key || typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(key, JSON.stringify(activity));
+    } catch {
+      // Storage có thể bị chặn ở chế độ riêng tư; sorting trong memory vẫn hoạt động.
+    }
   }
 }

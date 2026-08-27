@@ -3,63 +3,94 @@
   cdkTrapFocus
   cdkTrapFocusAutoCapture
 >
-  <!-- TOP TOOLBAR -->
+  <!-- TOP HEADER TOOLBAR -->
   <header
-    class="nexus-lightbox-toolbar flex items-center justify-between px-6 py-4 bg-canvas/80 backdrop-blur-md border-b border-hairline/40 shrink-0 z-20"
+    class="nexus-lightbox-toolbar flex items-center justify-between px-4 sm:px-8 py-3 bg-canvas/85 dark:bg-canvas/90 backdrop-blur-xl border-b border-hairline/40 shrink-0 z-30 shadow-xs select-none min-h-[60px]"
     (click)="$event.stopPropagation()"
   >
-    <div class="flex items-center gap-3 min-w-0 pr-4">
+    <!-- Left: File metadata chip -->
+    <div class="flex items-center gap-3 min-w-0 pr-3">
       @if (activeItem(); as active) {
-        <div class="min-w-0 flex flex-col">
+        <div
+          class="size-9 rounded-xl bg-surface-feature/70 border border-hairline/60 flex items-center justify-center text-primary shrink-0 shadow-2xs"
+          aria-hidden="true"
+        >
+          <mat-icon class="!size-5 !text-[20px]">image</mat-icon>
+        </div>
+
+        <div class="min-w-0 flex flex-col justify-center">
           <div class="flex items-center gap-2 min-w-0">
             <span
-              class="nexus-lightbox-filename truncate font-medium text-body-sm text-ink max-w-[320px] md:max-w-[500px]"
+              class="nexus-lightbox-filename truncate font-semibold text-body-sm text-ink max-w-[180px] sm:max-w-[360px] md:max-w-[540px] tracking-tight"
               [title]="active.filename"
             >
               {{ active.filename }}
             </span>
+          </div>
+
+          <div class="flex items-center gap-2 text-micro text-steel mt-0.5">
             @if (active.sizeBytes) {
-              <span class="text-caption text-steel shrink-0">
-                ({{ formatFileSize(active.sizeBytes) }})
+              <span class="font-medium">{{ formatFileSize(active.sizeBytes) }}</span>
+            }
+            @if (!isSingle()) {
+              @if (active.sizeBytes) {
+                <span class="text-stone select-none font-bold">•</span>
+              }
+              <span
+                class="font-mono text-primary bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20 font-semibold text-[11px]"
+              >
+                {{ counterLabel() }}
               </span>
             }
           </div>
-          @if (!isSingle()) {
-            <span class="text-micro text-steel tracking-wide font-mono mt-0.5">
-              {{ counterLabel() }}
-            </span>
-          }
         </div>
       }
     </div>
 
-    <div class="flex items-center gap-2 shrink-0">
+    <!-- Right: Action controls -->
+    <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
+      <!-- Open original in new tab -->
+      @if (activeItem(); as active) {
+        <a
+          [href]="active.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="nexus-lightbox-sub-btn flex items-center justify-center size-9.5 rounded-full bg-surface-feature/70 hover:bg-surface-feature border border-hairline/70 text-steel hover:text-ink transition-all duration-180 active:scale-95 shadow-2xs"
+          matTooltip="Mở tệp gốc trong tab mới"
+          aria-label="Mở tệp gốc trong tab mới"
+        >
+          <mat-icon class="!size-4.5 !text-[18px]">open_in_new</mat-icon>
+        </a>
+      }
+
+      <!-- Download Button -->
       <button
-        mat-icon-button
         type="button"
-        class="nexus-icon-control !size-10 text-ink hover:text-primary hover:!bg-surface-feature/80"
+        class="nexus-lightbox-download-btn flex items-center gap-2 h-9.5 px-3.5 sm:px-4 rounded-full bg-primary/15 hover:bg-primary text-primary hover:text-on-primary border border-primary/35 hover:border-primary transition-all duration-180 active:scale-95 shadow-2xs hover:shadow-glow cursor-pointer font-medium disabled:opacity-40 disabled:pointer-events-none"
         (click)="onDownloadClick($event)"
         [disabled]="isDownloading() || !activeItem()"
         matTooltip="Tải xuống tệp gốc"
         aria-label="Tải xuống tệp gốc"
       >
         @if (isDownloading()) {
-          <mat-spinner diameter="20" strokeWidth="2" class="!inline-block" />
+          <mat-spinner diameter="16" strokeWidth="2" class="!inline-block" />
+          <span class="text-caption font-semibold hidden sm:inline">Đang tải...</span>
         } @else {
-          <mat-icon class="!size-5 !text-xl">download</mat-icon>
+          <mat-icon class="!size-4.5 !text-[18px] leading-none">download</mat-icon>
+          <span class="text-caption font-semibold hidden sm:inline">Tải xuống</span>
         }
       </button>
 
+      <!-- Close Button -->
       <button
         #closeButton
-        mat-icon-button
         type="button"
-        class="nexus-icon-control !size-10 text-ink hover:text-danger hover:!bg-danger/10"
+        class="nexus-lightbox-close-btn flex items-center justify-center size-9.5 rounded-full bg-surface-feature/70 hover:bg-danger/20 hover:text-danger hover:border-danger/40 border border-hairline/70 text-steel hover:text-danger transition-all duration-180 active:scale-95 shadow-2xs cursor-pointer"
         (click)="onClose()"
         matTooltip="Đóng (Escape)"
         aria-label="Đóng (Escape)"
       >
-        <mat-icon class="!size-5 !text-xl">close</mat-icon>
+        <mat-icon class="!size-5 !text-[20px] leading-none">close</mat-icon>
       </button>
     </div>
   </header>

@@ -152,19 +152,54 @@
                   }
 
                   <!-- 3. Message Row Item -->
-                  <li
-                    class="message-row"
-                    [id]="'msg-' + msg.id"
-                    [class.message-row--compact]="isCompact(idx)"
-                    [class.message-row--highlighted]="highlightedMessageId() === msg.id"
-                    [class.message-row--sending]="msg.status === 'sending'"
-                    [class.message-row--failed]="msg.status === 'failed'"
-                    [class.message-row--unread]="
-                      channelChat.lastReadMessageId()
-                        ? msg.id > (channelChat.lastReadMessageId() || '')
-                        : false
-                    "
-                  >
+                  @if (msg.type === 'system_join' || msg.type === 'system_leave') {
+                    <li
+                      class="message-row message-row--system"
+                      [id]="'msg-' + msg.id"
+                      [class.message-row--system-join]="msg.type === 'system_join'"
+                      [class.message-row--system-leave]="msg.type === 'system_leave'"
+                    >
+                      <div class="system-message-content">
+                        @if (msg.type === 'system_join') {
+                          <span class="system-message-icon system-message-icon--join" aria-hidden="true">
+                            <mat-icon>login</mat-icon>
+                          </span>
+                        } @else {
+                          <span class="system-message-icon system-message-icon--leave" aria-hidden="true">
+                            <mat-icon>logout</mat-icon>
+                          </span>
+                        }
+
+                        <span class="system-message-text">
+                          <strong
+                            class="system-message-author"
+                            [appProfileTrigger]="msg.author?.username || ''"
+                            [matTooltip]="'Xem hồ sơ của ' + (msg.author?.displayName || msg.author?.username || 'Thành viên')"
+                          >
+                            {{ msg.author?.displayName || msg.author?.username || 'Một thành viên' }}
+                          </strong>
+                          <span class="system-message-action">{{ msg.content || (msg.type === 'system_join' ? 'đã tham gia máy chủ.' : 'đã rời khỏi máy chủ.') }}</span>
+                        </span>
+
+                        <time class="system-message-time" [attr.datetime]="msg.createdAt">
+                          {{ msg.createdAt | date: 'HH:mm' }}
+                        </time>
+                      </div>
+                    </li>
+                  } @else {
+                    <li
+                      class="message-row"
+                      [id]="'msg-' + msg.id"
+                      [class.message-row--compact]="isCompact(idx)"
+                      [class.message-row--highlighted]="highlightedMessageId() === msg.id"
+                      [class.message-row--sending]="msg.status === 'sending'"
+                      [class.message-row--failed]="msg.status === 'failed'"
+                      [class.message-row--unread]="
+                        channelChat.lastReadMessageId()
+                          ? msg.id > (channelChat.lastReadMessageId() || '')
+                          : false
+                      "
+                    >
                     <!-- Compact Time Gutter -->
                     @if (isCompact(idx)) {
                       <time class="message-hover-time">
@@ -598,6 +633,7 @@
                       </div>
                     </article>
                   </li>
+                  }
                 }
               </ol>
             </div>
