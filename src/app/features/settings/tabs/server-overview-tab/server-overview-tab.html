@@ -217,11 +217,10 @@
           <!-- Overlapping Server Avatar -->
           <div class="-mt-10 mb-2">
             <div class="w-20 h-20 rounded-2xl bg-surface p-1 shadow-card inline-block border-2 border-surface">
-              <div class="w-full h-full rounded-xl bg-surface-feature text-primary font-extrabold text-2xl flex items-center justify-center overflow-hidden border border-hairline">
+              <div class="w-full h-full rounded-xl bg-surface-feature text-primary font-extrabold text-2xl flex items-center justify-center overflow-hidden border border-hairline relative">
+                <span class="select-none">{{ initials() }}</span>
                 @if (serverIcon()) {
-                  <img [src]="serverIcon()" [alt]="serverName()" class="w-full h-full object-cover" />
-                } @else {
-                  <span>{{ initials() }}</span>
+                  <img [src]="serverIcon()" [alt]="serverName()" (error)="$any($event.target).style.display='none'" class="absolute inset-0 w-full h-full object-cover" />
                 }
               </div>
             </div>

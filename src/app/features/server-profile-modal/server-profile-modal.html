@@ -71,8 +71,11 @@
             ẢNH ĐẠI DIỆN MÁY CHỦ
           </label>
           <div class="flex items-center gap-3">
-            <div class="relative w-12 h-12 rounded-full overflow-hidden bg-surface-feature border border-hairline shadow-xs shrink-0">
-              <img [src]="avatarUrl()" alt="Avatar" class="w-full h-full object-cover" />
+            <div class="relative w-12 h-12 rounded-full overflow-hidden bg-surface-feature border border-hairline shadow-xs shrink-0 flex items-center justify-center font-bold text-caption text-primary">
+              <span class="select-none">{{ (nickname() || 'U')[0].toUpperCase() }}</span>
+              @if (avatarUrl()) {
+                <img [src]="avatarUrl()" alt="Avatar" (error)="$any($event.target).style.display='none'" class="absolute inset-0 w-full h-full object-cover" />
+              }
             </div>
             <div class="flex-1 flex items-center gap-2">
               <button
@@ -195,7 +198,12 @@
             <div class="flex items-end justify-between -mt-9 mb-2">
               <!-- Avatar with moon status badge -->
               <div class="relative w-16 h-16 rounded-full bg-surface p-1 shadow-card ring-2 ring-surface">
-                <img [src]="avatarUrl()" alt="Avatar" class="w-full h-full rounded-full object-cover bg-surface-feature" />
+                <div class="w-full h-full rounded-full overflow-hidden bg-surface-feature relative flex items-center justify-center font-bold text-heading-5 text-primary">
+                  <span class="select-none">{{ (nickname() || 'U')[0].toUpperCase() }}</span>
+                  @if (avatarUrl()) {
+                    <img [src]="avatarUrl()" alt="Avatar" (error)="$any($event.target).style.display='none'" class="absolute inset-0 w-full h-full rounded-full object-cover" />
+                  }
+                </div>
                 <span class="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-[#f0b232] border-2 border-surface flex items-center justify-center text-[8.5px]">
                   🌙
                 </span>
