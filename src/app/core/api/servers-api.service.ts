@@ -510,7 +510,14 @@ export class ServersApiService {
   async updateChannel(
     serverId: string,
     channelId: string,
-    dto: { name?: string; topic?: string; position?: number },
+    dto: {
+      name?: string;
+      topic?: string;
+      position?: number;
+      slowmode?: number;
+      isAgeRestricted?: boolean;
+      contentVisibility?: 'default' | 'age_restricted';
+    },
   ): Promise<ChannelSummary> {
     const token = this.auth.accessToken();
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;

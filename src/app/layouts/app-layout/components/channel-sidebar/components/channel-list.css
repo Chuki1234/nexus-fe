@@ -38,8 +38,21 @@
   text-align: center !important;
 }
 
+.channel-actions-wrapper {
+  position: relative;
+  z-index: 10;
+}
+
 .channel-actions {
+  position: relative;
+  z-index: 11;
   transition: opacity 120ms ease;
+}
+
+.channel-action-btn {
+  position: relative;
+  z-index: 12;
+  pointer-events: auto;
 }
 
 .channel-action-btn:hover {
@@ -237,7 +250,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
- * Drag & Drop Channels (Discord Style UX & Animations)
+ * Drag & Drop Channels & Categories (Discord Style UX & Animations)
  * ════════════════════════════════════════════════════════════════════════════ */
 
 /* Cursor khi có quyền kéo thả */
@@ -245,11 +258,6 @@
   user-select: none;
   width: 100%;
   box-sizing: border-box;
-}
-
-:not(.cdk-drop-list-dragging) > .channel-row:not(.cdk-drag-animating),
-:not(.cdk-drop-list-dragging) > .channel-group:not(.cdk-drag-animating) {
-  transform: none !important;
 }
 
 .channel-row:not(.cdk-drag-disabled) {
@@ -271,12 +279,17 @@
   box-shadow: 0 0 12px rgba(0, 237, 100, 0.25);
   width: 100%;
   flex: 0 0 34px;
-  margin: 0;
+  margin: 2px 0;
   transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
   box-sizing: border-box;
 }
 
-/* Preview giữ đúng visual của channel row đang hover: 34px, bo 12px và căn trái. */
+.channel-drag-placeholder--child {
+  margin-left: 0.75rem;
+  width: calc(100% - 0.75rem);
+}
+
+/* Preview giữ đúng visual của channel row: 34px, bo 12px và căn trái */
 ::ng-deep .channel-drag-preview.cdk-drag-preview {
   display: flex !important;
   align-items: center !important;
@@ -299,6 +312,7 @@
   pointer-events: none !important;
   cursor: grabbing !important;
   user-select: none !important;
+  z-index: 99999 !important;
 }
 
 ::ng-deep .channel-drag-preview-icon {
@@ -326,121 +340,103 @@
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
 }
-/* Inner voice member preview: width từ [style.width.px], height cố định */
-::ng-deep .voice-member-drag-preview {
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.375rem !important;
-  box-sizing: border-box !important;
-  height: 28px !important;
-  border-radius: 6px !important;
-  padding: 0 8px !important;
-  background: var(--color-surface, #002634) !important;
-  border: 1.5px solid var(--color-primary, #00ed64) !important;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 237, 100, 0.35) !important;
-  opacity: 0.98 !important;
-  z-index: 99999 !important;
-  pointer-events: none !important;
-  cursor: grabbing !important;
-  user-select: none !important;
-}
 
-::ng-deep .voice-member-drag-preview .voice-member-drag-preview-title {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  font-size: 0.75rem !important;
-  font-weight: 600 !important;
-  color: var(--color-ink, #ffffff) !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
-/* Animation dịch chuyển các kênh xung quanh để mở khoảng trống */
-.cdk-drop-list-dragging .channel-row:not(.cdk-drag-placeholder) {
-  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
-}
-
-.cdk-drag-animating {
-  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+/*
+  Khoảng cách giữa các root item nằm BÊN TRONG border box của `.channel-group`
+  (padding, không phải margin). `SingleAxisSortStrategy._getItemIndexFromPointer
+  Position()` chỉ sort khi con trỏ nằm trong clientRect của một item — margin
+  ngoài sẽ tạo vùng chết khiến root channel không chèn được giữa hai category.
+  Dải padding trên/dưới vì thế đóng vai trò insertion gap của cấp root.
+*/
+.channel-group {
+  padding-top: 0.75rem;
+  padding-bottom: 0.25rem;
 }
 
 /* Drop list container */
 .channel-drop-list {
-  min-height: 12px;
-  transition: background 150ms ease;
+  min-height: 4px;
+  transition: min-height 150ms ease, height 150ms ease;
 }
+
+.channel-drop-list--collapsed,
+.channel-drop-list--empty {
+  min-height: 0px;
+  height: 0px;
+  overflow: hidden;
+}
+
+/* Category đóng/rỗng KHÔNG tự bung khi kéo: CDK cache DOMRect của mọi drop list
+   ngay trong `start()` — trước khi Angular kịp render class trạng thái kéo — nên
+   một list cao 0px lúc đó sẽ vĩnh viễn trượt hit-test. Nest vào category đóng
+   hoặc rỗng đi qua `category-header-drop-*` (luôn có chiều cao thật). */
 
 .channel-drop-list.cdk-drop-list-dragging {
   border-radius: 8px;
 }
 
-/* Inner voice member preview: width từ [style.width.px], height cố định */
-::ng-deep .voice-member-drag-preview {
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.375rem !important;
-  box-sizing: border-box !important;
-  height: 28px !important;
-  border-radius: 6px !important;
-  padding: 0 8px !important;
-  background: var(--color-surface, #002634) !important;
-  border: 1.5px solid var(--color-primary, #00ed64) !important;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 237, 100, 0.35) !important;
-  opacity: 0.98 !important;
-  z-index: 99999 !important;
-  pointer-events: none !important;
-  cursor: grabbing !important;
-  user-select: none !important;
+.channel-sidebar-root-list {
+  min-height: 30px;
 }
 
-::ng-deep .voice-member-drag-preview .voice-member-drag-preview-title {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  font-size: 0.75rem !important;
-  font-weight: 600 !important;
-  color: var(--color-ink, #ffffff) !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+/* Nest vào category = highlight nhẹ trên header, khác hẳn insertion gap ở list */
+.category-header-drop .channel-drag-placeholder {
+  display: none;
 }
 
-/* Animation dịch chuyển các kênh xung quanh để mở khoảng trống */
-.cdk-drop-list-dragging .channel-row:not(.cdk-drag-placeholder) {
-  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+/* ────────────────────────────────────────────────────────────────────────────
+   Nest Indicator: khi kéo một kênh từ NGOÀI vào một category (đưa vào danh mục),
+   sáng toàn bộ khối category để người dùng biết chắc đang thả vào đâu — khác hẳn
+   khe chèn (insertion gap) dùng cho việc sắp xếp lại.
+   ──────────────────────────────────────────────────────────────────────────── */
+.category-drop-target-active {
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--color-primary, #00ed64) 12%, var(--color-surface, #002634));
+  box-shadow:
+    inset 0 0 0 1.5px rgba(0, 237, 100, 0.7),
+    0 0 0 3px rgba(0, 237, 100, 0.16);
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
-.cdk-drag-animating {
-  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+/* Header nổi bật hơn một chút trong khối đang được nhắm tới */
+.category-header-nest-target {
+  background-color: color-mix(in srgb, var(--color-primary, #00ed64) 16%, var(--color-surface, #002634)) !important;
 }
 
-/* Drop list container */
-.channel-drop-list {
-  min-height: 12px;
-  transition: background 150ms ease;
+/* Nhãn "Thả vào đây" trên header */
+.category-nest-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--color-primary, #00ed64);
+  background: color-mix(in srgb, var(--color-primary, #00ed64) 16%, var(--color-surface, #002634));
+  border: 1px solid color-mix(in srgb, var(--color-primary, #00ed64) 45%, transparent);
 }
 
-.channel-drop-list.cdk-drop-list-dragging {
-  border-radius: 8px;
-}
-
-/* Voice Channel Members Row & Badges */
-.voice-member-row {
-  user-select: none;
-}
-
-.voice-member-row:hover {
-  background-color: var(--surface-feature, rgba(255, 255, 255, 0.04));
+.category-nest-label-icon {
+  width: 0.875rem !important;
+  height: 0.875rem !important;
+  line-height: 1 !important;
 }
 
 /* Category Drag & Drop Styling */
 .category-drag-placeholder {
-  min-height: 28px;
-  background: color-mix(in srgb, var(--color-primary, #00ed64) 8%, transparent);
-  border: 1.5px dashed color-mix(in srgb, var(--color-primary, #00ed64) 40%, transparent);
+  min-height: 32px;
+  height: 32px;
+  background: color-mix(in srgb, var(--color-primary, #00ed64) 10%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--color-primary, #00ed64) 50%, transparent);
   border-radius: 8px;
-  margin: 4px 8px;
+  margin: 4px 2px;
   transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
 ::ng-deep .category-drag-preview {
@@ -461,6 +457,82 @@
   user-select: none !important;
 }
 
-.categories-drop-list.cdk-drop-list-dragging .channel-group:not(.cdk-drag-placeholder) {
+/* Inner voice member preview: width từ [style.width.px], height cố định */
+::ng-deep .voice-member-drag-preview {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.375rem !important;
+  box-sizing: border-box !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  padding: 0 8px !important;
+  background: var(--color-surface, #002634) !important;
+  border: 1.5px solid var(--color-primary, #00ed64) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 237, 100, 0.35) !important;
+  opacity: 0.98 !important;
+  z-index: 99999 !important;
+  pointer-events: none !important;
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+::ng-deep .voice-member-drag-preview .voice-member-drag-preview-title {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: var(--color-ink, #ffffff) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Voice Channel Members Row & Badges */
+.voice-member-row {
+  user-select: none;
+}
+
+.voice-member-row:hover {
+  background-color: var(--surface-feature, rgba(255, 255, 255, 0.04));
+}
+
+/* Animation dịch chuyển các kênh xung quanh để mở khoảng trống */
+.cdk-drop-list-dragging .channel-row:not(.cdk-drag-placeholder),
+.cdk-drop-list-dragging .channel-group:not(.cdk-drag-placeholder) {
   transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Prefers Reduced Motion: tắt toàn bộ animation/transition và pulse */
+@media (prefers-reduced-motion: reduce) {
+  .channel-row,
+  .channel-group,
+  .channel-group-header,
+  .channel-group-chevron,
+  .channel-drag-placeholder,
+  .channel-drag-preview,
+  .category-drag-placeholder,
+  .category-drag-preview,
+  .voice-member-drag-preview,
+  .channel-drop-list,
+  .category-drop-target-active,
+  .channel-actions,
+  .voice-watch-stream-btn {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .cdk-drag-animating,
+  .cdk-drop-list-dragging .cdk-drag,
+  .cdk-drop-list-dragging .channel-row,
+  .cdk-drop-list-dragging .channel-group {
+    transition: none !important;
+  }
+
+  .animate-pulse {
+    animation: none !important;
+  }
 }

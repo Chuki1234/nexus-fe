@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import type { ConversationSummary } from '../../../../../core/conversations/conversation.models';
 import { ActivityPanel } from './activity-panel';
+import { PresenceService } from '../../../../../core/presence/presence.service';
 
 describe('ActivityPanel', () => {
   const ONLINE: ConversationSummary = {
@@ -15,6 +16,14 @@ describe('ActivityPanel', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ActivityPanel],
+      providers: [
+        {
+          provide: PresenceService,
+          useValue: {
+            resolvePresence: (userId: string) => userId === 'will' ? 'idle' : 'offline',
+          },
+        },
+      ],
     }).compileComponents();
   });
 
@@ -26,6 +35,15 @@ describe('ActivityPanel', () => {
     expect(fixture.nativeElement.textContent).toContain('Will');
     expect(fixture.nativeElement.textContent).toContain('Đang học Angular');
     expect(fixture.nativeElement.querySelector('.activity-card')).toBeTruthy();
+  });
+
+  it('dùng realtime presence thay cho presence tĩnh từ API', () => {
+    const fixture = TestBed.createComponent(ActivityPanel);
+    fixture.componentRef.setInput('people', [{ ...ONLINE, presence: 'online', statusMessage: null }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đang vắng');
+    expect(fixture.nativeElement.querySelector('[aria-label="Đang vắng"]')).toBeTruthy();
   });
 
   it('có empty state khi không ai trực tuyến', () => {

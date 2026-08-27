@@ -1,4 +1,9 @@
-import { parseMessageContent } from './message-content-parser';
+import {
+  parseMessageContent,
+  extractMentionUsernames,
+  isMentioningUser,
+  isMentioningEveryone,
+} from './message-content-parser';
 
 describe('MessageContentParser (Safe Linkification & Scheme Whitelisting)', () => {
   it('giữ nguyên văn bản thông thường không chứa link', () => {
@@ -92,5 +97,97 @@ describe('MessageContentParser (Safe Linkification & Scheme Whitelisting)', () =
 
   it('trả về mảng rỗng khi content rỗng hoặc null/undefined', () => {
     expect(parseMessageContent('', 'test')).toEqual([]);
+    expect(parseMessageContent(null, 'test')).toEqual([]);
+    expect(parseMessageContent(undefined, 'test')).toEqual([]);
+  });
+
+  describe('Mention Parsing & Fast Path & Anti-XSS/Anti-Email', () => {
+    it('fast path: parse chính xác tin nhắn chỉ chứa mention @username mà không có URL', () => {
+      const text = '@minhtai';
+      const tokens = parseMessageContent(text, 'test');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0]).toEqual({
+        key: expect.any(String),
+        type: 'mention',
+        value: 'minhtai',
+        isEveryone: false,
+      });
+    });
+
+    it('mention token.value chỉ chứa username, không chứa ký tự @', () => {
+      const text = 'Chào @alex_dev và @john.doe nhé';
+      const tokens = parseMessageContent(text, 'test');
+      const mentions = tokens.filter((t) => t.type === 'mention');
+      expect(mentions).toHaveLength(2);
+      expect(mentions[0].value).toBe('alex_dev');
+      expect(mentions[1].value).toBe('john.doe');
+      expect(mentions[0].value.startsWith('@')).toBe(false);
+      expect(mentions[1].value.startsWith('@')).toBe(false);
+    });
+
+    it('nhận diện @everyone với flag isEveryone: true', () => {
+      const text = 'Thông báo tới @everyone trong server';
+      const tokens = parseMessageContent(text, 'test');
+      const mention = tokens.find((t) => t.type === 'mention');
+      expect(mention).toBeDefined();
+      expect(mention?.value).toBe('everyone');
+      expect(mention?.isEveryone).toBe(true);
+    });
+
+    it('tách đúng dấu câu sau mention (phẩy, chấm, chấm hỏi, ngoặc đơn)', () => {
+      const text = 'Này (@minhtai), bạn đã nộp bài chưa? Gặp @tai.nguyen.';
+      const tokens = parseMessageContent(text, 'test');
+      const mentions = tokens.filter((t) => t.type === 'mention');
+      expect(mentions).toHaveLength(2);
+      expect(mentions[0].value).toBe('minhtai');
+      expect(mentions[1].value).toBe('tai.nguyen');
+
+      // Đảm bảo dấu ngoặc và dấu chấm được giữ nguyên trong text
+      const fullReconstructed = tokens.map((t) => (t.type === 'mention' ? `@${t.value}` : t.value)).join('');
+      expect(fullReconstructed).toBe(text);
+    });
+
+    it('KHÔNG nhận diện nhầm địa chỉ email là mention', () => {
+      const text = 'Gửi thư về contact@example.com hoặc support@nexuscord.app';
+      const tokens = parseMessageContent(text, 'test');
+      const mentions = tokens.filter((t) => t.type === 'mention');
+      expect(mentions).toHaveLength(0);
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].type).toBe('text');
+      expect(tokens[0].value).toBe(text);
+    });
+
+    it('KHÔNG nhận diện ký tự @ nằm giữa một từ hoặc không có khoảng trắng phía trước', () => {
+      const text = 'foo@bar abc@123';
+      const tokens = parseMessageContent(text, 'test');
+      const mentions = tokens.filter((t) => t.type === 'mention');
+      expect(mentions).toHaveLength(0);
+    });
+
+    it('parse kết hợp đồng thời URL và @username trong cùng tin nhắn', () => {
+      const text = 'Xem link https://nexuscord.app này nhé @minhtai';
+      const tokens = parseMessageContent(text, 'test');
+      const link = tokens.find((t) => t.type === 'link');
+      const mention = tokens.find((t) => t.type === 'mention');
+      expect(link).toBeDefined();
+      expect(link?.value).toBe('https://nexuscord.app');
+      expect(mention).toBeDefined();
+      expect(mention?.value).toBe('minhtai');
+    });
+
+    it('extractMentionUsernames trích xuất danh sách username không trùng lặp và viết thường', () => {
+      const text = 'Alo @MinhTai và @minhtai cùng @Everyone xem nhé';
+      const extracted = extractMentionUsernames(text);
+      expect(extracted).toEqual(['minhtai', 'everyone']);
+    });
+
+    it('isMentioningUser và isMentioningEveryone kiểm tra chuẩn xác', () => {
+      const text = 'Chào @MinhTai và @everyone!';
+      expect(isMentioningUser(text, 'minhtai')).toBe(true);
+      expect(isMentioningUser(text, 'MINHTAI')).toBe(true);
+      expect(isMentioningUser(text, 'other_user')).toBe(false);
+      expect(isMentioningEveryone(text)).toBe(true);
+      expect(isMentioningEveryone('Tin nhắn bình thường')).toBe(false);
+    });
   });
 });

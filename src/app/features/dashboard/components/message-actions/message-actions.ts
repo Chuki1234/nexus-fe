@@ -92,8 +92,8 @@ export class MessageActions {
       icon: 'push_pin',
       label: isPinned ? 'Bỏ ghim tin nhắn' : 'Ghim tin nhắn',
       description: isPinned
-        ? 'Gỡ tin khỏi danh sách ghim của kênh.'
-        : 'Ghim tin để mọi người trong kênh xem nhanh.',
+        ? 'Gỡ tin khỏi danh sách ghim của cuộc trò chuyện.'
+        : 'Ghim tin để những người trong cuộc trò chuyện xem nhanh.',
       messageId: this.messageId(),
     });
   }

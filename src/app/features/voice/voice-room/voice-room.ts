@@ -95,11 +95,9 @@ export class VoiceRoom implements OnInit {
         serverId: this.serverId(),
         channel: this.channel(),
       },
-      panelClass: 'nexus-fullscreen-dialog-overlay',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      width: '100vw',
-      height: '100vh',
+      panelClass: 'nexus-dialog-overlay',
+      maxWidth: '92vw',
+      maxHeight: '88vh',
       autoFocus: false,
     });
   }

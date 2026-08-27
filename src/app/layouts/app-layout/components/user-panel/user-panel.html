@@ -121,24 +121,30 @@
       mat-icon-button
       type="button"
       class="user-panel__control user-panel__control--mic nexus-icon-control nexus-audio-toggle"
-      [attr.aria-pressed]="micMuted()"
-      [matTooltip]="micMuted() ? 'Bật micrô' : 'Tắt micrô'"
-      (click)="micMuted.set(!micMuted())"
+      [class.!text-danger]="isMicMuted()"
+      [class.!bg-danger/20]="isMicMuted()"
+      [attr.aria-pressed]="isMicMuted()"
+      [matTooltip]="!isVoiceConnected() ? 'Chưa tham gia phòng thoại' : (isDeafened() ? 'Bật tai nghe trước' : (isMicMuted() ? 'Bật micrô' : 'Tắt micrô'))"
+      [disabled]="!isVoiceConnected() || isDeafened()"
+      (click)="toggleMic()"
     >
-      <mat-icon>{{ micMuted() ? 'mic_off' : 'mic' }}</mat-icon>
-      <span class="sr-only">{{ micMuted() ? 'Bật micrô' : 'Tắt micrô' }}</span>
+      <mat-icon>{{ isMicMuted() ? 'mic_off' : 'mic' }}</mat-icon>
+      <span class="sr-only">{{ isMicMuted() ? 'Bật micrô' : 'Tắt micrô' }}</span>
     </button>
 
     <button
       mat-icon-button
       type="button"
       class="user-panel__control user-panel__control--deafen nexus-icon-control nexus-audio-toggle"
-      [attr.aria-pressed]="deafened()"
-      [matTooltip]="deafened() ? 'Bật loa' : 'Tắt loa'"
-      (click)="deafened.set(!deafened())"
+      [class.!text-danger]="isDeafened()"
+      [class.!bg-danger/20]="isDeafened()"
+      [attr.aria-pressed]="isDeafened()"
+      [matTooltip]="!isVoiceConnected() ? 'Chưa tham gia phòng thoại' : (isDeafened() ? 'Bật âm thanh' : 'Tắt âm thanh')"
+      [disabled]="!isVoiceConnected()"
+      (click)="toggleDeafen()"
     >
-      <mat-icon>{{ deafened() ? 'headset_off' : 'headset' }}</mat-icon>
-      <span class="sr-only">{{ deafened() ? 'Bật loa' : 'Tắt loa' }}</span>
+      <mat-icon>{{ isDeafened() ? 'headset_off' : 'headset' }}</mat-icon>
+      <span class="sr-only">{{ isDeafened() ? 'Bật âm thanh' : 'Tắt âm thanh' }}</span>
     </button>
 
     <button

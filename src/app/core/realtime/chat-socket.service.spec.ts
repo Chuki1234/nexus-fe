@@ -439,6 +439,43 @@ describe('ChatSocketService', () => {
     expect(mockSocket.emit).toHaveBeenCalledWith('server:leave', { serverId: 'srv-100' });
   });
 
+  it('reconcile voice state và tải lại snapshot sau Socket.IO reconnect', async () => {
+    mockSocket.emit.mockImplementation((event: string, payload: any, cb: any) => {
+      if (event === 'server:join') cb({ success: true });
+      if (event === 'voice:get-server-states') cb({ serverId: payload.serverId, states: [] });
+    });
+
+    service.connect('jwt-token-123');
+    await service.joinServer('srv-voice');
+    mockSocket.emit.mockClear();
+
+    mockSocket.connected = false;
+    service.updateVoiceState({
+      serverId: 'srv-voice',
+      channelId: 'channel-voice',
+      isMuted: false,
+    });
+    expect(mockSocket.emit).not.toHaveBeenCalledWith('voice:state-update', expect.anything());
+
+    mockSocket.connected = true;
+    const connectCallback = mockSocket.on.mock.calls.find(
+      (call: any[]) => call[0] === 'connect',
+    )?.[1];
+    connectCallback();
+    await vi.waitFor(() => {
+      expect(mockSocket.emit).toHaveBeenCalledWith('voice:state-update', {
+        serverId: 'srv-voice',
+        channelId: 'channel-voice',
+        isMuted: false,
+      });
+    });
+    expect(mockSocket.emit).toHaveBeenCalledWith(
+      'voice:get-server-states',
+      { serverId: 'srv-voice' },
+      expect.any(Function),
+    );
+  });
+
   it('phát tán sự kiện serverDeleted$ khi nhận server:deleted', async () => {
     service.connect('jwt-token-123');
 

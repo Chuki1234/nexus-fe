@@ -150,4 +150,33 @@ describe('MessagesApiService', () => {
     );
     expect(res.signedUrl).toBe('https://storage.supabase.co/signed/new.png');
   });
+
+  it('gọi đúng API danh sách ghim của DM', async () => {
+    httpMock.get.mockReturnValue(of([]));
+
+    await service.getConversationPins('conv-1');
+
+    expect(httpMock.get).toHaveBeenCalledWith(
+      'http://localhost:3000/api/conversations/conv-1/pins',
+      expect.objectContaining({ headers: expect.any(HttpHeaders) }),
+    );
+  });
+
+  it('dùng endpoint message chung để ghim và bỏ ghim cho mọi loại chat', async () => {
+    httpMock.post.mockReturnValue(of({ id: '101', pinnedAt: '2026-08-27T05:00:00Z' }));
+    httpMock.delete.mockReturnValue(of({ id: '101', pinnedAt: null }));
+
+    await service.pinMessage('101');
+    await service.unpinMessage('101');
+
+    expect(httpMock.post).toHaveBeenCalledWith(
+      'http://localhost:3000/api/messages/101/pin',
+      {},
+      expect.objectContaining({ headers: expect.any(HttpHeaders) }),
+    );
+    expect(httpMock.delete).toHaveBeenCalledWith(
+      'http://localhost:3000/api/messages/101/pin',
+      expect.objectContaining({ headers: expect.any(HttpHeaders) }),
+    );
+  });
 });

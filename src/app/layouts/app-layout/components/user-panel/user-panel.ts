@@ -33,7 +33,7 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'm-2 mt-1 min-w-0 self-stretch overflow-hidden rounded-xl bg-canvas p-2 shadow-glow flex flex-col',
+    class: 'min-w-0 self-stretch overflow-hidden flex flex-col',
   },
   templateUrl: './user-panel.html',
   styleUrl: './user-panel.css',
@@ -47,12 +47,9 @@ export class UserPanel {
 
   protected readonly isVoiceConnected = this.voiceRoom.isConnected;
   protected readonly voiceChannelName = this.voiceRoom.currentChannelName;
-  protected readonly isCameraOn = this.voiceRoom.isCameraOn;
-  protected readonly isScreenSharing = this.voiceRoom.isScreenSharing;
   protected readonly isTestingMic = this.mediaDevices.isTestingMic;
-
-  protected readonly micMuted = signal(false);
-  protected readonly deafened = signal(false);
+  protected readonly isMicMuted = this.voiceRoom.isMicMuted;
+  protected readonly isDeafened = this.voiceRoom.isDeafened;
 
   /** Thẻ hồ sơ nổi đè lên khi rê chuột vào khối người dùng. */
   protected readonly popoverOpen = signal(false);
@@ -124,8 +121,16 @@ export class UserPanel {
     void this.voiceRoom.toggleCamera();
   }
 
-  protected toggleScreenShare(): void {
-    void this.voiceRoom.toggleScreenShare();
+  protected toggleMic(): void {
+    if (this.isVoiceConnected()) {
+      void this.voiceRoom.toggleMicrophone();
+    }
+  }
+
+  protected toggleDeafen(): void {
+    if (this.isVoiceConnected()) {
+      void this.voiceRoom.toggleDeafen();
+    }
   }
 
   protected openSettings(): void {

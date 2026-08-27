@@ -153,10 +153,7 @@ export class MessagesApiService {
   /**
    * Gửi tin nhắn mới vào cuộc trò chuyện (hỗ trợ text và file đính kèm).
    */
-  async sendMessage(
-    conversationId: string,
-    dto: SendMessageDto,
-  ): Promise<MessageResponseDto> {
+  async sendMessage(conversationId: string, dto: SendMessageDto): Promise<MessageResponseDto> {
     const headers = await this.getAuthHeaders();
     if (dto.files && dto.files.length > 0) {
       const formData = new FormData();
@@ -182,18 +179,16 @@ export class MessagesApiService {
             formData,
             { headers },
           )
-          .pipe(timeout(15000)),
+          .pipe(timeout(120000)),
       );
     }
 
     return firstValueFrom(
       this.http
-        .post<MessageResponseDto>(
-          `${this.baseUrl}/conversations/${conversationId}/messages`,
-          dto,
-          { headers },
-        )
-        .pipe(timeout(15000)),
+        .post<MessageResponseDto>(`${this.baseUrl}/conversations/${conversationId}/messages`, dto, {
+          headers,
+        })
+        .pipe(timeout(30000)),
     );
   }
 
@@ -299,13 +294,10 @@ export class MessagesApiService {
     const headers = await this.getAuthHeaders();
     return firstValueFrom(
       this.http
-        .get<ChannelMessagesResponseDto>(
-          `${this.baseUrl}/channels/${channelId}/messages`,
-          {
-            headers,
-            params,
-          },
-        )
+        .get<ChannelMessagesResponseDto>(`${this.baseUrl}/channels/${channelId}/messages`, {
+          headers,
+          params,
+        })
         .pipe(timeout(15000)),
     );
   }
@@ -313,10 +305,7 @@ export class MessagesApiService {
   /**
    * Gửi tin nhắn mới vào kênh máy chủ (hỗ trợ text và file đính kèm).
    */
-  async sendChannelMessage(
-    channelId: string,
-    dto: SendMessageDto,
-  ): Promise<MessageResponseDto> {
+  async sendChannelMessage(channelId: string, dto: SendMessageDto): Promise<MessageResponseDto> {
     const headers = await this.getAuthHeaders();
     if (dto.files && dto.files.length > 0) {
       const formData = new FormData();
@@ -337,23 +326,19 @@ export class MessagesApiService {
       }
       return firstValueFrom(
         this.http
-          .post<MessageResponseDto>(
-            `${this.baseUrl}/channels/${channelId}/messages`,
-            formData,
-            { headers },
-          )
-          .pipe(timeout(15000)),
+          .post<MessageResponseDto>(`${this.baseUrl}/channels/${channelId}/messages`, formData, {
+            headers,
+          })
+          .pipe(timeout(120000)),
       );
     }
 
     return firstValueFrom(
       this.http
-        .post<MessageResponseDto>(
-          `${this.baseUrl}/channels/${channelId}/messages`,
-          dto,
-          { headers },
-        )
-        .pipe(timeout(15000)),
+        .post<MessageResponseDto>(`${this.baseUrl}/channels/${channelId}/messages`, dto, {
+          headers,
+        })
+        .pipe(timeout(30000)),
     );
   }
 
@@ -456,10 +441,10 @@ export class MessagesApiService {
     const headers = await this.getAuthHeaders();
     return firstValueFrom(
       this.http
-        .get<ChannelSearchResponseDto>(
-          `${this.baseUrl}/channels/${channelId}/messages/search`,
-          { headers, params },
-        )
+        .get<ChannelSearchResponseDto>(`${this.baseUrl}/channels/${channelId}/messages/search`, {
+          headers,
+          params,
+        })
         .pipe(timeout(15000)),
     );
   }
@@ -478,24 +463,32 @@ export class MessagesApiService {
     );
   }
 
-  /**
-   * Ghim một tin nhắn trong kênh.
-   */
-  async pinMessage(messageId: string): Promise<MessageResponseDto> {
+  /** Danh sách tin nhắn đã ghim trong một cuộc trò chuyện riêng. */
+  async getConversationPins(conversationId: string): Promise<MessageResponseDto[]> {
     const headers = await this.getAuthHeaders();
     return firstValueFrom(
       this.http
-        .post<MessageResponseDto>(
-          `${this.baseUrl}/messages/${messageId}/pin`,
-          {},
-          { headers },
-        )
+        .get<MessageResponseDto[]>(`${this.baseUrl}/conversations/${conversationId}/pins`, {
+          headers,
+        })
         .pipe(timeout(15000)),
     );
   }
 
   /**
-   * Bỏ ghim một tin nhắn trong kênh.
+   * Ghim một tin nhắn trong DM hoặc kênh máy chủ.
+   */
+  async pinMessage(messageId: string): Promise<MessageResponseDto> {
+    const headers = await this.getAuthHeaders();
+    return firstValueFrom(
+      this.http
+        .post<MessageResponseDto>(`${this.baseUrl}/messages/${messageId}/pin`, {}, { headers })
+        .pipe(timeout(15000)),
+    );
+  }
+
+  /**
+   * Bỏ ghim một tin nhắn trong DM hoặc kênh máy chủ.
    */
   async unpinMessage(messageId: string): Promise<MessageResponseDto> {
     const headers = await this.getAuthHeaders();
@@ -511,18 +504,11 @@ export class MessagesApiService {
   /**
    * Chỉnh sửa tin nhắn của chính mình.
    */
-  async editMessage(
-    messageId: string,
-    dto: EditMessageDto,
-  ): Promise<MessageResponseDto> {
+  async editMessage(messageId: string, dto: EditMessageDto): Promise<MessageResponseDto> {
     const headers = await this.getAuthHeaders();
     return firstValueFrom(
       this.http
-        .patch<MessageResponseDto>(
-          `${this.baseUrl}/messages/${messageId}`,
-          dto,
-          { headers },
-        )
+        .patch<MessageResponseDto>(`${this.baseUrl}/messages/${messageId}`, dto, { headers })
         .pipe(timeout(15000)),
     );
   }
@@ -532,15 +518,23 @@ export class MessagesApiService {
    */
   async hideMessage(
     messageId: string,
-  ): Promise<{ id: string; hidden: boolean; scope: 'for_me'; conversationId: string | null; channelId: string | null }> {
+  ): Promise<{
+    id: string;
+    hidden: boolean;
+    scope: 'for_me';
+    conversationId: string | null;
+    channelId: string | null;
+  }> {
     const headers = await this.getAuthHeaders();
     return firstValueFrom(
       this.http
-        .post<{ id: string; hidden: boolean; scope: 'for_me'; conversationId: string | null; channelId: string | null }>(
-          `${this.baseUrl}/messages/${messageId}/hide`,
-          {},
-          { headers },
-        )
+        .post<{
+          id: string;
+          hidden: boolean;
+          scope: 'for_me';
+          conversationId: string | null;
+          channelId: string | null;
+        }>(`${this.baseUrl}/messages/${messageId}/hide`, {}, { headers })
         .pipe(timeout(15000)),
     );
   }
@@ -550,15 +544,23 @@ export class MessagesApiService {
    */
   async recallMessage(
     messageId: string,
-  ): Promise<{ id: string; deleted: boolean; scope: 'everyone'; conversationId: string | null; channelId: string | null }> {
+  ): Promise<{
+    id: string;
+    deleted: boolean;
+    scope: 'everyone';
+    conversationId: string | null;
+    channelId: string | null;
+  }> {
     const headers = await this.getAuthHeaders();
     return firstValueFrom(
       this.http
-        .post<{ id: string; deleted: boolean; scope: 'everyone'; conversationId: string | null; channelId: string | null }>(
-          `${this.baseUrl}/messages/${messageId}/recall`,
-          {},
-          { headers },
-        )
+        .post<{
+          id: string;
+          deleted: boolean;
+          scope: 'everyone';
+          conversationId: string | null;
+          channelId: string | null;
+        }>(`${this.baseUrl}/messages/${messageId}/recall`, {}, { headers })
         .pipe(timeout(15000)),
     );
   }
@@ -569,15 +571,26 @@ export class MessagesApiService {
   async deleteMessage(
     messageId: string,
     scope: 'for_me' | 'everyone' = 'for_me',
-  ): Promise<{ id: string; deleted?: boolean; hidden?: boolean; scope: 'for_me' | 'everyone'; conversationId: string | null; channelId: string | null }> {
+  ): Promise<{
+    id: string;
+    deleted?: boolean;
+    hidden?: boolean;
+    scope: 'for_me' | 'everyone';
+    conversationId: string | null;
+    channelId: string | null;
+  }> {
     const headers = await this.getAuthHeaders();
     const params = new HttpParams().set('scope', scope);
     return firstValueFrom(
       this.http
-        .delete<{ id: string; deleted?: boolean; hidden?: boolean; scope: 'for_me' | 'everyone'; conversationId: string | null; channelId: string | null }>(
-          `${this.baseUrl}/messages/${messageId}`,
-          { headers, params },
-        )
+        .delete<{
+          id: string;
+          deleted?: boolean;
+          hidden?: boolean;
+          scope: 'for_me' | 'everyone';
+          conversationId: string | null;
+          channelId: string | null;
+        }>(`${this.baseUrl}/messages/${messageId}`, { headers, params })
         .pipe(timeout(15000)),
     );
   }

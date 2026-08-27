@@ -1,321 +1,286 @@
 <div
-  class="channel-settings-container flex size-full bg-canvas text-ink"
+  class="nexus-channel-settings-dialog flex flex-col overflow-hidden bg-surface text-ink select-none"
   role="dialog"
-  aria-labelledby="settings-heading"
+  aria-labelledby="channel-settings-title"
 >
-  <!-- Left Settings Navigation Sidebar -->
-  <aside class="w-60 shrink-0 bg-surface border-r border-hairline/60 p-4 flex flex-col justify-between select-none">
-    <div>
-      <h3 class="px-2 pb-2 text-micro-uppercase font-bold text-steel truncate">
-        #{{ data.channel.name }} {{ data.channel.type === 'voice' ? 'KÊNH THOẠI' : 'KÊNH CHAT' }}
-      </h3>
-
-      <nav class="flex flex-col gap-1 mt-1">
-        <button
-          type="button"
-          (click)="setTab('overview')"
-          class="settings-nav-item flex items-center gap-2.5 rounded-xl px-3 py-2 text-body-sm font-medium transition-colors text-left"
-          [class.settings-nav-item--active]="activeTab() === 'overview'"
-        >
-          <mat-icon class="!size-4 !text-base">tune</mat-icon>
-          <span>Tổng quan</span>
-        </button>
-
-        <button
-          type="button"
-          (click)="setTab('permissions')"
-          class="settings-nav-item flex items-center gap-2.5 rounded-xl px-3 py-2 text-body-sm font-medium transition-colors text-left"
-          [class.settings-nav-item--active]="activeTab() === 'permissions'"
-        >
-          <mat-icon class="!size-4 !text-base">lock</mat-icon>
-          <span>Quyền hạn</span>
-        </button>
-
-        <button
-          type="button"
-          (click)="setTab('invites')"
-          class="settings-nav-item flex items-center gap-2.5 rounded-xl px-3 py-2 text-body-sm font-medium transition-colors text-left"
-          [class.settings-nav-item--active]="activeTab() === 'invites'"
-        >
-          <mat-icon class="!size-4 !text-base">person_add</mat-icon>
-          <span>Lời mời</span>
-        </button>
-
-        <button
-          type="button"
-          (click)="setTab('integrations')"
-          class="settings-nav-item flex items-center gap-2.5 rounded-xl px-3 py-2 text-body-sm font-medium transition-colors text-left"
-          [class.settings-nav-item--active]="activeTab() === 'integrations'"
-        >
-          <mat-icon class="!size-4 !text-base">extension</mat-icon>
-          <span>Tích hợp</span>
-        </button>
-      </nav>
+  <!-- 1. Header -->
+  <div class="flex items-center justify-between border-b border-hairline px-6 py-4 bg-surface">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="size-9 rounded-xl bg-surface-feature flex items-center justify-center text-primary shrink-0 border border-primary/20">
+        <mat-icon class="!size-5 !text-xl">
+          {{ data.channel.type === 'voice' ? 'volume_up' : 'tag' }}
+        </mat-icon>
+      </div>
+      <div class="min-w-0">
+        <h2 id="channel-settings-title" class="text-heading-4 font-bold text-ink truncate m-0">
+          Cài đặt kênh
+        </h2>
+        <p class="text-caption text-steel truncate m-0 mt-0.5">
+          #{{ data.channel.name }} · {{ data.channel.type === 'voice' ? 'Kênh thoại' : 'Kênh chat' }}
+        </p>
+      </div>
     </div>
+    <button
+      type="button"
+      mat-icon-button
+      (click)="close()"
+      aria-label="Đóng cài đặt kênh"
+      class="text-steel hover:text-ink transition-colors"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 
-    <!-- Danger action at bottom -->
-    <div class="border-t border-hairline/60 pt-3">
-      <button
-        type="button"
-        (click)="deleteChannel()"
-        class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-body-sm font-semibold text-danger hover:bg-danger/10 transition-colors"
-      >
-        <span>Xóa kênh</span>
-        <mat-icon class="!size-4 !text-base">delete</mat-icon>
-      </button>
-    </div>
-  </aside>
+  <!-- 2. Horizontal Tab Bar -->
+  <div class="flex items-center gap-1.5 border-b border-hairline/60 bg-surface-soft/40 px-6 py-2 overflow-x-auto">
+    <button
+      type="button"
+      (click)="setTab('overview')"
+      class="settings-tab-btn flex items-center gap-2 rounded-lg px-3 py-1.5 text-body-sm font-medium transition-all cursor-pointer"
+      [class.settings-tab-btn--active]="activeTab() === 'overview'"
+    >
+      <mat-icon class="!size-4 !text-base">tune</mat-icon>
+      <span>Tổng quan</span>
+    </button>
 
-  <!-- Right Settings Content Panel -->
-  <main class="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-canvas">
-    <!-- Close Button Top Right -->
-    <div class="absolute top-6 right-8 z-10">
-      <button
-        type="button"
-        (click)="close()"
-        aria-label="Đóng cài đặt"
-        class="flex size-9 items-center justify-center rounded-full border border-hairline bg-surface text-steel hover:bg-surface-feature hover:text-ink transition-all shadow-glow cursor-pointer"
-      >
-        <mat-icon class="!size-5 !text-xl">close</mat-icon>
-      </button>
-    </div>
+    <button
+      type="button"
+      (click)="setTab('invites')"
+      class="settings-tab-btn flex items-center gap-2 rounded-lg px-3 py-1.5 text-body-sm font-medium transition-all cursor-pointer"
+      [class.settings-tab-btn--active]="activeTab() === 'invites'"
+    >
+      <mat-icon class="!size-4 !text-base">person_add</mat-icon>
+      <span>Lời mời</span>
+    </button>
+  </div>
 
-    <!-- Content Body -->
-    <div class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-8 py-8 lg:px-16">
-      <div class="mx-auto max-w-2xl pb-24">
-        @switch (activeTab()) {
-          @case ('overview') {
-            <h2 id="settings-heading" class="text-heading-3 font-bold text-ink">Tổng quan</h2>
+  <!-- 3. Scrollable Body Content -->
+  <div class="nexus-scrollbar flex-1 overflow-y-auto px-6 py-5 select-text">
+    @switch (activeTab()) {
+      @case ('overview') {
+        <div class="flex flex-col gap-5">
+          <!-- Tên kênh -->
+          <div class="flex flex-col gap-1.5">
+            <label for="settings-channel-name" class="text-micro-uppercase font-bold tracking-wider text-steel">
+              TÊN KÊNH
+            </label>
+            <div class="flex items-center gap-2 rounded-xl border border-hairline bg-canvas px-3.5 py-2.5 focus-within:border-primary transition-colors">
+              <mat-icon class="!size-5 !text-xl text-steel shrink-0">
+                {{ data.channel.type === 'voice' ? 'volume_up' : 'tag' }}
+              </mat-icon>
+              <input
+                id="settings-channel-name"
+                type="text"
+                [(ngModel)]="channelName"
+                placeholder="tên-kênh"
+                maxlength="100"
+                class="w-full bg-transparent text-body-sm text-ink outline-none"
+              />
+            </div>
+          </div>
 
-            <!-- 1. Tên kênh -->
-            <section class="mt-6">
-              <label class="block text-micro-uppercase font-bold text-steel">Tên kênh</label>
-              <div class="mt-1.5 flex items-center rounded-xl bg-surface border border-hairline px-3 py-2.5 focus-within:border-primary">
-                <mat-icon class="!size-5 !text-xl text-steel mr-2">
-                  {{ data.channel.type === 'voice' ? 'volume_up' : 'tag' }}
-                </mat-icon>
+          <!-- Chủ đề kênh -->
+          <div class="flex flex-col gap-1.5">
+            <label for="settings-channel-topic" class="text-micro-uppercase font-bold tracking-wider text-steel">
+              CHỦ ĐỀ KÊNH
+            </label>
+            <div class="overflow-hidden rounded-xl border border-hairline bg-canvas focus-within:border-primary transition-colors">
+              <textarea
+                id="settings-channel-topic"
+                [(ngModel)]="channelTopic"
+                rows="3"
+                maxlength="1024"
+                placeholder="Hãy hướng dẫn mọi người cách sử dụng kênh này!"
+                class="w-full resize-none bg-transparent p-3.5 text-body-sm text-ink placeholder:text-muted outline-none"
+              ></textarea>
+              <div class="flex justify-end px-3 pb-2 text-micro text-stone font-mono">
+                {{ channelTopic().length }} / 1024
+              </div>
+            </div>
+          </div>
+
+          <!-- Chế độ chậm (Slowmode) -->
+          <div class="flex flex-col gap-1.5">
+            <label for="settings-slowmode" class="text-micro-uppercase font-bold tracking-wider text-steel">
+              CHẾ ĐỘ CHẬM
+            </label>
+            <select
+              id="settings-slowmode"
+              [(ngModel)]="slowmode"
+              class="w-full rounded-xl bg-canvas border border-hairline px-3.5 py-2.5 text-body-sm text-ink outline-none focus:border-primary transition-colors cursor-pointer"
+            >
+              <option [value]="0">Tắt</option>
+              <option [value]="5">5 giây</option>
+              <option [value]="10">10 giây</option>
+              <option [value]="15">15 giây</option>
+              <option [value]="30">30 giây</option>
+              <option [value]="60">1 phút</option>
+              <option [value]="120">2 phút</option>
+              <option [value]="300">5 phút</option>
+              <option [value]="600">10 phút</option>
+              <option [value]="900">15 phút</option>
+              <option [value]="1800">30 phút</option>
+              <option [value]="3600">1 giờ</option>
+              <option [value]="7200">2 giờ</option>
+              <option [value]="21600">6 giờ</option>
+            </select>
+            <p class="text-caption text-steel mt-0.5">
+              Thành viên sẽ bị giới hạn gửi tin nhắn theo chu kỳ thời gian này.
+            </p>
+          </div>
+
+          <!-- Độ Hiển Thị Nội Dung -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-micro-uppercase font-bold tracking-wider text-steel">
+              ĐỘ HIỂN THỊ NỘI DUNG
+            </label>
+            <div class="flex flex-col gap-2.5 mt-1">
+              <!-- Option 1: Mặc định -->
+              <label
+                class="flex items-start gap-3 rounded-xl border border-hairline/80 bg-surface-soft/60 p-3 cursor-pointer hover:bg-surface-feature/30 transition-colors"
+                [class.!border-primary]="contentVisibility() === 'default'"
+              >
                 <input
-                  type="text"
-                  [(ngModel)]="channelName"
-                  class="w-full bg-transparent text-body-sm text-ink outline-none"
-                  placeholder="tên-kênh"
+                  type="radio"
+                  name="contentVisibility"
+                  value="default"
+                  [(ngModel)]="contentVisibility"
+                  class="mt-1 accent-primary"
                 />
-              </div>
-            </section>
-
-            <!-- 2. Chủ đề kênh -->
-            <section class="mt-6">
-              <label class="block text-micro-uppercase font-bold text-steel">Chủ đề kênh</label>
-              <div class="mt-1.5 overflow-hidden rounded-xl bg-surface border border-hairline focus-within:border-primary">
-                <!-- Formatting Toolbar Mini -->
-                <div class="flex items-center gap-1 border-b border-hairline/60 bg-surface-feature/40 px-2 py-1 text-steel">
-                  <button type="button" class="p-1 hover:text-ink rounded" aria-label="In đậm"><mat-icon class="!size-4 !text-base">format_bold</mat-icon></button>
-                  <button type="button" class="p-1 hover:text-ink rounded" aria-label="In nghiêng"><mat-icon class="!size-4 !text-base">format_italic</mat-icon></button>
-                  <button type="button" class="p-1 hover:text-ink rounded" aria-label="Gạch chân"><mat-icon class="!size-4 !text-base">format_underlined</mat-icon></button>
-                  <button type="button" class="p-1 hover:text-ink rounded" aria-label="Gạch ngang"><mat-icon class="!size-4 !text-base">strikethrough_s</mat-icon></button>
-                  <button type="button" class="p-1 hover:text-ink rounded" aria-label="Nội dung ẩn"><mat-icon class="!size-4 !text-base">visibility</mat-icon></button>
+                <div>
+                  <strong class="block text-body-sm font-semibold text-ink">Mặc định</strong>
+                  <span class="block text-caption text-steel">Nội dung kênh luôn hiển thị cho mọi người.</span>
                 </div>
-                <textarea
-                  [(ngModel)]="channelTopic"
-                  rows="4"
-                  maxlength="1024"
-                  placeholder="Hãy hướng dẫn mọi người cách sử dụng kênh này!"
-                  class="w-full resize-none bg-transparent p-3 text-body-sm text-ink placeholder:text-stone outline-none"
-                ></textarea>
-                <div class="flex justify-end p-2 text-micro text-stone font-mono">
-                  {{ channelTopic().length }} / 1024
+              </label>
+
+              <!-- Option 2: Kênh giới hạn độ tuổi -->
+              <label
+                class="flex items-start gap-3 rounded-xl border border-hairline/80 bg-surface-soft/60 p-3 cursor-pointer hover:bg-surface-feature/30 transition-colors"
+                [class.!border-primary]="contentVisibility() === 'age_restricted'"
+              >
+                <input
+                  type="radio"
+                  name="contentVisibility"
+                  value="age_restricted"
+                  [(ngModel)]="contentVisibility"
+                  class="mt-1 accent-primary"
+                />
+                <div>
+                  <strong class="block text-body-sm font-semibold text-ink">Kênh giới hạn độ tuổi</strong>
+                  <span class="block text-caption text-steel">
+                    Yêu cầu thành viên phải đủ từ 18 tuổi trở lên để tham gia kênh này.
+                  </span>
                 </div>
-              </div>
-            </section>
+              </label>
+            </div>
+          </div>
+        </div>
+      }
 
-            <!-- 3. Chế độ chậm (Slowmode) -->
-            <section class="mt-6">
-              <label class="block text-micro-uppercase font-bold text-steel">Chế độ chậm</label>
-              <select
-                [(ngModel)]="slowmode"
-                class="mt-1.5 w-full rounded-xl bg-surface border border-hairline px-3 py-2.5 text-body-sm text-ink outline-none focus:border-primary"
+      @case ('invites') {
+        <div class="flex flex-col gap-4 py-2">
+          @if (activeInvite(); as inv) {
+            <div class="rounded-2xl border border-hairline bg-surface-soft/60 p-4 flex items-center justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <strong class="block text-body-sm text-ink font-mono truncate select-all">nexus.gg/c/{{ inv.code }}</strong>
+                <span class="text-micro text-steel mt-0.5 block">Hết hạn sau 7 ngày · {{ inv.uses }} lượt dùng</span>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  (click)="copyInvite()"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-hairline bg-surface hover:bg-surface-feature text-ink text-caption font-medium transition-colors cursor-pointer"
+                >
+                  <mat-icon class="!size-4 !text-base text-primary">content_copy</mat-icon>
+                  <span>{{ copiedInvite() ? 'Đã sao chép' : 'Sao chép' }}</span>
+                </button>
+                <button
+                  type="button"
+                  (click)="revokeInvite()"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-danger/30 bg-danger/10 hover:bg-danger/20 text-danger text-caption font-semibold transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <mat-icon class="!size-4 !text-base">delete_forever</mat-icon>
+                  <span>Thu hồi</span>
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="flex flex-col items-center justify-center p-8 text-center bg-surface-soft/40 rounded-2xl border border-hairline/60">
+              <div class="size-12 rounded-2xl bg-surface-feature flex items-center justify-center text-steel mb-3">
+                <mat-icon class="!size-6 !text-2xl">link_off</mat-icon>
+              </div>
+              <h4 class="text-body-sm font-bold text-ink mb-1">Chưa có liên kết lời mời</h4>
+              <p class="text-caption text-steel max-w-xs mb-4">Liên kết lời mời trước đó đã bị thu hồi. Bạn có thể tạo liên kết mới với thời hạn 7 ngày.</p>
+              <button
+                type="button"
+                (click)="createInvite()"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary hover:bg-primary-soft text-on-primary text-body-sm font-bold shadow-sm transition-all cursor-pointer"
               >
-                <option [value]="0">Tắt</option>
-                <option [value]="5">5 giây</option>
-                <option [value]="10">10 giây</option>
-                <option [value]="15">15 giây</option>
-                <option [value]="30">30 giây</option>
-                <option [value]="60">1 phút</option>
-                <option [value]="120">2 phút</option>
-                <option [value]="300">5 phút</option>
-                <option [value]="600">10 phút</option>
-                <option [value]="900">15 phút</option>
-                <option [value]="1800">30 phút</option>
-                <option [value]="3600">1 giờ</option>
-                <option [value]="7200">2 giờ</option>
-                <option [value]="21600">6 giờ</option>
-              </select>
-              <p class="mt-1.5 text-caption text-steel">
-                Thành viên sẽ bị giới hạn số lượng tin nhắn gửi đi hoặc số lượng Chủ đề có thể tạo trong cùng một khoảng thời gian, trừ khi có quyền Bỏ Qua Chế Độ Chậm.
-              </p>
-            </section>
-
-            <!-- 4. Độ Hiển Thị Nội Dung -->
-            <section class="mt-6">
-              <label class="block text-micro-uppercase font-bold text-steel">Độ Hiển Thị Nội Dung</label>
-              <div class="mt-2 flex flex-col gap-3">
-                <!-- Option 1: Mặc định -->
-                <label
-                  class="flex items-start gap-3 rounded-2xl border border-hairline/80 bg-surface/60 p-3.5 cursor-pointer hover:bg-surface-feature/40 transition-colors"
-                  [class.!border-primary]="contentVisibility() === 'default'"
-                >
-                  <input
-                    type="radio"
-                    name="contentVisibility"
-                    value="default"
-                    [(ngModel)]="contentVisibility"
-                    class="mt-1 accent-primary"
-                  />
-                  <div>
-                    <strong class="block text-body-sm-medium text-ink font-semibold">Mặc định</strong>
-                    <span class="block text-caption text-steel">Nội dung kênh luôn hiển thị.</span>
-                  </div>
-                </label>
-
-                <!-- Option 2: Kênh Nội Dung Ẩn -->
-                <label
-                  class="flex items-start gap-3 rounded-2xl border border-hairline/80 bg-surface/60 p-3.5 cursor-pointer hover:bg-surface-feature/40 transition-colors"
-                  [class.!border-primary]="contentVisibility() === 'hidden'"
-                >
-                  <input
-                    type="radio"
-                    name="contentVisibility"
-                    value="hidden"
-                    [(ngModel)]="contentVisibility"
-                    class="mt-1 accent-primary"
-                  />
-                  <div>
-                    <strong class="block text-body-sm-medium text-ink font-semibold">Kênh Nội Dung Ẩn</strong>
-                    <span class="block text-caption text-steel">
-                      Đánh dấu kênh này là có chứa nội dung ẩn, để các tình tiết bất ngờ, chủ đề nặng nề hoặc các cuộc thảo luận nhạy cảm khác bị ẩn cho đến khi người dùng chọn xem.
-                    </span>
-                  </div>
-                </label>
-
-                <!-- Option 3: Kênh giới hạn độ tuổi -->
-                <label
-                  class="flex items-start gap-3 rounded-2xl border border-hairline/80 bg-surface/60 p-3.5 cursor-pointer hover:bg-surface-feature/40 transition-colors"
-                  [class.!border-primary]="contentVisibility() === 'age_restricted'"
-                >
-                  <input
-                    type="radio"
-                    name="contentVisibility"
-                    value="age_restricted"
-                    [(ngModel)]="contentVisibility"
-                    class="mt-1 accent-primary"
-                  />
-                  <div>
-                    <strong class="block text-body-sm-medium text-ink font-semibold">Kênh giới hạn độ tuổi (NSFW)</strong>
-                    <span class="block text-caption text-steel">
-                      Người dùng sẽ cần xác nhận độ tuổi hợp pháp để xem các nội dung trong kênh này. Các kênh giới hạn độ tuổi nằm ngoài bộ lọc nội dung nhạy cảm.
-                    </span>
-                  </div>
-                </label>
-              </div>
-            </section>
-
-            <!-- 5. Ẩn sau khi không hoạt động -->
-            <section class="mt-6">
-              <label class="block text-micro-uppercase font-bold text-steel">Ẩn sau khi không hoạt động</label>
-              <select
-                [(ngModel)]="hideAfterInactivity"
-                class="mt-1.5 w-full rounded-xl bg-surface border border-hairline px-3 py-2.5 text-body-sm text-ink outline-none focus:border-primary"
-              >
-                <option value="1hour">1 Giờ</option>
-                <option value="24hours">24 Giờ</option>
-                <option value="3days">3 Ngày</option>
-                <option value="1week">1 Tuần</option>
-              </select>
-              <p class="mt-1.5 text-caption text-steel">
-                Các chủ đề mới sẽ không hiện trong danh sách kênh nếu không hoạt động sau một khoảng thời gian được chỉ định.
-              </p>
-            </section>
-          }
-
-          @case ('permissions') {
-            <h2 class="text-heading-3 font-bold text-ink">Quyền hạn kênh</h2>
-            <p class="mt-2 text-body-sm text-steel">Quản lý vai trò và thành viên có thể xem/gửi tin nhắn trong kênh này.</p>
-            <div class="mt-6 rounded-2xl border border-hairline bg-surface p-6 text-center text-steel">
-              <mat-icon class="!size-8 !text-3xl mb-2 text-primary">security</mat-icon>
-              <p class="text-body-sm">Đồng bộ với quyền hạn của máy chủ mặc định (@everyone).</p>
+                <mat-icon class="!size-4 !text-base">add_link</mat-icon>
+                <span>Tạo lời mời mới</span>
+              </button>
             </div>
           }
+        </div>
+      }
+    }
+  </div>
 
-          @case ('invites') {
-            <h2 class="text-heading-3 font-bold text-ink">Liên kết mời</h2>
-            <p class="mt-2 text-body-sm text-steel">Danh sách các lời mời hoạt động trỏ trực tiếp đến kênh này.</p>
-            <div class="mt-6 rounded-2xl border border-hairline bg-surface p-4 flex items-center justify-between">
-              <div>
-                <strong class="block text-body-sm text-ink font-mono">nexus.gg/c/wCWvey9XP</strong>
-                <span class="text-micro text-steel">Hết hạn sau 30 ngày · 0 lượt dùng</span>
-              </div>
-              <button mat-button class="!text-danger">Thu hồi</button>
-            </div>
-          }
+  <!-- 5. Footer Actions -->
+  <div class="flex items-center justify-between border-t border-hairline px-6 py-3.5 bg-surface-soft/60">
+    <button
+      type="button"
+      (click)="deleteChannel()"
+      [disabled]="isDeleting()"
+      class="flex items-center gap-1.5 text-danger hover:bg-danger/10 px-3 py-1.5 rounded-lg text-body-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
+    >
+      <mat-icon class="!size-4 !text-base">delete</mat-icon>
+      <span>Xóa kênh</span>
+    </button>
 
-          @case ('integrations') {
-            <h2 class="text-heading-3 font-bold text-ink">Tích hợp & Webhooks</h2>
-            <p class="mt-2 text-body-sm text-steel">Quản lý webhooks và bot được liên kết với kênh này.</p>
-            <div class="mt-6 rounded-2xl border border-hairline bg-surface p-6 text-center text-steel">
-              <mat-icon class="!size-8 !text-3xl mb-2 text-primary">webhook</mat-icon>
-              <p class="text-body-sm">Chưa có webhook nào được tạo cho kênh này.</p>
-            </div>
-          }
-        }
-      </div>
-    </div>
-
-    <!-- Floating Save Changes Bar -->
-    @if (isDirty()) {
-      <div
-        class="floating-save-bar absolute inset-x-8 bottom-6 z-20 flex items-center justify-between rounded-2xl border border-hairline/80 bg-canvas/95 px-6 py-3.5 backdrop-blur-md shadow-modal"
+    <div class="flex items-center gap-3">
+      <button
+        type="button"
+        mat-button
+        (click)="close()"
+        class="!text-steel hover:!text-ink !font-medium"
       >
-        <div class="flex items-center gap-2">
-          <mat-icon class="!size-5 !text-xl text-amber-400">warning</mat-icon>
-          <span class="text-body-sm-medium font-semibold text-ink">Cẩn thận — bạn có thay đổi chưa lưu!</span>
-        </div>
+        Hủy
+      </button>
+      <button
+        type="button"
+        [disabled]="!isDirty() || isSaving()"
+        (click)="saveChanges()"
+        class="nexus-save-channel-btn flex items-center justify-center gap-2 px-5 py-2 rounded-full font-bold text-body-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        [class.bg-primary]="isDirty() && !isSaving()"
+        [class.text-on-primary]="isDirty() && !isSaving()"
+        [class.hover:bg-primary-soft]="isDirty() && !isSaving()"
+      >
+        @if (isSaving()) {
+          <mat-icon class="!size-4 !text-base animate-spin">progress_activity</mat-icon>
+          <span>Đang lưu…</span>
+        } @else {
+          <span>Lưu thay đổi</span>
+        }
+      </button>
+    </div>
+  </div>
 
-        <div class="flex items-center gap-3">
-          <button
-            mat-button
-            type="button"
-            class="!rounded-full text-steel hover:text-ink"
-            (click)="resetChanges()"
-          >
-            Đặt lại
-          </button>
-          <button
-            mat-flat-button
-            type="button"
-            class="!rounded-full !bg-primary !px-5 !text-on-primary font-bold shadow-glow"
-            [disabled]="isSaving()"
-            (click)="saveChanges()"
-          >
-            Lưu thay đổi
-          </button>
-        </div>
-      </div>
-    }
+  <!-- 5. Floating Toast Notification (Không gây giật hay đổi chiều cao modal) -->
+  @if (saveNotice(); as notice) {
+    <div class="channel-save-toast absolute bottom-18 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-surface/95 border border-primary/40 shadow-2xl backdrop-blur-md text-caption font-semibold text-primary animate-slide-up pointer-events-none">
+      <mat-icon class="!size-4.5 !text-lg text-primary shrink-0">check_circle</mat-icon>
+      <span>{{ notice }}</span>
+    </div>
+  }
 
-    <!-- Save Notice Toast -->
-    @if (saveNotice()) {
-      <div class="absolute top-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-body-sm font-semibold text-white shadow-modal animate-bounce">
-        <mat-icon class="!size-4 !text-base">check_circle</mat-icon>
-        <span>{{ saveNotice() }}</span>
-      </div>
-    }
-
-    <!-- Error Toast -->
-    @if (errorMessage()) {
-      <div class="absolute top-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full bg-danger px-4 py-2 text-body-sm font-semibold text-white shadow-modal">
-        <mat-icon class="!size-4 !text-base">error</mat-icon>
-        <span>{{ errorMessage() }}</span>
-      </div>
-    }
-  </main>
+  @if (errorMessage(); as err) {
+    <div class="channel-save-toast absolute bottom-18 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-surface/95 border border-danger/40 shadow-2xl backdrop-blur-md text-caption font-semibold text-danger animate-slide-up">
+      <mat-icon class="!size-4.5 !text-lg text-danger shrink-0">error_outline</mat-icon>
+      <span class="max-w-xs">{{ err }}</span>
+      <button type="button" (click)="errorMessage.set(null)" class="text-steel hover:text-ink ml-1 cursor-pointer">
+        <mat-icon class="!size-3.5 !text-sm">close</mat-icon>
+      </button>
+    </div>
+  }
 </div>

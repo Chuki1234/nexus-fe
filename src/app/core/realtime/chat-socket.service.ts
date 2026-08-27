@@ -1,11 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import {
-  inject,
-  InjectionToken,
-  Injectable,
-  PLATFORM_ID,
-  signal,
-} from '@angular/core';
+import { inject, InjectionToken, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../../environments/environment';
@@ -17,6 +11,9 @@ import type {
   PresenceUpdatedPayload,
   ReactionUpdatedPayload,
   ServerToClientEvents,
+  UserBlockCreatedPayload,
+  UserBlockRemovedPayload,
+  RelationshipInvalidatedPayload,
   VoiceMemberState,
   VoiceServerStatesSyncPayload,
   VoiceStateUpdatePayload,
@@ -24,11 +21,7 @@ import type {
 import type { DirectCallDto } from '../../../shared/dto/direct-calls.dto';
 import { AuthService } from '../auth/auth.service';
 
-export type ConnectionStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'error';
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
 export interface RoomRegistration {
   refCount: number;
@@ -36,10 +29,32 @@ export interface RoomRegistration {
   joinPromise: Promise<JoinConversationResponse> | null;
 }
 
+<<<<<<< HEAD
+export const CHAT_SOCKET_FACTORY = new InjectionToken<typeof io>('CHAT_SOCKET_FACTORY', {
+  providedIn: 'root',
+  factory: () => io,
+});
+=======
+interface ServerRoomRegistration {
+  refCount: number;
+  state: 'idle' | 'joining' | 'joined' | 'failed';
+  joinPromise: Promise<boolean> | null;
+}
+
+interface LocalVoiceState {
+  serverId: string;
+  channelId: string | null;
+  isMuted?: boolean;
+  isDeafened?: boolean;
+  isCameraOn?: boolean;
+  isScreenSharing?: boolean;
+}
+
 export const CHAT_SOCKET_FACTORY = new InjectionToken<typeof io>(
   'CHAT_SOCKET_FACTORY',
   { providedIn: 'root', factory: () => io },
 );
+>>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2
 
 @Injectable({
   providedIn: 'root',
@@ -49,8 +64,7 @@ export class ChatSocketService {
   private readonly auth = inject(AuthService);
 
   private readonly socketFactory = inject(CHAT_SOCKET_FACTORY);
-  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null =
-    null;
+  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
   private currentToken: string | null = null;
 
@@ -60,7 +74,9 @@ export class ChatSocketService {
   /** Ref-counted Multi-Room Registries */
   private readonly conversationRooms = new Map<string, RoomRegistration>();
   private readonly channelRooms = new Map<string, RoomRegistration>();
-  private readonly serverRooms = new Map<string, RoomRegistration>();
+  private readonly serverRooms = new Map<string, ServerRoomRegistration>();
+  /** Trạng thái voice mong muốn của local user, dùng để reconcile sau Socket.IO reconnect. */
+  private readonly localVoiceStates = new Map<string, LocalVoiceState>();
 
   // Event Subjects
   private readonly messageCreatedSubject = new Subject<{
@@ -100,7 +116,8 @@ export class ChatSocketService {
   }>();
   private readonly reactionUpdatedSubject = new Subject<ReactionUpdatedPayload>();
   private readonly messagePinUpdatedSubject = new Subject<{
-    channelId: string;
+    channelId: string | null;
+    conversationId: string | null;
     message: MessagePayload;
     pinned: boolean;
   }>();
@@ -116,7 +133,10 @@ export class ChatSocketService {
     inviteeId: string;
     status: 'accepted' | 'declined' | 'revoked' | 'expired';
   }>();
-  private readonly capabilitiesUpdatedSubject = new Subject<{ serverId: string; capabilities: any }>();
+  private readonly capabilitiesUpdatedSubject = new Subject<{
+    serverId: string;
+    capabilities: any;
+  }>();
   private readonly serverDeletedSubject = new Subject<{ serverId: string }>();
   private readonly serverMemberLeftSubject = new Subject<{ serverId: string; userId: string }>();
   private readonly voiceStateUpdatedSubject = new Subject<VoiceStateUpdatePayload>();
@@ -139,13 +159,31 @@ export class ChatSocketService {
   private readonly directCallIncomingSubject = new Subject<DirectCallDto>();
   private readonly directCallRingingSubject = new Subject<DirectCallDto>();
   private readonly directCallAcceptedSubject = new Subject<DirectCallDto>();
-  private readonly directCallConnectedSubject = new Subject<{ callId: string; connectedAt: string }>();
+  private readonly directCallConnectedSubject = new Subject<{
+    callId: string;
+    connectedAt: string;
+  }>();
   private readonly directCallDeclinedSubject = new Subject<DirectCallDto>();
   private readonly directCallCancelledSubject = new Subject<DirectCallDto>();
   private readonly directCallEndedSubject = new Subject<DirectCallDto>();
   private readonly directCallMissedSubject = new Subject<DirectCallDto>();
-  private readonly directCallBusySubject = new Subject<{ conversationId: string; calleeId: string }>();
+  private readonly directCallBusySubject = new Subject<{
+    conversationId: string;
+    calleeId: string;
+  }>();
   private readonly directCallStateSyncSubject = new Subject<DirectCallDto | null>();
+
+  // Block & Relationship Invalidation Subjects
+  private readonly userBlockCreatedSubject = new Subject<UserBlockCreatedPayload>();
+  private readonly userBlockRemovedSubject = new Subject<UserBlockRemovedPayload>();
+  private readonly relationshipInvalidatedSubject = new Subject<RelationshipInvalidatedPayload>();
+
+  readonly userBlockCreated$: Observable<UserBlockCreatedPayload> =
+    this.userBlockCreatedSubject.asObservable();
+  readonly userBlockRemoved$: Observable<UserBlockRemovedPayload> =
+    this.userBlockRemovedSubject.asObservable();
+  readonly relationshipInvalidated$: Observable<RelationshipInvalidatedPayload> =
+    this.relationshipInvalidatedSubject.asObservable();
 
   readonly messageCreated$: Observable<{ message: MessagePayload }> =
     this.messageCreatedSubject.asObservable();
@@ -166,7 +204,8 @@ export class ChatSocketService {
   readonly reactionUpdated$: Observable<ReactionUpdatedPayload> =
     this.reactionUpdatedSubject.asObservable();
   readonly messagePinUpdated$: Observable<{
-    channelId: string;
+    channelId: string | null;
+    conversationId: string | null;
     message: MessagePayload;
     pinned: boolean;
   }> = this.messagePinUpdatedSubject.asObservable();
@@ -189,8 +228,7 @@ export class ChatSocketService {
   }> = this.joinErrorSubject.asObservable();
   readonly presenceUpdated$: Observable<PresenceUpdatedPayload> =
     this.presenceUpdatedSubject.asObservable();
-  readonly presenceSync$: Observable<PresenceSyncPayload> =
-    this.presenceSyncSubject.asObservable();
+  readonly presenceSync$: Observable<PresenceSyncPayload> = this.presenceSyncSubject.asObservable();
 
   readonly channelsInvalidated$: Observable<{ serverId: string }> =
     this.channelsInvalidatedSubject.asObservable();
@@ -249,8 +287,7 @@ export class ChatSocketService {
     this.directCallDeclinedSubject.asObservable();
   readonly directCallCancelled$: Observable<DirectCallDto> =
     this.directCallCancelledSubject.asObservable();
-  readonly directCallEnded$: Observable<DirectCallDto> =
-    this.directCallEndedSubject.asObservable();
+  readonly directCallEnded$: Observable<DirectCallDto> = this.directCallEndedSubject.asObservable();
   readonly directCallMissed$: Observable<DirectCallDto> =
     this.directCallMissedSubject.asObservable();
   readonly directCallBusy$: Observable<{ conversationId: string; calleeId: string }> =
@@ -285,21 +322,16 @@ export class ChatSocketService {
     if (!isPlatformBrowser(this.platformId)) return;
 
     const tokenFromAuth =
-      this.auth && typeof this.auth.accessToken === 'function'
-        ? this.auth.accessToken()
-        : null;
+      this.auth && typeof this.auth.accessToken === 'function' ? this.auth.accessToken() : null;
 
-    const rawToken: string | undefined =
-      token || tokenFromAuth || (this.currentToken ?? undefined);
+    const rawToken: string | undefined = token || tokenFromAuth || (this.currentToken ?? undefined);
 
     if (!rawToken) {
       this._connectionStatus.set('disconnected');
       return;
     }
 
-    const authToken = rawToken.startsWith('Bearer ')
-      ? rawToken.slice(7).trim()
-      : rawToken.trim();
+    const authToken = rawToken.startsWith('Bearer ') ? rawToken.slice(7).trim() : rawToken.trim();
 
     if (this.socket && this.socket.connected && this.currentToken === authToken) {
       return;
@@ -390,9 +422,7 @@ export class ChatSocketService {
   }
 
   updateToken(newToken: string): void {
-    const cleanToken = newToken.startsWith('Bearer ')
-      ? newToken.slice(7).trim()
-      : newToken.trim();
+    const cleanToken = newToken.startsWith('Bearer ') ? newToken.slice(7).trim() : newToken.trim();
     this.currentToken = cleanToken;
     if (this.socket) {
       this.socket.auth = { token: cleanToken };
@@ -409,6 +439,7 @@ export class ChatSocketService {
     this.conversationRooms.clear();
     this.channelRooms.clear();
     this.serverRooms.clear();
+    this.localVoiceStates.clear();
     this.currentToken = null;
 
     if (this.socket) {
@@ -548,10 +579,7 @@ export class ChatSocketService {
   // Multi-Room Registry: Channels
   // ---------------------------------------------------------------------------
 
-  async joinChannel(
-    channelId: string,
-    timeoutMs = 5000,
-  ): Promise<JoinConversationResponse> {
+  async joinChannel(channelId: string, timeoutMs = 5000): Promise<JoinConversationResponse> {
     if (!isPlatformBrowser(this.platformId)) {
       return { success: false, status: 'disconnected' };
     }
@@ -599,43 +627,39 @@ export class ChatSocketService {
             }
           }, timeoutMs);
 
-          this.socket?.emit(
-            'channel:join',
-            { channelId },
-            (res: JoinConversationResponse) => {
-              if (resolved) return;
-              resolved = true;
-              clearTimeout(timer);
+          this.socket?.emit('channel:join', { channelId }, (res: JoinConversationResponse) => {
+            if (resolved) return;
+            resolved = true;
+            clearTimeout(timer);
 
-              if (!res?.success) {
-                reg.state = 'failed';
-                const isForbidden =
-                  res?.status === 'rejected' ||
-                  res?.error?.toLowerCase().includes('không có quyền') ||
-                  res?.error?.toLowerCase().includes('bị cấm') ||
-                  res?.error?.toLowerCase().includes('forbidden');
-                if (isForbidden) {
-                  this.channelRooms.delete(channelId);
-                  this.joinErrorSubject.next({
-                    channelId,
-                    error: res?.error || 'Không thể tham gia kênh máy chủ.',
-                  });
-                }
-                resolve({
-                  success: false,
+            if (!res?.success) {
+              reg.state = 'failed';
+              const isForbidden =
+                res?.status === 'rejected' ||
+                res?.error?.toLowerCase().includes('không có quyền') ||
+                res?.error?.toLowerCase().includes('bị cấm') ||
+                res?.error?.toLowerCase().includes('forbidden');
+              if (isForbidden) {
+                this.channelRooms.delete(channelId);
+                this.joinErrorSubject.next({
+                  channelId,
                   error: res?.error || 'Không thể tham gia kênh máy chủ.',
-                  status: res?.status ?? 'rejected',
                 });
-                return;
               }
-
-              reg.state = 'joined';
               resolve({
-                success: true,
-                status: 'joined',
+                success: false,
+                error: res?.error || 'Không thể tham gia kênh máy chủ.',
+                status: res?.status ?? 'rejected',
               });
-            },
-          );
+              return;
+            }
+
+            reg.state = 'joined';
+            resolve({
+              success: true,
+              status: 'joined',
+            });
+          });
         });
       } catch (err: any) {
         reg.state = 'failed';
@@ -688,34 +712,52 @@ export class ChatSocketService {
       return true;
     }
 
-    try {
-      const isConnected = await this.ensureConnected(undefined, timeoutMs);
-      if (!isConnected || !this.socket || !this.socket.connected) {
-        reg.state = 'idle';
-        return false;
-      }
+    return this.ensureServerRoomJoined(serverId, reg, timeoutMs);
+  }
 
-      return await new Promise<boolean>((resolve) => {
-        this.socket?.emit(
-          'server:join',
-          { serverId },
-          (res: { success: boolean; error?: string }) => {
-            if (res?.success) {
-              reg.state = 'joined';
-              resolve(true);
-            } else {
-              reg.state = 'failed';
-              this.serverRooms.delete(serverId);
-              resolve(false);
-            }
-          },
-        );
-      });
-    } catch {
-      reg.state = 'failed';
-      this.serverRooms.delete(serverId);
-      return false;
-    }
+  private async ensureServerRoomJoined(
+    serverId: string,
+    reg: ServerRoomRegistration,
+    timeoutMs = 5000,
+  ): Promise<boolean> {
+    if (reg.state === 'joined' && this.socket?.connected) return true;
+    if (reg.state === 'joining' && reg.joinPromise) return reg.joinPromise;
+
+    reg.state = 'joining';
+    reg.joinPromise = (async () => {
+      try {
+        const isConnected = await this.ensureConnected(undefined, timeoutMs);
+        if (!isConnected || !this.socket || !this.socket.connected) {
+          reg.state = 'idle';
+          return false;
+        }
+
+        return await new Promise<boolean>((resolve) => {
+          this.socket?.emit(
+            'server:join',
+            { serverId },
+            (res: { success: boolean; error?: string }) => {
+              if (res?.success) {
+                reg.state = 'joined';
+                this.reconcileVoiceState(serverId);
+                this.refreshServerVoiceStates(serverId);
+                resolve(true);
+              } else {
+                reg.state = 'failed';
+                resolve(false);
+              }
+            },
+          );
+        });
+      } catch {
+        reg.state = 'failed';
+        return false;
+      } finally {
+        reg.joinPromise = null;
+      }
+    })();
+
+    return reg.joinPromise;
   }
 
   leaveServer(serverId: string): Promise<void> {
@@ -724,6 +766,7 @@ export class ChatSocketService {
       reg.refCount--;
       if (reg.refCount <= 0) {
         this.serverRooms.delete(serverId);
+        this.localVoiceStates.delete(serverId);
         if (this.socket && this.socket.connected) {
           this.socket.emit('server:leave', { serverId });
         }
@@ -781,7 +824,8 @@ export class ChatSocketService {
         const reg = this.serverRooms.get(serverId);
         if (reg) {
           reg.state = 'idle';
-          void this.joinServer(serverId);
+          reg.joinPromise = null;
+          void this.ensureServerRoomJoined(serverId, reg);
         }
       }
 
@@ -867,7 +911,12 @@ export class ChatSocketService {
     });
 
     this.socket.on('message:pin-updated', (payload) => {
-      this.messagePinUpdatedSubject.next(payload);
+      this.messagePinUpdatedSubject.next({
+        channelId: payload.channelId ?? null,
+        conversationId: payload.conversationId ?? null,
+        message: payload.message,
+        pinned: payload.pinned,
+      });
     });
 
     this.socket.on('message:read', (payload) => {
@@ -893,6 +942,18 @@ export class ChatSocketService {
 
     this.socket.on('conversation:deleted', (payload) => {
       this.conversationDeletedSubject.next(payload);
+    });
+
+    this.socket.on('user:block-created', (payload) => {
+      this.userBlockCreatedSubject.next(payload);
+    });
+
+    this.socket.on('user:block-removed', (payload) => {
+      this.userBlockRemovedSubject.next(payload);
+    });
+
+    this.socket.on('relationship:invalidated', (payload) => {
+      this.relationshipInvalidatedSubject.next(payload);
     });
 
     this.socket.on('presence:updated', (payload) => {
@@ -981,17 +1042,32 @@ export class ChatSocketService {
     });
   }
 
-  updateVoiceState(payload: {
-    serverId: string;
-    channelId: string | null;
-    isMuted?: boolean;
-    isDeafened?: boolean;
-    isCameraOn?: boolean;
-    isScreenSharing?: boolean;
-  }): void {
+  updateVoiceState(payload: LocalVoiceState): void {
+    if (payload.channelId) {
+      this.localVoiceStates.set(payload.serverId, payload);
+    } else {
+      this.localVoiceStates.delete(payload.serverId);
+    }
+
     if (this.socket && this.socket.connected) {
       this.socket.emit('voice:state-update', payload);
     }
+  }
+
+  private reconcileVoiceState(serverId: string): void {
+    const state = this.localVoiceStates.get(serverId);
+    if (state && this.socket?.connected) {
+      this.socket.emit('voice:state-update', state);
+    }
+  }
+
+  private refreshServerVoiceStates(serverId: string): void {
+    if (!this.socket?.connected) return;
+    this.socket.emit('voice:get-server-states', { serverId }, (payload) => {
+      if (payload?.serverId === serverId) {
+        this.voiceServerStatesSyncSubject.next(payload);
+      }
+    });
   }
 
   moveVoiceMember(serverId: string, targetUserId: string, targetChannelId: string): void {
@@ -1017,14 +1093,18 @@ export class ChatSocketService {
       if (!this.socket || !this.socket.connected) {
         return resolve({ serverId, states: [] });
       }
-      this.socket.emit('voice:get-server-states', { serverId }, (response: VoiceServerStatesSyncPayload) => {
-        if (response && response.states) {
-          this.voiceServerStatesSyncSubject.next(response);
-          resolve(response);
-        } else {
-          resolve({ serverId, states: [] });
-        }
-      });
+      this.socket.emit(
+        'voice:get-server-states',
+        { serverId },
+        (response: VoiceServerStatesSyncPayload) => {
+          if (response && response.states) {
+            this.voiceServerStatesSyncSubject.next(response);
+            resolve(response);
+          } else {
+            resolve({ serverId, states: [] });
+          }
+        },
+      );
     });
   }
 

@@ -3,10 +3,14 @@ import {
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
   input,
+  OnDestroy,
+  QueryList,
   signal,
   ViewChild,
+  ViewChildren,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,7 +35,7 @@ import {
   CdkDragPreview,
   CdkDropList,
   CdkDropListGroup,
-  moveItemInArray,
+  type CdkDragStart,
 } from '@angular/cdk/drag-drop';
 import {
   ChannelSummary,
@@ -44,7 +48,6 @@ import { ChannelSettingsModal } from '../../../../../features/settings/modals/ch
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { UnreadBadge } from '../../../../../shared/ui/unread-badge/unread-badge';
 import { OverflowMarquee } from '../../../../../shared/ui/overflow-marquee/overflow-marquee';
-import { NgTemplateOutlet } from '@angular/common';
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
 import { InviteChannelDialog } from './invite-channel-dialog/invite-channel-dialog';
 import { ServersStore } from '../../../../../core/servers/servers.store';
@@ -58,11 +61,28 @@ export interface ChannelGroupViewModel {
   isCategory?: boolean;
 }
 
+export interface SidebarRootChannelItem {
+  kind: 'channel';
+  channel: ChannelSummary;
+}
+
+export interface SidebarCategoryItem {
+  kind: 'category';
+  category: ServerCategorySummary;
+  channels: ChannelSummary[];
+  isCollapsed: boolean;
+  mentionCount: number;
+  hasUnread: boolean;
+}
+
+export type SidebarItemViewModel = SidebarRootChannelItem | SidebarCategoryItem;
+
 export interface VoiceChannelMemberViewModel {
   userId: string;
   name: string;
   avatarUrl: string | null;
   isMuted: boolean;
+  isDeafened?: boolean;
   isCameraOn: boolean;
   isScreenSharing: boolean;
   isSpeaking: boolean;
@@ -85,7 +105,6 @@ export interface VoiceChannelMemberViewModel {
     MatListModule,
     MatMenuModule,
     MatTooltipModule,
-    NgTemplateOutlet,
     RouterLink,
     RouterLinkActive,
     UnreadBadge,
@@ -96,10 +115,11 @@ export interface VoiceChannelMemberViewModel {
   templateUrl: './channel-list.html',
   styleUrl: './channel-list.css',
 })
-export class ChannelList {
+export class ChannelList implements OnDestroy {
   @ViewChild('categoryMenuTrigger') private readonly categoryMenuTrigger?: MatMenuTrigger;
   @ViewChild('channelMenuTrigger') private readonly channelMenuTrigger?: MatMenuTrigger;
   @ViewChild('memberMenuTrigger') private readonly memberMenuTrigger?: MatMenuTrigger;
+  @ViewChildren(CdkDropList) private readonly dropLists?: QueryList<CdkDropList>;
 
   private readonly serversStore = inject(ServersStore);
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
@@ -108,6 +128,7 @@ export class ChannelList {
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly host = inject(ElementRef<HTMLElement>);
   readonly voiceRoom = inject(VoiceRoomService);
 
   readonly serverId = input.required<string>();
@@ -115,6 +136,30 @@ export class ChannelList {
   /** Chiều rộng preview khi kéo — được đo từ container cha trước khi CDK tạo preview */
   protected dragPreviewWidth = 220;
   protected readonly channelDragPreviewSize = signal({ width: 220, height: 34 });
+
+  /** Category đang được hover khi kéo channel vào */
+  protected readonly activeHoverCategoryId = signal<string | null>(null);
+
+  /** Trạng thái đang kéo channel */
+  protected readonly isDraggingChannel = signal<boolean>(false);
+  protected readonly dragStartDelay = { touch: 150, mouse: 0 };
+
+  /** Thông báo hỗ trợ Screen Reader */
+  protected readonly liveAnnouncement = signal<string>('');
+
+  private dwellTimeout: ReturnType<typeof setTimeout> | null = null;
+  private hoverClearTimeout: ReturnType<typeof setTimeout> | null = null;
+  private justFinishedDragging = false;
+  private lastDragPointer: { x: number; y: number } | null = null;
+  private pointerTrackerCleanup: (() => void) | null = null;
+  private clickSuppressorCleanup: (() => void) | null = null;
+
+  /**
+   * Category mà kênh đang kéo XUẤT PHÁT (null nếu kéo từ cấp root). Dùng để phân
+   * biệt "đưa kênh vào category khác" (nest → highlight cả khối) với "sắp xếp lại
+   * trong cùng category" (chỉ hiện khe chèn/placeholder).
+   */
+  private dragSourceCategoryId: string | null = null;
 
   constructor() {
     effect(() => {
@@ -125,21 +170,28 @@ export class ChannelList {
     });
   }
 
+  ngOnDestroy(): void {
+    this.clearDwellTimer();
+    this.clearHoverClearTimer();
+    this.stopPointerTracking();
+    this.clickSuppressorCleanup?.();
+    this.clickSuppressorCleanup = null;
+  }
+
   /**
-   * Đo chiều rộng thực của container channel-drop-list (bị giới hạn bởi sidebar)
-   * trước khi CDK Drag bắt đầu tạo preview.
-   * pointerdown/mousedown fires TRƯỚC cdkDragStarted → binding đã có giá trị đúng.
+   * Đo chiều rộng thực của container trước khi CDK Drag bắt đầu tạo preview.
    */
   protected onPrepDrag(event: Event): void {
     const el = event.currentTarget as HTMLElement;
-    const container = el.closest('.channel-drop-list') ?? el.closest('mat-nav-list') ?? el.parentElement;
+    const container = el.closest('.channel-drop-list') ?? el.closest('mat-nav-list') ?? el.closest('.channel-sidebar-root-list') ?? el.parentElement;
     if (container) {
       this.dragPreviewWidth = Math.round(container.getBoundingClientRect().width - 4);
     }
   }
+
   protected onPrepChannelDrag(event: Event): void {
     const row = event.currentTarget as HTMLElement;
-    const container = row.closest('.channel-drop-list') as HTMLElement | null;
+    const container = (row.closest('.channel-drop-list') ?? row.closest('.channel-sidebar-root-list')) as HTMLElement | null;
     const rowRect = row.getBoundingClientRect();
     const containerStyle = container ? getComputedStyle(container) : null;
     const horizontalPadding = containerStyle
@@ -155,23 +207,303 @@ export class ChannelList {
     });
   }
 
+  protected onChannelDragStarted(event?: CdkDragStart): void {
+    this.isDraggingChannel.set(true);
+    this.justFinishedDragging = false;
+    this.dragSourceCategoryId = this.categoryIdOfContainer(event?.source?.dropContainer?.id);
+    this.startPointerTracking();
+    this.startClickSuppression();
+    this.announce('Bắt đầu kéo kênh.');
+  }
+
+  /** Suy ra categoryId từ id của một CdkDropList (null nếu là root list). */
+  private categoryIdOfContainer(containerId: string | undefined): string | null {
+    if (!containerId) return null;
+    const prefix = 'channel-group-';
+    return containerId.startsWith(prefix) ? containerId.slice(prefix.length) : null;
+  }
+
+  protected onChannelDragEnded(): void {
+    this.isDraggingChannel.set(false);
+    this.justFinishedDragging = true;
+    setTimeout(() => {
+      this.justFinishedDragging = false;
+    }, 150);
+    this.stopPointerTracking();
+    this.stopClickSuppression();
+    this.clearDwellTimer();
+    this.clearHoverClearTimer();
+    this.dragSourceCategoryId = null;
+    this.activeHoverCategoryId.set(null);
+  }
+
+  /**
+   * Sau khi kéo, trình duyệt vẫn phát `click` trên thẻ `<a>` của kênh và
+   * `RouterLink` sẽ điều hướng. Không thể chặn bằng handler `(click)` của
+   * template: `cdkDragEnded`/`cdkDropListDropped` được phát BẤT ĐỒNG BỘ sau khi
+   * preview chạy xong animation, tức là muộn hơn cả sự kiện click.
+   *
+   * Vì vậy chặn ngay từ lúc kéo bắt đầu, bằng listener ở pha capture trên
+   * document nên luôn chạy trước listener của RouterLink.
+   */
+  private startClickSuppression(): void {
+    if (this.clickSuppressorCleanup || typeof document === 'undefined') return;
+    const block = (event: Event): void => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    document.addEventListener('click', block, true);
+    this.clickSuppressorCleanup = () => document.removeEventListener('click', block, true);
+  }
+
+  private stopClickSuppression(): void {
+    const cleanup = this.clickSuppressorCleanup;
+    if (!cleanup) return;
+    this.clickSuppressorCleanup = null;
+    // Gỡ ở macrotask kế tiếp để vẫn nuốt cú click phát ra ngay sau mouseup.
+    setTimeout(cleanup, 0);
+  }
+
+  /**
+   * Dự phòng vị trí con trỏ cho `isRootEnterPredicate`. Nguồn chính là
+   * `DragRef._lastKnownPointerPosition` (được gán ngay trước khi CDK gọi
+   * enterPredicate nên luôn tươi); listener này chỉ để không phụ thuộc tuyệt đối
+   * vào một field nội bộ của CDK.
+   */
+  private startPointerTracking(): void {
+    if (this.pointerTrackerCleanup || typeof document === 'undefined') return;
+    const track = (event: MouseEvent | TouchEvent): void => {
+      const point = 'touches' in event ? event.touches[0] : event;
+      if (point) {
+        this.lastDragPointer = { x: point.clientX, y: point.clientY };
+      }
+    };
+    document.addEventListener('mousemove', track, true);
+    document.addEventListener('touchmove', track, true);
+    this.pointerTrackerCleanup = () => {
+      document.removeEventListener('mousemove', track, true);
+      document.removeEventListener('touchmove', track, true);
+    };
+  }
+
+  private stopPointerTracking(): void {
+    this.pointerTrackerCleanup?.();
+    this.pointerTrackerCleanup = null;
+    this.lastDragPointer = null;
+  }
+
+  /**
+   * CDK cache DOMRect của các drop list nhận drop đúng một lần lúc bắt đầu kéo và
+   * chỉ tự cache lại khi có scroll. Nhưng mỗi lần placeholder đổi vị trí thì mọi
+   * thứ bên dưới dịch chuyển, khiến rect cũ lệch khỏi DOM thật — đo được: kéo
+   * root channel lên trên một category làm category đó tụt 36px, con trỏ đứng
+   * trên header nhưng `_canReceive()` vẫn trượt vì `elementFromPoint` không còn
+   * nằm trong container.
+   *
+   * Vì vậy đo lại hình học ngay khi thứ tự thật sự thay đổi. Đây chính là việc
+   * CDK tự làm cho sibling đang nhận drop khi có scroll.
+   */
+  protected onDropListSorted(): void {
+    this.dropLists?.forEach((list) => {
+      const ref = list._dropListRef as unknown as {
+        isReceiving?: () => boolean;
+        _cacheParentPositions?: () => void;
+      };
+      if (typeof ref?._cacheParentPositions === 'function' && ref.isReceiving?.()) {
+        ref._cacheParentPositions();
+      }
+    });
+  }
+
+  /**
+   * Trình duyệt vẫn phát `click` trên chính thẻ `<a>` sau khi thả chuột, nên vừa
+   * kéo xong sẽ điều hướng ngoài ý muốn. `RouterLink` lắng nghe trên cùng phần
+   * tử và không kiểm tra `defaultPrevented`, vì vậy phải chặn bằng
+   * `stopImmediatePropagation()` chứ không chỉ `preventDefault()`.
+   */
+  protected onChannelClick(event: MouseEvent): void {
+    if (this.justFinishedDragging) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+    }
+  }
+
+  /**
+   * Con trỏ (đang kéo kênh) đi vào một bề mặt drop của category — header HOẶC
+   * thân danh sách kênh con. Cả hai gọi chung hàm này để highlight sáng toàn bộ
+   * khối category, cho người dùng biết "thả ở đây là đưa kênh vào danh mục này"
+   * mà không cần mở/đóng để kiểm tra.
+   *
+   * Chỉ highlight khi là thao tác ĐƯA VÀO (kênh xuất phát từ category khác hoặc
+   * từ root). Sắp xếp lại trong cùng category dùng khe chèn/placeholder, không
+   * cần highlight cả khối để tránh gây nhiễu.
+   */
+  protected onCategoryHeaderDropEntered(categoryId: string): void {
+    if (!this.isDraggingChannel()) return;
+    if (this.dragSourceCategoryId === categoryId) return;
+
+    // Con trỏ vẫn đang trong phạm vi category này → hủy lệnh xóa highlight đang
+    // chờ (phát sinh khi đi từ header sang thân list hoặc ngược lại).
+    this.clearHoverClearTimer();
+    this.activeHoverCategoryId.set(categoryId);
+
+    if (this.isGroupCollapsed(categoryId)) {
+      this.clearDwellTimer();
+      this.dwellTimeout = setTimeout(() => {
+        if (this.activeHoverCategoryId() === categoryId && this.isDraggingChannel()) {
+          this.collapsedGroups.update((current) => ({
+            ...current,
+            [categoryId]: false,
+          }));
+        }
+      }, 600);
+    }
+  }
+
+  protected onCategoryHeaderDropExited(categoryId: string): void {
+    this.clearDwellTimer();
+
+    // Không xóa ngay: header và thân list là hai drop-list riêng của cùng một
+    // category, di chuyển giữa chúng phát exit rồi mới enter. Hoãn một nhịp ngắn
+    // để enter kịp hủy, tránh highlight nhấp nháy.
+    this.clearHoverClearTimer();
+    this.hoverClearTimeout = setTimeout(() => {
+      if (this.activeHoverCategoryId() === categoryId) {
+        this.activeHoverCategoryId.set(null);
+      }
+    }, 60);
+  }
+
+  protected onCategoryHeaderMouseEnter(categoryId: string): void {
+    if (this.isDraggingChannel()) {
+      this.onCategoryHeaderDropEntered(categoryId);
+    }
+  }
+
+  protected onCategoryHeaderMouseLeave(categoryId: string): void {
+    this.onCategoryHeaderDropExited(categoryId);
+  }
+
+  private clearHoverClearTimer(): void {
+    if (this.hoverClearTimeout !== null) {
+      clearTimeout(this.hoverClearTimeout);
+      this.hoverClearTimeout = null;
+    }
+  }
+
+  protected onCategoryHeaderDrop(
+    event: CdkDragDrop<any>,
+    targetCategoryId: string,
+  ): void {
+    if (!this.canManageChannels()) return;
+    this.onChannelDragEnded();
+    if (this.isDropOutsideSidebar(event)) {
+      this.announce('Đã hủy kéo thả vì thả ra ngoài vùng hợp lệ.');
+      return;
+    }
+
+    const data = event.item.data as { kind?: string; channel?: ChannelSummary } | ChannelSummary;
+    const channel = (data as any)?.channel ?? (('type' in (data as any)) ? data : null);
+    if (!channel) return;
+
+    const serverId = this.serverId();
+    const targetCat = this.serversStore.categoriesOf(serverId).find((c) => c.id === targetCategoryId);
+    const targetName = targetCat?.name ?? 'danh mục';
+
+    this.serversStore.moveChannel(serverId, channel.id, targetCategoryId, 0);
+    this.announce(`Đã chuyển kênh ${channel.name} vào danh mục ${targetName}.`);
+  }
+
+  private clearDwellTimer(): void {
+    if (this.dwellTimeout !== null) {
+      clearTimeout(this.dwellTimeout);
+      this.dwellTimeout = null;
+    }
+  }
+
+  private announce(message: string): void {
+    this.liveAnnouncement.set('');
+    setTimeout(() => {
+      this.liveAnnouncement.set(message);
+    }, 50);
+  }
+
   protected readonly voiceConnectedChannelId = this.voiceRoom.currentChannelId;
   protected readonly voiceParticipants = this.voiceRoom.allParticipants;
 
   /**
-   * Predicates để bảo đảm CDK DropList chỉ chấp nhận đúng loại dữ liệu kéo thả:
-   * 1. Category DropList chỉ nhận Category Group
-   * 2. Channel DropList chỉ nhận Channel
-   * 3. Voice Member DropList chỉ nhận Voice Member
+   * Predicates để bảo đảm CDK DropList chỉ chấp nhận đúng loại dữ liệu kéo thả.
+   *
+   * Root list chấp nhận cả Category lẫn Channel (kéo kênh từ category ra cấp máy
+   * chủ), nhưng CHỈ khi con trỏ không nằm trong cây con của một category.
+   *
+   * Bounding box của root bao trọn mọi category list, và
+   * `DropListRef._getSiblingContainerFromPosition()` chỉ duyệt các sibling —
+   * container ban đầu bị loại khỏi danh sách đó. Nếu root chấp nhận vô điều kiện
+   * thì ngay khi kéo trong chính category của mình, root sẽ khớp trước và cướp
+   * drop (đo được: kéo ch-c trong cat-A phát `cdkDropListDropped` trên root).
+   * Chặn theo vị trí con trỏ giữ cho mỗi cấp chỉ nhận drop trong vùng của nó.
    */
+  protected readonly isRootEnterPredicate = (drag: CdkDrag<unknown>): boolean => {
+    const data = drag.data as { kind?: string } | undefined;
+    if (!data) return false;
+    if (data.kind === 'category') return true;
+    if (!this.isChannelData(data)) return false;
+    return !this.isPointerInsideCategorySubtree(drag);
+  };
+
+  /**
+   * Con trỏ của thao tác kéo hiện tại có đang nằm trong một `.channel-group`
+   * (header + danh sách kênh con của một category) hay không.
+   *
+   * `DropListRef._startReceiving()` gọi enterPredicate ĐÚNG MỘT LẦN lúc bắt đầu
+   * kéo và chỉ cache `_domRect` khi predicate trả về true — trả về false ở thời
+   * điểm đó sẽ vô hiệu hóa container suốt cả thao tác. Lúc nhấc kênh lên thì con
+   * trỏ đương nhiên đang nằm trong category của nó, nên pha kích hoạt phải được
+   * bỏ qua: `lastDragPointer` chỉ có giá trị từ lần `mousemove` sau khi kéo đã
+   * thực sự bắt đầu (listener được đăng ký trong chính lần dispatch đó nên không
+   * nhận được event hiện tại).
+   */
+  private isPointerInsideCategorySubtree(drag: CdkDrag<unknown>): boolean {
+    if (!this.lastDragPointer || typeof document === 'undefined') return false;
+
+    // Ưu tiên vị trí CDK vừa ghi ngay trước khi hỏi predicate (không bị trễ một
+    // event như listener của chính component).
+    const pointer =
+      (drag as unknown as { _dragRef?: { _lastKnownPointerPosition?: { x: number; y: number } } })
+        ._dragRef?._lastKnownPointerPosition ?? this.lastDragPointer;
+
+    const element = document.elementFromPoint(pointer.x, pointer.y);
+    // Chỉ header và danh sách con mới là "lãnh thổ" của category. Dải padding
+    // trên/dưới của `.channel-group` vẫn thuộc root để còn chèn được root
+    // channel vào giữa hai category.
+    return !!element?.closest('.category-header-drop, .category-child-list');
+  }
+
+  protected readonly isCategoryChildEnterPredicate = (drag: CdkDrag<unknown>): boolean => {
+    const data = drag.data as { kind?: string } | undefined;
+    if (!data) return false;
+    if (data.kind === 'category') return false;
+    return this.isChannelData(data);
+  };
+
+  /** Một payload kéo thả là channel khi nó là ChannelSummary hoặc wrapper kind: 'channel'. */
+  private isChannelData(data: unknown): boolean {
+    if (!data || typeof data !== 'object') return false;
+    const record = data as Record<string, unknown>;
+    if (record['kind'] === 'channel') return true;
+    return 'type' in record && !('userId' in record);
+  }
+
   protected readonly isCategoryPredicate = (drag: CdkDrag<unknown>): boolean => {
     const data = drag.data as Record<string, unknown> | undefined;
-    return !!data && 'channels' in data && !('type' in data);
+    return !!data && (data['kind'] === 'category' || ('channels' in data && !('type' in data)));
   };
 
   protected readonly isChannelPredicate = (drag: CdkDrag<unknown>): boolean => {
     const data = drag.data as Record<string, unknown> | undefined;
-    return !!data && 'type' in data && !('userId' in data);
+    return !!data && (data['kind'] === 'channel' || ('type' in data && !('userId' in data)));
   };
 
   protected readonly isVoiceMemberPredicate = (drag: CdkDrag<unknown>): boolean => {
@@ -231,112 +563,151 @@ export class ChannelList {
     () => this.serversStore.serverOf(this.serverId())?.name ?? 'Máy chủ',
   );
 
-  /** Kênh chưa phân loại (không thuộc danh mục nào) — luôn nằm ở ĐẦU TIÊN trên cùng (trên cả danh mục đầu tiên) */
-  protected readonly uncategorizedGroup = computed<ChannelGroupViewModel | null>(() => {
-    const serverId = this.serverId();
-    const channels = this.serversStore.channelsOf(serverId);
-    const customCategories = this.serversStore.categoriesOf(serverId);
+  /**
+   * Danh sách phần tử cấp gốc (Category hoặc Root Channel) theo đúng thứ tự canonical layout.
+   */
+  protected readonly rootItems = computed<SidebarItemViewModel[]>(() => {
+    const srvId = this.serverId();
+    if (!srvId) return [];
 
-    let uncategorizedChannels: ChannelSummary[] = [];
+    const layout = this.serversStore.getServerLayout(srvId);
+    const channels = this.serversStore.channelsOf(srvId);
+    const channelMap = new Map(channels.map((c) => [c.id, c]));
+    const categories = this.serversStore.categoriesOf(srvId);
+    const catMap = new Map(categories.map((c) => [c.id, c]));
 
-    if (customCategories.length > 0) {
-      const customCategoryIds = new Set(customCategories.map((c) => c.id));
-      uncategorizedChannels = channels.filter(
-        (c) => !c.categoryId || !customCategoryIds.has(c.categoryId),
-      );
-    } else {
-      // Khi server chỉ có các danh mục mặc định (Kênh chữ & Kênh thoại):
-      // Chỉ những kênh được đánh dấu 'cat-uncategorized' mới tách riêng lên top
-      uncategorizedChannels = channels.filter(
-        (c) => c.categoryId === 'cat-uncategorized',
-      );
-    }
+    const result: SidebarItemViewModel[] = [];
 
-    if (uncategorizedChannels.length === 0) {
-      return null;
-    }
-
-    return {
-      id: 'cat-uncategorized',
-      label: '',
-      channels: uncategorizedChannels,
-      isCategory: false,
-    };
-  });
-
-  /** Danh sách các danh mục (Categories) của server — hỗ trợ kéo thả sắp xếp thứ tự */
-  protected readonly categoryGroups = computed<ChannelGroupViewModel[]>(() => {
-    const serverId = this.serverId();
-    const channels = this.serversStore.channelsOf(serverId);
-    const customCategories = this.serversStore.categoriesOf(serverId);
-
-    const defaultCategories: ServerCategorySummary[] = [
-      { id: 'cat-text', name: 'Kênh chữ' },
-      { id: 'cat-voice', name: 'Kênh thoại' },
-    ];
-
-    const allCategories: ServerCategorySummary[] =
-      customCategories.length > 0 ? customCategories : defaultCategories;
-
-    const result: ChannelGroupViewModel[] = [];
-
-    for (const cat of allCategories) {
-      const catChannels = channels.filter((c) => {
-        if (c.categoryId === 'cat-uncategorized') {
-          return false;
+    for (const item of layout.rootItems) {
+      if (item.kind === 'channel') {
+        const ch = channelMap.get(item.id);
+        if (ch) {
+          result.push({
+            kind: 'channel',
+            channel: ch,
+          });
         }
-        if (c.categoryId) {
-          return c.categoryId === cat.id;
-        }
-        if (customCategories.length === 0) {
-          if (cat.id === 'cat-voice') {
-            return c.type === 'voice';
+      } else if (item.kind === 'category') {
+        const cat = catMap.get(item.id);
+        if (cat) {
+          const childIds = layout.categoryChannels[item.id] ?? [];
+          const childChannels: ChannelSummary[] = [];
+          for (const chId of childIds) {
+            const ch = channelMap.get(chId);
+            if (ch) {
+              childChannels.push(ch);
+            }
           }
-          if (cat.id === 'cat-text') {
-            return c.type !== 'voice';
-          }
+
+          const isCollapsed = this.isGroupCollapsed(cat.id);
+          const mentionCount = childChannels.reduce((acc, c) => acc + (c.mentionCount || 0), 0);
+          const hasUnread = childChannels.some((c) => c.unread || (c.mentionCount || 0) > 0);
+
+          result.push({
+            kind: 'category',
+            category: cat,
+            channels: childChannels,
+            isCollapsed,
+            mentionCount,
+            hasUnread,
+          });
         }
-        return false;
-      });
-
-      result.push({
-        id: cat.id,
-        label: cat.name,
-        isPrivate: cat.isPrivate,
-        channels: catChannels,
-        isCategory: true,
-      });
-    }
-
-    if (customCategories.length === 0) {
-      return result.filter((g) => g.channels.length > 0);
+      }
     }
 
     return result;
   });
 
-  /** Nhóm kênh toàn diện (Kênh không có danh mục ở đầu + các Danh mục bên dưới) */
+  /**
+   * Thứ tự kết nối drop list — đây là điểm mấu chốt của kiến trúc lồng nhau.
+   *
+   * `DragRef._updateActiveDropContainer()` gọi
+   * `initialContainer._getSiblingContainerFromPosition()`, hàm này trả về
+   * `_siblings.find(s => s._canReceive(...))` — tức container khớp ĐẦU TIÊN
+   * thắng. Root list bao trọn bounding box của mọi category list, nên nếu root
+   * đứng trước thì nó sẽ luôn nuốt drop của list con.
+   *
+   * Vì vậy thứ tự bắt buộc là: category list → category header → root list.
+   * `CdkDropList` ghép `connectedTo` (tường minh, giữ nguyên thứ tự) rồi mới nối
+   * thêm các thành viên `cdkDropListGroup` chưa có, và tự loại bỏ chính nó — nên
+   * danh sách dùng chung này an toàn cho mọi drop list kênh.
+   */
+  protected readonly channelDropListConnections = computed<string[]>(() => {
+    const categoryIds = this.rootItems()
+      .filter((item): item is SidebarCategoryItem => item.kind === 'category')
+      .map((item) => item.category.id);
+
+    return [
+      ...categoryIds.map((id) => `channel-group-${id}`),
+      ...categoryIds.map((id) => `category-header-drop-${id}`),
+      'channel-sidebar-root-list',
+    ];
+  });
+
+  /** Kênh chưa phân loại (giữ để tương thích ngược với code cũ nếu có) */
+  protected readonly uncategorizedGroup = computed<ChannelGroupViewModel | null>(() => {
+    const uncatChannels = this.rootItems()
+      .filter((i): i is SidebarRootChannelItem => i.kind === 'channel')
+      .map((i) => i.channel);
+
+    if (uncatChannels.length === 0) return null;
+    return {
+      id: 'cat-uncategorized',
+      label: '',
+      channels: uncatChannels,
+      isCategory: false,
+    };
+  });
+
+  /** Danh sách category groups (tương thích ngược) */
+  protected readonly categoryGroups = computed<ChannelGroupViewModel[]>(() => {
+    return this.rootItems()
+      .filter((i): i is SidebarCategoryItem => i.kind === 'category')
+      .map((i) => ({
+        id: i.category.id,
+        label: i.category.name,
+        isPrivate: i.category.isPrivate,
+        channels: i.channels,
+        isCategory: true,
+      }));
+  });
+
+  /** Nhóm kênh toàn diện (tương thích ngược) */
   protected readonly groups = computed<ChannelGroupViewModel[]>(() => {
-    const uncat = this.uncategorizedGroup();
-    const cats = this.categoryGroups();
-    return uncat ? [uncat, ...cats] : cats;
+    const items = this.rootItems();
+    const res: ChannelGroupViewModel[] = [];
+    for (const item of items) {
+      if (item.kind === 'category') {
+        res.push({
+          id: item.category.id,
+          label: item.category.name,
+          isPrivate: item.category.isPrivate,
+          channels: item.channels,
+          isCategory: true,
+        });
+      } else {
+        res.push({
+          id: item.channel.id,
+          label: item.channel.name,
+          channels: [item.channel],
+          isCategory: false,
+        });
+      }
+    }
+    return res;
   });
 
   /**
    * Tính danh sách kênh hiển thị:
-   * - Nếu nhóm mở: hiện tất cả kênh trong nhóm.
-   * - Nếu nhóm thu gọn: chỉ hiện duy nhất kênh mà người dùng đang mở (nếu thuộc nhóm này).
+   * Khi Category đóng, ẩn toàn bộ kênh con.
    */
-  protected visibleChannelsOf(group: ChannelGroupViewModel): ChannelSummary[] {
-    const isCollapsed = this.isGroupCollapsed(group.id);
-    if (!isCollapsed) {
-      return group.channels;
-    }
-    const activeId = this.activeChannelId();
-    if (!activeId) {
+  protected visibleChannelsOf(group: ChannelGroupViewModel | SidebarCategoryItem): ChannelSummary[] {
+    const groupId = 'category' in group ? group.category.id : group.id;
+    const isCollapsed = this.isGroupCollapsed(groupId);
+    if (isCollapsed) {
       return [];
     }
-    return group.channels.filter((c) => c.id === activeId);
+    return group.channels;
   }
 
   private readChannelId(): string | null {
@@ -357,18 +728,18 @@ export class ChannelList {
     return !!this.collapsedGroups()[groupId];
   }
 
-  protected toggleGroup(groupId: string): void {
+  protected toggleGroup(groupId: string, forceState?: boolean): void {
     this.collapsedGroups.update((current) => ({
       ...current,
-      [groupId]: !current[groupId],
+      [groupId]: forceState !== undefined ? forceState : !current[groupId],
     }));
   }
 
-  protected getGroupMentionCount(group: ChannelGroupViewModel): number {
+  protected getGroupMentionCount(group: ChannelGroupViewModel | SidebarCategoryItem): number {
     return group.channels.reduce((acc, ch) => acc + (ch.mentionCount || 0), 0);
   }
 
-  protected getGroupHasUnread(group: ChannelGroupViewModel): boolean {
+  protected getGroupHasUnread(group: ChannelGroupViewModel | SidebarCategoryItem): boolean {
     return group.channels.some((ch) => ch.unread || (ch.mentionCount || 0) > 0);
   }
 
@@ -379,15 +750,36 @@ export class ChannelList {
     const localPart = isCurrentlyConnected ? this.voiceRoom.localParticipant() : null;
     const remotes = isCurrentlyConnected ? this.voiceRoom.remoteParticipants() : [];
 
-    // Nếu đang kết nối trực tiếp vào kênh này, lấy thông tin realtime từ LiveKit (kèm trạng thái speaking)
+<<<<<<< HEAD
     if (isCurrentlyConnected && (localPart || remotes.length > 0)) {
       const liveList: VoiceChannelMemberViewModel[] = [];
+=======
+    // Redis là presence canonical cho sidebar; LiveKit bổ sung speaking/media realtime.
+    // Không thay thế toàn bộ snapshot vì participant event của LiveKit có thể đến trễ.
+    const members = new Map<string, VoiceChannelMemberViewModel>();
+    for (const s of states) {
+      members.set(s.userId, {
+        userId: s.userId,
+        name: s.displayName || s.name || s.username,
+        avatarUrl: s.avatarUrl,
+        isMuted: s.isMuted,
+        isCameraOn: s.isCameraOn,
+        isScreenSharing: s.isScreenSharing,
+        isSpeaking: false,
+        isLocal: false,
+      });
+    }
+
+    if (isCurrentlyConnected) {
+>>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2
       if (localPart) {
-        liveList.push({
+        const fromState = members.get(localPart.identity);
+        members.set(localPart.identity, {
           userId: localPart.identity,
           name: localPart.name,
-          avatarUrl: localPart.avatarUrl ?? null,
+          avatarUrl: localPart.avatarUrl ?? fromState?.avatarUrl ?? null,
           isMuted: localPart.isMuted,
+          isDeafened: localPart.isDeafened,
           isCameraOn: localPart.isCameraOn,
           isScreenSharing: localPart.isScreenSharing,
           isSpeaking: localPart.isSpeaking,
@@ -395,36 +787,38 @@ export class ChannelList {
         });
       }
       for (const r of remotes) {
-        liveList.push({
+        const fromState = members.get(r.identity);
+        members.set(r.identity, {
           userId: r.identity,
           name: r.name,
-          avatarUrl: r.avatarUrl ?? null,
+          avatarUrl: r.avatarUrl ?? fromState?.avatarUrl ?? null,
           isMuted: r.isMuted,
+          isDeafened: r.isDeafened,
           isCameraOn: r.isCameraOn,
           isScreenSharing: r.isScreenSharing,
           isSpeaking: r.isSpeaking,
           isLocal: false,
         });
       }
-      return liveList;
     }
 
-    // Nếu đứng bên ngoài (chưa join kênh này), lấy từ voiceStatesStore
+<<<<<<< HEAD
     return states.map((s) => ({
       userId: s.userId,
       name: s.displayName || s.name || s.username,
       avatarUrl: s.avatarUrl,
       isMuted: s.isMuted,
+      isDeafened: s.isDeafened,
       isCameraOn: s.isCameraOn,
       isScreenSharing: s.isScreenSharing,
       isSpeaking: false,
       isLocal: false,
     }));
+=======
+    return [...members.values()];
+>>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2
   }
 
-  /**
-   * Xem stream trực tiếp của thành viên đang chia sẻ màn hình
-   */
   protected onWatchStream(
     event: Event,
     channel: ChannelSummary,
@@ -438,7 +832,7 @@ export class ChannelList {
     }
   }
 
-  protected openCreateChannelDialog(group?: ChannelGroupViewModel | 'text' | 'voice', event?: Event): void {
+  protected openCreateChannelDialog(group?: ChannelGroupViewModel | SidebarCategoryItem | 'text' | 'voice', event?: Event): void {
     event?.preventDefault();
     event?.stopPropagation();
 
@@ -449,7 +843,11 @@ export class ChannelList {
     if (typeof group === 'string') {
       defaultType = group;
       categoryId = group === 'voice' ? 'cat-voice' : 'cat-text';
-    } else if (group) {
+    } else if (group && 'category' in group) {
+      categoryId = group.category.id;
+      categoryName = group.category.name;
+      defaultType = group.category.id === 'cat-voice' ? 'voice' : 'text';
+    } else if (group && 'id' in group) {
       categoryId = group.id;
       categoryName = group.label;
       defaultType = group.id === 'cat-voice' ? 'voice' : 'text';
@@ -493,11 +891,9 @@ export class ChannelList {
         serverId: this.serverId(),
         channel,
       },
-      panelClass: 'nexus-fullscreen-dialog-overlay',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      width: '100vw',
-      height: '100vh',
+      panelClass: 'nexus-dialog-overlay',
+      maxWidth: '92vw',
+      maxHeight: '88vh',
       autoFocus: false,
     });
   }
@@ -514,7 +910,7 @@ export class ChannelList {
 
   protected onCategoryContextMenu(
     event: MouseEvent | KeyboardEvent,
-    group: ChannelGroupViewModel,
+    group: ChannelGroupViewModel | SidebarCategoryItem,
   ): void {
     event.preventDefault();
     event.stopPropagation();
@@ -531,7 +927,17 @@ export class ChannelList {
       y = rect.top + rect.height / 2;
     }
 
-    this.selectedGroup.set(group);
+    const vm: ChannelGroupViewModel = 'category' in group
+      ? {
+          id: group.category.id,
+          label: group.category.name,
+          isPrivate: group.category.isPrivate,
+          channels: group.channels,
+          isCategory: true,
+        }
+      : group;
+
+    this.selectedGroup.set(vm);
     this.contextMenuPosition.set({ x, y });
     this.categoryMenuTrigger?.openMenu();
   }
@@ -562,8 +968,10 @@ export class ChannelList {
 
   protected collapseAllGroups(): void {
     const allCollapsed: Record<string, boolean> = {};
-    for (const group of this.groups()) {
-      allCollapsed[group.id] = true;
+    for (const item of this.rootItems()) {
+      if (item.kind === 'category') {
+        allCollapsed[item.category.id] = true;
+      }
     }
     this.collapsedGroups.set(allCollapsed);
   }
@@ -581,13 +989,11 @@ export class ChannelList {
   protected markGroupAsRead(group?: { id?: string; label?: string } | null): void {
     const target = group ?? this.selectedGroup();
     if (!target) return;
-    // Integration seam: Đánh dấu đã đọc toàn bộ kênh trong nhóm
   }
 
   protected markChannelAsRead(channel?: ChannelSummary | null): void {
     const target = channel ?? this.selectedChannel();
     if (!target) return;
-    // Integration seam: Đánh dấu đã đọc kênh
   }
 
   protected createChannelOfSameType(channel?: ChannelSummary | null): void {
@@ -597,76 +1003,118 @@ export class ChannelList {
     this.openCreateChannelDialog({ id: categoryId, label: type === 'voice' ? 'Kênh thoại' : 'Kênh chữ', channels: [] });
   }
 
-  protected onActionSeam(action: string, target?: unknown): void {
-    // Integration seam cho các tính năng nâng cao (Ghim, Trùng lặp, Xóa, Tắt âm, Thông báo)
+  protected onActionSeam(action: string, target?: unknown): void {}
+
+  /**
+   * Thả ra ngoài vùng sidebar là thao tác bị hủy: không mutate layout, CDK tự
+   * đưa item về chỗ cũ. Dùng `dropPoint` so với hình học thật của component thay
+   * vì `isPointerOverContainer` — cờ đó còn bật/tắt theo rect đã cache của riêng
+   * drop container nên sẽ hủy nhầm cả những cú thả sát mép hợp lệ.
+   */
+  private isDropOutsideSidebar(event: CdkDragDrop<unknown>): boolean {
+    const point = event.dropPoint;
+    const element = this.host?.nativeElement as HTMLElement | undefined;
+    if (!point || !element?.getBoundingClientRect) return false;
+
+    const rect = element.getBoundingClientRect();
+    return (
+      point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom
+    );
   }
 
   /**
-   * Xử lý khi người dùng kéo thả sắp xếp lại vị trí của các danh mục.
-   * Tất cả các kênh con của danh mục đó đương nhiên đi theo danh mục đó.
+   * Xử lý thả phần tử tại cấp Root (Category hoặc Root Channel).
+   */
+  protected onRootDrop(
+    event: CdkDragDrop<any>,
+  ): void {
+    if (!this.canManageChannels()) return;
+    this.onChannelDragEnded();
+    if (this.isDropOutsideSidebar(event)) {
+      this.announce('Đã hủy kéo thả vì thả ra ngoài vùng hợp lệ.');
+      return;
+    }
+
+    const data = event.item.data as { kind?: string; channel?: ChannelSummary; category?: ServerCategorySummary } | ChannelSummary | ChannelGroupViewModel;
+    const serverId = this.serverId();
+
+    if (event.previousContainer === event.container) {
+      if (event.previousIndex === event.currentIndex) return;
+      this.serversStore.moveRootItem(serverId, event.previousIndex, event.currentIndex);
+      const name = (data as any)?.category?.name ?? (data as any)?.channel?.name ?? (data as any)?.name ?? 'phần tử';
+      this.announce(`Đã đổi vị trí ${name}.`);
+      return;
+    }
+
+    // Kéo từ category ra root list
+    const channel = (data as any)?.channel ?? (('type' in (data as any)) ? data : null);
+    if (channel) {
+      this.serversStore.moveChannel(serverId, channel.id, null, event.currentIndex, event.currentIndex);
+      this.announce(`Đã đưa kênh ${channel.name} ra cấp máy chủ.`);
+    }
+  }
+
+  /**
+   * Xử lý thả kênh vào danh mục (sắp xếp con hoặc chuyển danh mục).
+   */
+  protected onCategoryChildDrop(
+    event: CdkDragDrop<any>,
+    targetCategoryId: string,
+  ): void {
+    if (!this.canManageChannels()) return;
+    this.onChannelDragEnded();
+    if (this.isDropOutsideSidebar(event)) {
+      this.announce('Đã hủy kéo thả vì thả ra ngoài vùng hợp lệ.');
+      return;
+    }
+
+    const data = event.item.data as { kind?: string; channel?: ChannelSummary } | ChannelSummary;
+    const channel = (data as any)?.channel ?? (('type' in (data as any)) ? data : null);
+    if (!channel) return;
+
+    const serverId = this.serverId();
+    const targetCat = this.serversStore.categoriesOf(serverId).find((c) => c.id === targetCategoryId);
+    const targetName = targetCat?.name ?? 'danh mục';
+
+    if (event.previousContainer === event.container) {
+      if (event.previousIndex === event.currentIndex) return;
+      this.serversStore.reorderCategoryChildren(serverId, targetCategoryId, event.previousIndex, event.currentIndex);
+      this.announce(`Đã đổi vị trí kênh ${channel.name} trong danh mục ${targetName}.`);
+      return;
+    }
+
+    this.serversStore.moveChannel(serverId, channel.id, targetCategoryId, event.currentIndex);
+    this.announce(`Đã chuyển kênh ${channel.name} vào danh mục ${targetName}.`);
+  }
+
+  /**
+   * Tương thích ngược với onCategoryDrop
    */
   protected onCategoryDrop(
     event: CdkDragDrop<ChannelGroupViewModel[], ChannelGroupViewModel[], ChannelGroupViewModel>,
   ): void {
-    if (!this.canManageChannels()) {
-      return;
-    }
+    if (!this.canManageChannels()) return;
+    if (event.previousIndex === event.currentIndex) return;
 
-    if (event.previousIndex === event.currentIndex) {
-      return;
-    }
-
-    const serverId = this.serverId();
-    const customCategories = this.serversStore.categoriesOf(serverId);
-    const defaultCategories: ServerCategorySummary[] = [
-      { id: 'cat-text', name: 'Kênh chữ' },
-      { id: 'cat-voice', name: 'Kênh thoại' },
-    ];
-
-    const currentCats: ServerCategorySummary[] =
-      customCategories.length > 0
-        ? [...customCategories]
-        : defaultCategories.map((d) => ({ ...d }));
-
-    moveItemInArray(currentCats, event.previousIndex, event.currentIndex);
-    this.serversStore.setCategories(serverId, currentCats);
+    this.serversStore.moveRootItem(this.serverId(), event.previousIndex, event.currentIndex);
   }
 
   /**
-   * Xử lý khi người dùng thả kênh (sắp xếp vị trí hoặc chuyển sang danh mục khác).
+   * Tương thích ngược với onChannelDrop
    */
   protected onChannelDrop(
     event: CdkDragDrop<ChannelGroupViewModel, ChannelGroupViewModel, ChannelSummary>,
   ): void {
-    if (!this.canManageChannels()) {
-      return;
-    }
-
+    if (!this.canManageChannels()) return;
     const channel = event.item.data;
     if (!channel) return;
 
-    const sourceGroup = event.previousContainer.data;
     const targetGroup = event.container.data;
+    const targetCategoryId = !targetGroup || targetGroup.id === 'cat-uncategorized' || targetGroup.isCategory === false
+      ? null
+      : targetGroup.id;
 
-    // Nếu cùng danh mục và cùng vị trí thì bỏ qua
-    if (
-      sourceGroup.id === targetGroup.id &&
-      event.previousIndex === event.currentIndex
-    ) {
-      return;
-    }
-
-    const targetCategoryId =
-      targetGroup.id === 'cat-uncategorized' || targetGroup.isCategory === false
-        ? null
-        : targetGroup.id;
-
-    this.serversStore.moveChannel(
-      this.serverId(),
-      channel.id,
-      targetCategoryId,
-      event.currentIndex,
-    );
+    this.serversStore.moveChannel(this.serverId(), channel.id, targetCategoryId, event.currentIndex);
   }
 
   /**
@@ -717,9 +1165,7 @@ export class ChannelList {
     }
   }
 
-  protected onViewMemberProfile(member: VoiceChannelMemberViewModel): void {
-    // Có thể trigger profile card
-  }
+  protected onViewMemberProfile(member: VoiceChannelMemberViewModel): void {}
 
   /**
    * Kéo thả thành viên sang kênh thoại khác (Dành cho Chủ Server / Admin).
@@ -743,5 +1189,9 @@ export class ChannelList {
     this.chatSocket.moveVoiceMember(this.serverId(), member.userId, targetChannel.id);
   }
 }
+<<<<<<< HEAD
 
 
+
+=======
+>>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2

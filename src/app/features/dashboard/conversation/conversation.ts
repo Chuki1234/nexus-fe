@@ -22,6 +22,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChatToolbar } from '../components/chat-toolbar/chat-toolbar';
@@ -33,8 +34,10 @@ import {
   MessageComposer,
   type MessageComposerContext,
   type SendMessagePayload,
+  type MentionCandidate,
 } from '../components/message-composer/message-composer';
 import { MessageActions } from '../components/message-actions/message-actions';
+import { PinnedMessagesList } from '../components/pinned-messages-list/pinned-messages-list';
 import { DashboardState } from '../components/dashboard-state/dashboard-state';
 import { DashboardUiState } from '../services/dashboard-ui-state';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -42,18 +45,21 @@ import {
   ConversationsApiService,
   type ConversationResponseDto,
 } from '../../../core/api/conversations-api.service';
-import {
-  ActiveChatStore,
-  type ChatUiMessage,
-} from '../services/active-chat.store';
-import type { MessageResponseDto } from '../../../core/api/messages-api.service';
+import { ActiveChatStore, type ChatUiMessage } from '../services/active-chat.store';
+import type {
+  AttachmentResponseDto,
+  MessageResponseDto,
+} from '../../../core/api/messages-api.service';
 import { ContextPanel } from '../components/context-panel/context-panel';
 import { ProfileAvatar } from '../../profile/components/profile-avatar/profile-avatar';
 import { ProfilePanel } from '../../profile/components/profile-panel/profile-panel';
 import { Avatar } from '../../../shared/ui/avatar/avatar';
 import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 import { ForwardMessageModal } from '../components/forward-message-modal/forward-message-modal';
-import { DeleteMessageModal } from '../components/delete-message-modal/delete-message-modal';
+import {
+  DeleteMessageModal,
+  type DeleteMessageModalData,
+} from '../components/delete-message-modal/delete-message-modal';
 import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.service';
 import type { LightboxMediaItem } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.types';
 import { extractErrorMessage } from '../../../core/utils/error.util';
@@ -61,10 +67,7 @@ import { GiphyMessageEmbedComponent } from '../components/giphy-message-embed/gi
 import { InlineMessageEditor } from '../components/inline-message-editor/inline-message-editor';
 import { MessageClockService } from '../../../core/utils/message-clock.service';
 import { canEditMessage } from '../../../../shared/dto/messages.dto';
-import {
-  parseMessageContent,
-  type MessageContentToken,
-} from './utils/message-content-parser';
+import { parseMessageContent, type MessageContentToken } from './utils/message-content-parser';
 
 export interface ConversationHttpError {
   status?: number;
@@ -201,6 +204,7 @@ export interface StreamMessageViewModel {
 
 import { DirectCallCoordinatorService } from '../../../core/calls/direct-call-coordinator.service';
 import { UserSettingsService } from '../../settings/services/user-settings.service';
+import { FriendsStore } from '../friends/services/friends-store';
 
 /**
  * Trang chi tiết cuộc trò chuyện Direct Message — `/channels/@me/:conversationId`.
@@ -216,17 +220,18 @@ import { UserSettingsService } from '../../settings/services/user-settings.servi
     ChatToolbar,
     ContextPanel,
     DashboardState,
-    DeleteMessageModal,
     EmptyState,
     ForwardMessageModal,
     GiphyMessageEmbedComponent,
     InlineMessageEditor,
     MatButtonModule,
+    MatDialogModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     MessageActions,
     MessageComposer,
+    PinnedMessagesList,
     ProfileAvatar,
     ProfilePanel,
     RouterLink,
@@ -240,9 +245,11 @@ import { UserSettingsService } from '../../settings/services/user-settings.servi
 export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
+  private readonly dialog = inject(MatDialog);
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
   private readonly userSettings = inject(UserSettingsService);
+  private readonly friendsStore = inject(FriendsStore);
   readonly activeChatStore = inject(ActiveChatStore);
   readonly messageClock = inject(MessageClockService);
   private readonly uiState = inject(DashboardUiState);
@@ -286,13 +293,19 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   protected readonly isRecipientBlocked = computed(() => {
     const details = this.conversationDetails();
     if (!details?.recipient?.id) return false;
-    return this.userSettings.isUserBlocked(details.recipient.id);
+    return this.friendsStore.isBlocked(details.recipient.id);
+  });
+
+  protected readonly isRelationshipInvalidated = computed(() => {
+    const details = this.conversationDetails();
+    if (!details?.recipient?.id) return false;
+    return this.friendsStore.isRelationshipInvalidated(details.recipient.id);
   });
 
   protected unblockRecipient(): void {
     const details = this.conversationDetails();
     if (details?.recipient?.id) {
-      this.userSettings.unblockUser(details.recipient.id);
+      void this.friendsStore.unblockUser(details.recipient.id);
     }
   }
 
@@ -332,6 +345,19 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     () => this.conversationDetails()?.recipient?.username ?? null,
   );
 
+  protected readonly mentionCandidates = computed<MentionCandidate[]>(() => {
+    const recipient = this.conversationDetails()?.recipient;
+    if (!recipient) return [];
+    return [
+      {
+        id: recipient.id,
+        username: recipient.username,
+        displayName: recipient.displayName || recipient.username,
+        avatarUrl: recipient.avatarUrl ?? null,
+      },
+    ];
+  });
+
   private readonly breakpoints = inject(BreakpointObserver);
   protected readonly isMobile = toSignal(
     this.breakpoints.observe(MOBILE_BREAKPOINT_QUERY).pipe(map((state) => state.matches)),
@@ -340,6 +366,19 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
 
   /** Cột hồ sơ bên phải đang mở hay không (nút "hồ sơ" trên thanh tiêu đề). */
   protected readonly profilePanelOpen = signal(false);
+  protected readonly pinsOpen = signal(false);
+  protected readonly pinBusyIds = signal<Set<string>>(new Set());
+
+  protected toggleProfilePanel(): void {
+    const next = !this.profilePanelOpen();
+    this.pinsOpen.set(false);
+    this.profilePanelOpen.set(next);
+  }
+
+  protected openPins(): void {
+    this.profilePanelOpen.set(false);
+    this.pinsOpen.set(true);
+  }
 
   protected readonly recipientStatus = computed(() => {
     return this.conversationDetails()?.recipient?.statusMessage || null;
@@ -356,10 +395,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     if (recipientId) {
       return this.presenceService.getPresence(recipientId)();
     }
-    return (
-      (this.conversationDetails()?.recipient?.presence as PresenceStatus) ||
-      'offline'
-    );
+    return (this.conversationDetails()?.recipient?.presence as PresenceStatus) || 'offline';
   });
 
   protected readonly recipientStatusSubtitle = computed(() => {
@@ -500,7 +536,10 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
    */
   readonly streamMessages = computed<StreamMessageViewModel[]>(() => {
     return this.streamItems()
-      .filter((item): item is Extract<ConversationStreamItem, { kind: 'message' }> => item.kind === 'message')
+      .filter(
+        (item): item is Extract<ConversationStreamItem, { kind: 'message' }> =>
+          item.kind === 'message',
+      )
       .map((item) => ({
         message: item.message,
         isGrouped: item.isGrouped,
@@ -614,15 +653,11 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
           (m) => m.authorId !== myId && m.status === 'persisted',
         ).length;
 
-        this.scrollController.handleRealtimeAppend(
-          id,
-          this.scrollController.generation,
-          {
-            isMine: hasOwnMessage,
-            wasNearBottom,
-            count: inboundCount,
-          },
-        );
+        this.scrollController.handleRealtimeAppend(id, this.scrollController.generation, {
+          isMine: hasOwnMessage,
+          wasNearBottom,
+          count: inboundCount,
+        });
       });
     });
   }
@@ -750,7 +785,8 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     this.detailsError.set(null);
 
     // Kiểm tra định dạng ID cơ bản (UUID v4)
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
     if (!isUuid && !id.startsWith('conv-') && !id.startsWith('dm-')) {
       if (this.detailsGeneration === generation && this.conversationId() === id) {
         this.detailsError.set({
@@ -895,10 +931,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
 
             // Chỉ markAsRead tin nhắn của người khác (inbound) và là ID persisted hợp lệ
             if (msgId && authorId && authorId !== myId && /^\d+$/.test(msgId)) {
-              if (
-                !maxVisibleInboundId ||
-                isMessageAfterLastRead(msgId, maxVisibleInboundId)
-              ) {
+              if (!maxVisibleInboundId || isMessageAfterLastRead(msgId, maxVisibleInboundId)) {
                 maxVisibleInboundId = msgId;
               }
             }
@@ -977,10 +1010,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     for (const msg of this.messages()) {
       if (msg.attachments && msg.attachments.length > 0) {
         for (const att of msg.attachments) {
-          if (
-            att.mimeType?.startsWith('image/') ||
-            /\.(png|jpe?g|webp|gif)$/i.test(att.filename)
-          ) {
+          if (att.mimeType?.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(att.filename)) {
             items.push({
               messageId: String(msg.id),
               attachmentId: att.id,
@@ -1018,9 +1048,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   ): void {
     const openerElement =
       (event?.target as HTMLElement) ||
-      (typeof document !== 'undefined'
-        ? (document.activeElement as HTMLElement)
-        : null);
+      (typeof document !== 'undefined' ? (document.activeElement as HTMLElement) : null);
 
     const allMedia = this.galleryMediaItems();
     const items =
@@ -1040,29 +1068,18 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
 
     this.lightboxGalleryService.open({
       items,
-      initialActiveId:
-        messageId && attachmentId
-          ? { messageId, attachmentId }
-          : undefined,
+      initialActiveId: messageId && attachmentId ? { messageId, attachmentId } : undefined,
       openerElement,
       refreshAttachmentUrl: async (mId, aId) => {
         try {
-          const freshUrl = await this.activeChatStore.refreshAttachmentUrl(
-            mId,
-            aId,
-          );
+          const freshUrl = await this.activeChatStore.refreshAttachmentUrl(mId, aId);
           return freshUrl || null;
         } catch {
           return null;
         }
       },
       onDownload: async (item) => {
-        await this.downloadAttachment(
-          item.messageId,
-          item.attachmentId,
-          item.url,
-          item.filename,
-        );
+        await this.downloadAttachment(item.messageId, item.attachmentId, item.url, item.filename);
       },
     });
   }
@@ -1117,7 +1134,11 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
 
     try {
       // Nếu chưa có URL hoặc đã bị đánh dấu lỗi trước đó, refresh ngay 1 lần
-      if ((!validUrl || (attachmentId && this.failedAttachmentIds().has(attachmentId))) && messageId && attachmentId) {
+      if (
+        (!validUrl || (attachmentId && this.failedAttachmentIds().has(attachmentId))) &&
+        messageId &&
+        attachmentId
+      ) {
         validUrl = await this.activeChatStore.refreshAttachmentUrl(messageId, attachmentId);
         hasRefreshed = true;
         if (validUrl) {
@@ -1138,7 +1159,12 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
       try {
         let res = await fetch(validUrl);
         // Refresh đúng 1 lần nếu gặp lỗi auth/expired từ signed URL
-        if ((res.status === 400 || res.status === 401 || res.status === 403) && !hasRefreshed && messageId && attachmentId) {
+        if (
+          (res.status === 400 || res.status === 401 || res.status === 403) &&
+          !hasRefreshed &&
+          messageId &&
+          attachmentId
+        ) {
           validUrl = await this.activeChatStore.refreshAttachmentUrl(messageId, attachmentId);
           hasRefreshed = true;
           if (validUrl) {
@@ -1201,16 +1227,36 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
+  isAudioAttachment(att: AttachmentResponseDto): boolean {
+    return (
+      att.mimeType === 'audio/mpeg' ||
+      att.mimeType === 'audio/mp3' ||
+      /\.mp3$/i.test(att.filename || '')
+    );
+  }
+
+  isVideoAttachment(att: AttachmentResponseDto): boolean {
+    return (
+      Boolean(att.mimeType?.startsWith('video/')) ||
+      /\.(mp4|m4v|webm|ogv|mov|qt|mkv|avi|mpeg|mpg|3gp|wmv|flv)$/i.test(att.filename || '')
+    );
+  }
+
+  isBrowserPlayableVideo(att: AttachmentResponseDto): boolean {
+    return (
+      ['video/mp4', 'video/x-m4v', 'video/webm', 'video/ogg'].includes(att.mimeType) ||
+      /\.(mp4|m4v|webm|ogv)$/i.test(att.filename || '')
+    );
+  }
+
   onSendMessage(payload: SendMessagePayload): void {
     if (payload.editMessageId) {
-      void this.activeChatStore.editMessage(
-        payload.editMessageId,
-        payload.content,
-      );
+      void this.activeChatStore.editMessage(payload.editMessageId, payload.content);
     } else {
       void this.activeChatStore.sendMessage({
         content: payload.content,
         files: payload.files,
+        attachments: payload.attachments,
         replyToId: payload.replyToId,
         externalMedia: payload.externalMedia,
       });
@@ -1245,6 +1291,28 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
 
   closeDeleteModal(): void {
     this.deleteModalMessage.set(null);
+  }
+
+  openDeleteModal(msg: ChatUiMessage): void {
+    const dialogRef = this.dialog.open<
+      DeleteMessageModal,
+      DeleteMessageModalData,
+      'for_me' | 'everyone'
+    >(DeleteMessageModal, {
+      data: {
+        message: msg,
+        canRecall: msg.authorId === this.currentUserId(),
+      },
+      panelClass: 'nexus-dialog-clean-panel',
+      backdropClass: 'nexus-dialog-backdrop-blur',
+      autoFocus: false,
+    });
+
+    dialogRef.afterClosed().subscribe((scope) => {
+      if (scope) {
+        void this.activeChatStore.deleteMessage(msg.id, scope);
+      }
+    });
   }
 
   async onConfirmDelete(scope: 'for_me' | 'everyone'): Promise<void> {
@@ -1297,16 +1365,56 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     } else if (action.kind === 'delete' && action.messageId) {
       const msg = this.messages().find((m) => m.id === action.messageId);
       if (msg) {
-        this.deleteModalMessage.set(msg);
+        this.openDeleteModal(msg);
       }
     } else if (action.kind === 'forward' && action.messageId) {
       const msg = this.messages().find((m) => m.id === action.messageId);
       if (msg) {
         this.openForwardModal(msg);
       }
+    } else if (action.kind === 'pin' && action.messageId) {
+      void this.setMessagePinned(action.messageId, true);
+    } else if (action.kind === 'unpin' && action.messageId) {
+      void this.setMessagePinned(action.messageId, false);
     } else {
       this.composerContext.set(action);
     }
+  }
+
+  protected async unpinFromPanel(message: MessageResponseDto): Promise<void> {
+    await this.setMessagePinned(message.id, false);
+  }
+
+  private async setMessagePinned(messageId: string, pinned: boolean): Promise<void> {
+    if (this.pinBusyIds().has(messageId)) return;
+    this.pinBusyIds.update((ids) => new Set(ids).add(messageId));
+    try {
+      if (pinned) {
+        await this.activeChatStore.pinMessage(messageId);
+      } else {
+        await this.activeChatStore.unpinMessage(messageId);
+      }
+      this.showToast(pinned ? 'Đã ghim tin nhắn.' : 'Đã bỏ ghim tin nhắn.');
+    } catch (error: unknown) {
+      this.showToast(
+        extractErrorMessage(
+          error,
+          pinned ? 'Không thể ghim tin nhắn.' : 'Không thể bỏ ghim tin nhắn.',
+        ),
+      );
+    } finally {
+      this.pinBusyIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(messageId);
+        return next;
+      });
+    }
+  }
+
+  protected jumpFromPins(message: MessageResponseDto): void {
+    this.activeChatStore.revealPinnedMessage(message);
+    this.pinsOpen.set(false);
+    setTimeout(() => this.scrollToMessage(message.id));
   }
 
   onToggleReaction(messageId: string, emoji: string): void {
@@ -1328,10 +1436,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async refreshAttachment(messageId: string, attachmentId: string): Promise<void> {
-    const newUrl = await this.activeChatStore.refreshAttachmentUrl(
-      messageId,
-      attachmentId,
-    );
+    const newUrl = await this.activeChatStore.refreshAttachmentUrl(messageId, attachmentId);
     if (newUrl) {
       this.failedAttachmentIds.update((set) => {
         const next = new Set(set);
@@ -1361,8 +1466,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     if (msg.attachments && msg.attachments.length > 0) {
       const first = msg.attachments[0];
       const isImg =
-        first.mimeType?.startsWith('image/') ||
-        /\.(png|jpe?g|gif|webp|svg)$/i.test(first.filename);
+        first.mimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(first.filename);
       if (isImg) {
         return msg.attachments.length > 1
           ? `[${msg.attachments.length} hình ảnh] ${first.filename}`
@@ -1383,8 +1487,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     if (msg.attachments && msg.attachments.length > 0) {
       const first = msg.attachments[0];
       const isImg =
-        first.mimeType?.startsWith('image/') ||
-        /\.(png|jpe?g|gif|webp|svg)$/i.test(first.filename);
+        first.mimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(first.filename);
       if (isImg) {
         return msg.attachments.length > 1
           ? `[${msg.attachments.length} hình ảnh] ${first.filename}`
@@ -1466,6 +1569,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onStartAudioCall(): void {
+    if (this.isRecipientBlocked() || this.isRelationshipInvalidated()) return;
     const convId = this.conversationId();
     if (convId) {
       void this.directCallCoordinator.startCall(convId, 'audio');
@@ -1473,6 +1577,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onStartVideoCall(): void {
+    if (this.isRecipientBlocked() || this.isRelationshipInvalidated()) return;
     const convId = this.conversationId();
     if (convId) {
       void this.directCallCoordinator.startCall(convId, 'video');

@@ -1,166 +1,164 @@
-<div class="modal-backdrop" (click)="!isSubmitting() && close.emit()">
-  <div
-    #modalCard
-    class="modal-card"
-    (click)="$event.stopPropagation()"
-    tabindex="-1"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="delete-dialog-title"
-  >
-    <!-- Modal Header -->
-    <header class="modal-header">
-      <div class="header-title-group">
-        <div class="header-icon-badge">
-          <mat-icon class="header-icon">delete_forever</mat-icon>
+<div
+  #modalCard
+  class="modal-card"
+  (click)="$event.stopPropagation()"
+  tabindex="-1"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="delete-dialog-title"
+>
+  <!-- Modal Header -->
+  <header class="modal-header">
+    <div class="header-title-group">
+      <div class="header-icon-badge">
+        <mat-icon class="header-icon">delete_forever</mat-icon>
+      </div>
+      <div>
+        <h2 id="delete-dialog-title" class="header-title">
+          {{ canRecall() && selectedScope() === 'everyone' ? 'Thu hồi tin nhắn' : 'Xóa tin nhắn' }}
+        </h2>
+        <p class="header-subtitle">
+          {{ canRecall() ? 'Chọn phạm vi xóa tin nhắn của bạn' : 'Xác nhận ẩn tin nhắn ở phía bạn' }}
+        </p>
+      </div>
+    </div>
+    <button
+      type="button"
+      mat-icon-button
+      class="close-btn"
+      (click)="onClose()"
+      [disabled]="isSubmitting()"
+      matTooltip="Đóng (Esc)"
+      aria-label="Đóng hộp thoại"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <!-- Message Preview Section -->
+  <section class="preview-section" aria-label="Xem trước tin nhắn cần xóa">
+    <div class="preview-card">
+      <div class="preview-author-row">
+        <app-avatar
+          [name]="message().author?.displayName || message().author?.username || 'Người gửi'"
+          [src]="message().author?.avatarUrl ?? null"
+          size="xs"
+        />
+        <span class="preview-author-name">
+          {{ message().author?.displayName || message().author?.username || 'Người dùng' }}
+        </span>
+        <span class="preview-time">{{ message().createdAt | date:'HH:mm dd/MM' }}</span>
+      </div>
+
+      @if (message().content) {
+        <p class="preview-content">{{ message().content }}</p>
+      }
+
+      @if (message().externalMedia) {
+        <div class="preview-media-badge">
+          <mat-icon>gif</mat-icon>
+          <span>Đính kèm ảnh động GIF</span>
         </div>
-        <div>
-          <h2 id="delete-dialog-title" class="header-title">
-            {{ canRecall() && selectedScope() === 'everyone' ? 'Thu hồi tin nhắn' : 'Xóa tin nhắn' }}
-          </h2>
-          <p class="header-subtitle">
-            {{ canRecall() ? 'Chọn phạm vi xóa tin nhắn của bạn' : 'Xác nhận ẩn tin nhắn ở phía bạn' }}
+      }
+
+      @if (message().attachments && message().attachments!.length > 0) {
+        <div class="preview-media-badge">
+          <mat-icon>attach_file</mat-icon>
+          <span>{{ message().attachments!.length }} tệp tin đính kèm</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Scope Selection Section -->
+  @if (canRecall()) {
+    <section class="scope-selection" aria-label="Chọn hình thức xóa">
+      <label class="scope-label">Chọn hình thức xử lý:</label>
+
+      <div
+        class="scope-option"
+        [class.selected]="selectedScope() === 'for_me'"
+        [class.disabled]="isSubmitting()"
+        (click)="selectScope('for_me')"
+        tabindex="0"
+        role="radio"
+        [attr.aria-checked]="selectedScope() === 'for_me'"
+      >
+        <div class="radio-indicator">
+          <div class="radio-inner"></div>
+        </div>
+        <div class="scope-text">
+          <div class="scope-title-row">
+            <span class="scope-title">Chỉ xóa ở phía bạn</span>
+            <span class="scope-badge private">Riêng tư</span>
+          </div>
+          <p class="scope-desc">
+            Tin nhắn sẽ bị ẩn khỏi tài khoản của bạn trên mọi thiết bị. Những người khác trong cuộc trò chuyện vẫn nhìn thấy tin nhắn này.
           </p>
         </div>
       </div>
-      <button
-        type="button"
-        mat-icon-button
-        class="close-btn"
-        (click)="close.emit()"
-        [disabled]="isSubmitting()"
-        matTooltip="Đóng (Esc)"
-        aria-label="Đóng hộp thoại"
+
+      <div
+        class="scope-option danger-option"
+        [class.selected]="selectedScope() === 'everyone'"
+        [class.disabled]="isSubmitting()"
+        (click)="selectScope('everyone')"
+        tabindex="0"
+        role="radio"
+        [attr.aria-checked]="selectedScope() === 'everyone'"
       >
-        <mat-icon>close</mat-icon>
-      </button>
-    </header>
-
-    <!-- Message Preview Section -->
-    <section class="preview-section" aria-label="Xem trước tin nhắn cần xóa">
-      <div class="preview-card">
-        <div class="preview-author-row">
-          <app-avatar
-            [name]="message().author?.displayName || message().author?.username || 'Người gửi'"
-            [src]="message().author?.avatarUrl ?? null"
-            size="xs"
-          />
-          <span class="preview-author-name">
-            {{ message().author?.displayName || message().author?.username || 'Người dùng' }}
-          </span>
-          <span class="preview-time">{{ message().createdAt | date:'HH:mm dd/MM' }}</span>
+        <div class="radio-indicator">
+          <div class="radio-inner"></div>
         </div>
-
-        @if (message().content) {
-          <p class="preview-content">{{ message().content }}</p>
-        }
-
-        @if (message().externalMedia) {
-          <div class="preview-media-badge">
-            <mat-icon>gif</mat-icon>
-            <span>Đính kèm ảnh động GIF</span>
+        <div class="scope-text">
+          <div class="scope-title-row">
+            <span class="scope-title">Thu hồi cho mọi người</span>
+            <span class="scope-badge public">Công khai</span>
           </div>
-        }
-
-        @if (message().attachments && message().attachments!.length > 0) {
-          <div class="preview-media-badge">
-            <mat-icon>attach_file</mat-icon>
-            <span>{{ message().attachments!.length }} tệp tin đính kèm</span>
-          </div>
-        }
+          <p class="scope-desc">
+            Tin nhắn và toàn bộ tệp đính kèm sẽ bị xóa vĩnh viễn đối với tất cả thành viên trong cuộc trò chuyện.
+          </p>
+        </div>
       </div>
     </section>
+  } @else {
+    <section class="notice-section">
+      <div class="notice-card">
+        <mat-icon class="notice-icon">info</mat-icon>
+        <p class="notice-text">
+          Tin nhắn này sẽ chỉ bị ẩn khỏi tài khoản của bạn trên tất cả thiết bị. Bạn không có quyền thu hồi tin nhắn của người khác.
+        </p>
+      </div>
+    </section>
+  }
 
-    <!-- Scope Selection Section -->
-    @if (canRecall()) {
-      <section class="scope-selection" aria-label="Chọn hình thức xóa">
-        <label class="scope-label">Chọn hình thức xử lý:</label>
-
-        <div
-          class="scope-option"
-          [class.selected]="selectedScope() === 'for_me'"
-          [class.disabled]="isSubmitting()"
-          (click)="selectScope('for_me')"
-          tabindex="0"
-          role="radio"
-          [attr.aria-checked]="selectedScope() === 'for_me'"
-        >
-          <div class="radio-indicator">
-            <div class="radio-inner"></div>
-          </div>
-          <div class="scope-text">
-            <div class="scope-title-row">
-              <span class="scope-title">Chỉ xóa ở phía bạn</span>
-              <span class="scope-badge private">Riêng tư</span>
-            </div>
-            <p class="scope-desc">
-              Tin nhắn sẽ bị ẩn khỏi tài khoản của bạn trên mọi thiết bị. Những người khác trong cuộc trò chuyện vẫn nhìn thấy tin nhắn này.
-            </p>
-          </div>
-        </div>
-
-        <div
-          class="scope-option danger-option"
-          [class.selected]="selectedScope() === 'everyone'"
-          [class.disabled]="isSubmitting()"
-          (click)="selectScope('everyone')"
-          tabindex="0"
-          role="radio"
-          [attr.aria-checked]="selectedScope() === 'everyone'"
-        >
-          <div class="radio-indicator">
-            <div class="radio-inner"></div>
-          </div>
-          <div class="scope-text">
-            <div class="scope-title-row">
-              <span class="scope-title">Thu hồi cho mọi người</span>
-              <span class="scope-badge public">Công khai</span>
-            </div>
-            <p class="scope-desc">
-              Tin nhắn và toàn bộ tệp đính kèm sẽ bị xóa vĩnh viễn đối với tất cả thành viên trong cuộc trò chuyện.
-            </p>
-          </div>
-        </div>
-      </section>
-    } @else {
-      <section class="notice-section">
-        <div class="notice-card">
-          <mat-icon class="notice-icon">info</mat-icon>
-          <p class="notice-text">
-            Tin nhắn này sẽ chỉ bị ẩn khỏi tài khoản của bạn trên tất cả thiết bị. Bạn không có quyền thu hồi tin nhắn của người khác.
-          </p>
-        </div>
-      </section>
-    }
-
-    <!-- Modal Footer Actions -->
-    <footer class="modal-footer">
-      <button
-        type="button"
-        mat-button
-        class="btn-cancel"
-        (click)="close.emit()"
-        [disabled]="isSubmitting()"
-      >
-        Hủy
-      </button>
-      <button
-        type="button"
-        mat-flat-button
-        [class.btn-danger]="canRecall() && selectedScope() === 'everyone'"
-        [class.btn-primary]="!canRecall() || selectedScope() === 'for_me'"
-        (click)="onConfirm()"
-        [disabled]="isSubmitting()"
-      >
-        <span class="btn-content-wrap">
-          <mat-icon [class.spinning]="isSubmitting()">
-            {{ isSubmitting() ? 'sync' : (canRecall() && selectedScope() === 'everyone' ? 'delete_forever' : 'visibility_off') }}
-          </mat-icon>
-          <span>
-            {{ isSubmitting() ? 'Đang xử lý...' : (canRecall() && selectedScope() === 'everyone' ? 'Thu hồi cho mọi người' : 'Xác nhận xóa') }}
-          </span>
+  <!-- Modal Footer Actions -->
+  <footer class="modal-footer">
+    <button
+      type="button"
+      mat-button
+      class="btn-cancel"
+      (click)="onClose()"
+      [disabled]="isSubmitting()"
+    >
+      Hủy
+    </button>
+    <button
+      type="button"
+      mat-flat-button
+      [class.btn-danger]="canRecall() && selectedScope() === 'everyone'"
+      [class.btn-primary]="!canRecall() || selectedScope() === 'for_me'"
+      (click)="onConfirm()"
+      [disabled]="isSubmitting()"
+    >
+      <span class="btn-content-wrap">
+        <mat-icon [class.spinning]="isSubmitting()">
+          {{ isSubmitting() ? 'sync' : (canRecall() && selectedScope() === 'everyone' ? 'delete_forever' : 'visibility_off') }}
+        </mat-icon>
+        <span>
+          {{ isSubmitting() ? 'Đang xử lý...' : (canRecall() && selectedScope() === 'everyone' ? 'Thu hồi cho mọi người' : 'Xác nhận xóa') }}
         </span>
-      </button>
-    </footer>
-  </div>
+      </span>
+    </button>
+  </footer>
 </div>

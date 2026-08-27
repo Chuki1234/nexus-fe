@@ -36,7 +36,13 @@ const MOCK_CHANNELS = [
 describe('ChannelPage', () => {
   const mount = async (path: string, _demo = false, uiState: DashboardUiStateName = 'ready') => {
     const serversStore = {
-      serverOf: () => ({ id: 'itss', name: 'ITSS Lab', iconUrl: null, unread: false, mentionCount: 0 }),
+      serverOf: () => ({
+        id: 'itss',
+        name: 'ITSS Lab',
+        iconUrl: null,
+        unread: false,
+        mentionCount: 0,
+      }),
       channelsOf: () => MOCK_CHANNELS,
       setActive: () => {},
       ensureHydrated: async () => {},
@@ -64,7 +70,12 @@ describe('ChannelPage', () => {
           status: 'persisted' as const,
         },
       ]).asReadonly(),
-      permissions: signal({ canView: true, canSend: true, canAttach: true, canManageMessages: true }).asReadonly(),
+      permissions: signal({
+        canView: true,
+        canSend: true,
+        canAttach: true,
+        canManageMessages: true,
+      }).asReadonly(),
       typingUserIds: signal([]).asReadonly(),
       loadingInitial: signal(false).asReadonly(),
       loadingMore: signal(false).asReadonly(),
@@ -83,6 +94,9 @@ describe('ChannelPage', () => {
       markAsRead: async () => {},
       retrySendMessage: async () => {},
       cancelOptimisticMessage: () => {},
+      pinMessage: async () => {},
+      unpinMessage: async () => {},
+      revealPinnedMessage: () => {},
     };
 
     const blockingState = signal<DashboardBlockingState | null>(
@@ -159,7 +173,7 @@ describe('ChannelPage', () => {
   it('panel thành viên đóng mặc định rồi mở bằng toolbar mà không dựng member giả', async () => {
     const harness = await mount('itss/do-an');
     const trigger = harness.routeNativeElement!.querySelector(
-      'button[aria-expanded]',
+      'button[aria-label="Hiện thành viên"]',
     ) as HTMLButtonElement;
     const panel = harness.routeNativeElement!.querySelector(
       'app-context-panel aside',
@@ -208,7 +222,9 @@ describe('ChannelPage', () => {
     component.scrollController.unreadCount.set(5);
     harness.detectChanges();
 
-    const scrollBtn = harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]') as HTMLButtonElement;
+    const scrollBtn = harness.routeNativeElement!.querySelector(
+      'button[aria-label*="Đi tới"]',
+    ) as HTMLButtonElement;
     expect(scrollBtn).toBeTruthy();
     expect(scrollBtn.getAttribute('aria-label')).toBe('Đi tới 5 tin nhắn mới nhất');
     expect(scrollBtn.textContent).toContain('5');

@@ -8,6 +8,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
 import { ServerCapabilitiesService } from '../../../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../../../core/servers/servers.store';
+import { ServerInvitationsStore } from '../../../../core/servers/server-invitations.store';
 import { ConversationsApiService } from '../../../../core/api/conversations-api.service';
 import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
 import { CommandCenterService } from '../../services/command-center.service';
@@ -119,6 +120,17 @@ describe('ChannelSidebar', () => {
         { provide: UserSettingsService, useValue: mockSettingsService },
         { provide: ServerCapabilitiesService, useValue: mockCapabilitiesService },
         { provide: ConversationsApiService, useValue: mockConversationsApi },
+        {
+          provide: ServerInvitationsStore,
+          useValue: {
+            pendingInvitations: signal([]),
+            pendingCount: signal(0),
+            isLoading: signal(false),
+            error: signal(null),
+            hydrateInvitations: vi.fn(),
+            refreshInvitations: vi.fn(),
+          },
+        },
       ],
     }).compileComponents();
 

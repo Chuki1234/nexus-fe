@@ -2,6 +2,72 @@
   background: color-mix(in srgb, var(--color-surface-feature) 60%, var(--color-surface));
 }
 
+.pins-drawer-overlay {
+  position: absolute;
+  z-index: 40;
+  inset: 3.5rem 0 0;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  backdrop-filter: blur(1rem);
+}
+
+.pins-toggle--active {
+  color: var(--color-primary) !important;
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
+}
+
+.pins-drawer-overlay__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.pins-drawer-overlay__close {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-steel);
+  background: transparent;
+  cursor: pointer;
+}
+
+.pins-drawer-overlay__close:hover,
+.pins-drawer-overlay__close:focus-visible {
+  color: var(--color-ink);
+  background: var(--color-surface-feature);
+}
+
+.pins-drawer-overlay__error {
+  margin: 0.75rem 0.75rem 0;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  font-size: var(--text-caption);
+}
+
+.message-row--highlighted {
+  animation: voice-pin-flash 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes voice-pin-flash {
+  0%,
+  35% {
+    background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
 button mat-icon,
 .intro-card mat-icon {
   display: inline-flex !important;
@@ -65,7 +131,11 @@ button mat-icon,
 }
 
 .reaction-chip--mine {
-  background-color: color-mix(in srgb, var(--color-primary, #00f59b) 14%, var(--color-surface-soft, rgba(0, 0, 0, 0.2)));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary, #00f59b) 14%,
+    var(--color-surface-soft, rgba(0, 0, 0, 0.2))
+  );
   border-color: color-mix(in srgb, var(--color-primary, #00f59b) 40%, transparent);
   color: var(--color-primary, #00f59b);
   font-weight: 600;
@@ -108,7 +178,9 @@ button mat-icon,
 }
 
 @keyframes typingBounce {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: scale(0);
     opacity: 0.3;
   }
