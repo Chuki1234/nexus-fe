@@ -28,6 +28,9 @@ export interface ChannelSummary {
   unread: boolean;
   mentionCount: number;
   categoryId?: string | null;
+  slowmode?: number;
+  isAgeRestricted?: boolean;
+  contentVisibility?: 'default' | 'age_restricted';
 }
 
 export interface ServerRailRef {
@@ -46,3 +49,14 @@ export interface ServerInviteCardData {
   inviteCode: string;
   targetChannelId: string;
 }
+
+export type ServerRootItem =
+  | { kind: 'category'; id: string }
+  | { kind: 'channel'; id: string };
+
+export interface ServerChannelLayout {
+  version: 1;
+  rootItems: ServerRootItem[];
+  categoryChannels: Record<string, string[]>;
+}
+

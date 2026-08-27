@@ -394,4 +394,104 @@ describe('ServersStore', () => {
       });
     });
   });
+
+  describe('ServerChannelLayout Hierarchy & Persistence Canonical', () => {
+    beforeEach(() => {
+      store.setActiveUser('user-channel-test');
+      store.hydrateServers([
+        {
+          id: 'srv-hierarchy',
+          name: 'Hierarchy Server',
+          iconUrl: null,
+          channels: [
+            { id: 'ch-a', name: 'channel-a', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+            { id: 'ch-b', name: 'channel-b', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+            { id: 'ch-c', name: 'channel-c', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+            { id: 'ch-game-1', name: 'channel-game-1', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-game' },
+            { id: 'ch-root-1', name: 'kênh-tự-do', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: null },
+          ],
+        },
+      ]);
+      store.setCategories('srv-hierarchy', [
+        { id: 'cat-study', name: 'DANH MỤC HỌC TẬP' },
+        { id: 'cat-game', name: 'DANH MỤC GAME' },
+      ]);
+    });
+
+    it('Scenario A: Trong category có [A, B, C], kéo C lên đầu -> [C, A, B]', () => {
+      store.moveChannel('srv-hierarchy', 'ch-c', 'cat-study', 0);
+
+      const layout = store.getServerLayout('srv-hierarchy');
+      expect(layout.categoryChannels['cat-study']).toEqual(['ch-c', 'ch-a', 'ch-b']);
+
+      const studyChannels = store.channelsOf('srv-hierarchy').filter((c) => c.categoryId === 'cat-study');
+      expect(studyChannels.map((c) => c.id)).toEqual(['ch-c', 'ch-a', 'ch-b']);
+    });
+
+    it('Scenario B: Category Học tập có [A, B], Category Game có [C]; kéo B vào đầu Game', () => {
+      // Setup Học tập có A, B và Game có C
+      store.moveChannel('srv-hierarchy', 'ch-c', 'cat-game', 1); // Đưa C sang game
+      // Kéo B vào đầu Game (index 0)
+      store.moveChannel('srv-hierarchy', 'ch-b', 'cat-game', 0);
+
+      const layout = store.getServerLayout('srv-hierarchy');
+      expect(layout.categoryChannels['cat-study']).toEqual(['ch-a']);
+      expect(layout.categoryChannels['cat-game']).toEqual(['ch-b', 'ch-game-1', 'ch-c']);
+      expect(store.getChannelCategory('ch-b')).toBe('cat-game');
+    });
+
+    it('Scenario C: Kéo B khỏi Game và thả trước Category Học tập -> B trở thành root channel', () => {
+      // Kéo ch-b thành root channel ở vị trí 0 (trước Category Học tập)
+      store.moveChannel('srv-hierarchy', 'ch-b', null, 0, 0);
+
+      const layout = store.getServerLayout('srv-hierarchy');
+      expect(layout.rootItems[0]).toEqual({ kind: 'channel', id: 'ch-b' });
+      expect(layout.categoryChannels['cat-study']).not.toContain('ch-b');
+      expect(layout.categoryChannels['cat-game']).not.toContain('ch-b');
+      expect(store.getChannelCategory('ch-b')).toBeUndefined();
+    });
+
+    it('Scenario E: Kéo Category Game lên trên Category Học tập -> thứ tự root thay đổi', () => {
+      // Kéo cat-game lên vị trí 0
+      store.moveCategory('srv-hierarchy', 'cat-game', 0);
+
+      const layout = store.getServerLayout('srv-hierarchy');
+      const rootCatIds = layout.rootItems.filter((i) => i.kind === 'category').map((i) => i.id);
+      expect(rootCatIds[0]).toBe('cat-game');
+      expect(rootCatIds[1]).toBe('cat-study');
+    });
+
+    it('Reconcile khi xóa Category: chuyển toàn bộ channel con ra root tại đúng vị trí đó', () => {
+      store.removeCategory('srv-hierarchy', 'cat-study');
+
+      const layout = store.getServerLayout('srv-hierarchy');
+      expect(layout.categoryChannels['cat-study']).toBeUndefined();
+
+      // Các kênh ch-a, ch-b, ch-c phải nằm trong rootItems
+      const rootChannelIds = layout.rootItems.filter((i) => i.kind === 'channel').map((i) => i.id);
+      expect(rootChannelIds).toContain('ch-a');
+      expect(rootChannelIds).toContain('ch-b');
+      expect(rootChannelIds).toContain('ch-c');
+    });
+
+    it('Persist và phân vùng theo activeUserId', () => {
+      store.moveChannel('srv-hierarchy', 'ch-c', 'cat-study', 0);
+
+      const storageKey = 'nexuscord_channel_layout_v1_user-channel-test';
+      const raw = localStorage.getItem(storageKey);
+      expect(raw).toBeTruthy();
+      const parsed = JSON.parse(raw!);
+      expect(parsed['srv-hierarchy'].categoryChannels['cat-study']).toEqual(['ch-c', 'ch-a', 'ch-b']);
+
+      // Chuyển sang user khác
+      store.setActiveUser('user-other-account');
+      expect(store.serverChannelLayouts()['srv-hierarchy']).toBeUndefined();
+
+      // Quay lại user cũ
+      store.setActiveUser('user-channel-test');
+      const rehydrated = store.getServerLayout('srv-hierarchy');
+      expect(rehydrated.categoryChannels['cat-study']).toEqual(['ch-c', 'ch-a', 'ch-b']);
+    });
+  });
 });
+

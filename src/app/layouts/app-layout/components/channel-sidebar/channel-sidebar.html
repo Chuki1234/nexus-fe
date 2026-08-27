@@ -1,17 +1,17 @@
-<header class="channel-sidebar__header shrink-0 border-b border-hairline h-12 flex items-center">
+<header class="channel-sidebar__header shrink-0 border-b border-hairline h-14 flex items-center">
   @if (serverId(); as id) {
     <!-- Full-width unified server header — Nút mở dropdown menu server chuẩn phong cách Discord -->
     <div
       #serverMenuTrigger="matMenuTrigger"
       [matMenuTriggerFor]="serverMenu"
-      class="channel-sidebar__server-header flex h-12 w-full items-center justify-between px-4 text-left font-bold text-ink hover:bg-surface-feature transition-colors group cursor-pointer shadow-2xs select-none"
+      class="channel-sidebar__server-header flex h-14 w-full items-center justify-between px-4 text-left font-bold text-ink hover:bg-surface-feature transition-colors group cursor-pointer shadow-2xs select-none"
     >
-      <div class="flex items-center gap-1.5 min-w-0 flex-1">
-        <h2 class="min-w-0 flex-1 text-body-md font-bold text-ink m-0">
+      <div class="flex items-center gap-1.5 min-w-0 max-w-[calc(100%-2.5rem)]">
+        <h2 class="min-w-0 max-w-full truncate text-body-md font-bold text-ink m-0 select-none">
           <app-overflow-marquee [text]="title()" />
         </h2>
         <mat-icon
-          class="server-header-chevron text-steel group-hover:text-ink"
+          class="server-header-chevron text-steel group-hover:text-ink shrink-0 !size-5 !text-xl"
           [class.server-header-chevron--open]="serverMenuTrigger.menuOpen || isMenuOpen()"
         >
           expand_more
@@ -25,9 +25,9 @@
           (click)="onInviteServer($event)"
           matTooltip="Tạo lời mời"
           aria-label="Tạo lời mời vào máy chủ"
-          class="server-header-invite-btn size-7 rounded-md text-steel hover:text-ink hover:bg-surface/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-2"
+          class="server-header-invite-btn size-8 rounded-lg text-steel hover:text-ink hover:bg-surface/80 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-auto"
         >
-          <mat-icon class="!size-4.5 !text-lg leading-none">person_add</mat-icon>
+          <mat-icon class="!size-5 !text-xl leading-none">person_add</mat-icon>
         </button>
       }
     </div>
@@ -173,20 +173,20 @@
       }
     </mat-menu>
   } @else {
-    <div class="flex h-12 w-full items-center px-2.5">
+    <div class="flex h-14 w-full items-center px-3">
       <button
         type="button"
         (click)="openCommandCenter()"
         data-action="sidebar-search"
         aria-label="Tìm người hoặc cuộc trò chuyện"
         aria-keyshortcuts="Control+K Meta+K"
-        class="flex w-full items-center justify-between rounded-sm border border-hairline-strong bg-canvas px-3 py-1.5 text-left text-body-sm text-steel hover:border-primary/60 hover:text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer group select-none"
+        class="flex h-9 w-full items-center justify-between rounded-lg border border-hairline-strong bg-canvas px-3 text-left text-body-sm text-steel hover:border-primary/60 hover:text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer group select-none"
       >
         <div class="flex items-center gap-2 min-w-0 flex-1">
           <mat-icon aria-hidden="true" class="!w-4 !h-4 !text-[16px] text-steel group-hover:text-primary shrink-0 leading-none transition-colors">search</mat-icon>
           <span class="truncate text-steel group-hover:text-ink font-medium">Tìm người hoặc cuộc trò chuyện</span>
         </div>
-        <kbd class="hidden sm:inline-flex items-center rounded bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-steel border border-hairline group-hover:text-ink">Ctrl K</kbd>
+        <kbd class="hidden sm:inline-flex items-center rounded-md bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-steel border border-hairline group-hover:text-ink">Ctrl K</kbd>
       </button>
     </div>
   }

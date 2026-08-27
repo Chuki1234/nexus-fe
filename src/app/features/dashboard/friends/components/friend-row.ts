@@ -18,12 +18,13 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { PRESENCE_LABEL } from '../../../../../shared/dto/common';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
-import type { FriendListPerson } from '../services/friends-store';
+import { FriendsStore, type FriendListPerson } from '../services/friends-store';
 import { ConversationsApiService } from '../../../../core/api/conversations-api.service';
 import { PresenceService } from '../../../../core/presence/presence.service';
 import { DirectCallCoordinatorService } from '../../../../core/calls/direct-call-coordinator.service';
 import { UserSettingsService } from '../../../settings/services/user-settings.service';
 import { FriendNoteDialog } from './friend-note-dialog/friend-note-dialog';
+import { BlockUserConfirmDialog } from './block-user-confirm-dialog/block-user-confirm-dialog';
 import type { PresenceStatus } from '../../../../../shared/dto/common';
 import { extractErrorMessage } from '../../../../core/utils/error.util';
 
@@ -54,6 +55,7 @@ export class FriendRow {
   private readonly presenceService = inject(PresenceService);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
   private readonly userSettingsService = inject(UserSettingsService);
+  private readonly friendsStore = inject(FriendsStore);
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -68,11 +70,7 @@ export class FriendRow {
   readonly errorMessage = signal<string | null>(null);
 
   protected readonly effectivePresence = computed<PresenceStatus>(() => {
-    const id = this.person().id;
-    if (this.presenceService.hasPresence(id)) {
-      return this.presenceService.getPresence(id)();
-    }
-    return this.person().presence || 'offline';
+    return this.presenceService.resolvePresence(this.person().id);
   });
 
   protected readonly isMuted = computed(() =>
@@ -171,6 +169,10 @@ export class FriendRow {
     this.userSettingsService.toggleMuteFriend(this.person().id);
   }
 
+  onViewProfile(): void {
+    // Chức năng Xem hồ sơ - chỉ để nút bấm, sự kiện sẽ được implement sau
+  }
+
   onEditNote(): void {
     const dialogRef = this.dialog.open(FriendNoteDialog, {
       data: {
@@ -191,12 +193,21 @@ export class FriendRow {
 
   onBlockUser(): void {
     const p = this.person();
-    this.userSettingsService.blockUser({
-      id: p.id,
-      username: p.username || p.name,
-      displayName: p.name,
+    const dialogRef = this.dialog.open(BlockUserConfirmDialog, {
+      data: {
+        userId: p.id,
+        username: p.username || p.name,
+        displayName: p.name,
+      },
+      panelClass: 'nexus-dialog-surface',
+      hasBackdrop: true,
     });
-    this.removed.emit(p.id);
+
+    dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {
+      if (confirmed) {
+        void this.friendsStore.blockUser(p.id);
+      }
+    });
   }
 
   @ViewChild('friendOptionsMenuTrigger', { read: MatMenuTrigger })

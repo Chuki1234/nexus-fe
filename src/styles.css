@@ -307,6 +307,42 @@ html[data-theme='warm-light'],
 }
 
 /* ===========================================================================
+   SEARCH INPUTS: REMOVE NATIVE BROWSER CANCEL/CLEAR BUTTON (::-webkit-search-cancel-button)
+   Vô hiệu hóa nút 'X' mặc định của trình duyệt để không bị trùng lặp 2 dấu X với nút clear custom.
+   ========================================================================== */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: none !important;
+}
+
+input[type="search"]::-ms-clear,
+input[type="search"]::-ms-reveal {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ===========================================================================
+   UTILITY: HIDE SCROLLBAR SMOOTHLY
+   ========================================================================== */
+.scrollbar-none,
+.no-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.scrollbar-none::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ===========================================================================
    MATERIAL ICONS OPTICAL CENTERING & ALIGNMENT
    Căn giữa tuyệt đối (horizontal + vertical optical center) cho toàn bộ icon,
    loại bỏ triệt để hiện tượng lệch baseline / tụt/trụng xuống dưới.
@@ -651,17 +687,18 @@ html[data-theme='light'] .nexus-add-server-dialog .mat-mdc-dialog-surface {
 
 /* ===========================================================================
    NEXUS MODAL BACKDROP SYSTEM
-   Phủ toàn bộ app viewport, dim + blur tinh tế (8px) cho modal & dialog,
-   không áp dụng cho tooltip, menu nhỏ hay popover.
+   Phủ toàn bộ app viewport, dim tối + blur sâu + grayscale nhẹ cho modal & dialog,
+   giúp người dùng tập trung hoàn toàn vào nội dung bảng popup.
    ========================================================================== */
 .cdk-overlay-backdrop.cdk-overlay-dark-backdrop,
-.cdk-overlay-backdrop.mat-mdc-dialog-backdrop {
-  background-color: var(--nexus-dialog-backdrop, rgba(0, 15, 23, 0.75));
-  backdrop-filter: blur(var(--nexus-dialog-backdrop-blur, 8px));
-  -webkit-backdrop-filter: blur(var(--nexus-dialog-backdrop-blur, 8px));
+.cdk-overlay-backdrop.mat-mdc-dialog-backdrop,
+.cdk-overlay-backdrop.nexus-dialog-backdrop-blur {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   transition:
     opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    backdrop-filter 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter 220ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .cdk-overlay-backdrop.cdk-overlay-transparent-backdrop {
@@ -675,6 +712,14 @@ html[data-theme='light'] .nexus-add-server-dialog .mat-mdc-dialog-surface {
   .cdk-overlay-backdrop.mat-mdc-dialog-backdrop {
     transition: none;
   }
+}
+
+.nexus-dialog-clean-panel .mat-mdc-dialog-container .mdc-dialog__surface {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 16px !important;
+  overflow: visible !important;
+  padding: 0 !important;
 }
 
 /* Shared UI chỉ đổi diện mạo khi nằm trong Dashboard, tránh chạm source/folder
@@ -2016,3 +2061,24 @@ app-dashboard-shell
   font-size: var(--chat-font-size, 15px);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   MAT-TOOLBAR ICON CENTERING FIX
+   Angular Material's mat-toolbar renders a `.mat-toolbar-single-row` inside.
+   Fix vertical alignment of icons/buttons to be perfectly centered.
+   ══════════════════════════════════════════════════════════════════════════ */
+.friends-toolbar.mat-toolbar .mat-toolbar-single-row,
+.chat-toolbar.mat-toolbar .mat-toolbar-single-row {
+  display: flex !important;
+  align-items: center !important;
+  height: 56px !important;
+  min-height: 56px !important;
+}
+
+/* Ensure mat-icon-button inside toolbars is perfectly centered vertically */
+.friends-toolbar .mat-mdc-icon-button,
+.chat-toolbar .mat-mdc-icon-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+}

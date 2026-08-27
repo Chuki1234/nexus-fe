@@ -1,17 +1,22 @@
 :host {
   --mat-toolbar-container-background-color: var(--color-canvas);
   --mat-toolbar-container-text-color: var(--color-ink);
-  --mat-toolbar-standard-height: 48px;
+  --mat-toolbar-standard-height: 56px;
   display: block;
 }
 
 .chat-toolbar {
   position: relative;
   z-index: 2;
-  height: 48px !important;
-  min-height: 48px !important;
+  height: 56px !important;
+  min-height: 56px !important;
   border-bottom: 1px solid var(--nexus-border-subtle);
   background: var(--color-canvas);
+}
+
+.nexus-icon-control--active {
+  color: var(--color-primary) !important;
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent) !important;
 }
 
 .chat-toolbar__identity-icon {
@@ -21,28 +26,42 @@
   box-shadow: var(--shadow-glow);
 }
 
+:host-context(.dashboard-mobile-container) .chat-toolbar {
+  padding-left: 3.75rem !important;
+}
+
+:host-context(.dashboard-mobile-container) .chat-toolbar__identity-icon {
+  display: none !important;
+}
+
 @media (max-width: 767.98px) {
   .chat-toolbar {
     padding-left: 3.75rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .chat-toolbar__identity-icon {
+    display: none !important;
   }
 }
-
 
 /* ---- Ô tìm kiếm trong kênh ---- */
 .chat-toolbar__search {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 34px;
-  padding: 0 6px 0 10px;
-  margin-inline-end: 4px;
-  border-radius: var(--radius-md);
+  height: 36px;
+  padding: 0 8px 0 10px;
+  border-radius: var(--radius-lg);
   background-color: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  transition: border-color var(--motion-fast) var(--ease-nexus-out);
+  transition:
+    border-color var(--motion-fast) var(--ease-nexus-out),
+    box-shadow var(--motion-fast) var(--ease-nexus-out);
 }
 .chat-toolbar__search:focus-within {
-  border-color: var(--color-hairline-strong);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 .chat-toolbar__search-icon {
   font-size: 18px;

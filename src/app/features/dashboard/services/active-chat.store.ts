@@ -1,10 +1,4 @@
-import {
-  computed,
-  inject,
-  Injectable,
-  OnDestroy,
-  signal,
-} from '@angular/core';
+import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
@@ -93,6 +87,7 @@ export class ActiveChatStore implements OnDestroy {
     type: '401' | '403' | '404' | '5xx' | 'network' | 'unknown';
   } | null>(null);
   private readonly _paginationError = signal<string | null>(null);
+  private readonly _pinnedMessages = signal<MessageResponseDto[]>([]);
 
   // Readonly Selectors
   readonly conversationId = this._conversationId.asReadonly();
@@ -107,6 +102,8 @@ export class ActiveChatStore implements OnDestroy {
   readonly error = this._error.asReadonly();
   readonly chatError = this._chatError.asReadonly();
   readonly paginationError = this._paginationError.asReadonly();
+  readonly pinnedMessages = this._pinnedMessages.asReadonly();
+  readonly pinnedIds = computed(() => new Set(this._pinnedMessages().map((m) => m.id)));
 
   /**
    * Danh sách toàn bộ tin nhắn UI kết hợp giữa tin nhắn đã lưu (persisted)
@@ -130,8 +127,7 @@ export class ActiveChatStore implements OnDestroy {
             (currentUser.user_metadata?.['display_name'] as string) ||
             (currentUser.user_metadata?.['username'] as string) ||
             'Me',
-          avatarUrl:
-            (currentUser.user_metadata?.['avatar_url'] as string) || null,
+          avatarUrl: (currentUser.user_metadata?.['avatar_url'] as string) || null,
         }
       : undefined;
 
@@ -207,6 +203,7 @@ export class ActiveChatStore implements OnDestroy {
     this._error.set(null);
     this._chatError.set(null);
     this._paginationError.set(null);
+    this._pinnedMessages.set([]);
   }
 
   // Trạng thái realtime socket riêng biệt (không đè lên REST error)
@@ -228,10 +225,7 @@ export class ActiveChatStore implements OnDestroy {
         this._realtimeStatus.set('connecting');
         const generation = this.currentGeneration;
         this.chatSocket.joinConversation(conversationId).then((joinRes) => {
-          if (
-            this._conversationId() === conversationId &&
-            this.currentGeneration === generation
-          ) {
+          if (this._conversationId() === conversationId && this.currentGeneration === generation) {
             if (joinRes.status === 'joined' || joinRes.success) {
               this._realtimeStatus.set('joined');
             } else if (joinRes.status === 'rejected') {
@@ -270,22 +264,18 @@ export class ActiveChatStore implements OnDestroy {
     this._error.set(null);
     this._chatError.set(null);
     this._paginationError.set(null);
+    this._pinnedMessages.set([]);
     this._loadingInitial.set(true);
     this._realtimeStatus.set('connecting');
 
     // 4. Tham gia room socket mới và xử lý kết quả acknowledgment chi tiết
     this.chatSocket.joinConversation(conversationId).then((joinRes) => {
-      if (
-        this._conversationId() === conversationId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === conversationId && this.currentGeneration === generation) {
         if (joinRes?.status === 'joined' || joinRes?.success) {
           this._realtimeStatus.set('joined');
         } else if (joinRes?.status === 'rejected') {
           this._realtimeStatus.set('rejected');
-          this._error.set(
-            joinRes.error || 'Không có quyền truy cập cuộc trò chuyện.',
-          );
+          this._error.set(joinRes.error || 'Không có quyền truy cập cuộc trò chuyện.');
         } else if (joinRes?.status === 'timeout') {
           this._realtimeStatus.set('timeout');
         } else {
@@ -301,10 +291,7 @@ export class ActiveChatStore implements OnDestroy {
       });
 
       // Kiểm tra race condition: chỉ apply nếu đúng conversation và đúng generation
-      if (
-        this._conversationId() === conversationId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === conversationId && this.currentGeneration === generation) {
         // Hợp nhất với các tin nhắn realtime đã nhận được từ socket trong khi chờ REST
         const existingRealtime = this._messages();
         const mergedMap = new Map<string, MessageResponseDto>();
@@ -316,19 +303,17 @@ export class ActiveChatStore implements OnDestroy {
           mergedMap.set(m.id, m);
         }
 
-        const sorted = Array.from(mergedMap.values()).sort((a, b) =>
-          compareMessageIds(a.id, b.id),
-        );
+        const sorted = Array.from(mergedMap.values()).sort((a, b) => compareMessageIds(a.id, b.id));
 
         this._messages.set(sorted);
         this._hasMore.set(res.hasMore);
         this._nextCursor.set(res.nextCursor);
+        void this.loadPins(conversationId, generation).catch(() => {
+          // Danh sách ghim là dữ liệu phụ; lỗi của nó không được chặn timeline.
+        });
       }
     } catch (err: unknown) {
-      if (
-        this._conversationId() === conversationId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === conversationId && this.currentGeneration === generation) {
         const httpStatus = (err as { status?: number })?.status;
         let errType: '401' | '403' | '404' | '5xx' | 'network' | 'unknown' = 'unknown';
         if (httpStatus === 401) errType = '401';
@@ -337,18 +322,12 @@ export class ActiveChatStore implements OnDestroy {
         else if (httpStatus && httpStatus >= 500) errType = '5xx';
         else errType = 'network';
 
-        const message = extractErrorMessage(
-          err,
-          'Không thể tải lịch sử tin nhắn cuộc trò chuyện.',
-        );
+        const message = extractErrorMessage(err, 'Không thể tải lịch sử tin nhắn cuộc trò chuyện.');
         this._chatError.set({ status: httpStatus, message, type: errType });
         this._error.set(message);
       }
     } finally {
-      if (
-        this._conversationId() === conversationId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === conversationId && this.currentGeneration === generation) {
         this._loadingInitial.set(false);
       }
     }
@@ -378,9 +357,7 @@ export class ActiveChatStore implements OnDestroy {
           mergedMap.set(m.id, m);
         }
 
-        const sorted = Array.from(mergedMap.values()).sort((a, b) =>
-          compareMessageIds(a.id, b.id),
-        );
+        const sorted = Array.from(mergedMap.values()).sort((a, b) => compareMessageIds(a.id, b.id));
 
         this._messages.set(sorted);
         this._hasMore.set(res.hasMore);
@@ -396,10 +373,7 @@ export class ActiveChatStore implements OnDestroy {
         else if (httpStatus && httpStatus >= 500) errType = '5xx';
         else errType = 'network';
 
-        const message = extractErrorMessage(
-          err,
-          'Không thể tải lịch sử tin nhắn cuộc trò chuyện.',
-        );
+        const message = extractErrorMessage(err, 'Không thể tải lịch sử tin nhắn cuộc trò chuyện.');
         this._chatError.set({ status: httpStatus, message, type: errType });
         this._error.set(message);
       }
@@ -430,10 +404,7 @@ export class ActiveChatStore implements OnDestroy {
         limit: 50,
       });
 
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         const mergedMap = new Map<string, MessageResponseDto>();
         for (const m of res.messages) {
           mergedMap.set(m.id, m);
@@ -442,29 +413,19 @@ export class ActiveChatStore implements OnDestroy {
           mergedMap.set(m.id, m);
         }
 
-        const merged = Array.from(mergedMap.values()).sort((a, b) =>
-          compareMessageIds(a.id, b.id),
-        );
+        const merged = Array.from(mergedMap.values()).sort((a, b) => compareMessageIds(a.id, b.id));
 
         this._messages.set(merged);
         this._hasMore.set(res.hasMore);
         this._nextCursor.set(res.nextCursor);
       }
     } catch (err: any) {
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         // Chỉ lưu lỗi phân trang, không ghi đè _error của toàn bộ cuộc trò chuyện
-        this._paginationError.set(
-          extractErrorMessage(err, 'Không thể tải thêm tin nhắn cũ.'),
-        );
+        this._paginationError.set(extractErrorMessage(err, 'Không thể tải thêm tin nhắn cũ.'));
       }
     } finally {
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         this._loadingMore.set(false);
       }
     }
@@ -491,9 +452,7 @@ export class ActiveChatStore implements OnDestroy {
     let content: string | undefined;
     let replyId: string | undefined;
     let files: File[] | undefined;
-    let passedAttachments:
-      | { file: File; previewUrl: string | null }[]
-      | undefined;
+    let passedAttachments: { file: File; previewUrl: string | null }[] | undefined;
     let externalMedia: GiphyMediaDto | undefined;
 
     if (typeof payloadOrContent === 'string') {
@@ -515,27 +474,26 @@ export class ActiveChatStore implements OnDestroy {
     const clientNonce = crypto.randomUUID();
 
     // Tái sử dụng previewUrl đã tạo từ MessageComposer (nếu có) để chỉ tạo đúng 1 blob URL duy nhất
-    const optAttachments: AttachmentResponseDto[] = (files || []).map(
-      (f, idx) => {
-        const passedPreviewUrl = passedAttachments?.find(
-          (p) => p.file === f,
-        )?.previewUrl;
-        const signedUrl =
-          passedPreviewUrl ??
-          (f.type.startsWith('image/') ? URL.createObjectURL(f) : null);
+    const optAttachments: AttachmentResponseDto[] = (files || []).map((f, idx) => {
+      const passedPreviewUrl = passedAttachments?.find((p) => p.file === f)?.previewUrl;
+      const signedUrl =
+        passedPreviewUrl ??
+        (/^(image\/|audio\/mpeg$|audio\/mp3$|video\/)/.test(f.type) ||
+        /\.(mp3|mp4|m4v|webm|ogv|mov|qt|mkv|avi|mpeg|mpg|3gp|wmv|flv)$/i.test(f.name)
+          ? URL.createObjectURL(f)
+          : null);
 
-        return {
-          id: `opt-att-${clientNonce}-${idx}`,
-          filename: f.name,
-          mimeType: f.type,
-          sizeBytes: f.size,
-          width: null,
-          height: null,
-          signedUrl,
-          isAvailable: true,
-        };
-      },
-    );
+      return {
+        id: `opt-att-${clientNonce}-${idx}`,
+        filename: f.name,
+        mimeType: f.type,
+        sizeBytes: f.size,
+        width: null,
+        height: null,
+        signedUrl,
+        isAvailable: true,
+      };
+    });
 
     const optimistic: OptimisticMessage = {
       clientNonce,
@@ -562,27 +520,18 @@ export class ActiveChatStore implements OnDestroy {
       });
 
       // Chỉ cập nhật state nếu cuộc trò chuyện vẫn khớp
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         this.reconcileOptimisticMessage(clientNonce, created);
       }
     } catch (err: unknown) {
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         this._optimisticMessages.update((list) =>
           list.map((m) =>
             m.clientNonce === clientNonce
               ? {
                   ...m,
                   status: 'failed',
-                  errorMessage: extractErrorMessage(
-                    err,
-                    'Gửi tin nhắn thất bại.',
-                  ),
+                  errorMessage: extractErrorMessage(err, 'Gửi tin nhắn thất bại.'),
                 }
               : m,
           ),
@@ -595,9 +544,7 @@ export class ActiveChatStore implements OnDestroy {
    * Thử gửi lại tin nhắn bị lỗi (giữ nguyên clientNonce ban đầu)
    */
   async retryMessage(clientNonce: string): Promise<void> {
-    const item = this._optimisticMessages().find(
-      (m) => m.clientNonce === clientNonce,
-    );
+    const item = this._optimisticMessages().find((m) => m.clientNonce === clientNonce);
     if (!item) return;
 
     const convId = item.conversationId;
@@ -606,9 +553,7 @@ export class ActiveChatStore implements OnDestroy {
     // Đổi lại status thành sending
     this._optimisticMessages.update((list) =>
       list.map((m) =>
-        m.clientNonce === clientNonce
-          ? { ...m, status: 'sending', errorMessage: undefined }
-          : m,
+        m.clientNonce === clientNonce ? { ...m, status: 'sending', errorMessage: undefined } : m,
       ),
     );
 
@@ -621,27 +566,18 @@ export class ActiveChatStore implements OnDestroy {
         externalMedia: item.externalMedia || undefined,
       });
 
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         this.reconcileOptimisticMessage(clientNonce, created);
       }
     } catch (err: unknown) {
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         this._optimisticMessages.update((list) =>
           list.map((m) =>
             m.clientNonce === clientNonce
               ? {
                   ...m,
                   status: 'failed',
-                  errorMessage: extractErrorMessage(
-                    err,
-                    'Gửi lại tin nhắn thất bại.',
-                  ),
+                  errorMessage: extractErrorMessage(err, 'Gửi lại tin nhắn thất bại.'),
                 }
               : m,
           ),
@@ -657,9 +593,7 @@ export class ActiveChatStore implements OnDestroy {
     const list = this._optimisticMessages();
     const matched = list.filter((m) => m.clientNonce === clientNonce);
     this.revokeOptimisticBlobUrls(matched);
-    this._optimisticMessages.set(
-      list.filter((m) => m.clientNonce !== clientNonce),
-    );
+    this._optimisticMessages.set(list.filter((m) => m.clientNonce !== clientNonce));
   }
 
   dismissFailedMessage(clientNonce: string): void {
@@ -681,9 +615,7 @@ export class ActiveChatStore implements OnDestroy {
     // Optimistic update
     this._messages.update((list) =>
       list.map((m) =>
-        m.id === messageId
-          ? { ...m, content: newContent, editedAt: new Date().toISOString() }
-          : m,
+        m.id === messageId ? { ...m, content: newContent, editedAt: new Date().toISOString() } : m,
       ),
     );
 
@@ -692,24 +624,14 @@ export class ActiveChatStore implements OnDestroy {
         content: newContent,
       });
 
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
-        this._messages.update((list) =>
-          list.map((m) => (m.id === messageId ? updated : m)),
-        );
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
+        this._messages.update((list) => list.map((m) => (m.id === messageId ? updated : m)));
       }
       return updated;
     } catch (err: unknown) {
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         // Rollback lại nội dung ban đầu
-        this._messages.update((list) =>
-          list.map((m) => (m.id === messageId ? prevSnapshot : m)),
-        );
+        this._messages.update((list) => list.map((m) => (m.id === messageId ? prevSnapshot : m)));
         const errorMsg = extractErrorMessage(err, 'Chỉnh sửa tin nhắn thất bại.');
         this._error.set(errorMsg);
       }
@@ -731,24 +653,17 @@ export class ActiveChatStore implements OnDestroy {
     const originalMsg = list[targetIdx];
 
     // 1. Optimistic removal
-    this._messages.update((current) =>
-      current.filter((m) => m.id !== messageId),
-    );
+    this._messages.update((current) => current.filter((m) => m.id !== messageId));
 
     // 2. Gọi REST API
     try {
       await this.messagesApi.hideMessage(messageId);
     } catch (err: unknown) {
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         // 3. Rollback: Chèn lại message vào đúng vị trí canonical bằng compareMessageIds
         this._messages.update((current) => {
           if (current.some((m) => m.id === originalMsg.id)) return current;
-          return [...current, originalMsg].sort((a, b) =>
-            compareMessageIds(a.id, b.id),
-          );
+          return [...current, originalMsg].sort((a, b) => compareMessageIds(a.id, b.id));
         });
         const errorMsg = extractErrorMessage(err, 'Lỗi khi ẩn tin nhắn.');
         this._error.set(errorMsg);
@@ -780,18 +695,13 @@ export class ActiveChatStore implements OnDestroy {
       externalMedia: null,
     };
 
-    this._messages.update((current) =>
-      current.map((m) => (m.id === messageId ? recalledMsg : m)),
-    );
+    this._messages.update((current) => current.map((m) => (m.id === messageId ? recalledMsg : m)));
 
     // 2. Gọi REST API
     try {
       await this.messagesApi.recallMessage(messageId);
     } catch (err: unknown) {
-      if (
-        this._conversationId() === convId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._conversationId() === convId && this.currentGeneration === generation) {
         // 3. Rollback nguyên trạng
         this._messages.update((current) =>
           current.map((m) => (m.id === messageId ? originalMsg : m)),
@@ -806,10 +716,7 @@ export class ActiveChatStore implements OnDestroy {
   /**
    * Xoá / Thu hồi tin nhắn theo scope ('for_me' hoặc 'everyone')
    */
-  async deleteMessage(
-    messageId: string,
-    scope: 'for_me' | 'everyone' = 'for_me',
-  ): Promise<void> {
+  async deleteMessage(messageId: string, scope: 'for_me' | 'everyone' = 'for_me'): Promise<void> {
     if (scope === 'for_me') {
       return this.hideMessage(messageId);
     }
@@ -821,18 +728,12 @@ export class ActiveChatStore implements OnDestroy {
   /**
    * Tải lại signed URL cho attachment khi ảnh/tệp trả lỗi 401/403 (URL hết hạn)
    */
-  async refreshAttachmentUrl(
-    messageId: string,
-    attachmentId: string,
-  ): Promise<string | null> {
+  async refreshAttachmentUrl(messageId: string, attachmentId: string): Promise<string | null> {
     const convId = this._conversationId();
     if (!convId) return null;
 
     try {
-      const res = await this.messagesApi.getAttachmentSignedUrl(
-        convId,
-        attachmentId,
-      );
+      const res = await this.messagesApi.getAttachmentSignedUrl(convId, attachmentId);
       if (res?.signedUrl) {
         this._messages.update((list) =>
           list.map((m) => {
@@ -840,9 +741,7 @@ export class ActiveChatStore implements OnDestroy {
             return {
               ...m,
               attachments: m.attachments.map((a) =>
-                a.id === attachmentId
-                  ? { ...a, signedUrl: res.signedUrl, isAvailable: true }
-                  : a,
+                a.id === attachmentId ? { ...a, signedUrl: res.signedUrl, isAvailable: true } : a,
               ),
             };
           }),
@@ -851,9 +750,7 @@ export class ActiveChatStore implements OnDestroy {
       }
       return null;
     } catch (err: unknown) {
-      this._error.set(
-        extractErrorMessage(err, 'Lỗi tải lại liên kết tệp đính kèm.'),
-      );
+      this._error.set(extractErrorMessage(err, 'Lỗi tải lại liên kết tệp đính kèm.'));
       return null;
     }
   }
@@ -903,11 +800,7 @@ export class ActiveChatStore implements OnDestroy {
   /**
    * Thêm hoặc bỏ reaction cho tin nhắn theo desired state (Idempotent + Optimistic).
    */
-  async setReaction(
-    messageId: string,
-    emoji: string,
-    reacted: boolean,
-  ): Promise<void> {
+  async setReaction(messageId: string, emoji: string, reacted: boolean): Promise<void> {
     const convId = this._conversationId();
     if (!convId) return;
 
@@ -933,10 +826,7 @@ export class ActiveChatStore implements OnDestroy {
             : r,
         );
       } else {
-        optimisticReactions = [
-          ...prevReactions,
-          { emoji, count: 1, reactedByMe: true },
-        ];
+        optimisticReactions = [...prevReactions, { emoji, count: 1, reactedByMe: true }];
       }
     } else {
       if (currentReaction) {
@@ -947,9 +837,7 @@ export class ActiveChatStore implements OnDestroy {
           optimisticReactions = prevReactions.filter((r) => r.emoji !== emoji);
         } else {
           optimisticReactions = prevReactions.map((r) =>
-            r.emoji === emoji
-              ? { ...r, count: newCount, reactedByMe: false }
-              : r,
+            r.emoji === emoji ? { ...r, count: newCount, reactedByMe: false } : r,
           );
         }
       } else {
@@ -958,9 +846,7 @@ export class ActiveChatStore implements OnDestroy {
     }
 
     this._messages.update((list) =>
-      list.map((m) =>
-        m.id === messageId ? { ...m, reactions: optimisticReactions } : m,
-      ),
+      list.map((m) => (m.id === messageId ? { ...m, reactions: optimisticReactions } : m)),
     );
 
     // 2. Gọi REST API
@@ -975,18 +861,14 @@ export class ActiveChatStore implements OnDestroy {
         this.handledMutationIds.add(clientMutationId);
         // Reconcile với canonical response từ server
         this._messages.update((list) =>
-          list.map((m) =>
-            m.id === messageId ? { ...m, reactions: res.reactions } : m,
-          ),
+          list.map((m) => (m.id === messageId ? { ...m, reactions: res.reactions } : m)),
         );
       }
     } catch (err: unknown) {
       if (this._conversationId() === convId) {
         // Rollback nếu API lỗi
         this._messages.update((list) =>
-          list.map((m) =>
-            m.id === messageId ? { ...m, reactions: prevReactions } : m,
-          ),
+          list.map((m) => (m.id === messageId ? { ...m, reactions: prevReactions } : m)),
         );
         this._error.set(extractErrorMessage(err, 'Bày tỏ cảm xúc thất bại.'));
       }
@@ -999,11 +881,50 @@ export class ActiveChatStore implements OnDestroy {
   async toggleReaction(messageId: string, emoji: string): Promise<void> {
     const message = this._messages().find((m) => m.id === messageId);
     if (!message) return;
-    const currentReaction = (message.reactions ?? []).find(
-      (r) => r.emoji === emoji,
-    );
+    const currentReaction = (message.reactions ?? []).find((r) => r.emoji === emoji);
     const currentlyReacted = Boolean(currentReaction?.reactedByMe);
     return this.setReaction(messageId, emoji, !currentlyReacted);
+  }
+
+  /** Nạp danh sách ghim của DM mà không chặn luồng tải lịch sử chính. */
+  async loadPins(
+    conversationId = this._conversationId(),
+    generation = this.currentGeneration,
+  ): Promise<void> {
+    if (!conversationId) return;
+    const pins = await this.messagesApi.getConversationPins(conversationId);
+    if (this._conversationId() === conversationId && this.currentGeneration === generation) {
+      this._pinnedMessages.set(pins);
+    }
+  }
+
+  async pinMessage(messageId: string): Promise<void> {
+    const updated = await this.messagesApi.pinMessage(messageId);
+    this.applyPinUpdate(updated, true);
+  }
+
+  async unpinMessage(messageId: string): Promise<void> {
+    await this.messagesApi.unpinMessage(messageId);
+    this.applyPinUpdate({ id: messageId } as MessageResponseDto, false);
+  }
+
+  /**
+   * Đưa snapshot ghim vào timeline nếu nó nằm ngoài page đang tải. Nhờ đó UI
+   * luôn có một DOM target chính xác để cuộn tới thay vì báo "chưa được tải".
+   */
+  revealPinnedMessage(message: MessageResponseDto): void {
+    if (message.conversationId !== this._conversationId()) return;
+    this._messages.update((items) => {
+      if (items.some((item) => item.id === message.id)) return items;
+      return [...items, message].sort((a, b) => compareMessageIds(a.id, b.id));
+    });
+  }
+
+  private applyPinUpdate(message: MessageResponseDto, pinned: boolean): void {
+    this._pinnedMessages.update((current) => {
+      const remaining = current.filter((item) => item.id !== message.id);
+      return pinned ? [message, ...remaining] : remaining;
+    });
   }
 
   /**
@@ -1046,18 +967,13 @@ export class ActiveChatStore implements OnDestroy {
     }
   }
 
-  private reconcileOptimisticMessage(
-    clientNonce: string,
-    created: MessageResponseDto,
-  ): void {
+  private reconcileOptimisticMessage(clientNonce: string, created: MessageResponseDto): void {
     const list = this._optimisticMessages();
     const matched = list.filter((m) => m.clientNonce === clientNonce);
     this.revokeOptimisticBlobUrls(matched);
 
     // Xoá khỏi danh sách optimistic
-    this._optimisticMessages.set(
-      list.filter((m) => m.clientNonce !== clientNonce),
-    );
+    this._optimisticMessages.set(list.filter((m) => m.clientNonce !== clientNonce));
 
     // Chèn vào messages nếu chưa có (chống duplicate)
     this._messages.update((msgs) => {
@@ -1076,13 +992,9 @@ export class ActiveChatStore implements OnDestroy {
         // Xoá optimistic message tương ứng nếu có clientNonce và revoke blob
         if (message.clientNonce) {
           const list = this._optimisticMessages();
-          const matched = list.filter(
-            (m) => m.clientNonce === message.clientNonce,
-          );
+          const matched = list.filter((m) => m.clientNonce === message.clientNonce);
           this.revokeOptimisticBlobUrls(matched);
-          this._optimisticMessages.set(
-            list.filter((m) => m.clientNonce !== message.clientNonce),
-          );
+          this._optimisticMessages.set(list.filter((m) => m.clientNonce !== message.clientNonce));
         }
 
         // Chèn vào danh sách tin nhắn nếu chưa có
@@ -1104,17 +1016,16 @@ export class ActiveChatStore implements OnDestroy {
             editedAt: message.editedAt,
             deletedAt: message.deletedAt,
             attachments: message.attachments,
-            reactions: message.reactions?.map((r) => ({
-              emoji: r.emoji,
-              count: r.count,
-              reactedByMe: Boolean(r.reactedByMe),
-            })) ?? [],
+            reactions:
+              message.reactions?.map((r) => ({
+                emoji: r.emoji,
+                count: r.count,
+                reactedByMe: Boolean(r.reactedByMe),
+              })) ?? [],
             createdAt: message.createdAt,
           };
 
-          return [...list, formatted].sort((a, b) =>
-            compareMessageIds(a.id, b.id),
-          );
+          return [...list, formatted].sort((a, b) => compareMessageIds(a.id, b.id));
         });
       }),
     );
@@ -1141,10 +1052,7 @@ export class ActiveChatStore implements OnDestroy {
     // 3. Xoá mềm tin nhắn (Thu hồi cho mọi người)
     this.subs.add(
       this.chatSocket.messageDeleted$.subscribe((payload) => {
-        if (
-          payload.conversationId &&
-          payload.conversationId !== this._conversationId()
-        ) {
+        if (payload.conversationId && payload.conversationId !== this._conversationId()) {
           return;
         }
 
@@ -1162,6 +1070,7 @@ export class ActiveChatStore implements OnDestroy {
               : m,
           ),
         );
+        this.applyPinUpdate({ id: payload.messageId } as MessageResponseDto, false);
       }),
     );
 
@@ -1169,35 +1078,37 @@ export class ActiveChatStore implements OnDestroy {
     if (this.chatSocket.messageHiddenForUser$) {
       this.subs.add(
         this.chatSocket.messageHiddenForUser$.subscribe((payload) => {
-          if (
-            payload.conversationId &&
-            payload.conversationId !== this._conversationId()
-          ) {
+          if (payload.conversationId && payload.conversationId !== this._conversationId()) {
             return;
           }
 
-          this._messages.update((list) =>
-            list.filter((m) => m.id !== payload.messageId),
-          );
+          this._messages.update((list) => list.filter((m) => m.id !== payload.messageId));
+          this.applyPinUpdate({ id: payload.messageId } as MessageResponseDto, false);
         }),
       );
     }
 
-    // 4. Trạng thái đang gõ
+    // 4. Đồng bộ ghim theo room của cuộc trò chuyện.
+    this.subs.add(
+      this.chatSocket.messagePinUpdated$.subscribe(({ conversationId, message, pinned }) => {
+        if (conversationId !== this._conversationId()) return;
+        this.applyPinUpdate(message as MessageResponseDto, pinned);
+      }),
+    );
+
+    // 5. Trạng thái đang gõ
     this.subs.add(
       this.chatSocket.typingUpdated$.subscribe((payload) => {
         if (payload.conversationId !== this._conversationId()) return;
 
         const currentUserId = this.auth.user()?.id;
-        const otherUserIds = payload.userIds.filter(
-          (id) => id !== currentUserId,
-        );
+        const otherUserIds = payload.userIds.filter((id) => id !== currentUserId);
 
         this._typingUserIds.set(otherUserIds);
       }),
     );
 
-    // 5. Cập nhật Read State từ socket
+    // 6. Cập nhật Read State từ socket
     this.subs.add(
       this.chatSocket.messageRead$.subscribe((payload) => {
         if (payload.conversationId !== this._conversationId()) return;
@@ -1209,7 +1120,7 @@ export class ActiveChatStore implements OnDestroy {
       }),
     );
 
-    // 6. Lỗi Join Room từ socket
+    // 7. Lỗi Join Room từ socket
     this.subs.add(
       this.chatSocket.joinError$.subscribe((payload) => {
         if (payload.conversationId === this._conversationId()) {
@@ -1218,16 +1129,13 @@ export class ActiveChatStore implements OnDestroy {
       }),
     );
 
-    // 7. Cập nhật Reaction realtime từ socket
+    // 8. Cập nhật Reaction realtime từ socket
     this.subs.add(
       this.chatSocket.reactionUpdated$.subscribe((payload) => {
         if (payload.conversationId !== this._conversationId()) return;
 
         // Nếu là mutation do chính client này vừa thực hiện và đã reconcile qua REST thì bỏ qua
-        if (
-          payload.clientMutationId &&
-          this.handledMutationIds.has(payload.clientMutationId)
-        ) {
+        if (payload.clientMutationId && this.handledMutationIds.has(payload.clientMutationId)) {
           return;
         }
 
@@ -1238,26 +1146,22 @@ export class ActiveChatStore implements OnDestroy {
             if (m.id !== payload.messageId) return m;
 
             const prevReactions = m.reactions ?? [];
-            const updatedReactions: ReactionSummaryDto[] = payload.reactions.map(
-              (canonical) => {
-                const prev = prevReactions.find(
-                  (p) => p.emoji === canonical.emoji,
-                );
-                let reactedByMe = prev?.reactedByMe ?? false;
+            const updatedReactions: ReactionSummaryDto[] = payload.reactions.map((canonical) => {
+              const prev = prevReactions.find((p) => p.emoji === canonical.emoji);
+              let reactedByMe = prev?.reactedByMe ?? false;
 
-                if (payload.actorUserId === currentUserId) {
-                  if (payload.emoji === canonical.emoji) {
-                    reactedByMe = payload.action === 'added';
-                  }
+              if (payload.actorUserId === currentUserId) {
+                if (payload.emoji === canonical.emoji) {
+                  reactedByMe = payload.action === 'added';
                 }
+              }
 
-                return {
-                  emoji: canonical.emoji,
-                  count: canonical.count,
-                  reactedByMe,
-                };
-              },
-            );
+              return {
+                emoji: canonical.emoji,
+                count: canonical.count,
+                reactedByMe,
+              };
+            });
 
             return {
               ...m,

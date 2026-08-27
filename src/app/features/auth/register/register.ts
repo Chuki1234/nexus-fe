@@ -76,20 +76,29 @@ export class RegisterPage {
     this.confirmPasswordVisible.update((visible) => !visible);
   }
 
-  /** Errors stay hidden until the field is left or the form is submitted. */
+  /**
+   * Chỉ báo lỗi khi ô CÓ nội dung sai — ô trống không bao giờ đỏ (kể cả sau khi
+   * bấm Tạo tài khoản). Xoá sạch nội dung thì lỗi tự tắt.
+   */
   protected showError(field: TextField): boolean {
     const control = this.form.controls[field];
-    return control.invalid && (control.touched || this.submitted());
+    const hasContent = (control.value ?? '').trim().length > 0;
+    return control.invalid && hasContent && (control.touched || this.submitted());
   }
 
   protected showBirthdateError(): boolean {
     const group = this.form.controls.birthdate;
-    return group.invalid && (group.touched || this.submitted());
+    const { day, month, year } = group.value;
+    // "Có nội dung" = đã chọn ít nhất một trong ngày/tháng/năm.
+    const hasContent = !!(day || month || year);
+    return group.invalid && hasContent && (group.touched || this.submitted());
   }
 
   protected showConfirmPasswordError(): boolean {
     const confirmation = this.form.controls.confirmPassword;
+    const hasContent = (confirmation.value ?? '').trim().length > 0;
     return (
+      hasContent &&
       (confirmation.invalid || this.form.hasError('passwordMismatch')) &&
       (confirmation.touched || this.submitted())
     );
@@ -101,7 +110,8 @@ export class RegisterPage {
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.focusFirst('[aria-invalid="true"]');
+      // Ô trống không hiện lỗi đỏ; đưa con trỏ tới ô đầu tiên chưa hợp lệ để nhắc.
+      this.focusFirst('input.ng-invalid, select.ng-invalid');
       return;
     }
     if (this.submitting()) {
