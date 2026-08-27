@@ -15,7 +15,11 @@ import { getAndClearReturnUrl } from '../../../core/auth/auth-redirect.util';
 
 /**
  * Điểm quay về sau khi đăng nhập Google.
- * Supabase tự đổi `?code=...` hoặc access_token từ URL.
+ *
+ * Supabase (detectSessionInUrl) tự đổi `?code=...` từ URL thành phiên — BẤT
+ * ĐỒNG BỘ. Ở đây phải CHỦ ĐỘNG chờ phiên xuất hiện rồi mới điều hướng; và điều
+ * hướng vào app bằng RELOAD THẬT (giống F5) thay vì router SPA, vì điều hướng
+ * SPA ngay sau khi đổi code→session bị kẹt ở chuỗi guard/redirect.
  */
 @Component({
   selector: 'app-callback-page',
@@ -39,79 +43,63 @@ export class CallbackPage implements OnInit {
       return;
     }
 
-    // 1. Kiểm tra session hiện có hoặc vừa được Supabase khôi phục
-    try {
-      const { data } = await this.supabase.client.auth.getSession();
-      const session = data?.session;
-      const email = session?.user?.email;
+    // `whenReady()` await `restoreSession()` → await `getSession()`, vốn chờ
+    // Supabase xử lý xong URL (đổi code→session). Nên sau dòng này, nếu đăng
+    // nhập OK thì phiên đã sẵn trong storage.
+    await this.auth.whenReady();
 
-      if (session && email) {
-        const disabledAcc = this.accountDisabled.getDisabledAccount(email);
-        if (disabledAcc) {
-          // Tài khoản Google bị vô hiệu hóa
-          await this.auth.signOut();
-          await this.router.navigate(['/login'], {
-            queryParams: {
-              blockedGoogle: 'true',
-              email,
-            },
-          });
-          return;
-        }
-
-        // Tài khoản hợp lệ
-        const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
-        const returnUrl = getAndClearReturnUrl(rawParam);
-        await this.router.navigateByUrl(returnUrl);
-        return;
-      }
-    } catch {
-      // Tiếp tục lắng nghe onAuthStateChange nếu getSession chưa kịp
+    // Phòng khi exchange chậm hơn whenReady: poll thêm tối đa ~5s.
+    let session = await this.readSession();
+    for (let i = 0; i < 25 && !session; i++) {
+      await this.delay(200);
+      session = await this.readSession();
     }
 
-    // 2. Lắng nghe trực tiếp từ Supabase onAuthStateChange
-    const { data: authListener } = this.supabase.client.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!session) return;
-        const email = session?.user?.email;
-        const disabledAcc = email ? this.accountDisabled.getDisabledAccount(email) : null;
-
-        authListener.subscription.unsubscribe();
-        clearTimeout(fallbackTimeout);
-
-        if (disabledAcc) {
-          await this.auth.signOut();
-          await this.router.navigate(['/login'], {
-            queryParams: {
-              blockedGoogle: 'true',
-              email: email ?? '',
-            },
-          });
-          return;
-        }
-
-        const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
-        const returnUrl = getAndClearReturnUrl(rawParam);
-        await this.router.navigateByUrl(returnUrl);
-      },
-    );
-
-    // 3. Fallback timeout nếu sau 4s không có phản hồi
-    const fallbackTimeout = setTimeout(async () => {
-      authListener.subscription.unsubscribe();
+    // Không có phiên sau khi đã chờ → đăng nhập thất bại, quay lại /login.
+    if (!session) {
       const blocked = this.auth.blockedGoogleAttempt();
-      if (blocked) {
-        await this.router.navigate(['/login'], {
-          queryParams: {
-            blockedGoogle: 'true',
-            email: blocked.email,
-          },
-        });
-        return;
-      }
-
       this.status.set('Không đăng nhập được. Đang quay lại…');
-      void this.router.navigateByUrl('/login');
-    }, 4000);
+      await this.router.navigate(
+        ['/login'],
+        blocked
+          ? { queryParams: { blockedGoogle: 'true', email: blocked.email } }
+          : {},
+      );
+      return;
+    }
+
+    const email = session.user?.email;
+
+    // Tài khoản Google bị vô hiệu hóa.
+    const disabledAcc = email
+      ? this.accountDisabled.getDisabledAccount(email)
+      : null;
+    if (disabledAcc) {
+      await this.auth.signOut();
+      await this.router.navigate(['/login'], {
+        queryParams: { blockedGoogle: 'true', email: email ?? '' },
+      });
+      return;
+    }
+
+    const rawParam = this.route.snapshot.queryParamMap.get('returnUrl');
+    const returnUrl = getAndClearReturnUrl(rawParam);
+
+    // Reload thật tới returnUrl (giống F5 vốn luôn vào được): app khởi động sạch
+    // với phiên đã có, guard chạy đúng và vào thẳng trang đích.
+    window.location.replace(returnUrl);
+  }
+
+  private async readSession() {
+    try {
+      const { data } = await this.supabase.client.auth.getSession();
+      return data?.session ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

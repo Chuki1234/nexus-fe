@@ -38,9 +38,10 @@
       </div>
       <p aria-live="polite" class="sr-only">Đang tải hồ sơ.</p>
     } @else if (profile(); as person) {
-      <!-- Grid 12 cột mở rộng cân đối: hồ sơ chiếm 7-8 phần, cột widget 4-5 phần. -->
-      <div class="grid items-start gap-6 lg:grid-cols-12">
-        <article class="overflow-hidden rounded-2xl border border-hairline bg-surface shadow-card lg:col-span-7 xl:col-span-8">
+      <!-- Chỉ còn thẻ hồ sơ (đã bỏ cột widget bên phải) — căn giữa, bề ngang vừa
+           phải để các thành phần bên trong không bị kéo giãn mất cân đối. -->
+      <div class="mx-auto max-w-2xl">
+        <article class="overflow-hidden rounded-2xl border border-hairline bg-surface shadow-card">
           <!-- Hai nút này đứng cạnh "Chỉnh sửa hồ sơ" / "Nhắn tin" trong thẻ,
                không còn nằm trên thanh header. `size-9` là bắt buộc:
                `.nexus-icon-control` chỉ cấp màu và hiệu ứng, không cấp kích
@@ -73,17 +74,6 @@
             </div>
           </app-profile-card>
         </article>
-
-        <div class="lg:col-span-5 xl:col-span-4">
-          <app-profile-widgets
-            class="block sticky top-20"
-            [ownerName]="person.displayName || person.username"
-            [rotatingGames]="rotatingGames()"
-            [favoriteGame]="favoriteGame()"
-            [likedGames]="likedGames()"
-            [wishlistGames]="wishlistGames()"
-          />
-        </div>
       </div>
     } @else {
       <div
