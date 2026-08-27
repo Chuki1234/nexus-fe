@@ -16,6 +16,14 @@
   padding: 0.125rem 0.25rem 0.5rem 0.25rem;
 }
 
+.user-panel__voice-info {
+  border-radius: var(--radius-md, 8px);
+}
+
+.user-panel__voice-info:hover {
+  background: color-mix(in srgb, var(--color-surface-feature) 80%, transparent);
+}
+
 .user-panel__voice-actions-group {
   display: flex;
   align-items: center;

@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import type { ConversationSummary } from '../../../../core/conversations/conversation.models';
 import type { BlockedUserDto } from '../../../../../shared';
+import { ChatSocketService } from '../../../../core/realtime/chat-socket.service';
 import {
   formatFriendsApiError,
   FriendsApi,
@@ -25,7 +26,18 @@ export interface FriendRequestPerson extends FriendListPerson {
 })
 export class FriendsStore {
   private readonly api = inject(FriendsApi);
+  private readonly chatSocket = inject(ChatSocketService, { optional: true });
   private loaded = false;
+
+  constructor() {
+    // Realtime: có lời mời kết bạn mới ⇒ nạp lại để badge "chờ duyệt" cập nhật
+    // ngay mà không cần mở lại trang bạn bè.
+    this.chatSocket?.notificationNew$?.subscribe((notification) => {
+      if (notification.type === 'friend_request') {
+        void this.load(true);
+      }
+    });
+  }
 
   private readonly friendList = signal<FriendListPerson[]>([]);
   private readonly incomingList = signal<FriendRequestPerson[]>([]);

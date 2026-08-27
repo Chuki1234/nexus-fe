@@ -68,6 +68,11 @@ import { InlineMessageEditor } from '../components/inline-message-editor/inline-
 import { MessageClockService } from '../../../core/utils/message-clock.service';
 import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import { parseMessageContent, type MessageContentToken } from './utils/message-content-parser';
+<<<<<<< HEAD
+import { SensitiveMediaGuard } from '../components/sensitive-media-guard/sensitive-media-guard';
+import { copyToClipboard, extractMessageCopyableContent } from '../../../core/utils/clipboard.util';
+=======
+>>>>>>> 7fee15d0bd245fe68600bac37eb7c94b3ef17260
 
 export interface ConversationHttpError {
   status?: number;
@@ -204,6 +209,7 @@ export interface StreamMessageViewModel {
 
 import { DirectCallCoordinatorService } from '../../../core/calls/direct-call-coordinator.service';
 import { UserSettingsService } from '../../settings/services/user-settings.service';
+import { NotificationService } from '../../../core/notification/notification.service';
 import { FriendsStore } from '../friends/services/friends-store';
 
 /**
@@ -215,6 +221,7 @@ import { FriendsStore } from '../friends/services/friends-store';
  */
 @Component({
   selector: 'app-conversation-page',
+  standalone: true,
   imports: [
     Avatar,
     ChatToolbar,
@@ -249,6 +256,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
   private readonly userSettings = inject(UserSettingsService);
+  private readonly notificationService = inject(NotificationService, { optional: true });
   private readonly friendsStore = inject(FriendsStore);
   readonly activeChatStore = inject(ActiveChatStore);
   readonly messageClock = inject(MessageClockService);
@@ -431,6 +439,8 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   protected readonly chatError = this.activeChatStore.chatError;
   protected readonly paginationError = this.activeChatStore.paginationError;
   protected readonly typingUserIds = this.activeChatStore.typingUserIds;
+  protected readonly pinnedMessages = this.activeChatStore.pinnedMessages;
+  protected readonly pinnedIds = this.activeChatStore.pinnedIds;
 
   /**
    * Tính toán danh sách presentation stream bao gồm Date Dividers, Unread Dividers và Messages:
@@ -1253,6 +1263,10 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     if (payload.editMessageId) {
       void this.activeChatStore.editMessage(payload.editMessageId, payload.content);
     } else {
+      // Âm thanh gửi tin (đồng bộ toggle "Tin nhắn" trong Cài đặt thông báo).
+      if (this.userSettings.preferences().soundMessage) {
+        this.notificationService?.playMessageSound();
+      }
       void this.activeChatStore.sendMessage({
         content: payload.content,
         files: payload.files,
@@ -1357,7 +1371,9 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onMessageAction(action: MessageComposerContext): void {
-    if (action.kind === 'edit' && action.messageId) {
+    if (action.kind === 'copy' && action.messageId) {
+      void this.copyMessageContent(action.messageId);
+    } else if (action.kind === 'edit' && action.messageId) {
       const msg = this.messages().find((m) => m.id === action.messageId);
       if (msg) {
         this.startEdit(msg);
@@ -1378,6 +1394,23 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
       void this.setMessagePinned(action.messageId, false);
     } else {
       this.composerContext.set(action);
+    }
+  }
+
+  /** Sao chép nội dung tin nhắn vào bộ nhớ tạm. */
+  private async copyMessageContent(messageId: string): Promise<void> {
+    const msg = this.messages().find((m) => m.id === messageId);
+    if (!msg) return;
+    const text = extractMessageCopyableContent(msg);
+    if (!text) {
+      this.showToast('Tin nhắn này không có nội dung để sao chép.');
+      return;
+    }
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      this.showToast('Đã sao chép nội dung tin nhắn.');
+    } else {
+      this.showToast('Không sao chép được. Hãy thử lại.');
     }
   }
 
@@ -1463,39 +1496,43 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     if (msg.content && msg.content.trim().length > 0) {
       return msg.content;
     }
+    if (msg.externalMedia) {
+      const type = msg.externalMedia.mediaType || (msg.externalMedia as { type?: string }).type;
+      const title = (msg.externalMedia as { title?: string }).title;
+      if (type === 'sticker' || msg.externalMedia.provider === 'stipop') {
+        return title ? `[Nhãn dán] ${title}` : '[Nhãn dán]';
+      }
+      return title ? `[GIF] ${title}` : '[GIF]';
+    }
     if (msg.attachments && msg.attachments.length > 0) {
       const first = msg.attachments[0];
       const isImg =
         first.mimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(first.filename);
+      const isVid =
+        first.mimeType?.startsWith('video/') || /\.(mp4|webm|mov|mkv)$/i.test(first.filename);
+      const isAud =
+        first.mimeType?.startsWith('audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(first.filename);
+
       if (isImg) {
         return msg.attachments.length > 1
           ? `[${msg.attachments.length} hình ảnh] ${first.filename}`
           : `[Hình ảnh] ${first.filename}`;
       }
+      if (isVid) {
+        return msg.attachments.length > 1
+          ? `[${msg.attachments.length} video] ${first.filename}`
+          : `[Video] ${first.filename}`;
+      }
+      if (isAud) {
+        return `[Tin nhắn thoại] ${first.filename}`;
+      }
       return `[Tệp đính kèm] ${first.filename}`;
     }
-    return 'Tin nhắn trống';
+    return '[Nội dung đính kèm]';
   }
 
   getMessageExcerpt(msg: ChatUiMessage): string {
-    if (msg.deletedAt) {
-      return 'Tin nhắn đã bị xóa';
-    }
-    if (msg.content && msg.content.trim().length > 0) {
-      return msg.content;
-    }
-    if (msg.attachments && msg.attachments.length > 0) {
-      const first = msg.attachments[0];
-      const isImg =
-        first.mimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(first.filename);
-      if (isImg) {
-        return msg.attachments.length > 1
-          ? `[${msg.attachments.length} hình ảnh] ${first.filename}`
-          : `[Hình ảnh] ${first.filename}`;
-      }
-      return `[Tệp đính kèm] ${first.filename}`;
-    }
-    return '';
+    return this.getReplySnippet(msg);
   }
 
   formatTime(isoString: string): string {

@@ -1,10 +1,16 @@
 @if (isVoiceConnected()) {
   <!-- Voice Connected Banner (Discord Style) -->
   <div class="user-panel__voice-status w-full flex items-center justify-between border-b border-hairline/60 pb-2 mb-2">
-    <div class="flex items-center gap-2 min-w-0 flex-1">
+    <!-- Clickable Voice Room Quick Jump -->
+    <div
+      class="user-panel__voice-info flex items-center gap-2 min-w-0 flex-1 cursor-pointer select-none rounded-lg px-1.5 py-1 transition-all duration-150 hover:bg-surface-feature/80 active:opacity-80 group"
+      matTooltip="Quay lại phòng thoại"
+      [matTooltipPosition]="'above'"
+      (click)="onNavigateToActiveVoiceRoom()"
+    >
       <mat-icon class="!size-5 !text-xl text-primary animate-pulse shrink-0">signal_cellular_alt</mat-icon>
       <div class="min-w-0 flex-1">
-        <span class="block truncate text-body-sm-medium text-primary font-bold">Đã Kết Nối Giọng Nói</span>
+        <span class="block truncate text-body-sm-medium text-primary font-bold group-hover:underline">Đã Kết Nối Giọng Nói</span>
         <span class="block truncate text-micro text-steel">#{{ voiceChannelName() }}</span>
       </div>
     </div>
@@ -71,12 +77,12 @@
       [name]="displayName()"
       [src]="avatarUrl()"
       size="sm"
-      presence="online"
+      [presence]="currentPresence()"
       ring="canvas"
     />
     <span class="user-panel__identity-copy">
       <span class="user-panel__name">{{ displayName() }}</span>
-      <span class="user-panel__status">Trực tuyến</span>
+      <span class="user-panel__status">{{ currentPresenceLabel() }}</span>
     </span>
   </button>
 
@@ -127,8 +133,8 @@
       [class.!text-danger]="isMicMuted()"
       [class.!bg-danger/20]="isMicMuted()"
       [attr.aria-pressed]="isMicMuted()"
-      [matTooltip]="!isVoiceConnected() ? 'Chưa tham gia phòng thoại' : (isDeafened() ? 'Bật tai nghe trước' : (isMicMuted() ? 'Bật micrô' : 'Tắt micrô'))"
-      [disabled]="!isVoiceConnected() || isDeafened()"
+      [matTooltip]="!isVoiceConnected() ? 'Chưa tham gia phòng thoại' : (isDeafened() ? 'Bật Micrô và Tai nghe' : (isMicMuted() ? 'Bật micrô' : 'Tắt micrô'))"
+      [disabled]="!isVoiceConnected()"
       (click)="toggleMic()"
     >
       <mat-icon>{{ isMicMuted() ? 'mic_off' : 'mic' }}</mat-icon>

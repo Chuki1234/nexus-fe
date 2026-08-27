@@ -2,10 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ServersApiService } from '../../../../../../core/api/servers-api.service';
 import { ServersStore } from '../../../../../../core/servers/servers.store';
-import {
-  CreateChannelDialog,
-  CreateChannelDialogData,
-} from './create-channel-dialog';
+import { ServerChannelStructureSyncService } from '../../../../../../core/servers/server-channel-structure-sync.service';
+import { CreateChannelDialog, CreateChannelDialogData } from './create-channel-dialog';
 
 describe('CreateChannelDialog', () => {
   let fixture: ComponentFixture<CreateChannelDialog>;
@@ -31,6 +29,10 @@ describe('CreateChannelDialog', () => {
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: ServersApiService, useValue: mockServersApi },
+        {
+          provide: ServerChannelStructureSyncService,
+          useValue: { save: vi.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compileComponents();
 
@@ -55,7 +57,9 @@ describe('CreateChannelDialog', () => {
 
     expect(component['channelType']()).toBe('text');
 
-    const voiceRadio = fixture.nativeElement.querySelectorAll('[role="radio"]')[1] as HTMLButtonElement;
+    const voiceRadio = fixture.nativeElement.querySelectorAll(
+      '[role="radio"]',
+    )[1] as HTMLButtonElement;
     voiceRadio.click();
     fixture.detectChanges();
 
@@ -72,15 +76,17 @@ describe('CreateChannelDialog', () => {
     expect(submitBtn.disabled).toBe(true);
   });
 
-  it('tự động chuẩn hóa slug cho kênh chữ (khoảng trắng thành dấu gạch ngang)', async () => {
+  it('giữ nguyên tên hiển thị của kênh chữ', async () => {
     await mount();
 
-    const input = fixture.nativeElement.querySelector('#create-channel-name-input') as HTMLInputElement;
+    const input = fixture.nativeElement.querySelector(
+      '#create-channel-name-input',
+    ) as HTMLInputElement;
     input.value = 'Thảo Luận Chung';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    expect(component['formattedChannelName']()).toBe('thảo-luận-chung');
+    expect(component['formattedChannelName']()).toBe('Thảo Luận Chung');
     expect(component['isNameValid']()).toBe(true);
   });
 
@@ -97,11 +103,15 @@ describe('CreateChannelDialog', () => {
     };
     mockServersApi.createChannel.mockResolvedValue(mockCreated);
 
-    const nameInput = fixture.nativeElement.querySelector('#create-channel-name-input') as HTMLInputElement;
+    const nameInput = fixture.nativeElement.querySelector(
+      '#create-channel-name-input',
+    ) as HTMLInputElement;
     nameInput.value = 'thông-báo-mới';
     nameInput.dispatchEvent(new Event('input'));
 
-    const topicInput = fixture.nativeElement.querySelector('#create-channel-topic-input') as HTMLInputElement;
+    const topicInput = fixture.nativeElement.querySelector(
+      '#create-channel-topic-input',
+    ) as HTMLInputElement;
     topicInput.value = 'Chủ đề quan trọng';
     topicInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -136,6 +146,8 @@ describe('CreateChannelDialog', () => {
       categoryName: 'Phòng học tập',
     });
 
+    serversStore.setCategories('server-1', [{ id: 'cat-custom-1', name: 'Ôn thi' }]);
+
     const mockCreated = {
       id: 'c-voice-1',
       name: 'Phòng ôn thi',
@@ -146,7 +158,9 @@ describe('CreateChannelDialog', () => {
     };
     mockServersApi.createChannel.mockResolvedValue(mockCreated);
 
-    const nameInput = fixture.nativeElement.querySelector('#create-channel-name-input') as HTMLInputElement;
+    const nameInput = fixture.nativeElement.querySelector(
+      '#create-channel-name-input',
+    ) as HTMLInputElement;
     nameInput.value = 'Phòng ôn thi';
     nameInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -173,7 +187,9 @@ describe('CreateChannelDialog', () => {
       new Error('Tên kênh đã tồn tại trong máy chủ này'),
     );
 
-    const nameInput = fixture.nativeElement.querySelector('#create-channel-name-input') as HTMLInputElement;
+    const nameInput = fixture.nativeElement.querySelector(
+      '#create-channel-name-input',
+    ) as HTMLInputElement;
     nameInput.value = 'trùng-tên';
     nameInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();

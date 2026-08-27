@@ -11,8 +11,7 @@
       class="nexus-icon-control !size-11"
       [class.!text-danger]="isMicMuted()"
       [class.!bg-danger/20]="isMicMuted()"
-      [matTooltip]="isDeafened() ? 'Bật tai nghe trước' : (isMicMuted() ? 'Bật Micro' : 'Tắt Micro')"
-      [disabled]="isDeafened()"
+      [matTooltip]="isDeafened() ? 'Bật Micro và Tai nghe' : (isMicMuted() ? 'Bật Micro' : 'Tắt Micro')"
       (click)="toggleMic()"
       [attr.aria-pressed]="!isMicMuted()"
     >

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { DeleteMessageModal } from './delete-message-modal';
 
 describe('DeleteMessageModal', () => {
@@ -39,7 +40,7 @@ describe('DeleteMessageModal', () => {
     fixture.detectChanges();
   });
 
-  it('khởi tạo thành công với default scope là for_me', () => {
+  it('standalone mode giữ default an toàn là for_me', () => {
     expect(component).toBeTruthy();
     expect((component as any).selectedScope()).toBe('for_me');
   });
@@ -97,5 +98,32 @@ describe('DeleteMessageModal', () => {
     const event = new KeyboardEvent('keydown', { key: 'Escape' });
     component.onEscapeKey(event);
     expect(closeSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('DeleteMessageModal trong MatDialog', () => {
+  it('mặc định chọn everyone khi người dùng có quyền thu hồi', async () => {
+    const close = vi.fn();
+    await TestBed.configureTestingModule({
+      imports: [DeleteMessageModal],
+      providers: [
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: {
+            message: { id: '101' },
+            canRecall: true,
+          },
+        },
+        { provide: MatDialogRef, useValue: { close } },
+      ],
+    }).compileComponents();
+
+    const dialogFixture = TestBed.createComponent(DeleteMessageModal);
+    const dialogComponent = dialogFixture.componentInstance;
+    dialogFixture.detectChanges();
+
+    expect((dialogComponent as any).selectedScope()).toBe('everyone');
+    dialogComponent.onConfirm();
+    expect(close).toHaveBeenCalledWith('everyone');
   });
 });

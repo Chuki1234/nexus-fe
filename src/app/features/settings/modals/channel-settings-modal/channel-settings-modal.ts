@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ServersApiService } from '../../../../core/api/servers-api.service';
 import { ChannelSummary } from '../../../../core/servers/server.models';
@@ -23,9 +24,26 @@ export interface ChannelSettingsModalData {
 
 export type ChannelSettingsTab = 'overview' | 'invites';
 
+export const SLOWMODE_OPTIONS: { value: number; label: string }[] = [
+  { value: 0, label: 'Tắt' },
+  { value: 5, label: '5 giây' },
+  { value: 10, label: '10 giây' },
+  { value: 15, label: '15 giây' },
+  { value: 30, label: '30 giây' },
+  { value: 60, label: '1 phút' },
+  { value: 120, label: '2 phút' },
+  { value: 300, label: '5 phút' },
+  { value: 600, label: '10 phút' },
+  { value: 900, label: '15 phút' },
+  { value: 1800, label: '30 phút' },
+  { value: 3600, label: '1 giờ' },
+  { value: 7200, label: '2 giờ' },
+  { value: 21600, label: '6 giờ' },
+];
+
 @Component({
   selector: 'app-channel-settings-modal',
-  imports: [FormsModule, MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [FormsModule, MatDialogModule, MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './channel-settings-modal.html',
   styleUrl: './channel-settings-modal.css',
@@ -41,15 +59,28 @@ export class ChannelSettingsModal {
 
   readonly activeTab = signal<ChannelSettingsTab>('overview');
 
-  private readonly currentChannel = computed(() => {
+  readonly currentChannel = computed(() => {
     const fromStore = this.serversStore?.channelsOf(this.data.serverId).find((c) => c.id === this.data.channel.id);
     return fromStore || this.data.channel;
+  });
+
+  readonly isVoiceChannel = computed(() => {
+    return (this.currentChannel().type || this.data.channel.type) === 'voice';
   });
 
   // Form State
   readonly channelName = signal<string>(this.data.channel.name);
   readonly channelTopic = signal<string>(this.data.channel.topic || '');
   readonly slowmode = signal<number>(this.data.channel.slowmode ?? this.currentChannel().slowmode ?? 0);
+
+  protected readonly slowmodeOptions = SLOWMODE_OPTIONS;
+
+  protected readonly slowmodeLabel = computed(() => {
+    const val = this.slowmode();
+    const found = this.slowmodeOptions.find((o) => o.value === val);
+    return found ? found.label : (val === 0 ? 'Tắt' : `${val}s`);
+  });
+
   readonly contentVisibility = signal<'default' | 'age_restricted'>(
     (this.data.channel.contentVisibility || this.currentChannel().contentVisibility) === 'age_restricted' ||
     this.data.channel.isAgeRestricted ||

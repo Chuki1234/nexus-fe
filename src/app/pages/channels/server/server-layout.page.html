@@ -24,7 +24,7 @@
                 class="flex items-center gap-2 rounded-sm px-2 py-1.5 text-body-sm text-body hover:bg-canvas hover:text-ink"
               >
                 <!-- Ký hiệu kiểu kênh: # văn bản, loa cho thoại, ổ khoá cho kênh riêng. -->
-                <span aria-hidden="true" class="shrink-0 text-mute">
+                <span aria-hidden="true" class="relative shrink-0 text-mute overflow-visible">
                   @if (channel.isPrivate) {
                     🔒
                   } @else if (channel.type === 'voice') {
@@ -32,17 +32,19 @@
                   } @else {
                     #
                   }
+                  @if (channel.unread) {
+                    <span
+                      class="absolute -right-3 -top-2 z-10 flex min-w-5 items-center justify-center rounded-pill bg-danger px-1.5 text-caption-strong text-ink-strong"
+                    >
+                      {{ channel.unread }}
+                    </span>
+                  }
                 </span>
 
                 <span class="min-w-0 flex-1 truncate">{{ channel.name }}</span>
 
                 @if (channel.unread) {
-                  <span
-                    class="flex min-w-5 shrink-0 items-center justify-center rounded-pill bg-danger px-1.5 text-caption-strong text-ink-strong"
-                  >
-                    <span aria-hidden="true">{{ channel.unread }}</span>
-                    <span class="sr-only">{{ channel.unread }} tin chưa đọc</span>
-                  </span>
+                  <span class="sr-only">{{ channel.unread }} tin chưa đọc</span>
                 }
               </a>
             </li>

@@ -13,14 +13,13 @@ import {
 import { ServerMemberDto } from '../../../shared/dto/server-members.dto';
 export type { ServerMemberDto };
 import { AuthService } from '../auth/auth.service';
-import type { ChannelSummary, ServerSummary } from '../servers/server.models';
+import type {
+  ChannelSummary,
+  ServerChannelStructure,
+  ServerSummary,
+} from '../servers/server.models';
 
-export type ServerTemplateId =
-  | 'custom'
-  | 'gaming'
-  | 'friends'
-  | 'study'
-  | 'school_club';
+export type ServerTemplateId = 'custom' | 'gaming' | 'friends' | 'study' | 'school_club';
 
 export interface ChannelTemplateSeed {
   name: string;
@@ -116,6 +115,7 @@ export interface CreateServerResult {
 
 export interface ServerWithChannels extends ServerSummary {
   channels: ChannelSummary[];
+  channelStructure: ServerChannelStructure | null;
 }
 
 interface CreateServerPayload {
@@ -138,7 +138,10 @@ interface CreateChannelPayload {
  * - Status 503/500: Lỗi cơ sở dữ liệu hoặc migration chưa áp dụng
  */
 export function formatApiError(err: unknown): string {
-  if (err instanceof HttpErrorResponse || (typeof err === 'object' && err !== null && 'status' in err)) {
+  if (
+    err instanceof HttpErrorResponse ||
+    (typeof err === 'object' && err !== null && 'status' in err)
+  ) {
     const httpErr = err as HttpErrorResponse;
     const status = httpErr.status;
     const backendMessage =
@@ -163,7 +166,9 @@ export function formatApiError(err: unknown): string {
     }
 
     if (status === 400) {
-      return formattedBackendMessage || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin nhập.';
+      return (
+        formattedBackendMessage || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin nhập.'
+      );
     }
 
     if (status === 503 || status === 500) {
@@ -206,7 +211,10 @@ export class ServersApiService {
   /**
    * Tạo máy chủ mới theo mẫu qua POST /api/servers kèm token xác thực.
    */
-  async createServer(name: string, templateId: ServerTemplateId = 'custom'): Promise<CreateServerResult> {
+  async createServer(
+    name: string,
+    templateId: ServerTemplateId = 'custom',
+  ): Promise<CreateServerResult> {
     const token = this.auth.accessToken();
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
 
@@ -243,8 +251,37 @@ export class ServersApiService {
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
 
     return firstValueFrom(
-      this.http.get<ChannelSummary[]>(
-        `${environment.apiUrl}/servers/${serverId}/channels`,
+      this.http.get<ChannelSummary[]>(`${environment.apiUrl}/servers/${serverId}/channels`, {
+        headers,
+      }),
+    );
+  }
+
+  /** Lấy cấu trúc category/channel dùng chung của server. */
+  async getChannelStructure(serverId: string): Promise<ServerChannelStructure | null> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.get<ServerChannelStructure | null>(
+        `${environment.apiUrl}/servers/${serverId}/channel-structure`,
+        { headers },
+      ),
+    );
+  }
+
+  /** Lưu cấu trúc category/channel canonical cho toàn bộ thành viên server. */
+  async updateChannelStructure(
+    serverId: string,
+    structure: ServerChannelStructure,
+  ): Promise<ServerChannelStructure> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.patch<ServerChannelStructure>(
+        `${environment.apiUrl}/servers/${serverId}/channel-structure`,
+        { structure },
         { headers },
       ),
     );
@@ -366,10 +403,7 @@ export class ServersApiService {
   /**
    * Thu hồi liên kết mời: DELETE /api/servers/:serverId/invites/:code
    */
-  async revokeInviteLink(
-    serverId: string,
-    code: string,
-  ): Promise<{ success: boolean }> {
+  async revokeInviteLink(serverId: string, code: string): Promise<{ success: boolean }> {
     const token = this.auth.accessToken();
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
 
@@ -389,10 +423,9 @@ export class ServersApiService {
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
 
     return firstValueFrom(
-      this.http.get<DirectServerInvitationDto[]>(
-        `${environment.apiUrl}/server-invitations`,
-        { headers },
-      ),
+      this.http.get<DirectServerInvitationDto[]>(`${environment.apiUrl}/server-invitations`, {
+        headers,
+      }),
     );
   }
 
@@ -449,11 +482,12 @@ export class ServersApiService {
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
 
     return firstValueFrom(
-      this.http.post<{ success: boolean; serverId: string; channelId?: string; alreadyMember: boolean }>(
-        `${environment.apiUrl}/invites/${code}/join`,
-        {},
-        { headers },
-      ),
+      this.http.post<{
+        success: boolean;
+        serverId: string;
+        channelId?: string;
+        alreadyMember: boolean;
+      }>(`${environment.apiUrl}/invites/${code}/join`, {}, { headers }),
     );
   }
 
@@ -497,10 +531,9 @@ export class ServersApiService {
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
 
     return firstValueFrom(
-      this.http.get<ServerMemberDto[]>(
-        `${environment.apiUrl}/servers/${serverId}/members`,
-        { headers },
-      ),
+      this.http.get<ServerMemberDto[]>(`${environment.apiUrl}/servers/${serverId}/members`, {
+        headers,
+      }),
     );
   }
 
@@ -549,5 +582,3 @@ export class ServersApiService {
     );
   }
 }
-
-

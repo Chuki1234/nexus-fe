@@ -433,14 +433,14 @@
   @if (!isAgeRestricted() || isUserAllowedAge()) {
     <footer class="shrink-0 bg-surface">
       <!-- Typing Indicator Banner -->
-      @if (channelChat.typingUserIds().length > 0) {
+      @if (typingText(); as text) {
         <div class="typing-banner px-4 py-1 text-micro text-steel flex items-center gap-2">
           <div class="typing-dots">
             <span></span>
             <span></span>
             <span></span>
           </div>
-          <span>Ai đó đang gõ...</span>
+          <span>{{ text }}</span>
         </div>
       }
 
@@ -448,6 +448,7 @@
       @if (channelChat.permissions().canSend) {
         <app-message-composer
           [target]="'#' + channel().name"
+          customPlaceholder="Nhắn tin"
           [slowmode]="channel().slowmode || 0"
           [context]="composerContext()"
           [attachmentsDisabled]="!channelChat.permissions().canAttach"

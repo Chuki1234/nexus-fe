@@ -14,6 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
+import { PresenceService } from '../../core/presence/presence.service';
 import { DeleteServerDialog } from '../../layouts/app-layout/components/channel-sidebar/components/delete-server-dialog/delete-server-dialog';
 import { ConnectedAppsService } from '../profile/connected-apps.service';
 import { CUSTOM_LINK_COLOR, tint } from '../profile/connected-apps';
@@ -105,6 +106,7 @@ export class SettingsModal {
   protected readonly myAvatarUrl = computed(() => this.profileStore.profile()?.avatarUrl ?? null);
   private readonly authService = inject(AuthService);
   private readonly profileService = inject(ProfileService);
+  private readonly presenceService = inject(PresenceService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -131,6 +133,9 @@ export class SettingsModal {
   protected readonly mobileSidebarOpen = signal<boolean>(false);
 
   protected readonly userProfile = computed(() => this.profileService.current());
+  protected readonly currentPresence = computed(() =>
+    this.presenceService.resolvePresence(this.userProfile()?.id),
+  );
   protected readonly displayName = computed(
     () => this.settingsService.editDisplayName() || this.userProfile()?.displayName || this.userProfile()?.username || 'Nghiện Khó Phai',
   );

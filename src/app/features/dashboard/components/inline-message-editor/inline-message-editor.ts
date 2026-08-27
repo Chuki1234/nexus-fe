@@ -49,11 +49,9 @@ export class InlineMessageEditor implements OnInit {
    */
   readonly draft = signal<string>('');
 
-  readonly charCount = computed(() => this.draft().length);
-  readonly isOverLimit = computed(() => this.draft().length > 4000);
   readonly isEmpty = computed(() => this.draft().trim().length === 0);
   readonly canSubmit = computed(
-    () => !this.isEmpty() && !this.isOverLimit() && !this.saving() && !this.expired(),
+    () => !this.isEmpty() && !this.saving() && !this.expired(),
   );
 
   constructor() {

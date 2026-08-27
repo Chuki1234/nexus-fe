@@ -107,7 +107,32 @@ describe('VoiceChatDrawer', () => {
           provide: MessagesApiService,
           useValue: { forwardChannelMessage: vi.fn().mockResolvedValue({}) },
         },
-        { provide: ServersApiService, useValue: { listChannels: vi.fn().mockResolvedValue([]) } },
+        {
+          provide: ServersApiService,
+          useValue: {
+            listChannels: vi.fn().mockResolvedValue([]),
+            getServerMembers: vi.fn().mockResolvedValue([
+              {
+                userId: 'user-2',
+                username: 'minhtai',
+                displayName: 'Minh Tài',
+                nickname: null,
+                avatarUrl: null,
+                role: 'MEMBER',
+                joinedAt: '2026-08-27T00:00:00.000Z',
+              },
+              {
+                userId: 'user-3',
+                username: 'yapping',
+                displayName: 'Yapping',
+                nickname: 'Yap',
+                avatarUrl: null,
+                role: 'MEMBER',
+                joinedAt: '2026-08-27T00:00:00.000Z',
+              },
+            ]),
+          },
+        },
         {
           provide: ServersStore,
           useValue: { servers: signal([]), channelsOf: vi.fn().mockReturnValue([]) },
@@ -129,6 +154,18 @@ describe('VoiceChatDrawer', () => {
     component = fixture.componentInstance;
     fixture.componentRef.setInput('serverId', 'server-1');
     fixture.componentRef.setInput('channel', dummyChannel);
+  });
+
+  it('hiển thị tên người gõ gần nhất và cập nhật người còn lại sau khi danh sách đổi', async () => {
+    mockTypingUserIdsSignal.set(['user-2', 'user-3']);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Yap đang gõ...');
+
+    mockTypingUserIdsSignal.set(['user-2']);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Minh Tài đang gõ...');
   });
 
   afterEach(() => {

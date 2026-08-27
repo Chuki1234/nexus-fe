@@ -125,6 +125,7 @@ export type RailItem =
 import { ServerCapabilitiesService } from '../../../../core/servers/server-capabilities.service';
 import { ServerInvitationsStore } from '../../../../core/servers/server-invitations.store';
 import { ServersStore } from '../../../../core/servers/servers.store';
+import { NotificationStore } from '../../../../core/notification/notification-store';
 
 /**
  * Cột 1 — dải icon server dọc mép trái chuẩn Discord.
@@ -162,6 +163,7 @@ export class ServerRail implements OnDestroy {
   private readonly serversStore = inject(ServersStore);
   private readonly friendsStore = inject(FriendsStore);
   private readonly invitationsStore = inject(ServerInvitationsStore);
+  private readonly notificationStore = inject(NotificationStore);
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
   private readonly dialog = inject(MatDialog);
@@ -175,10 +177,9 @@ export class ServerRail implements OnDestroy {
   protected readonly totalDmUnreadCount = computed(() => {
     const pendingFriendRequests = this.friendsStore.incomingRequests().length;
     const pendingServerInvites = this.invitationsStore.pendingCount();
-    const unreadDmMessages = this.dmConversations().reduce(
-      (acc, c) => acc + (c.unreadCount || 0),
-      0,
-    );
+    // Tổng chưa đọc DM lấy từ NotificationStore toàn cục (đồng bộ realtime, không
+    // bị mất khi đổi server) thay vì ảnh chụp REST cục bộ của server-rail.
+    const unreadDmMessages = this.notificationStore.totalDmUnread();
     return pendingFriendRequests + pendingServerInvites + unreadDmMessages;
   });
 
@@ -943,12 +944,25 @@ export class ServerRail implements OnDestroy {
     }
   }
 
+  /** Số lượt nhắc tên của một server (gộp từ mọi kênh) — badge số trên tile. */
+  protected serverMention(serverId: string): number {
+    return this.notificationStore.serverMention(serverId);
+  }
+
+  /** Server có kênh nào chưa đọc không — để hiện chấm/pill. */
+  protected serverHasUnread(serverId: string): boolean {
+    return this.notificationStore.serverHasUnread(serverId);
+  }
+
   protected groupMentions(servers: ServerSummary[]): number {
-    return servers.reduce((total, server) => total + server.mentionCount, 0);
+    return servers.reduce(
+      (total, server) => total + this.notificationStore.serverMention(server.id),
+      0,
+    );
   }
 
   protected groupHasUnread(servers: ServerSummary[]): boolean {
-    return servers.some((server) => server.unread);
+    return servers.some((server) => this.notificationStore.serverHasUnread(server.id));
   }
 
   /** Chữ cái đầu làm icon server khi chưa có ảnh. */

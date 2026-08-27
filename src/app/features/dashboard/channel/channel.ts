@@ -1,5 +1,6 @@
 import { DatePipe, isPlatformBrowser } from '@angular/common';
 import { ToastService } from '../../../core/toast/toast.service';
+import { copyToClipboard, extractMessageCopyableContent } from '../../../core/utils/clipboard.util';
 import {
   afterNextRender,
   AfterViewInit,
@@ -79,6 +80,8 @@ import {
 } from '../conversation/conversation';
 import { InlineMessageEditor } from '../components/inline-message-editor/inline-message-editor';
 import { MessageClockService } from '../../../core/utils/message-clock.service';
+import { NotificationService } from '../../../core/notification/notification.service';
+import { UserSettingsService } from '../../settings/services/user-settings.service';
 import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import { extractErrorMessage } from '../../../core/utils/error.util';
 import type { AttachmentResponseDto } from '../../../core/api/messages-api.service';
@@ -124,6 +127,8 @@ export class ChannelPage implements OnInit, AfterViewInit {
   protected readonly auth = inject(AuthService, { optional: true }) ?? inject(AuthService);
   protected readonly profileStore = inject(ProfileStore);
   readonly messageClock = inject(MessageClockService);
+  private readonly notificationService = inject(NotificationService, { optional: true });
+  private readonly userSettings = inject(UserSettingsService, { optional: true });
   private readonly presenceService =
     inject(PresenceService, { optional: true }) ?? inject(PresenceService);
   private readonly dialog = inject(MatDialog);
@@ -230,6 +235,14 @@ export class ChannelPage implements OnInit, AfterViewInit {
   protected readonly permissions = this.channelChat.permissions;
   protected readonly messages = this.channelChat.allMessages;
   protected readonly typingUserIds = this.channelChat.typingUserIds;
+  protected readonly typingText = computed(() => {
+    const ids = this.typingUserIds();
+    const latestUserId = ids[ids.length - 1];
+    if (!latestUserId) return null;
+    const member = this.serverMembers().find((item) => item.userId === latestUserId);
+    const displayName = member?.nickname || member?.displayName || member?.username;
+    return `${displayName || 'Một thành viên'} đang gõ...`;
+  });
 
   // Thành viên server kèm live presence
   protected readonly membersWithPresence = computed(() => {
@@ -487,6 +500,11 @@ export class ChannelPage implements OnInit, AfterViewInit {
     const replyToId = context?.kind === 'reply' ? context.messageId : undefined;
     this.composerContext.set(null);
 
+    // Âm thanh gửi tin (đồng bộ toggle "Tin nhắn" trong Cài đặt thông báo).
+    if (this.userSettings?.preferences().soundMessage) {
+      this.notificationService?.playMessageSound();
+    }
+
     await this.channelChat.sendMessage({
       content: payload.content,
       files: payload.files,
@@ -617,21 +635,19 @@ export class ChannelPage implements OnInit, AfterViewInit {
   /** Sao chép nội dung tin nhắn vào bộ nhớ tạm. */
   private async copyMessageContent(messageId: string): Promise<void> {
     const msg = this.messages().find((m) => m.id === messageId);
-    const text = msg?.content ?? '';
+    if (!msg) return;
+    const text = extractMessageCopyableContent(msg);
     if (!text) {
       this.toast.show({
-        message: 'Tin nhắn này không có nội dung văn bản để sao chép.',
+        message: 'Tin nhắn này không có nội dung để sao chép.',
         type: 'info',
       });
       return;
     }
-    if (!isPlatformBrowser(this.platformId) || !navigator.clipboard) {
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(text);
+    const ok = await copyToClipboard(text);
+    if (ok) {
       this.toast.show({ message: 'Đã sao chép nội dung tin nhắn.', type: 'success' });
-    } catch {
+    } else {
       this.toast.show({ message: 'Không sao chép được. Hãy thử lại.', type: 'error' });
     }
   }
@@ -881,5 +897,47 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
   protected formatMessageTime(dateStr: string | null | undefined): string {
     return formatMessageTimestamp(dateStr);
+  }
+
+  getMessageExcerpt(msg: ChannelChatUiMessage): string {
+    if (msg.deletedAt) {
+      return 'Tin nhắn đã bị xóa';
+    }
+    if (msg.content && msg.content.trim().length > 0) {
+      return msg.content;
+    }
+    if (msg.externalMedia) {
+      const type = msg.externalMedia.mediaType || (msg.externalMedia as { type?: string }).type;
+      const title = (msg.externalMedia as { title?: string }).title;
+      if (type === 'sticker' || msg.externalMedia.provider === 'stipop') {
+        return title ? `[Nhãn dán] ${title}` : '[Nhãn dán]';
+      }
+      return title ? `[GIF] ${title}` : '[GIF]';
+    }
+    if (msg.attachments && msg.attachments.length > 0) {
+      const first = msg.attachments[0];
+      const isImg =
+        first.mimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(first.filename);
+      const isVid =
+        first.mimeType?.startsWith('video/') || /\.(mp4|webm|mov|mkv)$/i.test(first.filename);
+      const isAud =
+        first.mimeType?.startsWith('audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(first.filename);
+
+      if (isImg) {
+        return msg.attachments.length > 1
+          ? `[${msg.attachments.length} hình ảnh] ${first.filename}`
+          : `[Hình ảnh] ${first.filename}`;
+      }
+      if (isVid) {
+        return msg.attachments.length > 1
+          ? `[${msg.attachments.length} video] ${first.filename}`
+          : `[Video] ${first.filename}`;
+      }
+      if (isAud) {
+        return `[Tin nhắn thoại] ${first.filename}`;
+      }
+      return `[Tệp đính kèm] ${first.filename}`;
+    }
+    return '[Nội dung đính kèm]';
   }
 }

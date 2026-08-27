@@ -1,26 +1,14 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import {
-  MAT_DIALOG_DATA,
-  MatDialogModule,
-  MatDialogRef,
-} from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import {
-  formatApiError,
-  ServersApiService,
-} from '../../../../../../core/api/servers-api.service';
+import { formatApiError, ServersApiService } from '../../../../../../core/api/servers-api.service';
 import { ChannelSummary } from '../../../../../../core/servers/server.models';
 import { ServersStore } from '../../../../../../core/servers/servers.store';
 import { ServerCapabilitiesService } from '../../../../../../core/servers/server-capabilities.service';
+import { ServerChannelStructureSyncService } from '../../../../../../core/servers/server-channel-structure-sync.service';
 
 export interface CreateChannelDialogData {
   serverId: string;
@@ -36,13 +24,7 @@ function formatChannelNameInput(raw: string, _type: 'text' | 'voice'): string {
 
 @Component({
   selector: 'app-create-channel-dialog',
-  imports: [
-    FormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-  ],
+  imports: [FormsModule, MatButtonModule, MatDialogModule, MatIconModule, MatProgressSpinnerModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './create-channel-dialog.html',
   styleUrl: './create-channel-dialog.css',
@@ -53,11 +35,10 @@ export class CreateChannelDialog {
   private readonly serversApi = inject(ServersApiService);
   private readonly serversStore = inject(ServersStore, { optional: true });
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
+  private readonly structureSync = inject(ServerChannelStructureSyncService);
 
   protected readonly rawChannelName = signal('');
-  protected readonly channelType = signal<'text' | 'voice'>(
-    this.data.defaultType ?? 'text',
-  );
+  protected readonly channelType = signal<'text' | 'voice'>(this.data.defaultType ?? 'text');
   protected readonly channelTopic = signal('');
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
@@ -105,6 +86,9 @@ export class CreateChannelDialog {
 
       // Cập nhật live state trong ServersStore
       this.serversStore?.addChannel(this.data.serverId, channelWithCategory);
+      if (this.serversStore) {
+        void this.structureSync.save(this.data.serverId).catch(() => undefined);
+      }
 
       this.dialogRef.close(channelWithCategory);
     } catch (err: any) {

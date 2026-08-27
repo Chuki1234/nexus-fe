@@ -89,7 +89,7 @@
         </div>
         <div class="scope-text">
           <div class="scope-title-row">
-            <span class="scope-title">Chỉ xóa ở phía bạn</span>
+            <span class="scope-title">Chỉ ẩn ở phía bạn</span>
             <span class="scope-badge private">Riêng tư</span>
           </div>
           <p class="scope-desc">
@@ -116,7 +116,8 @@
             <span class="scope-badge public">Công khai</span>
           </div>
           <p class="scope-desc">
-            Tin nhắn và toàn bộ tệp đính kèm sẽ bị xóa vĩnh viễn đối với tất cả thành viên trong cuộc trò chuyện.
+            Nội dung và tệp đính kèm sẽ bị xóa đối với tất cả thành viên. Mọi người vẫn thấy
+            một dòng “Tin nhắn đã bị xóa” tại vị trí cũ.
           </p>
         </div>
       </div>
@@ -156,7 +157,13 @@
           {{ isSubmitting() ? 'sync' : (canRecall() && selectedScope() === 'everyone' ? 'delete_forever' : 'visibility_off') }}
         </mat-icon>
         <span>
-          {{ isSubmitting() ? 'Đang xử lý...' : (canRecall() && selectedScope() === 'everyone' ? 'Thu hồi cho mọi người' : 'Xác nhận xóa') }}
+          {{
+            isSubmitting()
+              ? 'Đang xử lý...'
+              : canRecall() && selectedScope() === 'everyone'
+                ? 'Thu hồi cho mọi người'
+                : 'Ẩn ở phía tôi'
+          }}
         </span>
       </span>
     </button>
