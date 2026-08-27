@@ -839,6 +839,27 @@ export class ChannelList implements OnDestroy {
     }
   }
 
+  /** True nếu kênh voice có ít nhất 1 người đang tham gia. */
+  protected voiceChannelIsActive(channelId: string): boolean {
+    return this.voiceStatesStore.getChannelVoiceMembers(this.serverId(), channelId).length > 0;
+  }
+
+  protected voiceChannelMemberCount(channelId: string): number {
+    return this.voiceStatesStore.getChannelVoiceMembers(this.serverId(), channelId).length;
+  }
+
+  protected voiceChannelHasScreenShare(channelId: string): boolean {
+    return this.voiceStatesStore
+      .getChannelVoiceMembers(this.serverId(), channelId)
+      .some((m) => m.isScreenSharing);
+  }
+
+  protected voiceChannelHasCamera(channelId: string): boolean {
+    return this.voiceStatesStore
+      .getChannelVoiceMembers(this.serverId(), channelId)
+      .some((m) => m.isCameraOn);
+  }
+
   protected openCreateChannelDialog(
     group?: ChannelGroupViewModel | SidebarCategoryItem | 'text' | 'voice',
     event?: Event,

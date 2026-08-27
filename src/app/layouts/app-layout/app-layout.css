@@ -144,3 +144,149 @@
   outline: 2px solid var(--color-primary-soft, #00ed64);
   outline-offset: 2px;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Global Toast Notification Banner (Glassmorphism Pill)
+   ══════════════════════════════════════════════════════════════════════════ */
+.global-toast-banner {
+  position: fixed;
+  top: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.625rem 0.45rem 0.85rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-surface, #002634) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #00ed64) 30%, var(--color-hairline, #1c4553));
+  box-shadow:
+    0 16px 36px -6px rgba(0, 0, 0, 0.6),
+    0 0 24px -2px color-mix(in srgb, var(--color-primary, #00ed64) 15%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--color-ink, #ffffff);
+  font-size: var(--text-body-sm, 0.875rem);
+  font-weight: 500;
+  max-width: min(92vw, 560px);
+  animation: toast-spring-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.global-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-primary, #00ed64) 16%, transparent);
+  color: var(--color-primary, #00ed64);
+  flex-shrink: 0;
+}
+
+.global-toast-icon mat-icon {
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  font-size: 1.125rem !important;
+  line-height: 1.125rem !important;
+}
+
+.global-toast-banner--success .global-toast-icon {
+  background: color-mix(in srgb, var(--color-primary, #00ed64) 18%, transparent);
+  color: var(--color-primary, #00ed64);
+}
+
+.global-toast-banner--warning {
+  border-color: color-mix(in srgb, #f59e0b 40%, var(--color-hairline, #1c4553));
+  box-shadow:
+    0 16px 36px -6px rgba(0, 0, 0, 0.6),
+    0 0 24px -2px rgba(245, 158, 11, 0.15);
+}
+
+.global-toast-banner--warning .global-toast-icon {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.global-toast-banner--error {
+  border-color: color-mix(in srgb, #ef4444 40%, var(--color-hairline, #1c4553));
+  box-shadow:
+    0 16px 36px -6px rgba(0, 0, 0, 0.6),
+    0 0 24px -2px rgba(239, 68, 68, 0.15);
+}
+
+.global-toast-banner--error .global-toast-icon {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.global-toast-message {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-ink, #ffffff);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.global-toast-action-btn {
+  padding: 0.35rem 0.9rem;
+  border-radius: 9999px;
+  background: var(--color-primary, #00ed64);
+  color: #001e2b;
+  font-size: var(--text-caption, 0.75rem);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary, #00ed64) 30%, transparent);
+  transition: transform 120ms ease, filter 120ms ease, background-color 120ms ease;
+  flex-shrink: 0;
+}
+
+.global-toast-action-btn:hover {
+  background: var(--color-primary-soft, #33f183);
+  transform: translateY(-1px);
+}
+
+.global-toast-action-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.global-toast-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--color-steel, #8da0aa);
+  border: none;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+  flex-shrink: 0;
+}
+
+.global-toast-close-btn:hover {
+  background: color-mix(in srgb, var(--color-surface-feature, #ffffff) 10%, transparent);
+  color: var(--color-ink, #ffffff);
+}
+
+.global-toast-close-btn mat-icon {
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  font-size: 1.125rem !important;
+  line-height: 1.125rem !important;
+}
+
+@keyframes toast-spring-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}

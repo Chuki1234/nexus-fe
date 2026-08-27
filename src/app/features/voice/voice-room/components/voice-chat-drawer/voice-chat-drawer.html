@@ -66,7 +66,7 @@
 <div
   #messageListContainer
   (scroll)="onScroll()"
-  class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-4"
+  class="nexus-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 flex flex-col gap-4 max-w-full"
 >
   @if (isAgeRestricted() && !isUserAllowedAge()) {
     <div
@@ -95,7 +95,7 @@
     </div>
   } @else {
     <!-- Message Content Wrapper -->
-    <div #messageContent class="flex flex-col gap-4">
+    <div #messageContent class="flex flex-col gap-4 min-w-0 max-w-full overflow-x-hidden">
       <!-- Intro Hero -->
       <div
         class="intro-card flex flex-col items-start gap-3 rounded-2xl bg-surface-feature/40 p-4 border border-hairline/40"
@@ -116,10 +116,10 @@
       </div>
 
       <!-- Messages List -->
-      <div class="flex flex-col gap-2.5">
+      <div class="flex flex-col gap-2.5 min-w-0 max-w-full overflow-x-hidden">
         @for (msg of channelChat.allMessages(); track msg.id || msg.clientNonce) {
           <div
-            class="message-row group relative flex items-start gap-2.5 rounded-xl p-2 transition-colors"
+            class="message-row group relative flex items-start gap-2.5 rounded-xl p-2 transition-colors min-w-0 max-w-full overflow-x-hidden"
             [attr.data-message-id]="msg.id"
             [class.message-row--highlighted]="highlightedMessageId() === msg.id"
           >

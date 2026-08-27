@@ -82,7 +82,7 @@
 
   <!-- Nút "Kết bạn" LUÔN hiện khi hai người chưa là bạn bè (kể cả đã chấp nhận
        nhắn tin) — vì nhắn tin không đồng nghĩa với kết bạn. -->
-  @if (!peerIsFriend() && conversationDetails()?.recipient) {
+  @if (!peerIsFriend() && !isRecipientBlocked() && !isRelationshipInvalidated() && conversationDetails()?.recipient) {
     <div
       class="mx-4 mt-2 flex items-center justify-between gap-3 rounded-lg bg-surface-feature/70 border border-hairline px-3 py-1.5 text-body-sm"
     >
@@ -1254,12 +1254,14 @@
 
       @if (toastMessage(); as toast) {
         <div
-          class="conversation-toast-banner flex items-center gap-2 rounded-lg bg-surface/95 border border-nexus-subtle px-3 py-1.5 shadow-lg text-body-sm text-ink backdrop-blur-md absolute top-4 left-1/2 -translate-x-1/2 z-30"
+          class="conversation-toast-banner"
           role="status"
           aria-live="polite"
         >
-          <mat-icon class="!size-4 !text-base text-primary-soft">info_outline</mat-icon>
-          <span>{{ toast }}</span>
+          <div class="conversation-toast-icon">
+            <mat-icon>check_circle</mat-icon>
+          </div>
+          <span class="conversation-toast-text">{{ toast }}</span>
         </div>
       }
 

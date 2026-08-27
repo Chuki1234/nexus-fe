@@ -208,8 +208,8 @@
 
   <!-- Toast -->
   @if (toastMessage()) {
-    <div class="fixed bottom-8 right-8 z-200 px-4.5 py-3 rounded-2xl bg-surface border border-primary/40 text-ink shadow-modal font-bold text-caption flex items-center gap-2.5 animate-slide-up ring-1 ring-primary/20 backdrop-blur-md">
-      <mat-icon class="!w-5 !h-5 !text-[20px] text-primary">check_circle</mat-icon>
+    <div class="settings-toast-banner" role="status" aria-live="polite">
+      <mat-icon>check_circle</mat-icon>
       <span>{{ toastMessage() }}</span>
     </div>
   }

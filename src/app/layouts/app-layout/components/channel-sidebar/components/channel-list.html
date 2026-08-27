@@ -75,7 +75,13 @@
             </ng-template>
 
             <span matListItemIcon class="channel-icon-slot relative !mr-1.5 !flex !size-5 !min-w-5 !items-center !justify-center !overflow-visible">
-              <mat-icon aria-hidden="true" class="channel-icon text-steel group-hover:text-ink transition-colors">
+              <mat-icon
+                aria-hidden="true"
+                class="channel-icon transition-colors"
+                [class.voice-icon-active]="item.channel.type === 'voice' && voiceChannelIsActive(item.channel.id)"
+                [class.text-steel]="item.channel.type !== 'voice' || !voiceChannelIsActive(item.channel.id)"
+                [class.group-hover:text-ink]="item.channel.type !== 'voice' || !voiceChannelIsActive(item.channel.id)"
+              >
                 {{ item.channel.type === 'voice' ? 'volume_up' : (item.channel.type === 'forum' ? 'forum' : 'tag') }}
               </mat-icon>
             </span>
@@ -92,6 +98,23 @@
                   [count]="channelUnreadCount(item.channel.id)"
                   label="tin nhắn chưa đọc trong kênh"
                 />
+              }
+              <!-- Chỉ báo hoạt động voice: hiện khi có người, ẩn khi hover (nhường chỗ actions) -->
+              @if (item.channel.type === 'voice') {
+                @let vcCount = voiceChannelMemberCount(item.channel.id);
+                @if (vcCount > 0) {
+                  <span
+                    class="voice-count-chip group-hover:hidden group-focus-within:hidden flex items-center gap-0.5 shrink-0"
+                    [attr.aria-label]="vcCount + ' người trong kênh'"
+                  >
+                    @if (voiceChannelHasScreenShare(item.channel.id)) {
+                      <mat-icon class="!size-3.5 !text-sm text-primary" aria-hidden="true">present_to_all</mat-icon>
+                    } @else if (voiceChannelHasCamera(item.channel.id)) {
+                      <mat-icon class="!size-3.5 !text-sm text-primary" aria-hidden="true">videocam</mat-icon>
+                    }
+                    <span class="text-caption text-primary font-semibold">{{ vcCount }}</span>
+                  </span>
+                }
               }
               <!-- Action buttons on hover/focus (chỉ hiển thị khi hover hoặc focus để không chiếm chỗ tên kênh khi ở trạng thái thường) -->
               <div class="channel-actions hidden group-hover:flex group-focus-within:flex items-center gap-0.5" (pointerdown)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
@@ -388,7 +411,13 @@
                     </ng-template>
 
                     <span matListItemIcon class="channel-icon-slot relative !mr-1.5 !flex !size-5 !min-w-5 !items-center !justify-center !overflow-visible">
-                      <mat-icon aria-hidden="true" class="channel-icon text-steel group-hover:text-ink transition-colors">
+                      <mat-icon
+                        aria-hidden="true"
+                        class="channel-icon transition-colors"
+                        [class.voice-icon-active]="channel.type === 'voice' && voiceChannelIsActive(channel.id)"
+                        [class.text-steel]="channel.type !== 'voice' || !voiceChannelIsActive(channel.id)"
+                        [class.group-hover:text-ink]="channel.type !== 'voice' || !voiceChannelIsActive(channel.id)"
+                      >
                         {{ channel.type === 'voice' ? 'volume_up' : (channel.type === 'forum' ? 'forum' : 'tag') }}
                       </mat-icon>
                     </span>
@@ -405,6 +434,23 @@
                           [count]="channelUnreadCount(channel.id)"
                           label="tin nhắn chưa đọc trong kênh"
                         />
+                      }
+                      <!-- Chỉ báo hoạt động voice: hiện khi có người, ẩn khi hover -->
+                      @if (channel.type === 'voice') {
+                        @let vcCount = voiceChannelMemberCount(channel.id);
+                        @if (vcCount > 0) {
+                          <span
+                            class="voice-count-chip group-hover:hidden group-focus-within:hidden flex items-center gap-0.5 shrink-0"
+                            [attr.aria-label]="vcCount + ' người trong kênh'"
+                          >
+                            @if (voiceChannelHasScreenShare(channel.id)) {
+                              <mat-icon class="!size-3.5 !text-sm text-primary" aria-hidden="true">present_to_all</mat-icon>
+                            } @else if (voiceChannelHasCamera(channel.id)) {
+                              <mat-icon class="!size-3.5 !text-sm text-primary" aria-hidden="true">videocam</mat-icon>
+                            }
+                            <span class="text-caption text-primary font-semibold">{{ vcCount }}</span>
+                          </span>
+                        }
                       }
                       <!-- Action buttons on hover/focus (chỉ hiển thị khi hover hoặc focus để không chiếm chỗ tên kênh khi ở trạng thái thường) -->
                       <div class="channel-actions hidden group-hover:flex group-focus-within:flex items-center gap-0.5" (pointerdown)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
