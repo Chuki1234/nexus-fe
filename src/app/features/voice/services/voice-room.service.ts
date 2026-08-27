@@ -433,9 +433,11 @@ export class VoiceRoomService implements OnDestroy {
     try {
       const displayName =
         this.profile.current()?.displayName ?? this.profile.current()?.username ?? 'Nexus Member';
+      const avatarUrl = this.profile.current()?.avatarUrl ?? null;
 
-      // 1. Xin token LiveKit từ backend NestJS
-      const tokenRes = await this.voiceApi.getVoiceToken(serverId, channelId, displayName);
+      // 1. Xin token LiveKit từ backend NestJS (kèm avatar để nhét vào metadata,
+      //    nhờ đó tile người tham gia hiện đúng ảnh thay vì chữ cái).
+      const tokenRes = await this.voiceApi.getVoiceToken(serverId, channelId, displayName, avatarUrl);
 
       // 2. Tạo đối tượng Room của LiveKit
       this.room = new Room({
@@ -771,6 +773,7 @@ export class VoiceRoomService implements OnDestroy {
     this.localParticipant.set({
       identity: p.identity,
       name: p.name || 'Bạn',
+      avatarUrl: this.avatarFromMetadata(p.metadata),
       isLocal: true,
       isSpeaking,
       isMuted: !p.isMicrophoneEnabled,
@@ -797,6 +800,7 @@ export class VoiceRoomService implements OnDestroy {
       list.push({
         identity: p.identity,
         name: p.name || `Member_${p.identity.slice(0, 5)}`,
+        avatarUrl: this.avatarFromMetadata(p.metadata),
         isLocal: false,
         isSpeaking: p.isSpeaking,
         isMuted: !p.isMicrophoneEnabled,
@@ -809,6 +813,20 @@ export class VoiceRoomService implements OnDestroy {
     });
 
     this.remoteParticipants.set(list);
+  }
+
+  /**
+   * Đọc `avatarUrl` từ metadata của participant LiveKit (backend nhét JSON
+   * `{ avatarUrl }` vào token). Metadata hỏng/thiếu thì trả null để tile rơi về
+   * chữ cái đầu như cũ.
+   */
+  private avatarFromMetadata(metadata: string | undefined): string | null {
+    if (!metadata) return null;
+    try {
+      return (JSON.parse(metadata) as { avatarUrl?: string | null }).avatarUrl ?? null;
+    } catch {
+      return null;
+    }
   }
 
   private mapConnectionQuality(q: ConnectionQuality): 'excellent' | 'good' | 'poor' | 'unknown' {
