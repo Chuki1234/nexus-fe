@@ -31,4 +31,8 @@ export interface DisplayConversation {
   unreadCount: number;
   /** Mốc hoạt động gần nhất dùng để sắp xếp sidebar DM. */
   lastActivityAt: number;
+  /** 'pending' = message request người lạ (chỉ đọc); 'accepted' = bình thường. */
+  requestState?: 'pending' | 'accepted';
+  /** Người bên kia đã là bạn bè chưa (để hiện nút "Kết bạn" khi chưa). */
+  isFriend?: boolean;
 }

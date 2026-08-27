@@ -101,9 +101,8 @@ export class ConversationList implements OnInit, OnDestroy {
 
   protected readonly hasQuery = computed(() => this.normalize(this.query()).length > 0);
 
-  protected readonly conversations = computed<DisplayConversation[]>(() => {
-    const query = this.normalize(this.query());
-
+  /** Toàn bộ DM đã map + sắp xếp (chưa lọc theo query, chưa tách người-lạ). */
+  private readonly allConversations = computed<DisplayConversation[]>(() => {
     const activity = this.recentActivity();
     const list: DisplayConversation[] = this.realConversations().map((c) => {
       const name =
@@ -131,6 +130,8 @@ export class ConversationList implements OnInit, OnDestroy {
           this.toTimestamp(c.lastMessage?.createdAt),
           this.toTimestamp(c.createdAt),
         ),
+        requestState: c.requestState ?? 'accepted',
+        isFriend: c.isFriend ?? false,
       };
     });
 
@@ -142,14 +143,30 @@ export class ConversationList implements OnInit, OnDestroy {
       return byActivity !== 0 ? byActivity : a.name.localeCompare(b.name, 'vi');
     });
 
-    if (!query) {
-      return list;
-    }
-
-    return list.filter((conversation) =>
-      this.normalize(`${conversation.name} ${conversation.statusMessage ?? ''}`).includes(query),
-    );
+    return list;
   });
+
+  private matchesQuery(conversation: DisplayConversation): boolean {
+    const query = this.normalize(this.query());
+    if (!query) return true;
+    return this.normalize(
+      `${conversation.name} ${conversation.statusMessage ?? ''}`,
+    ).includes(query);
+  }
+
+  /** DM thường (đã chấp nhận / là bạn) — hiển thị ở mục "Tin nhắn trực tiếp". */
+  protected readonly conversations = computed<DisplayConversation[]>(() =>
+    this.allConversations().filter(
+      (c) => c.requestState !== 'pending' && this.matchesQuery(c),
+    ),
+  );
+
+  /** Message request từ người lạ (chưa duyệt) — hiển thị ở mục "Người lạ". */
+  protected readonly messageRequests = computed<DisplayConversation[]>(() =>
+    this.allConversations().filter(
+      (c) => c.requestState === 'pending' && this.matchesQuery(c),
+    ),
+  );
 
   protected readonly sectionTitle = computed(() =>
     this.hasQuery() ? `Kết quả · ${this.conversations().length}` : 'Tin nhắn trực tiếp',
@@ -229,6 +246,37 @@ export class ConversationList implements OnInit, OnDestroy {
           }
         }),
       );
+    }
+  }
+
+  /** Mở đoạn chat của message request (chế độ chỉ đọc — component chat tự hiện banner). */
+  protected onOpenRequest(conv: DisplayConversation): void {
+    void this.router.navigate(['/channels/@me', conv.id]);
+  }
+
+  /** Chấp nhận nhanh từ danh sách "Người lạ" → mở khoá nhắn tin rồi mở đoạn chat. */
+  protected async onAcceptRequest(conv: DisplayConversation, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    try {
+      await this.conversationsApi.acceptRequest(conv.id);
+    } catch {
+      // Bỏ qua — reload sẽ phản ánh trạng thái đúng.
+    }
+    await this.loadRealConversations();
+    void this.router.navigate(['/channels/@me', conv.id]);
+  }
+
+  /** Từ chối nhanh → xoá hẳn đoạn chat khỏi danh sách. */
+  protected async onDeclineRequest(conv: DisplayConversation, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    try {
+      await this.conversationsApi.declineRequest(conv.id);
+    } catch {
+      // Bỏ qua — realtime conversation:deleted sẽ dọn danh sách.
+    }
+    this.realConversations.update((list) => list.filter((c) => c.id !== conv.id));
+    if (this.activeChatStore.conversationId() === conv.id) {
+      void this.router.navigate(['/channels/@me']);
     }
   }
 
