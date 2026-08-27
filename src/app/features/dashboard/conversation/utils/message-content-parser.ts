@@ -5,7 +5,7 @@
 
 export interface MessageContentToken {
   key: string;
-  type: 'text' | 'link' | 'mention';
+  type: 'text' | 'link' | 'mention' | 'channel' | 'spoiler';
   value: string;
   url?: string;
   isEveryone?: boolean;
@@ -21,6 +21,9 @@ const TRAILING_PUNCTUATION_REGEX = /[.,!?;:)}\]]+$/;
  */
 const MENTION_CANDIDATE_REGEX = /(^|[\s(\[{<"'])@([a-zA-Z0-9_.]{3,32}|everyone)/g;
 
+/** Regex nhận diện Spoiler: bọc trong ||nội dung|| */
+const SPOILER_REGEX = /\|\|([\s\S]+?)\|\|/g;
+
 export function parseMessageContent(
   content: string | null | undefined,
   keyPrefix = 'msg',
@@ -29,8 +32,13 @@ export function parseMessageContent(
     return [];
   }
 
-  // Fast path: nếu không chứa http://, https:// và không chứa @ thì trả về toàn bộ text token
-  if (!content.includes('http://') && !content.includes('https://') && !content.includes('@')) {
+  // Fast path: nếu không chứa http://, https://, @ và || thì trả về toàn bộ text token
+  if (
+    !content.includes('http://') &&
+    !content.includes('https://') &&
+    !content.includes('@') &&
+    !content.includes('||')
+  ) {
     return [
       {
         key: `${keyPrefix}-tok-0-text`,
@@ -192,9 +200,56 @@ export function parseMessageContent(
     }
   }
 
+  // Pass 3: Trong các text token, phân tách tiếp các spoiler ||nội dung||
+  const pass3Tokens: MessageContentToken[] = [];
+  let pass3Counter = 0;
+
+  for (const token of pass2Tokens) {
+    if (token.type !== 'text' || !token.value.includes('||')) {
+      pass3Tokens.push({
+        ...token,
+        key: `${keyPrefix}-tok-${pass3Counter++}-${token.type}`,
+      });
+      continue;
+    }
+
+    const text = token.value;
+    let lastIndex = 0;
+    const spoilerMatches = text.matchAll(SPOILER_REGEX);
+
+    for (const match of spoilerMatches) {
+      const matchIndex = match.index ?? 0;
+      const spoilerContent = match[1];
+
+      if (matchIndex > lastIndex) {
+        pass3Tokens.push({
+          key: `${keyPrefix}-tok-${pass3Counter++}-text`,
+          type: 'text',
+          value: text.substring(lastIndex, matchIndex),
+        });
+      }
+
+      pass3Tokens.push({
+        key: `${keyPrefix}-tok-${pass3Counter++}-spoiler`,
+        type: 'spoiler',
+        value: spoilerContent,
+      });
+
+      lastIndex = matchIndex + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+      pass3Tokens.push({
+        key: `${keyPrefix}-tok-${pass3Counter++}-text`,
+        type: 'text',
+        value: text.substring(lastIndex),
+      });
+    }
+  }
+
   // Tối ưu gộp các text token liền kề (nếu có) và lọc token rỗng
   const mergedTokens: MessageContentToken[] = [];
-  for (const tok of pass2Tokens) {
+  for (const tok of pass3Tokens) {
     if (!tok.value && tok.type === 'text') continue;
     const prev = mergedTokens[mergedTokens.length - 1];
     if (prev && prev.type === 'text' && tok.type === 'text') {

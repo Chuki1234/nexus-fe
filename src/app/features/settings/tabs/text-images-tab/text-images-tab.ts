@@ -30,10 +30,6 @@ export class TextImagesTab {
     this.settingsService.updatePreference('suggestStickers', checked);
   }
 
-  protected toggleCodeHighlighting(checked: boolean): void {
-    this.settingsService.updatePreference('codeHighlighting', checked);
-  }
-
   protected setShowSpoilers(mode: AppPreferences['showSpoilers']): void {
     this.settingsService.updatePreference('showSpoilers', mode);
   }

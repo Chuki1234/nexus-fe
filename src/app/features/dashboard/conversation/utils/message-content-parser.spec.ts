@@ -189,5 +189,12 @@ describe('MessageContentParser (Safe Linkification & Scheme Whitelisting)', () =
       expect(isMentioningEveryone(text)).toBe(true);
       expect(isMentioningEveryone('Tin nhắn bình thường')).toBe(false);
     });
+    it('phân tách chính xác cú pháp spoiler ||nội dung||', () => {
+      const text = 'Xem đoạn kết: ||nhân vật chính đã thắng|| nhé!';
+      const tokens = parseMessageContent(text, 'test');
+      const spoiler = tokens.find((t) => t.type === 'spoiler');
+      expect(spoiler).toBeDefined();
+      expect(spoiler?.value).toBe('nhân vật chính đã thắng');
+    });
   });
 });

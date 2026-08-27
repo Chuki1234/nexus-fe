@@ -78,28 +78,12 @@
             >Gợi ý Sticker và Emoji khi gõ tin nhắn</span
           >
           <span class="text-caption text-steel"
-            >Hiển thị thanh gợi ý nhanh khi bạn gõ các từ khóa như :vui, :buon, :game.</span
+            >Hiển thị thanh gợi ý nhanh khi bạn gõ các từ khóa như vui, buồn, game (hoặc :vui, :buon).</span
           >
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().suggestStickers"
           (change)="toggleSuggestStickers($event.checked)"
-        />
-      </div>
-
-      <div class="flex items-center justify-between gap-4 py-3">
-        <div>
-          <span class="block text-body-sm-medium font-semibold text-ink"
-            >Tô màu cú pháp khối mã (Code Syntax Highlighting)</span
-          >
-          <span class="text-caption text-steel"
-            >Tự động highlight màu từ khóa cho các đoạn mã JavaScript, TypeScript, Python, C++,
-            v.v.</span
-          >
-        </div>
-        <mat-slide-toggle
-          [checked]="settingsService.preferences().codeHighlighting"
-          (change)="toggleCodeHighlighting($event.checked)"
         />
       </div>
     </div>
