@@ -73,13 +73,17 @@
 
     <div class="relative z-10 flex w-full max-w-md flex-col items-center text-center">
       <!-- Mascot tắc kè (nền trong suốt ở /assets/nexus-mascot.png). -->
-      <div class="rise d1">
+      <a
+        routerLink="/"
+        class="brand-mascot-link rise d1 w-full max-w-xs"
+        aria-label="Về trang giới thiệu Nexus"
+      >
         <img
           src="/assets/nexus-mascot.png"
           alt="Nexus"
-          class="brand-mascot w-full max-w-xs"
+          class="brand-mascot w-full"
         />
-      </div>
+      </a>
 
       <h2 class="brand-wordmark rise d2 mt-6 font-extrabold">Nexus</h2>
       <p class="rise d3 mt-3 max-w-sm text-body-md text-slate">

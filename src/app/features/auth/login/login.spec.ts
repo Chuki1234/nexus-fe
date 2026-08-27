@@ -7,6 +7,9 @@ import { LoginPage } from './login';
 
 class AuthServiceStub {
   signIn = vi.fn().mockResolvedValue({});
+  signInWithGoogle = vi.fn().mockResolvedValue(undefined);
+  fastLoginTotp = vi.fn().mockResolvedValue({});
+  blockedGoogleAttempt = vi.fn().mockReturnValue(null);
 }
 
 describe('LoginPage', () => {
@@ -34,6 +37,15 @@ describe('LoginPage', () => {
 
     fixture = TestBed.createComponent(LoginPage);
     fixture.detectChanges();
+  });
+
+  it('links the desktop mascot back to the public landing page', () => {
+    const mascotLink = fixture.nativeElement.querySelector(
+      '.brand-mascot-link',
+    ) as HTMLAnchorElement;
+
+    expect(mascotLink.getAttribute('href')).toBe('/');
+    expect(mascotLink.getAttribute('aria-label')).toBe('Về trang giới thiệu Nexus');
   });
 
   it('does not call the backend when the form is empty', async () => {

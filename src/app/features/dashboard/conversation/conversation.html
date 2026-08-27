@@ -60,6 +60,7 @@
 } @else if (hasValidConversation()) {
   <app-chat-toolbar
     [title]="recipientName()"
+    [titleClickable]="recipientUsername() !== null"
     [subtitle]="recipientStatusSubtitle()"
     [showAvatar]="true"
     [avatarSrc]="recipientAvatar()"
@@ -73,6 +74,7 @@
     [detailsOpen]="profilePanelOpen()"
     detailsLabel="hồ sơ"
     (openPins)="openPins()"
+    (titleClick)="openRecipientProfile()"
     (toggleDetails)="toggleProfilePanel()"
     (startAudioCall)="onStartAudioCall()"
     (startVideoCall)="onStartVideoCall()"

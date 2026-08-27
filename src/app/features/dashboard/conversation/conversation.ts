@@ -207,6 +207,7 @@ import { DirectCallCoordinatorService } from '../../../core/calls/direct-call-co
 import { UserSettingsService } from '../../settings/services/user-settings.service';
 import { NotificationService } from '../../../core/notification/notification.service';
 import { FriendsStore } from '../friends/services/friends-store';
+import { ProfileDialogService } from '../../profile/profile-dialog.service';
 
 /**
  * Trang chi tiết cuộc trò chuyện Direct Message — `/channels/@me/:conversationId`.
@@ -254,6 +255,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly userSettings = inject(UserSettingsService);
   private readonly notificationService = inject(NotificationService, { optional: true });
   private readonly friendsStore = inject(FriendsStore);
+  private readonly profileDialog = inject(ProfileDialogService);
   readonly activeChatStore = inject(ActiveChatStore);
   readonly messageClock = inject(MessageClockService);
   private readonly uiState = inject(DashboardUiState);
@@ -377,6 +379,12 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     const next = !this.profilePanelOpen();
     this.pinsOpen.set(false);
     this.profilePanelOpen.set(next);
+  }
+
+  /** Bấm tên người trên thanh tiêu đề → mở hồ sơ đầy đủ dạng cửa sổ nổi. */
+  protected openRecipientProfile(): void {
+    const username = this.recipientUsername();
+    if (username) this.profileDialog.open(username);
   }
 
   protected openPins(): void {

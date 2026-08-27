@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import {
   bannerColorFor,
   profileDisplayName,
@@ -8,6 +9,7 @@ import {
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import { ProfileLookup } from '../../profile-lookup';
 import { ProfileDialogService } from '../../profile-dialog.service';
+import { FriendsStore } from '../../../dashboard/friends/services/friends-store';
 import { linkIconFor } from '../link-icon';
 
 /**
@@ -23,7 +25,7 @@ import { linkIconFor } from '../link-icon';
  */
 @Component({
   selector: 'app-profile-panel',
-  imports: [Avatar, MatIconModule],
+  imports: [Avatar, MatIconModule, MatMenuModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   templateUrl: './profile-panel.html',
@@ -45,16 +47,84 @@ export class ProfilePanel {
 
   private readonly lookup = inject(ProfileLookup);
   private readonly profileDialog = inject(ProfileDialogService);
+  private readonly friends = inject(FriendsStore);
+
+  constructor() {
+    // Nạp danh sách bạn bè + chặn để menu 3-chấm biết đúng trạng thái quan hệ.
+    // Cả hai đều có guard "đã tải thì thôi", gọi lại không tốn thêm request.
+    void this.friends.load();
+    void this.friends.loadBlocked();
+  }
 
   protected readonly profile = computed(() => {
     const key = this.username();
     return key ? this.lookup.profileFor(key)() : null;
   });
 
+  // ══ MENU 3-CHẤM: quan hệ với người đang xem ══
+  /** Chỉ hiện menu khi xem hồ sơ NGƯỜI KHÁC (không phải chính mình). */
+  protected readonly canManage = computed(() => {
+    const person = this.profile();
+    return !!person && !person.isSelf;
+  });
+
+  /**
+   * Bản ghi bạn bè khớp theo USERNAME (khoá không nhập nhằng), giữ luôn `id` gốc
+   * của danh sách để truyền lại đúng cho `removeFriend` — tránh lệch giữa id user
+   * và id cuộc trò chuyện.
+   */
+  private readonly friendEntry = computed(() => {
+    const person = this.profile();
+    if (!person) return null;
+    return this.friends.friends().find((f) => f.username === person.username) ?? null;
+  });
+  protected readonly isFriend = computed(() => this.friendEntry() !== null);
+
+  protected readonly isBlocked = computed(() => {
+    const person = this.profile();
+    return person ? this.friends.isBlocked(person.id) : false;
+  });
+
+  protected addFriend(): void {
+    const person = this.profile();
+    if (person) void this.friends.sendRequest(person.username);
+  }
+
+  protected unfriend(): void {
+    const entry = this.friendEntry();
+    if (entry) void this.friends.removeFriend(entry.id);
+  }
+
+  protected toggleBlock(): void {
+    const person = this.profile();
+    if (!person) return;
+    if (this.isBlocked()) void this.friends.unblockUser(person.id);
+    else void this.friends.blockUser(person.id);
+  }
+
   /** Mở hồ sơ đầy đủ dạng cửa sổ nổi thay vì điều hướng sang trang `/u/:username`. */
   protected openFull(): void {
     const person = this.profile();
     if (person) this.profileDialog.open(person.username, person);
+  }
+
+  /** Báo "đã sao chép" thoáng qua sau khi bấm vào tên. */
+  protected readonly linkCopied = signal(false);
+  private copiedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Bấm vào tên → chép link hồ sơ công khai (`/u/:username`) vào clipboard. */
+  protected async copyProfileLink(): Promise<void> {
+    const person = this.profile();
+    if (!person) return;
+    const url = `${window.location.origin}/u/${person.username}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      this.linkCopied.set(true);
+      if (this.copiedTimer) clearTimeout(this.copiedTimer);
+      this.copiedTimer = setTimeout(() => this.linkCopied.set(false), 1800);
+    } catch {
+      // Clipboard bị chặn (không HTTPS / thiếu quyền) — im lặng, không phá luồng.
+    }
   }
 
   /** Bấm một bạn chung → mở thẳng hồ sơ người đó (không rời cuộc trò chuyện). */
