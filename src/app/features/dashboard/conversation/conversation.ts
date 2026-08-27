@@ -69,6 +69,7 @@ import { MessageClockService } from '../../../core/utils/message-clock.service';
 import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import { parseMessageContent, type MessageContentToken } from './utils/message-content-parser';
 import { SensitiveMediaGuard } from '../components/sensitive-media-guard/sensitive-media-guard';
+import { copyToClipboard, extractMessageCopyableContent } from '../../../core/utils/clipboard.util';
 
 export interface ConversationHttpError {
   status?: number;
@@ -1431,7 +1432,9 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onMessageAction(action: MessageComposerContext): void {
-    if (action.kind === 'edit' && action.messageId) {
+    if (action.kind === 'copy' && action.messageId) {
+      void this.copyMessageContent(action.messageId);
+    } else if (action.kind === 'edit' && action.messageId) {
       const msg = this.messages().find((m) => m.id === action.messageId);
       if (msg) {
         this.startEdit(msg);
@@ -1452,6 +1455,23 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
       void this.setMessagePinned(action.messageId, false);
     } else {
       this.composerContext.set(action);
+    }
+  }
+
+  /** Sao chép nội dung tin nhắn vào bộ nhớ tạm. */
+  private async copyMessageContent(messageId: string): Promise<void> {
+    const msg = this.messages().find((m) => m.id === messageId);
+    if (!msg) return;
+    const text = extractMessageCopyableContent(msg);
+    if (!text) {
+      this.showToast('Tin nhắn này không có nội dung để sao chép.');
+      return;
+    }
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      this.showToast('Đã sao chép nội dung tin nhắn.');
+    } else {
+      this.showToast('Không sao chép được. Hãy thử lại.');
     }
   }
 

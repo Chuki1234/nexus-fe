@@ -167,7 +167,7 @@
                   >
                     <!-- Compact Time Gutter -->
                     @if (isCompact(idx)) {
-                      <time class="message-row__compact-time text-micro text-stone">
+                      <time class="message-hover-time">
                         {{ msg.createdAt | date: 'HH:mm' }}
                       </time>
                     } @else {
@@ -210,31 +210,33 @@
                       <div
                         class="message-content-cluster relative inline-flex flex-col items-start w-fit max-w-[min(680px,100%)]"
                       >
-                        <!-- Message Text Surface -->
-                        <div class="message-text-surface">
-                          @if (!isCompact(idx)) {
-                            <header class="flex flex-wrap items-baseline gap-x-2 mb-1">
-                              <strong class="text-body-sm-medium text-ink">
-                                {{ msg.author?.displayName || msg.author?.username || 'User' }}
-                              </strong>
-                              <time class="text-micro text-stone">
-                                {{ formatMessageTime(msg.createdAt) }}
-                              </time>
-                              @if (msg.isForwarded) {
-                                <span
-                                  class="forwarded-badge inline-flex items-center gap-0.5 text-micro text-steel italic"
-                                >
-                                  <mat-icon class="!size-3 !text-xs">forward</mat-icon>
-                                  Đã chuyển tiếp
-                                </span>
-                              }
-                            </header>
-                          }
+                        <!-- Header for uncompact messages -->
+                        @if (!isCompact(idx)) {
+                          <header class="flex flex-wrap items-baseline gap-x-2 mb-1">
+                            <strong class="text-body-sm-medium text-ink">
+                              {{ msg.author?.displayName || msg.author?.username || 'User' }}
+                            </strong>
+                            <time class="text-micro text-stone">
+                              {{ formatMessageTime(msg.createdAt) }}
+                            </time>
+                            @if (msg.isForwarded) {
+                              <span
+                                class="forwarded-badge inline-flex items-center gap-0.5 text-micro text-steel italic"
+                              >
+                                <mat-icon class="!size-3 !text-xs">forward</mat-icon>
+                                Đã chuyển tiếp
+                              </span>
+                            }
+                          </header>
+                        }
 
-                          <!-- Deleted Message State -->
-                          @if (msg.deletedAt) {
+                        <!-- Message Text Surface: ONLY rendered when text/editor/deleted exists -->
+                        @if (msg.deletedAt) {
+                          <div class="message-text-surface">
                             <p class="text-body-sm text-steel italic">Tin nhắn đã bị xóa</p>
-                          } @else if (editingMessageId() === msg.id) {
+                          </div>
+                        } @else if (editingMessageId() === msg.id) {
+                          <div class="message-text-surface">
                             <div class="mt-1 mb-1">
                               <app-inline-message-editor
                                 [messageId]="msg.id"
@@ -247,7 +249,9 @@
                                 (cancel)="cancelInlineEdit()"
                               />
                             </div>
-                          } @else if (msg.content) {
+                          </div>
+                        } @else if (msg.content && msg.content.trim().length > 0) {
+                          <div class="message-text-surface">
                             <!-- Normal Parsed Content -->
                             <div
                               class="message-body text-body-sm text-charcoal leading-relaxed break-words whitespace-pre-wrap"
@@ -292,8 +296,8 @@
                                 >
                               }
                             </div>
-                          }
-                        </div>
+                          </div>
+                        }
 
                         <!-- Attachments Slot -->
                         @if (!msg.deletedAt && msg.attachments && msg.attachments.length > 0) {

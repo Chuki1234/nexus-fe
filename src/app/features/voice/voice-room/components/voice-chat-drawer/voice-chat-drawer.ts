@@ -21,6 +21,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { ChannelSummary } from '../../../../../core/servers/server.models';
 import { AuthService } from '../../../../../core/auth/auth.service';
+import { ToastService } from '../../../../../core/toast/toast.service';
+import { copyToClipboard, extractMessageCopyableContent } from '../../../../../core/utils/clipboard.util';
 import {
   ChannelChatStore,
   type ChannelChatUiMessage,
@@ -85,6 +87,7 @@ export class VoiceChatDrawer implements OnInit {
   readonly channelChat = inject(ChannelChatStore);
   readonly auth = inject(AuthService);
   protected readonly profileStore = inject(ProfileStore);
+  private readonly toast = inject(ToastService);
   readonly messageClock = inject(MessageClockService);
   private readonly injector = inject(Injector);
   private readonly platformId = inject(PLATFORM_ID);
@@ -325,6 +328,10 @@ export class VoiceChatDrawer implements OnInit {
   }
 
   protected onAction(event: MessageComposerContext): void {
+    if (event.kind === 'copy' && event.messageId) {
+      void this.copyMessageContent(event.messageId);
+      return;
+    }
     if (event.kind === 'edit' && event.messageId) {
       const msg = this.channelChat.allMessages().find((m) => m.id === event.messageId);
       if (msg) {
@@ -352,6 +359,26 @@ export class VoiceChatDrawer implements OnInit {
       return;
     }
     this.composerContext.set(event);
+  }
+
+  /** Sao chép nội dung tin nhắn vào bộ nhớ tạm. */
+  private async copyMessageContent(messageId: string): Promise<void> {
+    const msg = this.channelChat.allMessages().find((m) => m.id === messageId);
+    if (!msg) return;
+    const text = extractMessageCopyableContent(msg);
+    if (!text) {
+      this.toast.show({
+        message: 'Tin nhắn này không có nội dung để sao chép.',
+        type: 'info',
+      });
+      return;
+    }
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      this.toast.show({ message: 'Đã sao chép nội dung tin nhắn.', type: 'success' });
+    } else {
+      this.toast.show({ message: 'Không sao chép được. Hãy thử lại.', type: 'error' });
+    }
   }
 
   protected async unpinFromPanel(message: MessageResponseDto): Promise<void> {

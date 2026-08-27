@@ -1,5 +1,6 @@
 import { DatePipe, isPlatformBrowser } from '@angular/common';
 import { ToastService } from '../../../core/toast/toast.service';
+import { copyToClipboard, extractMessageCopyableContent } from '../../../core/utils/clipboard.util';
 import {
   afterNextRender,
   AfterViewInit,
@@ -634,21 +635,19 @@ export class ChannelPage implements OnInit, AfterViewInit {
   /** Sao chép nội dung tin nhắn vào bộ nhớ tạm. */
   private async copyMessageContent(messageId: string): Promise<void> {
     const msg = this.messages().find((m) => m.id === messageId);
-    const text = msg?.content ?? '';
+    if (!msg) return;
+    const text = extractMessageCopyableContent(msg);
     if (!text) {
       this.toast.show({
-        message: 'Tin nhắn này không có nội dung văn bản để sao chép.',
+        message: 'Tin nhắn này không có nội dung để sao chép.',
         type: 'info',
       });
       return;
     }
-    if (!isPlatformBrowser(this.platformId) || !navigator.clipboard) {
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(text);
+    const ok = await copyToClipboard(text);
+    if (ok) {
       this.toast.show({ message: 'Đã sao chép nội dung tin nhắn.', type: 'success' });
-    } catch {
+    } else {
       this.toast.show({ message: 'Không sao chép được. Hãy thử lại.', type: 'error' });
     }
   }
