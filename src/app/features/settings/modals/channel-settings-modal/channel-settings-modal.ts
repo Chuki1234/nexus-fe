@@ -41,9 +41,13 @@ export class ChannelSettingsModal {
 
   readonly activeTab = signal<ChannelSettingsTab>('overview');
 
-  private readonly currentChannel = computed(() => {
+  readonly currentChannel = computed(() => {
     const fromStore = this.serversStore?.channelsOf(this.data.serverId).find((c) => c.id === this.data.channel.id);
     return fromStore || this.data.channel;
+  });
+
+  readonly isVoiceChannel = computed(() => {
+    return (this.currentChannel().type || this.data.channel.type) === 'voice';
   });
 
   // Form State

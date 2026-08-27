@@ -210,12 +210,13 @@
                         </button>
                       }
                       @if (m.isCameraOn) {
-                        <mat-icon class="!size-3.5 !text-sm" matTooltip="Đang bật camera">videocam</mat-icon>
+                        <mat-icon class="!size-3.5 !text-sm text-primary" matTooltip="Đang bật camera">videocam</mat-icon>
+                      }
+                      @if (m.isMuted) {
+                        <mat-icon class="!size-3.5 !text-sm text-danger" matTooltip="Đã tắt mic">mic_off</mat-icon>
                       }
                       @if (m.isDeafened) {
                         <mat-icon class="!size-3.5 !text-sm text-danger" matTooltip="Đã tắt tai nghe">headset_off</mat-icon>
-                      } @else if (m.isMuted) {
-                        <mat-icon class="!size-3.5 !text-sm text-danger" matTooltip="Đã tắt mic">mic_off</mat-icon>
                       }
                     </div>
                   </div>
@@ -520,12 +521,13 @@
                                 </button>
                               }
                               @if (m.isCameraOn) {
-                                <mat-icon class="!size-3.5 !text-sm" matTooltip="Đang bật camera">videocam</mat-icon>
+                                <mat-icon class="!size-3.5 !text-sm text-primary" matTooltip="Đang bật camera">videocam</mat-icon>
+                              }
+                              @if (m.isMuted) {
+                                <mat-icon class="!size-3.5 !text-sm text-danger" matTooltip="Đã tắt mic">mic_off</mat-icon>
                               }
                               @if (m.isDeafened) {
                                 <mat-icon class="!size-3.5 !text-sm text-danger" matTooltip="Đã tắt tai nghe">headset_off</mat-icon>
-                              } @else if (m.isMuted) {
-                                <mat-icon class="!size-3.5 !text-sm text-danger" matTooltip="Đã tắt mic">mic_off</mat-icon>
                               }
                             </div>
                           </div>
@@ -790,13 +792,77 @@
       </div>
     </div>
 
-    <!-- Xem hồ sơ -->
-    <button mat-menu-item type="button" (click)="onViewMemberProfile(member)" class="context-menu-item">
-      <mat-icon class="context-menu-icon text-steel">account_circle</mat-icon>
-      <app-overflow-marquee class="context-menu-label text-ink" text="Xem hồ sơ" />
-    </button>
+    @if (member.isLocal) {
+      <!-- 1. CHUỘT PHẢI VÀO BẢN THÂN (LOCAL USER) - DISCORD STYLE -->
+      <!-- Hồ sơ -->
+      <button mat-menu-item type="button" (click)="onViewMemberProfile(member)" class="context-menu-item">
+        <span class="context-menu-label text-ink">Hồ sơ</span>
+      </button>
 
-    @if (!member.isLocal) {
+      <div class="context-menu-divider" role="separator"></div>
+
+      <!-- Tắt âm (Mute Mic - Checkbox) -->
+      <button mat-menu-item type="button" (click)="toggleSelfMute()" class="context-menu-item">
+        <span class="context-menu-label text-ink flex-1">Tắt âm</span>
+        <div class="context-menu-checkbox" [class.context-menu-checkbox--checked]="voiceRoom.isMicMuted()">
+          @if (voiceRoom.isMicMuted()) {
+            <svg
+              class="context-menu-checkbox-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          }
+        </div>
+      </button>
+
+      <!-- Tắt tiếng (Deafen / Tai nghe - Checkbox) -->
+      <button mat-menu-item type="button" (click)="toggleSelfDeafen()" class="context-menu-item">
+        <span class="context-menu-label text-ink flex-1">Tắt tiếng</span>
+        <div class="context-menu-checkbox" [class.context-menu-checkbox--checked]="voiceRoom.isDeafened()">
+          @if (voiceRoom.isDeafened()) {
+            <svg
+              class="context-menu-checkbox-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          }
+        </div>
+      </button>
+
+      <!-- Chỉnh Sửa Hồ Sơ Theo Máy Chủ -->
+      <button mat-menu-item type="button" (click)="openProfileSettings()" class="context-menu-item">
+        <span class="context-menu-label text-ink">Chỉnh Sửa Hồ Sơ Theo Máy Chủ</span>
+      </button>
+
+      <!-- Chuyển tới (Chuyển sang kênh thoại khác) -->
+      @let otherChannels = otherVoiceChannels(selectedMemberChannel()?.id);
+      @if (otherChannels.length > 0) {
+        <div class="context-menu-divider" role="separator"></div>
+        <button mat-menu-item type="button" [matMenuTriggerFor]="moveSelfVoiceChannelSubmenu" class="context-menu-item">
+          <span class="context-menu-label text-ink flex-1">Chuyển tới</span>
+          <mat-icon class="context-submenu-chevron text-steel">chevron_right</mat-icon>
+        </button>
+      }
+    } @else {
+      <!-- 2. CHUỘT PHẢI VÀO NGƯỜI KHÁC (REMOTE MEMBER) -->
+      <!-- Xem hồ sơ -->
+      <button mat-menu-item type="button" (click)="onViewMemberProfile(member)" class="context-menu-item">
+        <mat-icon class="context-menu-icon text-steel">account_circle</mat-icon>
+        <app-overflow-marquee class="context-menu-label text-ink" text="Xem hồ sơ" />
+      </button>
+
       <div class="context-menu-divider" role="separator"></div>
 
       <!-- Âm lượng người dùng (User Volume Slider 0% - 200%) -->
@@ -862,7 +928,16 @@
   }
 </mat-menu>
 
-<!-- Submenu Chuyển Kênh Thoại -->
+<!-- Submenu Chuyển Kênh Thoại Cho Bản Thân -->
+<mat-menu #moveSelfVoiceChannelSubmenu="matMenu" class="nexus-context-menu nexus-submenu" xPosition="after" yPosition="below">
+  @for (vc of otherVoiceChannels(selectedMemberChannel()?.id); track vc.id) {
+    <button mat-menu-item type="button" (click)="onMoveSelfToChannel(vc.id)" class="context-menu-item">
+      <span class="context-menu-label text-ink">{{ vc.name }}</span>
+    </button>
+  }
+</mat-menu>
+
+<!-- Submenu Chuyển Kênh Thoại Cho Thành Viên Khác (Admin) -->
 <mat-menu #moveVoiceChannelSubmenu="matMenu" class="nexus-context-menu nexus-submenu">
   @if (selectedMember(); as member) {
     @for (vc of otherVoiceChannels(selectedMemberChannel()?.id); track vc.id) {

@@ -170,7 +170,10 @@ export class FriendRow {
   }
 
   onViewProfile(): void {
-    // Chức năng Xem hồ sơ - chỉ để nút bấm, sự kiện sẽ được implement sau
+    const target = this.person().username || this.person().name || this.person().id;
+    if (target) {
+      void this.router.navigate(['/u', target]);
+    }
   }
 
   onEditNote(): void {

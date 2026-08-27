@@ -52,6 +52,7 @@ import { CreateChannelDialog } from './create-channel-dialog/create-channel-dial
 import { InviteChannelDialog } from './invite-channel-dialog/invite-channel-dialog';
 import { ServersStore } from '../../../../../core/servers/servers.store';
 import { ServerVoiceStatesStore } from '../../../../../core/servers/server-voice-states.store';
+import { UserSettingsService } from '../../../../../features/settings/services/user-settings.service';
 
 export interface ChannelGroupViewModel {
   id: string;
@@ -129,6 +130,7 @@ export class ChannelList implements OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly userSettings = inject(UserSettingsService);
   readonly voiceRoom = inject(VoiceRoomService);
 
   readonly serverId = input.required<string>();
@@ -750,10 +752,6 @@ export class ChannelList implements OnDestroy {
     const localPart = isCurrentlyConnected ? this.voiceRoom.localParticipant() : null;
     const remotes = isCurrentlyConnected ? this.voiceRoom.remoteParticipants() : [];
 
-<<<<<<< HEAD
-    if (isCurrentlyConnected && (localPart || remotes.length > 0)) {
-      const liveList: VoiceChannelMemberViewModel[] = [];
-=======
     // Redis là presence canonical cho sidebar; LiveKit bổ sung speaking/media realtime.
     // Không thay thế toàn bộ snapshot vì participant event của LiveKit có thể đến trễ.
     const members = new Map<string, VoiceChannelMemberViewModel>();
@@ -763,6 +761,7 @@ export class ChannelList implements OnDestroy {
         name: s.displayName || s.name || s.username,
         avatarUrl: s.avatarUrl,
         isMuted: s.isMuted,
+        isDeafened: s.isDeafened,
         isCameraOn: s.isCameraOn,
         isScreenSharing: s.isScreenSharing,
         isSpeaking: false,
@@ -771,7 +770,6 @@ export class ChannelList implements OnDestroy {
     }
 
     if (isCurrentlyConnected) {
->>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2
       if (localPart) {
         const fromState = members.get(localPart.identity);
         members.set(localPart.identity, {
@@ -802,21 +800,7 @@ export class ChannelList implements OnDestroy {
       }
     }
 
-<<<<<<< HEAD
-    return states.map((s) => ({
-      userId: s.userId,
-      name: s.displayName || s.name || s.username,
-      avatarUrl: s.avatarUrl,
-      isMuted: s.isMuted,
-      isDeafened: s.isDeafened,
-      isCameraOn: s.isCameraOn,
-      isScreenSharing: s.isScreenSharing,
-      isSpeaking: false,
-      isLocal: false,
-    }));
-=======
     return [...members.values()];
->>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2
   }
 
   protected onWatchStream(
@@ -1165,7 +1149,36 @@ export class ChannelList implements OnDestroy {
     }
   }
 
-  protected onViewMemberProfile(member: VoiceChannelMemberViewModel): void {}
+  protected onViewMemberProfile(member: VoiceChannelMemberViewModel): void {
+    if (member.name) {
+      void this.router.navigate(['/u', member.name]);
+    }
+  }
+
+  protected toggleSelfMute(): void {
+    void this.voiceRoom.toggleMicrophone();
+  }
+
+  protected toggleSelfDeafen(): void {
+    void this.voiceRoom.toggleDeafen();
+  }
+
+  protected openProfileSettings(): void {
+    this.userSettings.openUserSettings('profile');
+  }
+
+  protected onMoveSelfToChannel(targetChannelId: string): void {
+    const srvId = this.serverId();
+    const currentChannel = this.selectedMemberChannel();
+    if (currentChannel?.id === targetChannelId) return;
+
+    const targetChannel = this.serversStore.channelsOf(srvId).find((c) => c.id === targetChannelId);
+    const targetName = targetChannel?.name || 'Kênh thoại';
+
+    void this.voiceRoom.joinRoom(srvId, targetChannelId, targetName);
+    this.chatSocket.moveVoiceMember(srvId, this.voiceRoom.localParticipant()?.identity || '', targetChannelId);
+    void this.router.navigate(['/channels', srvId, targetChannelId]);
+  }
 
   /**
    * Kéo thả thành viên sang kênh thoại khác (Dành cho Chủ Server / Admin).
@@ -1189,9 +1202,3 @@ export class ChannelList implements OnDestroy {
     this.chatSocket.moveVoiceMember(this.serverId(), member.userId, targetChannel.id);
   }
 }
-<<<<<<< HEAD
-
-
-
-=======
->>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2

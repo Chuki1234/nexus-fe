@@ -255,8 +255,11 @@ export class ConversationList implements OnInit, OnDestroy {
     }
   }
 
-  protected onViewProfile(_conv: DisplayConversation): void {
-    // Chức năng Xem hồ sơ - chỉ để nút bấm, sự kiện sẽ được implement sau
+  protected onViewProfile(conv: DisplayConversation): void {
+    const target = conv.username || conv.name || conv.recipientId;
+    if (target) {
+      void this.router.navigate(['/u', target]);
+    }
   }
 
   protected onEditNote(conv: DisplayConversation): void {
