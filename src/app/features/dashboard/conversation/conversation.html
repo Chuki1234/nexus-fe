@@ -1338,6 +1338,7 @@
       <app-context-panel
         title="Hồ sơ"
         [open]="profilePanelOpen()"
+        [hideHeader]="true"
         (closed)="profilePanelOpen.set(false)"
       >
         <app-profile-panel [username]="uname" />

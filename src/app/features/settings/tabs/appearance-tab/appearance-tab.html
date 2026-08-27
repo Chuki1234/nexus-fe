@@ -314,30 +314,4 @@
       </button>
     </div>
   </div>
-
-  <!-- Zoom Controls -->
-  <div class="p-5 rounded-2xl bg-surface/60 border border-hairline space-y-3 shadow-2xs">
-    <div class="flex items-center justify-between">
-      <span class="text-body-sm font-bold text-ink">Thu phóng giao diện</span>
-      <span class="font-mono font-bold text-primary">{{ settingsService.preferences().zoomLevel }}%</span>
-    </div>
-
-    <div class="flex items-center gap-2">
-      @for (zoom of zoomLevels; track zoom) {
-        <button
-          type="button"
-          (click)="setZoomLevel(zoom)"
-          class="px-3.5 py-1.5 rounded-full border text-caption font-mono font-bold transition-all cursor-pointer"
-          [class.border-primary]="settingsService.preferences().zoomLevel === zoom"
-          [class.bg-surface-feature]="settingsService.preferences().zoomLevel === zoom"
-          [class.text-primary]="settingsService.preferences().zoomLevel === zoom"
-          [class.border-hairline]="settingsService.preferences().zoomLevel !== zoom"
-          [class.bg-canvas]="settingsService.preferences().zoomLevel !== zoom"
-          [class.text-steel]="settingsService.preferences().zoomLevel !== zoom"
-        >
-          {{ zoom }}%
-        </button>
-      }
-    </div>
-  </div>
 </div>

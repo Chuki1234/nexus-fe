@@ -1,22 +1,19 @@
 @if (loading()) {
   <div class="animate-pulse">
-    <div class="h-21 w-full bg-surface-soft"></div>
-    <div class="space-y-2 px-4 pb-4 pt-3">
-      <div class="h-5 w-28 rounded-sm bg-surface-soft"></div>
-      <div class="h-3 w-20 rounded-sm bg-surface-soft"></div>
+    <div class="h-24 w-full bg-surface-soft"></div>
+    <div class="px-4">
+      <div class="-mt-9 mb-3 size-20 rounded-full bg-surface-soft ring-6 ring-surface"></div>
+      <div class="h-5 w-32 rounded-sm bg-surface-soft"></div>
+      <div class="mt-2 h-3 w-24 rounded-sm bg-surface-soft"></div>
+      <div class="mt-4 h-24 w-full rounded-lg bg-surface-soft"></div>
     </div>
   </div>
   <p aria-live="polite" class="sr-only">Đang tải hồ sơ.</p>
 } @else {
-  <!-- Phần đầu vẽ được kể cả khi không có hồ sơ công khai: tên và dòng trạng
-       thái đã có sẵn từ cuộc trò chuyện. Chỉ những mục thật sự cần hồ sơ
-       (giới thiệu, nơi ở, ngày tham gia, liên kết) mới nằm trong @if bên dưới.
-
-       Ảnh bìa cao 84px để avatar đè lên đúng một nửa, giống tỉ lệ thẻ hồ sơ của
-       Discord. Bìa 64px cũ thì avatar 80px trùm gần kín, ảnh bìa gần như không
-       còn thấy gì. -->
+  <!-- ══ HERO ══ Ảnh bìa + avatar khoét lỗ + bong bóng trạng thái. Không còn
+       thanh tiêu đề phía trên nên ảnh bìa tràn lên sát mép panel. -->
   <div
-    class="relative h-21 w-full overflow-hidden"
+    class="relative h-24 w-full overflow-hidden"
     [style.background]="
       profile()?.bannerUrl
         ? 'transparent'
@@ -26,12 +23,12 @@
     @if (profile()?.bannerUrl; as banner) {
       <img [src]="banner" alt="" decoding="async" class="size-full object-cover" />
     }
+    <!-- Dải mờ đáy để avatar tách khỏi ảnh bìa sáng bất kỳ. -->
+    <div aria-hidden="true" class="absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-surface to-transparent"></div>
   </div>
 
-  <div class="px-4 pb-4">
-    <!-- Vòng khuyên 6px trùng màu mặt thẻ: ảnh bìa trông như bị khoét một lỗ
-         tròn cho avatar lọt vào, thay vì avatar dán đè lên trên. -->
-    <div class="relative -mt-10 mb-2 inline-flex rounded-full bg-surface ring-6 ring-surface">
+  <div class="px-4 pb-5">
+    <div class="relative -mt-9 mb-2.5 inline-flex rounded-full bg-surface ring-6 ring-surface">
       <app-avatar
         class="rounded-full"
         [name]="name()"
@@ -41,9 +38,7 @@
         ring="surface"
       />
 
-      <!-- Trạng thái dạng "bong bóng thoại" toả ra từ avatar — đồng bộ với thẻ
-           hồ sơ nổi (ProfilePopover) và thẻ đầy đủ (ProfileCard), thay cho dòng
-           trạng thái phẳng cũ. -->
+      <!-- "Đám mây suy nghĩ" toả từ góc trên–phải avatar (đồng bộ popover/dialog). -->
       @if (status(); as statusMessage) {
         <div class="status-cloud" role="note" [attr.aria-label]="'Trạng thái: ' + statusMessage">
           <span class="status-bubble">{{ statusMessage }}</span>
@@ -53,56 +48,116 @@
       }
     </div>
 
-    <!-- Tên và username liền một cụm rồi mới tới khoảng trắng, không giãn đều
-         từng dòng như trước. -->
-    <div class="mb-3">
-      <h3 class="text-heading-5 font-bold leading-tight text-ink">{{ name() }}</h3>
-
+    <div>
+      <h3 class="text-heading-4 font-bold leading-tight text-ink">{{ name() }}</h3>
       @if (profile(); as person) {
-        <p class="text-caption leading-tight text-steel">&commat;{{ person.username }}</p>
+        <p class="mt-0.5 text-body-sm text-steel">&commat;{{ person.username }}</p>
       }
     </div>
 
     @if (profile(); as person) {
-      <!-- Tấm nền phụ gom thông tin. Trước đây từng mục ngăn nhau bằng đường kẻ
-           mảnh chạy suốt chiều ngang, nhìn như bảng dữ liệu. -->
-      <div class="space-y-3 rounded-lg bg-canvas p-3">
+      <!-- ══ ĐIỂM CHUNG ══ Vì sao cần: panel này hiện GIỮA cuộc trò chuyện, nên
+           "hai đứa quen nhau qua đâu" (máy chủ / bạn chung) là thứ đáng thấy nhất.
+           Chỉ hiện khi xem hồ sơ người khác và thật sự có điểm chung. -->
+      @if (!isSelf() && (mutualServers().length || mutualFriends().length)) {
+        <div class="mt-4 space-y-2">
+          @if (mutualServers().length) {
+            <div class="flex items-center gap-2.5 rounded-lg bg-canvas px-3 py-2.5">
+              <div class="flex shrink-0 -space-x-2">
+                @for (server of mutualServers().slice(0, 4); track server.id) {
+                  @if (server.iconUrl; as icon) {
+                    <img
+                      [src]="icon"
+                      alt=""
+                      class="size-6 rounded-md object-cover ring-2 ring-canvas"
+                    />
+                  } @else {
+                    <span
+                      class="flex size-6 items-center justify-center rounded-md bg-surface-soft text-[11px] font-bold text-charcoal ring-2 ring-canvas"
+                    >{{ server.name.charAt(0) }}</span>
+                  }
+                }
+              </div>
+              <span class="min-w-0 truncate text-caption font-medium text-charcoal">
+                {{ mutualServers().length }} máy chủ chung
+              </span>
+            </div>
+          }
+
+          @if (mutualFriends().length) {
+            <div class="rounded-lg bg-canvas px-3 py-2.5">
+              <p class="text-caption font-medium text-charcoal">
+                {{ mutualFriends().length }} bạn chung
+              </p>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                @for (friend of mutualFriendsShown(); track friend.id) {
+                  <button
+                    type="button"
+                    (click)="openMutual(friend)"
+                    [title]="friendName(friend)"
+                    class="rounded-full transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-primary"
+                  >
+                    <app-avatar
+                      size="sm"
+                      [name]="friendName(friend)"
+                      [src]="friend.avatarUrl"
+                      [userId]="friend.id"
+                      ring="canvas"
+                    />
+                    <span class="sr-only">{{ friendName(friend) }}</span>
+                  </button>
+                }
+                @if (mutualFriendsExtra()) {
+                  <span
+                    class="flex size-8 items-center justify-center rounded-full bg-surface-soft text-caption font-bold text-steel"
+                  >+{{ mutualFriendsExtra() }}</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ══ THÔNG TIN ══ Giới thiệu + các mốc (sinh nhật, tham gia, nơi ở) dạng
+           chip, rồi tới liên kết. Gom trong một tấm nền tối hơn cho gọn mắt. -->
+      <div class="mt-4 space-y-3.5 rounded-lg bg-canvas p-3.5">
         @if (person.bio; as bio) {
-          <section>
-            <h4 class="text-micro-uppercase text-stone">Giới thiệu</h4>
-            <p class="mt-1.5 whitespace-pre-line text-caption text-charcoal">{{ bio }}</p>
-          </section>
+          <div>
+            <h4 class="mb-1.5 text-micro-uppercase text-stone">Giới thiệu</h4>
+            <p class="whitespace-pre-line text-caption leading-relaxed text-charcoal">{{ bio }}</p>
+          </div>
         }
 
-        @if (person.location; as location) {
-          <section>
-            <h4 class="text-micro-uppercase text-stone">Nơi ở</h4>
-            <p class="mt-1.5 flex items-center gap-1.5 text-caption text-charcoal">
-              <mat-icon aria-hidden="true" class="size-4! text-[16px]! text-steel">location_on</mat-icon>
+        <div class="flex flex-wrap gap-1.5">
+          @if (birthday(); as bday) {
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-1 text-caption text-charcoal">
+              <mat-icon aria-hidden="true" class="size-4! text-[15px]! text-steel">cake</mat-icon>
+              {{ bday }}
+            </span>
+          }
+          <span class="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-1 text-caption text-charcoal">
+            <mat-icon aria-hidden="true" class="size-4! text-[15px]! text-steel">calendar_today</mat-icon>
+            Tham gia {{ joined() }}
+          </span>
+          @if (person.location; as location) {
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-1 text-caption text-charcoal">
+              <mat-icon aria-hidden="true" class="size-4! text-[15px]! text-steel">location_on</mat-icon>
               {{ location }}
-            </p>
-          </section>
-        }
-
-        <section>
-          <h4 class="text-micro-uppercase text-stone">Thành viên Nexus từ</h4>
-          <p class="mt-1.5 flex items-center gap-1.5 text-caption text-charcoal">
-            <mat-icon aria-hidden="true" class="size-4! text-[16px]! text-steel">calendar_today</mat-icon>
-            {{ joined() }}
-          </p>
-        </section>
+            </span>
+          }
+        </div>
 
         @if (person.links.length) {
-          <section>
-            <h4 class="text-micro-uppercase text-stone">Liên kết</h4>
-            <ul class="mt-2 flex flex-col gap-1.5">
+          <div class="border-t border-hairline pt-3">
+            <h4 class="mb-2 text-micro-uppercase text-stone">Liên kết</h4>
+            <ul class="flex flex-col gap-0.5">
               @for (link of person.links; track link.url) {
                 <li>
                   <a
                     [href]="link.url"
                     target="_blank"
                     rel="noopener noreferrer nofollow"
-                    class="flex items-center gap-2 rounded-md px-2 py-1.5 text-caption text-charcoal transition-colors hover:bg-surface-feature hover:text-primary"
+                    class="flex items-center gap-2 rounded-md px-2 py-1.5 text-caption text-charcoal transition-colors hover:bg-surface-soft hover:text-primary"
                   >
                     <mat-icon aria-hidden="true" class="size-4! shrink-0 text-[16px]! text-steel">
                       {{ iconFor(link.url) }}
@@ -112,21 +167,20 @@
                 </li>
               }
             </ul>
-          </section>
+          </div>
         }
       </div>
 
       <button
         type="button"
         (click)="openFull()"
-        class="mt-3 block w-full cursor-pointer rounded-full border border-hairline-strong px-3 py-2 text-center text-button-md text-ink transition-colors hover:border-primary hover:text-primary"
+        class="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-hairline-strong px-3 py-2.5 text-button-md text-ink transition-colors hover:border-primary hover:text-primary"
       >
+        <mat-icon aria-hidden="true" class="size-4! text-[16px]!">open_in_full</mat-icon>
         Xem hồ sơ đầy đủ
       </button>
     } @else {
-      <!-- Không có hồ sơ công khai: nói thẳng ra, và KHÔNG hiện nút "Xem hồ sơ
-           đầy đủ" vì đường dẫn đó sẽ dẫn tới trang không tìm thấy. -->
-      <p class="rounded-lg bg-canvas p-3 text-caption text-steel">
+      <p class="mt-4 rounded-lg bg-canvas p-3 text-caption text-steel">
         Người này chưa có hồ sơ công khai.
       </p>
     }

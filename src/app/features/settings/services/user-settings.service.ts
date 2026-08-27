@@ -11,6 +11,9 @@ import { formatApiError } from '../../../core/api/servers-api.service';
 import { ServerCapabilitiesService } from '../../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../../core/servers/servers.store';
 import { FriendsStore } from '../../dashboard/friends/services/friends-store';
+import { ServersApiService } from '../../../core/api/servers-api.service';
+import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
+import type { ServerMemberDto } from '../../../../shared/dto/server-members.dto';
 
 export type SettingsTab =
   | 'account'
@@ -41,6 +44,7 @@ export interface ServerRoleItem {
   color: string;
   membersCount: number;
   isDefault?: boolean;
+  position?: number;
   permissions: {
     administrator: boolean;
     manageServer: boolean;
@@ -382,6 +386,8 @@ export class UserSettingsService {
   private readonly capabilitiesService = inject(ServerCapabilitiesService, { optional: true });
   private readonly serversStore = inject(ServersStore, { optional: true });
   private readonly friendsStore = inject(FriendsStore, { optional: true });
+  private readonly serversApi = inject(ServersApiService, { optional: true });
+  private readonly chatSocket = inject(ChatSocketService, { optional: true });
 
   private getEffectiveUsername(): string {
     const fromProfile = this.profileService.current()?.username;
@@ -1358,6 +1364,8 @@ export class UserSettingsService {
       }
     });
 
+    this.initServerMembersRealtime();
+
     effect(() => {
       const prefs = this.preferences();
       try {
@@ -1497,6 +1505,271 @@ export class UserSettingsService {
     if (this.capabilitiesService && serverId) {
       void this.capabilitiesService.load(serverId);
     }
+    if (this.chatSocket && serverId) {
+      void this.chatSocket.joinServer(serverId);
+    }
+    if (serverId) {
+      void this.loadServerRoles(serverId);
+      void this.loadServerMembers(serverId);
+    }
+  }
+
+  private initServerMembersRealtime(): void {
+    if (!this.chatSocket) return;
+
+    this.chatSocket.serverMemberJoined$.subscribe((payload) => {
+      const { serverId, member } = payload;
+      if (!serverId) return;
+
+      if (member) {
+        this.upsertMemberIntoServerData(serverId, member);
+      }
+
+      if (this.isOpen() && this.currentServerId() === serverId) {
+        void this.loadServerMembers(serverId);
+      }
+    });
+
+    this.chatSocket.serverMemberLeft$.subscribe((payload) => {
+      const { serverId, userId } = payload;
+      if (!serverId || !userId) return;
+
+      this.removeMemberFromServerData(serverId, userId);
+
+      if (this.isOpen() && this.currentServerId() === serverId) {
+        void this.loadServerMembers(serverId);
+      }
+    });
+
+    this.chatSocket.serverMemberRoleUpdated$.subscribe((payload) => {
+      const { serverId, userId, roleId, action } = payload;
+      if (!serverId || !userId || !roleId) return;
+
+      this.serverDataMap.update((map) => {
+        const cur = map[serverId];
+        if (!cur) return map;
+
+        const diff = action === 'added' ? 1 : -1;
+        return {
+          ...map,
+          [serverId]: {
+            ...cur,
+            members: cur.members.map((m) => {
+              if (m.id !== userId) return m;
+              const has = m.roles.includes(roleId);
+              if (action === 'added' && !has) {
+                return { ...m, roles: [...m.roles, roleId] };
+              }
+              if (action === 'removed' && has) {
+                return { ...m, roles: m.roles.filter((r) => r !== roleId) };
+              }
+              return m;
+            }),
+            roles: cur.roles.map((r) => {
+              if (r.id !== roleId) return r;
+              return {
+                ...r,
+                membersCount: Math.max(0, (r.membersCount || 0) + diff),
+              };
+            }),
+          },
+        };
+      });
+    });
+  }
+
+  upsertMemberIntoServerData(serverId: string, member: ServerMemberDto): void {
+    const isOwner = member.role === 'OWNER';
+    const isAdmin = isOwner || member.role === 'ADMIN';
+    const roles = isAdmin ? ['role-admin'] : ['role-everyone'];
+
+    let formattedJoinedAt = 'Hôm nay';
+    if (member.joinedAt) {
+      const d = new Date(member.joinedAt);
+      if (!isNaN(d.getTime())) {
+        formattedJoinedAt = d.toLocaleDateString('vi-VN', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        });
+      }
+    }
+
+    let formattedNexusJoinedAt = 'Không rõ';
+    if (member.nexusJoinedAt) {
+      const d = new Date(member.nexusJoinedAt);
+      if (!isNaN(d.getTime())) {
+        formattedNexusJoinedAt = d.toLocaleDateString('vi-VN', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        });
+      }
+    }
+
+    const newItem: ServerMemberItem = {
+      id: member.userId,
+      username: member.username || 'user',
+      displayName: member.nickname || member.displayName || member.username || 'Thành viên',
+      avatarUrl: member.avatarUrl || null,
+      roles,
+      joinedAt: formattedJoinedAt,
+      nexusJoinedAt: formattedNexusJoinedAt,
+      joinMethod: member.joinMethod || (isOwner ? 'Chủ sở hữu' : 'Trực tiếp'),
+      isOwner,
+    };
+
+    this.serverDataMap.update((map) => {
+      const server = map[serverId];
+      if (!server) return map;
+
+      const existingIndex = server.members.findIndex((m) => m.id === member.userId);
+      let updatedMembers: ServerMemberItem[];
+      if (existingIndex >= 0) {
+        updatedMembers = [...server.members];
+        updatedMembers[existingIndex] = { ...updatedMembers[existingIndex], ...newItem };
+      } else {
+        updatedMembers = [...server.members, newItem];
+      }
+
+      return {
+        ...map,
+        [serverId]: {
+          ...server,
+          members: updatedMembers,
+        },
+      };
+    });
+  }
+
+  removeMemberFromServerData(serverId: string, userId: string): void {
+    this.serverDataMap.update((map) => {
+      const server = map[serverId];
+      if (!server) return map;
+      return {
+        ...map,
+        [serverId]: {
+          ...server,
+          members: server.members.filter((m) => m.id !== userId),
+        },
+      };
+    });
+  }
+
+  async loadServerRoles(serverId: string): Promise<void> {
+    if (!serverId || !this.serversApi) return;
+    try {
+      const roles = await this.serversApi.getServerRoles(serverId);
+      if (!Array.isArray(roles) || roles.length === 0) return;
+
+      const mappedRoles: ServerRoleItem[] = roles.map((r) => ({
+        id: r.id,
+        name: r.name,
+        color: r.color || '#99aab5',
+        membersCount: r.membersCount ?? 0,
+        isDefault: Boolean(r.isDefault),
+        position: r.position ?? 0,
+        permissions: r.permissions || {
+          administrator: false,
+          manageServer: false,
+          manageRoles: false,
+          kickMembers: false,
+          banMembers: false,
+          manageChannels: false,
+        },
+      }));
+
+      this.serverDataMap.update((map) => {
+        const existing = map[serverId];
+        if (!existing) return map;
+        return {
+          ...map,
+          [serverId]: {
+            ...existing,
+            roles: mappedRoles,
+          },
+        };
+      });
+    } catch {
+      // Bỏ qua lỗi nạp roles
+    }
+  }
+
+  async loadServerMembers(serverId: string): Promise<void> {
+    if (!serverId || !this.serversApi) return;
+    try {
+      const apiMembers = await this.serversApi.getServerMembers(serverId);
+      if (!Array.isArray(apiMembers)) return;
+
+      const serverRoles = this.serverRoles();
+      const adminRole = serverRoles.find((r) => r.id === 'role-admin' || r.permissions?.administrator);
+      const defaultRole = serverRoles.find((r) => r.isDefault) || { id: 'role-everyone' };
+
+      const mappedMembers: ServerMemberItem[] = apiMembers.map((m) => {
+        const isOwner = m.role === 'OWNER';
+        const isAdmin = isOwner || m.role === 'ADMIN';
+        let memberRoles: string[] = [];
+        if (Array.isArray(m.roles) && m.roles.length > 0) {
+          memberRoles = [...m.roles];
+        }
+        if (isAdmin && !memberRoles.includes(adminRole?.id || 'role-admin')) {
+          memberRoles.push(adminRole?.id || 'role-admin');
+        }
+        if (memberRoles.length === 0) {
+          memberRoles.push(defaultRole?.id || 'role-everyone');
+        }
+
+        let formattedJoinedAt = 'Hôm nay';
+        if (m.joinedAt) {
+          const d = new Date(m.joinedAt);
+          if (!isNaN(d.getTime())) {
+            formattedJoinedAt = d.toLocaleDateString('vi-VN', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            });
+          }
+        }
+
+        let formattedNexusJoinedAt = 'Không rõ';
+        if (m.nexusJoinedAt) {
+          const d = new Date(m.nexusJoinedAt);
+          if (!isNaN(d.getTime())) {
+            formattedNexusJoinedAt = d.toLocaleDateString('vi-VN', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            });
+          }
+        }
+
+        return {
+          id: m.userId,
+          username: m.username || 'user',
+          displayName: m.nickname || m.displayName || m.username || 'Thành viên',
+          avatarUrl: m.avatarUrl || null,
+          roles: memberRoles,
+          joinedAt: formattedJoinedAt,
+          nexusJoinedAt: formattedNexusJoinedAt,
+          joinMethod: m.joinMethod || (isOwner ? 'Chủ sở hữu' : 'Trực tiếp'),
+          isOwner,
+        };
+      });
+
+      this.serverDataMap.update((map) => {
+        const existing = map[serverId];
+        if (!existing) return map;
+        return {
+          ...map,
+          [serverId]: {
+            ...existing,
+            members: mappedMembers,
+          },
+        };
+      });
+    } catch {
+      // Bỏ qua lỗi nếu không có quyền xem
+    }
   }
 
   ensureServerData(serverId: string): void {
@@ -1582,8 +1855,9 @@ export class UserSettingsService {
 
   addServerRole(name: string, color: string): void {
     const sId = this.currentServerId();
+    const tempId = `role-${Date.now()}`;
     const newRole: ServerRoleItem = {
-      id: `role-${Date.now()}`,
+      id: tempId,
       name,
       color,
       membersCount: 0,
@@ -1607,6 +1881,37 @@ export class UserSettingsService {
         },
       };
     });
+
+    if (this.serversApi && sId) {
+      this.serversApi
+        .createServerRole(sId, { name, color })
+        .then((created) => {
+          if (created?.id) {
+            this.serverDataMap.update((map) => {
+              const current = map[sId];
+              if (!current) return map;
+              return {
+                ...map,
+                [sId]: {
+                  ...current,
+                  roles: current.roles.map((r) =>
+                    r.id === tempId
+                      ? {
+                          ...r,
+                          id: created.id,
+                          position: created.position ?? r.position,
+                        }
+                      : r,
+                  ),
+                },
+              };
+            });
+          }
+        })
+        .catch((err) => {
+          console.error('Không thể tạo vai trò trên server:', err);
+        });
+    }
   }
 
   reorderServerRoles(fromIndex: number, toIndex: number): void {
@@ -1642,10 +1947,38 @@ export class UserSettingsService {
         },
       };
     });
+
+    if (this.serversApi && sId && !id.startsWith('role-everyone')) {
+      this.serversApi.deleteServerRole(sId, id).catch((err) => {
+        console.error('Không thể xóa vai trò trên server:', err);
+      });
+    }
+  }
+
+  updateRoleColor(roleId: string, color: string): void {
+    const sId = this.currentServerId();
+    this.serverDataMap.update((map) => {
+      const current = map[sId];
+      if (!current) return map;
+      return {
+        ...map,
+        [sId]: {
+          ...current,
+          roles: current.roles.map((r) => (r.id === roleId ? { ...r, color } : r)),
+        },
+      };
+    });
+
+    if (this.serversApi && sId) {
+      this.serversApi.updateServerRole(sId, roleId, { color }).catch((err) => {
+        console.error('Không thể lưu màu vai trò:', err);
+      });
+    }
   }
 
   toggleRolePermission(roleId: string, permKey: keyof ServerRoleItem['permissions']): void {
     const sId = this.currentServerId();
+    let updatedRolePerms: ServerRoleItem['permissions'] | null = null;
     this.serverDataMap.update((map) => {
       const current = map[sId];
       if (!current) return map;
@@ -1670,6 +2003,7 @@ export class UserSettingsService {
               newPerms.banMembers = true;
               newPerms.manageChannels = true;
             }
+            updatedRolePerms = newPerms;
             return {
               ...r,
               permissions: newPerms,
@@ -1678,6 +2012,12 @@ export class UserSettingsService {
         },
       };
     });
+
+    if (this.serversApi && sId && updatedRolePerms) {
+      this.serversApi.updateServerRole(sId, roleId, { permissions: updatedRolePerms }).catch((err) => {
+        console.error('Không thể lưu quyền vai trò:', err);
+      });
+    }
   }
 
   approveJoinRequest(id: string): void {
@@ -1852,9 +2192,25 @@ export class UserSettingsService {
 
   toggleMemberRole(memberId: string, roleId: string): void {
     const sId = this.currentServerId();
+    if (!sId) return;
+
+    const currentServer = this.serverDataMap()[sId];
+    const targetMember = currentServer?.members.find((m) => m.id === memberId);
+    const hasRole = targetMember?.roles.includes(roleId) ?? false;
+    const willHave = !hasRole;
+
+    const targetRole = currentServer?.roles.find((r) => r.id === roleId);
+    if (targetMember && targetRole) {
+      setTimeout(() => this.addAuditLog(willHave ? 'Gán vai trò thành viên' : 'Gỡ vai trò thành viên', `${targetRole.name} cho ${targetMember.displayName}`, 'admin_panel_settings', sId), 0);
+    }
+
+    const diff = willHave ? 1 : -1;
     this.serverDataMap.update((map) => {
       const current = map[sId];
       if (!current) return map;
+<<<<<<< HEAD
+
+=======
       let diff = 0;
       const targetMember = current.members.find((m: ServerMemberItem) => m.id === memberId);
       const targetRole = current.roles.find((r: ServerRoleItem) => r.id === roleId);
@@ -1871,17 +2227,16 @@ export class UserSettingsService {
           0,
         );
       }
+>>>>>>> f7c20ffb00eb1b07967a283b5de799bcfd140ed6
       const updatedMembers = current.members.map((m: ServerMemberItem) => {
         if (m.id !== memberId) return m;
-        const hasRole = m.roles.includes(roleId);
-        diff = hasRole ? -1 : 1;
         return {
           ...m,
-          roles: hasRole ? m.roles.filter((r: string) => r !== roleId) : [...m.roles, roleId],
+          roles: willHave ? [...m.roles, roleId] : m.roles.filter((r: string) => r !== roleId),
         };
       });
       const updatedRoles = current.roles.map((r: ServerRoleItem) =>
-        r.id === roleId ? { ...r, membersCount: Math.max(0, r.membersCount + diff) } : r,
+        r.id === roleId ? { ...r, membersCount: Math.max(0, (r.membersCount || 0) + diff) } : r,
       );
       return {
         ...map,
@@ -1892,6 +2247,25 @@ export class UserSettingsService {
         },
       };
     });
+
+    if (this.serversApi) {
+      const apiCall = willHave
+        ? this.serversApi.assignMemberRole(sId, memberId, roleId)
+        : this.serversApi.removeMemberRole(sId, memberId, roleId);
+
+      apiCall
+        .then((res) => {
+          const currentUserId = this.profileService.current()?.id || this.getEffectiveUsername();
+          if (res?.capabilities && (memberId === currentUserId || memberId === this.profileService.current()?.id)) {
+            if (this.capabilitiesService) {
+              this.capabilitiesService.setCapabilities(sId, res.capabilities);
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Lỗi khi cập nhật vai trò thành viên:', err);
+        });
+    }
   }
 
   addServerInvite(
