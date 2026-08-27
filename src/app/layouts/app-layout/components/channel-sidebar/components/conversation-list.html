@@ -23,6 +23,57 @@
   </a>
 </mat-nav-list>
 
+<!-- Người lạ (message requests) — DM từ người chưa kết bạn, chờ duyệt -->
+@if (messageRequests().length > 0) {
+  <app-section-label
+    class="mt-5 mb-2 block"
+    [text]="'Người lạ · ' + messageRequests().length"
+  />
+  <mat-nav-list class="!px-1 !py-0 flex flex-col gap-1.5">
+    @for (req of messageRequests(); track req.id) {
+      <div
+        role="button"
+        tabindex="0"
+        (click)="onOpenRequest(req)"
+        (keydown.enter)="onOpenRequest(req)"
+        [attr.data-conversation-id]="req.id"
+        class="conversation-row nexus-nav-item !rounded-lg flex items-center gap-2 px-2 py-1.5 cursor-pointer"
+      >
+        <app-avatar
+          [name]="req.name"
+          [src]="req.avatarUrl"
+          [presence]="req.presence"
+          size="sm"
+          ring="surface"
+          class="shrink-0"
+        />
+        <span class="flex min-w-0 flex-1 flex-col">
+          <app-overflow-marquee class="min-w-0 text-body-sm-medium text-ink" [text]="req.name" />
+          <span class="text-caption text-steel">Muốn nhắn tin với bạn</span>
+        </span>
+        <button
+          type="button"
+          (click)="onAcceptRequest(req, $event)"
+          matTooltip="Chấp nhận"
+          aria-label="Chấp nhận tin nhắn"
+          class="size-7 shrink-0 rounded-full flex items-center justify-center text-primary hover:bg-primary/15 transition-colors"
+        >
+          <mat-icon class="!size-5 !text-xl">check_circle</mat-icon>
+        </button>
+        <button
+          type="button"
+          (click)="onDeclineRequest(req, $event)"
+          matTooltip="Từ chối"
+          aria-label="Từ chối tin nhắn"
+          class="size-7 shrink-0 rounded-full flex items-center justify-center text-steel hover:text-danger hover:bg-danger/15 transition-colors"
+        >
+          <mat-icon class="!size-5 !text-xl">cancel</mat-icon>
+        </button>
+      </div>
+    }
+  </mat-nav-list>
+}
+
 <app-section-label class="mt-5 mb-2 block" [text]="sectionTitle()" />
 
 @if (loading()) {

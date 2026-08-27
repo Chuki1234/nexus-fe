@@ -16,7 +16,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -248,6 +248,7 @@ import { ProfileDialogService } from '../../profile/profile-dialog.service';
 })
 export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly conversationsApi = inject(ConversationsApiService);
@@ -313,6 +314,56 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     if (details?.recipient?.id) {
       void this.friendsStore.unblockUser(details.recipient.id);
     }
+  }
+
+  // ── Message request (người lạ) ─────────────────────────────────────────────
+
+  /** DM này đang là "message request" chờ CHÍNH user duyệt (chỉ đọc). */
+  protected readonly isPendingRequest = computed(
+    () => this.conversationDetails()?.requestState === 'pending',
+  );
+
+  /** Người bên kia đã là bạn bè accepted chưa (để hiện nút "Kết bạn"). */
+  protected readonly peerIsFriend = computed(
+    () => this.conversationDetails()?.isFriend ?? false,
+  );
+
+  /** Đã gửi lời mời kết bạn cho người này và đang chờ họ duyệt. */
+  protected readonly friendRequestSent = computed(() => {
+    const recipientId = this.conversationDetails()?.recipient?.id;
+    if (!recipientId) return false;
+    return this.friendsStore.outgoingRequests().some((r) => r.id === recipientId);
+  });
+
+  /** Chấp nhận message request → mở khoá nhắn tin, nạp lại chi tiết. */
+  protected async acceptRequest(): Promise<void> {
+    const id = this.conversationId();
+    if (!id) return;
+    try {
+      await this.conversationsApi.acceptRequest(id);
+      await this.loadConversationDetails(id);
+    } catch {
+      // Bỏ qua — user có thể thử lại.
+    }
+  }
+
+  /** Từ chối message request → xoá hẳn, quay về danh sách. */
+  protected async declineRequest(): Promise<void> {
+    const id = this.conversationId();
+    if (!id) return;
+    try {
+      await this.conversationsApi.declineRequest(id);
+    } catch {
+      // Bỏ qua — realtime conversation:deleted sẽ dọn.
+    }
+    void this.router.navigate(['/channels/@me']);
+  }
+
+  /** Gửi lời mời kết bạn (nút luôn hiện khi chưa là bạn). */
+  protected async addFriend(): Promise<void> {
+    const username = this.recipientUsername();
+    if (!username) return;
+    await this.friendsStore.sendRequest(username);
   }
 
   // ID của tin nhắn chưa đọc đầu tiên được capture khi mở conversation
