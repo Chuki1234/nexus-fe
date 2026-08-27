@@ -1,10 +1,4 @@
-import {
-  computed,
-  inject,
-  Injectable,
-  OnDestroy,
-  signal,
-} from '@angular/core';
+import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
@@ -142,7 +136,8 @@ export class ChannelChatStore implements OnDestroy {
       ? {
           id: currentUser.id,
           username: currentUser.email?.split('@')[0] || 'me',
-          displayName: currentUser.user_metadata?.['full_name'] || currentUser.email?.split('@')[0] || 'Me',
+          displayName:
+            currentUser.user_metadata?.['full_name'] || currentUser.email?.split('@')[0] || 'Me',
           avatarUrl: currentUser.user_metadata?.['avatar_url'] || null,
         }
       : undefined;
@@ -193,6 +188,7 @@ export class ChannelChatStore implements OnDestroy {
    */
   clear(): void {
     const activeChannelId = this._channelId();
+    this.revokeOptimisticBlobUrls(this._optimisticMessages());
     this.currentGeneration++;
     this.isReconciling = false;
     this.bufferedRealtimeMessages = [];
@@ -214,6 +210,7 @@ export class ChannelChatStore implements OnDestroy {
     this._error.set(null);
     this._chatError.set(null);
     this._paginationError.set(null);
+    this._pinnedMessages.set([]);
   }
 
   ngOnDestroy(): void {
@@ -246,6 +243,7 @@ export class ChannelChatStore implements OnDestroy {
     this._serverId.set(serverId);
     this._channelId.set(channelId);
     this._messages.set([]);
+    this.revokeOptimisticBlobUrls(this._optimisticMessages());
     this._optimisticMessages.set([]);
     this._lastReadMessageId.set(null);
     this._typingUserIds.set([]);
@@ -255,6 +253,7 @@ export class ChannelChatStore implements OnDestroy {
     this._error.set(null);
     this._chatError.set(null);
     this._paginationError.set(null);
+    this._pinnedMessages.set([]);
 
     // Tính toán quyền và join socket song song
     void this.refreshPermissions(serverId, channelId);
@@ -277,14 +276,18 @@ export class ChannelChatStore implements OnDestroy {
         combinedMap.set(b.id, b as MessageResponseDto);
       }
 
-      const mergedMessages = Array.from(combinedMap.values()).sort((a, b) => compareMessageOrder(a, b));
+      const mergedMessages = Array.from(combinedMap.values()).sort((a, b) =>
+        compareMessageOrder(a, b),
+      );
 
       this._messages.set(mergedMessages);
       this._hasMore.set(response.hasMore);
       this._nextCursor.set(response.nextCursor);
 
       // Nạp danh sách tin đã ghim của kênh (không chặn luồng chính)
-      void this.loadPins(channelId);
+      void this.loadPins(channelId, generation).catch(() => {
+        // Danh sách ghim là dữ liệu phụ; lỗi của nó không được chặn timeline.
+      });
       this._lastReadMessageId.set(response.lastReadMessageId ?? null);
       this.isReconciling = false;
       this.bufferedRealtimeMessages = [];
@@ -385,7 +388,7 @@ export class ChannelChatStore implements OnDestroy {
           content?: string;
           replyToId?: string;
           files?: File[];
-          attachments?: any[];
+          attachments?: { file: File; previewUrl: string | null }[];
           externalMedia?: GiphyMediaDto;
         },
     files?: File[],
@@ -397,6 +400,7 @@ export class ChannelChatStore implements OnDestroy {
     let content: string | undefined;
     let replyId: string | undefined;
     let actualFiles: File[] | undefined;
+    let passedAttachments: { file: File; previewUrl: string | null }[] | undefined;
     let externalMedia: GiphyMediaDto | undefined;
 
     if (typeof payloadOrContent === 'string') {
@@ -407,6 +411,7 @@ export class ChannelChatStore implements OnDestroy {
       content = payloadOrContent.content?.trim();
       replyId = payloadOrContent.replyToId || replyToId;
       actualFiles = payloadOrContent.files || files;
+      passedAttachments = payloadOrContent.attachments;
       externalMedia = payloadOrContent.externalMedia;
     }
 
@@ -424,7 +429,9 @@ export class ChannelChatStore implements OnDestroy {
       sizeBytes: file.size,
       width: null,
       height: null,
-      signedUrl: URL.createObjectURL(file),
+      signedUrl:
+        passedAttachments?.find((item) => item.file === file)?.previewUrl ??
+        URL.createObjectURL(file),
       isAvailable: true,
     }));
 
@@ -453,6 +460,9 @@ export class ChannelChatStore implements OnDestroy {
       });
 
       // Thay thế optimistic message bằng persisted message
+      this.revokeOptimisticBlobUrls(
+        this._optimisticMessages().filter((m) => m.clientNonce === clientNonce),
+      );
       this._optimisticMessages.update((curr) => curr.filter((m) => m.clientNonce !== clientNonce));
       this.upsertPersistedMessage(persisted);
 
@@ -460,7 +470,9 @@ export class ChannelChatStore implements OnDestroy {
     } catch (err: any) {
       const errorMessage = extractErrorMessage(err, 'Không thể gửi tin nhắn.');
       this._optimisticMessages.update((curr) =>
-        curr.map((m) => (m.clientNonce === clientNonce ? { ...m, status: 'failed', errorMessage } : m)),
+        curr.map((m) =>
+          m.clientNonce === clientNonce ? { ...m, status: 'failed', errorMessage } : m,
+        ),
       );
       return null;
     }
@@ -474,7 +486,9 @@ export class ChannelChatStore implements OnDestroy {
     if (!opt) return;
 
     this._optimisticMessages.update((curr) =>
-      curr.map((m) => (m.clientNonce === clientNonce ? { ...m, status: 'sending', errorMessage: undefined } : m)),
+      curr.map((m) =>
+        m.clientNonce === clientNonce ? { ...m, status: 'sending', errorMessage: undefined } : m,
+      ),
     );
 
     try {
@@ -486,12 +500,15 @@ export class ChannelChatStore implements OnDestroy {
         externalMedia: opt.externalMedia || undefined,
       });
 
+      this.revokeOptimisticBlobUrls([opt]);
       this._optimisticMessages.update((curr) => curr.filter((m) => m.clientNonce !== clientNonce));
       this.upsertPersistedMessage(persisted);
     } catch (err: any) {
       const errorMessage = extractErrorMessage(err, 'Thử gửi lại thất bại.');
       this._optimisticMessages.update((curr) =>
-        curr.map((m) => (m.clientNonce === clientNonce ? { ...m, status: 'failed', errorMessage } : m)),
+        curr.map((m) =>
+          m.clientNonce === clientNonce ? { ...m, status: 'failed', errorMessage } : m,
+        ),
       );
     }
   }
@@ -500,7 +517,20 @@ export class ChannelChatStore implements OnDestroy {
    * Huỷ bỏ optimistic message bị lỗi.
    */
   cancelOptimisticMessage(clientNonce: string): void {
+    this.revokeOptimisticBlobUrls(
+      this._optimisticMessages().filter((m) => m.clientNonce === clientNonce),
+    );
     this._optimisticMessages.update((curr) => curr.filter((m) => m.clientNonce !== clientNonce));
+  }
+
+  private revokeOptimisticBlobUrls(items: OptimisticChannelMessage[]): void {
+    for (const item of items) {
+      for (const attachment of item.attachments || []) {
+        if (attachment.signedUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(attachment.signedUrl);
+        }
+      }
+    }
   }
 
   /**
@@ -518,31 +548,21 @@ export class ChannelChatStore implements OnDestroy {
     // Optimistic update
     this._messages.update((list) =>
       list.map((m) =>
-        m.id === messageId
-          ? { ...m, content, editedAt: new Date().toISOString() }
-          : m,
+        m.id === messageId ? { ...m, content, editedAt: new Date().toISOString() } : m,
       ),
     );
 
     try {
       const updated = await this.messagesApi.editMessage(messageId, { content });
 
-      if (
-        this._channelId() === chanId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._channelId() === chanId && this.currentGeneration === generation) {
         this.upsertPersistedMessage(updated);
       }
       return updated;
     } catch (err: unknown) {
-      if (
-        this._channelId() === chanId &&
-        this.currentGeneration === generation
-      ) {
+      if (this._channelId() === chanId && this.currentGeneration === generation) {
         // Rollback lại nội dung ban đầu
-        this._messages.update((list) =>
-          list.map((m) => (m.id === messageId ? prevSnapshot : m)),
-        );
+        this._messages.update((list) => list.map((m) => (m.id === messageId ? prevSnapshot : m)));
         const errorMsg = extractErrorMessage(err, 'Chỉnh sửa tin nhắn thất bại.');
         this._error.set(errorMsg);
       }
@@ -598,18 +618,14 @@ export class ChannelChatStore implements OnDestroy {
       externalMedia: null,
     };
 
-    this._messages.update((curr) =>
-      curr.map((m) => (m.id === messageId ? recalledMsg : m)),
-    );
+    this._messages.update((curr) => curr.map((m) => (m.id === messageId ? recalledMsg : m)));
 
     // 2. Gọi REST API
     try {
       await this.messagesApi.recallMessage(messageId);
     } catch (err: unknown) {
       // 3. Rollback nguyên trạng
-      this._messages.update((curr) =>
-        curr.map((m) => (m.id === messageId ? originalMsg : m)),
-      );
+      this._messages.update((curr) => curr.map((m) => (m.id === messageId ? originalMsg : m)));
       const errorMsg = extractErrorMessage(err, 'Lỗi khi thu hồi tin nhắn.');
       this._error.set(errorMsg);
       throw err;
@@ -619,10 +635,7 @@ export class ChannelChatStore implements OnDestroy {
   /**
    * Xóa / Thu hồi tin nhắn (hỗ trợ scope: 'for_me' | 'everyone').
    */
-  async deleteMessage(
-    messageId: string,
-    scope: 'for_me' | 'everyone' = 'for_me',
-  ): Promise<void> {
+  async deleteMessage(messageId: string, scope: 'for_me' | 'everyone' = 'for_me'): Promise<void> {
     if (scope === 'for_me') {
       return this.hideMessage(messageId);
     }
@@ -727,35 +740,32 @@ export class ChannelChatStore implements OnDestroy {
   }
 
   /** Nạp danh sách tin đã ghim của kênh hiện tại. */
-  async loadPins(channelId: string): Promise<void> {
-    try {
-      const pins = await this.messagesApi.getChannelPins(channelId);
-      if (this._channelId() === channelId) {
-        this._pinnedMessages.set(pins);
-      }
-    } catch {
-      // Không chặn chat nếu lỗi tải ghim
+  async loadPins(channelId: string, generation = this.currentGeneration): Promise<void> {
+    const pins = await this.messagesApi.getChannelPins(channelId);
+    if (this._channelId() === channelId && generation === this.currentGeneration) {
+      this._pinnedMessages.set(pins);
     }
   }
 
   /** Ghim một tin nhắn (cập nhật lạc quan, socket đồng bộ phần còn lại). */
   async pinMessage(messageId: string): Promise<void> {
-    try {
-      const updated = await this.messagesApi.pinMessage(messageId);
-      this.applyPinUpdate(updated, true);
-    } catch {
-      // Bỏ qua — trạng thái sẽ được socket/refresh sửa lại
-    }
+    const updated = await this.messagesApi.pinMessage(messageId);
+    this.applyPinUpdate(updated, true);
   }
 
   /** Bỏ ghim một tin nhắn. */
   async unpinMessage(messageId: string): Promise<void> {
-    try {
-      await this.messagesApi.unpinMessage(messageId);
-      this.applyPinUpdate({ id: messageId } as MessageResponseDto, false);
-    } catch {
-      // Bỏ qua
-    }
+    await this.messagesApi.unpinMessage(messageId);
+    this.applyPinUpdate({ id: messageId } as MessageResponseDto, false);
+  }
+
+  /** Đưa một snapshot ghim cũ vào timeline để luôn có vị trí DOM để cuộn tới. */
+  revealPinnedMessage(message: MessageResponseDto): void {
+    if (message.channelId !== this._channelId()) return;
+    this._messages.update((items) => {
+      if (items.some((item) => item.id === message.id)) return items;
+      return [...items, message].sort((a, b) => compareMessageOrder(a, b));
+    });
   }
 
   /** Cập nhật danh sách ghim khi có thay đổi (từ API hoặc socket). */
@@ -795,6 +805,9 @@ export class ChannelChatStore implements OnDestroy {
 
         // Xóa optimistic message tương ứng nếu có clientNonce
         if (message.clientNonce) {
+          this.revokeOptimisticBlobUrls(
+            this._optimisticMessages().filter((m) => m.clientNonce === message.clientNonce),
+          );
           this._optimisticMessages.update((curr) =>
             curr.filter((m) => m.clientNonce !== message.clientNonce),
           );
@@ -834,6 +847,7 @@ export class ChannelChatStore implements OnDestroy {
               : m,
           ),
         );
+        this.applyPinUpdate({ id: messageId } as MessageResponseDto, false);
       }),
     );
 
@@ -845,6 +859,7 @@ export class ChannelChatStore implements OnDestroy {
           if (!activeChan || (channelId && channelId !== activeChan)) return;
 
           this._messages.update((curr) => curr.filter((m) => m.id !== messageId));
+          this.applyPinUpdate({ id: messageId } as MessageResponseDto, false);
         }),
       );
     }
@@ -894,7 +909,10 @@ export class ChannelChatStore implements OnDestroy {
         if (!activeChan || payload.channelId !== activeChan) return;
 
         const current = this._lastReadMessageId();
-        if (!current || compareMessageOrder({ id: payload.lastReadMessageId }, { id: current }) > 0) {
+        if (
+          !current ||
+          compareMessageOrder({ id: payload.lastReadMessageId }, { id: current }) > 0
+        ) {
           this._lastReadMessageId.set(payload.lastReadMessageId);
         }
       }),

@@ -1,7 +1,7 @@
-<mat-toolbar class="friends-toolbar flex h-14 min-h-14 items-center gap-3 !px-4 sm:!px-6">
+<mat-toolbar class="friends-toolbar flex h-14 min-h-14 items-center gap-3 pl-[68px] md:pl-8 pr-4 sm:pr-6 md:pr-8">
   <!-- Nhóm tiêu đề "Bạn bè" -->
   <span class="friends-toolbar__title flex items-center gap-3 shrink-0">
-    <span class="friends-toolbar__badge" aria-hidden="true">
+    <span class="friends-toolbar__badge hidden md:inline-grid" aria-hidden="true">
       <mat-icon>group</mat-icon>
     </span>
     <h1 class="text-body-md font-bold text-ink whitespace-nowrap">Bạn bè</h1>
@@ -33,7 +33,7 @@
   </div>
 
   <!-- Nút chức năng luôn được ghim cố định ở góc phải -->
-  <div class="friends-toolbar__actions flex items-center gap-2 shrink-0 ml-auto self-center">
+  <div class="friends-toolbar__actions flex items-center gap-2 shrink-0 ml-auto mr-1 sm:mr-2 self-center">
     @if (showActivityToggle()) {
       <button
         mat-icon-button

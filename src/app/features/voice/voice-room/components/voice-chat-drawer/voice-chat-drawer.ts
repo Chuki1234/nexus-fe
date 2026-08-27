@@ -25,9 +25,14 @@ import {
   ChannelChatStore,
   type ChannelChatUiMessage,
 } from '../../../../dashboard/services/channel-chat.store';
+import type {
+  AttachmentResponseDto,
+  MessageResponseDto,
+} from '../../../../../core/api/messages-api.service';
 import { ChatScrollController } from '../../../../../core/utils/chat-scroll.controller';
 import { Avatar } from '../../../../../shared/ui/avatar/avatar';
 import { MessageActions } from '../../../../dashboard/components/message-actions/message-actions';
+import { PinnedMessagesList } from '../../../../dashboard/components/pinned-messages-list/pinned-messages-list';
 import {
   MessageComposer,
   type MessageComposerContext,
@@ -43,7 +48,9 @@ import { formatMessageTimestamp } from '../../../../../core/utils/date-format.ut
 import { InlineMessageEditor } from '../../../../dashboard/components/inline-message-editor/inline-message-editor';
 import { MessageClockService } from '../../../../../core/utils/message-clock.service';
 import { canEditMessage } from '../../../../../../shared/dto/messages.dto';
+import { ProfileStore } from '../../../../profile/profile-store';
 import { extractErrorMessage } from '../../../../../core/utils/error.util';
+import { computed } from '@angular/core';
 
 @Component({
   selector: 'app-voice-chat-drawer',
@@ -56,6 +63,7 @@ import { extractErrorMessage } from '../../../../../core/utils/error.util';
     MatTooltipModule,
     MessageActions,
     MessageComposer,
+    PinnedMessagesList,
     ForwardMessageModal,
     GiphyMessageEmbedComponent,
     InlineMessageEditor,
@@ -65,12 +73,14 @@ import { extractErrorMessage } from '../../../../../core/utils/error.util';
   templateUrl: './voice-chat-drawer.html',
   styleUrl: './voice-chat-drawer.css',
   host: {
-    class: 'flex size-full min-h-0 flex-col overflow-hidden bg-surface border-l border-hairline',
+    class:
+      'relative flex size-full min-h-0 flex-col overflow-hidden bg-surface border-l border-hairline',
   },
 })
 export class VoiceChatDrawer implements OnInit {
   readonly channelChat = inject(ChannelChatStore);
   readonly auth = inject(AuthService);
+  protected readonly profileStore = inject(ProfileStore);
   readonly messageClock = inject(MessageClockService);
   private readonly injector = inject(Injector);
   private readonly platformId = inject(PLATFORM_ID);
@@ -80,16 +90,39 @@ export class VoiceChatDrawer implements OnInit {
   readonly channel = input.required<ChannelSummary>();
   readonly closed = output<void>();
 
+  /** Kiểm tra kênh có bật giới hạn độ tuổi không */
+  protected readonly isAgeRestricted = computed(() => {
+    const ch = this.channel();
+    return Boolean(ch?.isAgeRestricted || ch?.contentVisibility === 'age_restricted');
+  });
+
+  /** Kiểm tra người dùng có đủ từ 18 tuổi trở lên hay không */
+  protected readonly isUserAllowedAge = computed(() => {
+    if (!this.isAgeRestricted()) return true;
+    const birthdate = this.profileStore.profile()?.birthdate;
+    if (!birthdate) return true;
+    const parts = birthdate.split('-');
+    const birthYear = parseInt(parts[0], 10);
+    if (isNaN(birthYear)) return true;
+    const currentYear = new Date().getFullYear();
+    return currentYear - birthYear >= 18;
+  });
+
   readonly composerContext = signal<MessageComposerContext | null>(null);
   readonly forwardModalMessage = signal<ChannelChatUiMessage | null>(null);
 
   readonly editingMessageId = signal<string | null>(null);
   readonly editingSaving = signal<boolean>(false);
   readonly editingError = signal<string | null>(null);
+  readonly pinsOpen = signal(false);
+  readonly pinBusyIds = signal<Set<string>>(new Set());
+  readonly pinError = signal<string | null>(null);
+  readonly highlightedMessageId = signal<string | null>(null);
 
   private readonly processedMessageIds = new Set<string>();
 
-  protected readonly messageListContainer = viewChild<ElementRef<HTMLDivElement>>('messageListContainer');
+  protected readonly messageListContainer =
+    viewChild<ElementRef<HTMLDivElement>>('messageListContainer');
   protected readonly messageContent = viewChild<ElementRef<HTMLDivElement>>('messageContent');
 
   readonly scrollController = new ChatScrollController({
@@ -135,10 +168,7 @@ export class VoiceChatDrawer implements OnInit {
             const k = m.id || m.clientNonce;
             if (k) this.processedMessageIds.add(k);
           }
-          this.scrollController.handleInitialRender(
-            targetKey,
-            this.scrollController.generation,
-          );
+          this.scrollController.handleInitialRender(targetKey, this.scrollController.generation);
           return;
         }
 
@@ -160,20 +190,17 @@ export class VoiceChatDrawer implements OnInit {
           (m) => m.authorId !== myId && m.status === 'persisted',
         ).length;
 
-        this.scrollController.handleRealtimeAppend(
-          targetKey,
-          this.scrollController.generation,
-          {
-            isMine: hasOwnMessage,
-            wasNearBottom,
-            count: inboundCount,
-          },
-        );
+        this.scrollController.handleRealtimeAppend(targetKey, this.scrollController.generation, {
+          isMine: hasOwnMessage,
+          wasNearBottom,
+          count: inboundCount,
+        });
       });
     });
   }
 
   ngOnInit(): void {
+    void this.profileStore.ensureLoaded();
     const sId = this.serverId();
     const ch = this.channel();
     if (sId && ch?.id) {
@@ -235,6 +262,7 @@ export class VoiceChatDrawer implements OnInit {
     await this.channelChat.sendMessage({
       content: payload.content,
       files: payload.files,
+      attachments: payload.attachments,
       replyToId,
       externalMedia: payload.externalMedia,
     });
@@ -292,7 +320,61 @@ export class VoiceChatDrawer implements OnInit {
       void this.onDeleteMessage(event.messageId);
       return;
     }
+    if (event.kind === 'pin' && event.messageId) {
+      void this.setMessagePinned(event.messageId, true);
+      return;
+    }
+    if (event.kind === 'unpin' && event.messageId) {
+      void this.setMessagePinned(event.messageId, false);
+      return;
+    }
     this.composerContext.set(event);
+  }
+
+  protected async unpinFromPanel(message: MessageResponseDto): Promise<void> {
+    await this.setMessagePinned(message.id, false);
+  }
+
+  private async setMessagePinned(messageId: string, pinned: boolean): Promise<void> {
+    if (this.pinBusyIds().has(messageId)) return;
+    this.pinError.set(null);
+    this.pinBusyIds.update((ids) => new Set(ids).add(messageId));
+    try {
+      if (pinned) {
+        await this.channelChat.pinMessage(messageId);
+      } else {
+        await this.channelChat.unpinMessage(messageId);
+      }
+    } catch (error: unknown) {
+      this.pinError.set(
+        extractErrorMessage(
+          error,
+          pinned ? 'Không thể ghim tin nhắn.' : 'Không thể bỏ ghim tin nhắn.',
+        ),
+      );
+    } finally {
+      this.pinBusyIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(messageId);
+        return next;
+      });
+    }
+  }
+
+  protected jumpFromPins(message: MessageResponseDto): void {
+    this.channelChat.revealPinnedMessage(message);
+    this.pinsOpen.set(false);
+    setTimeout(() => {
+      const container = this.messageListContainer()?.nativeElement;
+      const target = container?.querySelector<HTMLElement>(`[data-message-id="${message.id}"]`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      this.highlightedMessageId.set(message.id);
+      setTimeout(() => {
+        if (this.highlightedMessageId() === message.id) {
+          this.highlightedMessageId.set(null);
+        }
+      }, 2000);
+    });
   }
 
   protected async onDeleteMessage(messageId: string): Promise<void> {
@@ -322,5 +404,39 @@ export class VoiceChatDrawer implements OnInit {
 
   protected formatMessageTime(dateStr: string | null | undefined): string {
     return formatMessageTimestamp(dateStr);
+  }
+
+  protected isImage(att: AttachmentResponseDto): boolean {
+    if (att.mimeType && att.mimeType.startsWith('image/')) return true;
+    return /\.(jpg|jpeg|jfif|png|webp|gif|svg|avif|bmp)$/i.test(att.filename || '');
+  }
+
+  protected isAudio(att: AttachmentResponseDto): boolean {
+    return (
+      att.mimeType === 'audio/mpeg' ||
+      att.mimeType === 'audio/mp3' ||
+      /\.mp3$/i.test(att.filename || '')
+    );
+  }
+
+  protected isVideo(att: AttachmentResponseDto): boolean {
+    return (
+      Boolean(att.mimeType?.startsWith('video/')) ||
+      /\.(mp4|m4v|webm|ogv|mov|qt|mkv|avi|mpeg|mpg|3gp|wmv|flv)$/i.test(att.filename || '')
+    );
+  }
+
+  protected isBrowserPlayableVideo(att: AttachmentResponseDto): boolean {
+    return (
+      ['video/mp4', 'video/x-m4v', 'video/webm', 'video/ogg'].includes(att.mimeType) ||
+      /\.(mp4|m4v|webm|ogv)$/i.test(att.filename || '')
+    );
+  }
+
+  protected formatAttachmentSize(bytes: number): string {
+    if (!bytes) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 }

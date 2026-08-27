@@ -60,6 +60,8 @@ export interface PendingFileItem {
   file: File;
   previewUrl: string | null;
   isImage: boolean;
+  mediaKind: 'image' | 'audio' | 'video' | 'file';
+  canPreviewVideo: boolean;
   name: string;
   formattedSize: string;
 }
@@ -194,6 +196,7 @@ export class MessageComposer implements OnDestroy {
   /** Tên kênh hoặc người nhận, hiện trong placeholder. */
   readonly target = input.required<string>();
   readonly disabled = input<boolean>(false);
+  readonly slowmode = input<number>(0);
   readonly attachmentsDisabled = input<boolean>(false);
   readonly attachmentsDisabledReason = input<string>('Đính kèm tệp đã bị vô hiệu hóa');
   readonly context = input<MessageComposerContext | null>(null);
@@ -213,6 +216,8 @@ export class MessageComposer implements OnDestroy {
   readonly showEmojiPicker = signal<boolean>(false);
   readonly showGiphyPicker = signal<boolean>(false);
   readonly showStipopPicker = signal<boolean>(false);
+  readonly cooldownRemaining = signal<number>(0);
+  private cooldownInterval: any = null;
   readonly activeEmojiCategoryIndex = signal<number>(0);
   readonly fileErrorMessage = signal<string | null>(null);
 
@@ -269,8 +274,31 @@ export class MessageComposer implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearCooldown();
     this.revokePendingUrls();
     this.closeMentionPopup();
+  }
+
+  startCooldown(seconds: number): void {
+    if (seconds <= 0) return;
+    this.clearCooldown();
+    this.cooldownRemaining.set(seconds);
+    this.cooldownInterval = setInterval(() => {
+      const current = this.cooldownRemaining();
+      if (current <= 1) {
+        this.clearCooldown();
+      } else {
+        this.cooldownRemaining.set(current - 1);
+      }
+    }, 1000);
+  }
+
+  private clearCooldown(): void {
+    if (this.cooldownInterval) {
+      clearInterval(this.cooldownInterval);
+      this.cooldownInterval = null;
+    }
+    this.cooldownRemaining.set(0);
   }
 
   onDocumentClick(event: MouseEvent): void {
@@ -595,9 +623,38 @@ export class MessageComposer implements OnDestroy {
         continue;
       }
 
-      const isAllowedMime =
-        allowedMimes.includes(f.type) ||
-        (f.type === '' && (f.name.endsWith('.zip') || f.name.endsWith('.txt')));
+      const ext = f.name ? f.name.slice(f.name.lastIndexOf('.')).toLowerCase() : '';
+      const isAllowedByExt = [
+        '.jpg',
+        '.jpeg',
+        '.jfif',
+        '.png',
+        '.webp',
+        '.gif',
+        '.svg',
+        '.bmp',
+        '.avif',
+        '.mp3',
+        '.mp4',
+        '.m4v',
+        '.webm',
+        '.ogv',
+        '.mov',
+        '.qt',
+        '.mkv',
+        '.avi',
+        '.mpeg',
+        '.mpg',
+        '.3gp',
+        '.wmv',
+        '.flv',
+        '.pdf',
+        '.txt',
+        '.zip',
+        '.docx',
+      ].includes(ext);
+
+      const isAllowedMime = allowedMimes.includes(f.type) || isAllowedByExt;
 
       if (!isAllowedMime) {
         this.fileErrorMessage.set(
@@ -617,14 +674,33 @@ export class MessageComposer implements OnDestroy {
       }
 
       runningBatchBytes += f.size;
-      const isImage = f.type.startsWith('image/');
-      const previewUrl = isImage ? URL.createObjectURL(f) : null;
+      const isImage =
+        f.type.startsWith('image/') ||
+        ['.jpg', '.jpeg', '.jfif', '.png', '.webp', '.gif', '.svg', '.bmp', '.avif'].includes(ext);
+      const isAudio = f.type === 'audio/mpeg' || f.type === 'audio/mp3' || ext === '.mp3';
+      const isVideo =
+        f.type.startsWith('video/') ||
+        ['.mp4', '.m4v', '.webm', '.ogv', '.mov', '.qt', '.mkv', '.avi', '.mpeg', '.mpg', '.3gp', '.wmv', '.flv'].includes(ext);
+      const canPreviewVideo =
+        isVideo &&
+        (['video/mp4', 'video/x-m4v', 'video/webm', 'video/ogg'].includes(f.type) ||
+          ['.mp4', '.m4v', '.webm', '.ogv'].includes(ext));
+      const mediaKind: PendingFileItem['mediaKind'] = isImage
+        ? 'image'
+        : isAudio
+          ? 'audio'
+          : isVideo
+            ? 'video'
+            : 'file';
+      const previewUrl = mediaKind !== 'file' ? URL.createObjectURL(f) : null;
 
       validNewItems.push({
         id: crypto.randomUUID(),
         file: f,
         previewUrl,
         isImage,
+        mediaKind,
+        canPreviewVideo,
         name: f.name,
         formattedSize: formatFileSize(f.size),
       });
@@ -773,6 +849,10 @@ export class MessageComposer implements OnDestroy {
   }
 
   submit(): void {
+    if (this.cooldownRemaining() > 0) {
+      return;
+    }
+
     const raw = this.text();
     const trimmed = raw.trim();
     const currentContext = this.context();
@@ -808,6 +888,11 @@ export class MessageComposer implements OnDestroy {
     };
 
     this.send.emit(payload);
+
+    // Kích hoạt chế độ chậm (slowmode) đếm ngược nếu có cấu hình
+    if (!isEditMode && this.slowmode() > 0) {
+      this.startCooldown(this.slowmode());
+    }
 
     // Reset trạng thái composer
     this.text.set('');

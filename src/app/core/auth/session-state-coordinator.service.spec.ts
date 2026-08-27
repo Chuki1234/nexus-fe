@@ -5,6 +5,7 @@ import { SessionStateCoordinator } from './session-state-coordinator.service';
 import { AuthService } from './auth.service';
 import { FriendsStore } from '../../features/dashboard/friends/services/friends-store';
 import { ChatSocketService } from '../realtime/chat-socket.service';
+import { PresenceService } from '../presence/presence.service';
 
 describe('SessionStateCoordinator', () => {
   let coordinator: SessionStateCoordinator;
@@ -18,6 +19,7 @@ describe('SessionStateCoordinator', () => {
   let userBlockCreated$: Subject<any>;
   let userBlockRemoved$: Subject<any>;
   let relationshipInvalidated$: Subject<any>;
+  let presenceService: { clear: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     userSignal = signal<{ id: string; email: string } | null>({
@@ -35,6 +37,7 @@ describe('SessionStateCoordinator', () => {
     userBlockCreated$ = new Subject();
     userBlockRemoved$ = new Subject();
     relationshipInvalidated$ = new Subject();
+    presenceService = { clear: vi.fn() };
 
     TestBed.configureTestingModule({
       providers: [
@@ -55,6 +58,7 @@ describe('SessionStateCoordinator', () => {
             relationshipInvalidated$: relationshipInvalidated$.asObservable(),
           },
         },
+        { provide: PresenceService, useValue: presenceService },
       ],
     });
 
@@ -70,6 +74,7 @@ describe('SessionStateCoordinator', () => {
     TestBed.flushEffects();
 
     expect(friendsStore.clear).toHaveBeenCalledTimes(1);
+    expect(presenceService.clear).toHaveBeenCalledTimes(1);
   });
 
   it('dọn sạch FriendsStore khi chuyển sang tài khoản khác', () => {
@@ -80,6 +85,7 @@ describe('SessionStateCoordinator', () => {
     TestBed.flushEffects();
 
     expect(friendsStore.clear).toHaveBeenCalledTimes(1);
+    expect(presenceService.clear).toHaveBeenCalledTimes(1);
   });
 
   it('chuyển tiếp realtime socket events sang FriendsStore', () => {

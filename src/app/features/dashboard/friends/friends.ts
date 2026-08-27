@@ -121,7 +121,7 @@ export class FriendsPage implements OnInit {
 
   protected readonly onlineFriends = computed(() =>
     this.allFriends().filter((person) => {
-      const presence = this.presenceService.getPresence(person.id)();
+      const presence = this.presenceService.resolvePresence(person.id);
       return presence !== 'offline';
     }),
   );

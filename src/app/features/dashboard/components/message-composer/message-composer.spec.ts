@@ -341,18 +341,20 @@ describe('MessageComposer', () => {
       const validMimes = [
         new File([''], 'img.jpg', { type: 'image/jpeg' }),
         new File([''], 'img.png', { type: 'image/png' }),
-        new File([''], 'img.webp', { type: 'image/webp' }),
-        new File([''], 'img.gif', { type: 'image/gif' }),
+        new File([''], 'voice.mp3', { type: 'audio/mpeg' }),
+        new File([''], 'clip.mp4', { type: 'video/mp4' }),
         new File([''], 'doc.pdf', { type: 'application/pdf' }),
       ];
 
       composer.addFiles(validMimes);
       fixture.detectChanges();
       expect(composer.pendingFiles().length).toBe(5);
+      expect(composer.pendingFiles().find((item) => item.name === 'voice.mp3')?.mediaKind).toBe('audio');
+      expect(composer.pendingFiles().find((item) => item.name === 'clip.mp4')?.mediaKind).toBe('video');
 
       // Thử file MIME không được hỗ trợ
       composer.removeFile(composer.pendingFiles()[0].id);
-      const invalidMimeFile = new File(['video'], 'video.mp4', { type: 'video/mp4' });
+      const invalidMimeFile = new File(['binary'], 'program.exe', { type: 'application/x-msdownload' });
       composer.addFiles([invalidMimeFile]);
       fixture.detectChanges();
 

@@ -1,6 +1,10 @@
-<mat-toolbar class="chat-toolbar !px-4 sm:!px-6">
-  <span class="chat-toolbar__identity-icon mr-2.5 flex size-9 items-center justify-center rounded-xl shrink-0">
-    <mat-icon aria-hidden="true" class="!size-5 !text-[20px] leading-none">{{ leadingIcon() }}</mat-icon>
+<mat-toolbar class="chat-toolbar pl-[68px] md:pl-8 pr-4 sm:pr-6 md:pr-8">
+  <span
+    class="chat-toolbar__identity-icon hidden md:flex mr-2.5 ml-1 size-9 items-center justify-center rounded-xl shrink-0"
+  >
+    <mat-icon aria-hidden="true" class="!size-5 !text-[20px] leading-none">{{
+      leadingIcon()
+    }}</mat-icon>
   </span>
 
   <h1 class="truncate text-body-md font-bold text-ink">{{ title() }}</h1>
@@ -12,7 +16,7 @@
 
   <span class="flex-1"></span>
 
-  <div class="flex items-center gap-2 shrink-0 pr-1">
+  <div class="flex items-center gap-2 shrink-0 pr-1 mr-1">
     @if (showCallActions()) {
       <button
         mat-icon-button
@@ -40,23 +44,22 @@
       <div class="chat-toolbar__search">
         <mat-icon class="chat-toolbar__search-icon" aria-hidden="true">search</mat-icon>
         <input
-          type="search"
+          type="text"
           class="chat-toolbar__search-input"
-          placeholder="Tìm trong kênh"
-          aria-label="Tìm kiếm tin nhắn trong kênh"
+          placeholder="Tìm kiếm..."
           [value]="searchTerm()"
           (input)="searchTerm.set($any($event.target).value)"
           (keydown.enter)="submitSearch()"
+          aria-label="Tìm kiếm tin nhắn"
         />
-        @if (searchTerm().length > 0) {
+        @if (searchTerm()) {
           <button
             type="button"
             class="chat-toolbar__search-clear"
-            matTooltip="Xoá tìm kiếm"
-            aria-label="Xoá tìm kiếm"
             (click)="clearSearch()"
+            aria-label="Xóa tìm kiếm"
           >
-            <mat-icon aria-hidden="true">close</mat-icon>
+            <mat-icon>close</mat-icon>
           </button>
         }
       </div>
@@ -67,11 +70,13 @@
         mat-icon-button
         type="button"
         class="nexus-icon-control !size-9 !rounded-lg"
-        matTooltip="Tin nhắn đã ghim"
-        aria-label="Tin nhắn đã ghim"
+        [class.nexus-icon-control--active]="pinsOpen()"
+        [attr.aria-expanded]="pinsOpen()"
+        [attr.aria-label]="pinsOpen() ? 'Đóng tin nhắn đã ghim' : 'Mở tin nhắn đã ghim'"
+        [matTooltip]="pinsOpen() ? 'Đóng tin nhắn đã ghim' : 'Tin nhắn đã ghim'"
         (click)="openPins.emit()"
       >
-        <mat-icon>push_pin</mat-icon>
+        <mat-icon aria-hidden="true">push_pin</mat-icon>
       </button>
     }
 
@@ -80,12 +85,13 @@
         mat-icon-button
         type="button"
         class="nexus-icon-control !size-9 !rounded-lg"
+        [class.nexus-icon-control--active]="detailsOpen()"
         [attr.aria-expanded]="detailsOpen()"
-        [attr.aria-label]="(detailsOpen() ? 'Ẩn ' : 'Hiện ') + detailsLabel()"
-        [matTooltip]="(detailsOpen() ? 'Ẩn ' : 'Hiện ') + detailsLabel()"
+        [attr.aria-label]="detailsOpen() ? 'Ẩn ' + detailsLabel() : 'Hiện ' + detailsLabel()"
+        [matTooltip]="detailsOpen() ? 'Ẩn ' + detailsLabel() : 'Hiện ' + detailsLabel()"
         (click)="toggleDetails.emit()"
       >
-        <mat-icon>view_sidebar</mat-icon>
+        <mat-icon aria-hidden="true">view_sidebar</mat-icon>
       </button>
     }
   </div>

@@ -38,8 +38,21 @@
   text-align: center !important;
 }
 
+.channel-actions-wrapper {
+  position: relative;
+  z-index: 10;
+}
+
 .channel-actions {
+  position: relative;
+  z-index: 11;
   transition: opacity 120ms ease;
+}
+
+.channel-action-btn {
+  position: relative;
+  z-index: 12;
+  pointer-events: auto;
 }
 
 .channel-action-btn:hover {
@@ -247,11 +260,6 @@
   box-sizing: border-box;
 }
 
-:not(.cdk-drop-list-dragging) > .channel-row:not(.cdk-drag-animating),
-:not(.cdk-drop-list-dragging) > .channel-group:not(.cdk-drag-animating) {
-  transform: none !important;
-}
-
 .channel-row:not(.cdk-drag-disabled) {
   cursor: grab;
 }
@@ -333,6 +341,18 @@
   white-space: nowrap !important;
 }
 
+/*
+  Khoảng cách giữa các root item nằm BÊN TRONG border box của `.channel-group`
+  (padding, không phải margin). `SingleAxisSortStrategy._getItemIndexFromPointer
+  Position()` chỉ sort khi con trỏ nằm trong clientRect của một item — margin
+  ngoài sẽ tạo vùng chết khiến root channel không chèn được giữa hai category.
+  Dải padding trên/dưới vì thế đóng vai trò insertion gap của cấp root.
+*/
+.channel-group {
+  padding-top: 0.75rem;
+  padding-bottom: 0.25rem;
+}
+
 /* Drop list container */
 .channel-drop-list {
   min-height: 4px;
@@ -346,16 +366,10 @@
   overflow: hidden;
 }
 
-/* Khi đang kéo Channel (channel-drop-list--dragging), category đóng/rỗng bung surface tối thiểu 34px để nhận drop */
-.channel-drop-list--dragging.channel-drop-list--collapsed,
-.channel-drop-list--dragging.channel-drop-list--empty {
-  min-height: 34px;
-  height: 34px;
-  border-radius: 8px;
-  border: 1px dashed color-mix(in srgb, var(--color-steel, #8ca3ad) 35%, transparent);
-  margin: 2px 0 2px 12px;
-  background: color-mix(in srgb, var(--color-surface-feature, #003d4f) 20%, transparent);
-}
+/* Category đóng/rỗng KHÔNG tự bung khi kéo: CDK cache DOMRect của mọi drop list
+   ngay trong `start()` — trước khi Angular kịp render class trạng thái kéo — nên
+   một list cao 0px lúc đó sẽ vĩnh viễn trượt hit-test. Nest vào category đóng
+   hoặc rỗng đi qua `category-header-drop-*` (luôn có chiều cao thật). */
 
 .channel-drop-list.cdk-drop-list-dragging {
   border-radius: 8px;
@@ -365,40 +379,52 @@
   min-height: 30px;
 }
 
-/* Root insertion slots stay unobtrusive until a channel drag starts. They are
-   separate CDK targets so nested category lists are never masked by root. */
-.root-channel-drop-slot {
-  height: 0;
-  min-height: 0;
-  margin: 0 0.5rem;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  transition:
-    height 140ms ease,
-    min-height 140ms ease,
-    background-color 140ms ease;
+/* Nest vào category = highlight nhẹ trên header, khác hẳn insertion gap ở list */
+.category-header-drop .channel-drag-placeholder {
+  display: none;
 }
 
-.root-channel-drop-slot--dragging {
-  height: 0.75rem;
-  min-height: 0.75rem;
-}
-
-.root-channel-drop-slot.cdk-drop-list-receiving {
-  height: 2.125rem;
-  min-height: 2.125rem;
-  border: 1px dashed color-mix(in srgb, var(--color-primary, #00ed64) 55%, transparent);
-  background: color-mix(in srgb, var(--color-primary, #00ed64) 10%, transparent);
-}
-
-/* Category Nest Hover Indicator */
-.category-header-nest-target {
-  background-color: color-mix(in srgb, var(--color-primary, #00ed64) 14%, var(--color-surface, #002634)) !important;
-  outline: 1px solid var(--color-primary, #00ed64) !important;
-}
-
+/* ────────────────────────────────────────────────────────────────────────────
+   Nest Indicator: khi kéo một kênh từ NGOÀI vào một category (đưa vào danh mục),
+   sáng toàn bộ khối category để người dùng biết chắc đang thả vào đâu — khác hẳn
+   khe chèn (insertion gap) dùng cho việc sắp xếp lại.
+   ──────────────────────────────────────────────────────────────────────────── */
 .category-drop-target-active {
-  border-radius: 8px;
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--color-primary, #00ed64) 12%, var(--color-surface, #002634));
+  box-shadow:
+    inset 0 0 0 1.5px rgba(0, 237, 100, 0.7),
+    0 0 0 3px rgba(0, 237, 100, 0.16);
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+/* Header nổi bật hơn một chút trong khối đang được nhắm tới */
+.category-header-nest-target {
+  background-color: color-mix(in srgb, var(--color-primary, #00ed64) 16%, var(--color-surface, #002634)) !important;
+}
+
+/* Nhãn "Thả vào đây" trên header */
+.category-nest-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--color-primary, #00ed64);
+  background: color-mix(in srgb, var(--color-primary, #00ed64) 16%, var(--color-surface, #002634));
+  border: 1px solid color-mix(in srgb, var(--color-primary, #00ed64) 45%, transparent);
+}
+
+.category-nest-label-icon {
+  width: 0.875rem !important;
+  height: 0.875rem !important;
+  line-height: 1 !important;
 }
 
 /* Category Drag & Drop Styling */
@@ -492,7 +518,7 @@
   .category-drag-preview,
   .voice-member-drag-preview,
   .channel-drop-list,
-  .root-channel-drop-slot,
+  .category-drop-target-active,
   .channel-actions,
   .voice-watch-stream-btn {
     transition: none !important;
@@ -510,4 +536,3 @@
     animation: none !important;
   }
 }
-

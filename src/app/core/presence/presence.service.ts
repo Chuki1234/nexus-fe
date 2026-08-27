@@ -1,6 +1,7 @@
 import {
   computed,
   DestroyRef,
+  effect,
   inject,
   Injectable,
   Signal,
@@ -55,6 +56,18 @@ export class PresenceService {
           }
         });
     }
+
+    // PresenceService có thể được khởi tạo sau sự kiện presence:sync đầu tiên.
+    // Chủ động lấy snapshot mỗi lần socket kết nối/reconnect để mọi màn hình
+    // luôn bắt đầu từ cùng một trạng thái canonical.
+    const connectionStatus = this.chatSocket?.connectionStatus;
+    if (typeof connectionStatus === 'function') {
+      effect(() => {
+        if (connectionStatus() === 'connected') {
+          void this.refreshSnapshot();
+        }
+      });
+    }
   }
 
   /**
@@ -63,6 +76,12 @@ export class PresenceService {
   hasPresence(userId: string | null | undefined): boolean {
     if (!userId) return false;
     return this.presenceMap().has(userId);
+  }
+
+  /** Đọc trạng thái canonical hiện tại; user chưa có trong snapshot là offline. */
+  resolvePresence(userId: string | null | undefined): PresenceStatus {
+    if (!userId) return 'offline';
+    return this.presenceMap().get(userId)?.status ?? 'offline';
   }
 
   /**
@@ -143,18 +162,16 @@ export class PresenceService {
   setSnapshot(
     presences: Record<string, UserPresenceDto | { status: PresenceStatus; lastSeenAt: string | null }>,
   ): void {
-    this.presenceMap.update((current) => {
-      const next = new Map(current);
-      for (const [id, item] of Object.entries(presences || {})) {
-        if (id && item) {
-          next.set(id, {
-            status: item.status,
-            lastSeenAt: item.lastSeenAt ?? null,
-          });
-        }
+    const next = new Map<string, UserPresenceInfo>();
+    for (const [id, item] of Object.entries(presences || {})) {
+      if (id && item) {
+        next.set(id, {
+          status: item.status,
+          lastSeenAt: item.lastSeenAt ?? null,
+        });
       }
-      return next;
-    });
+    }
+    this.presenceMap.set(next);
   }
 
   /**

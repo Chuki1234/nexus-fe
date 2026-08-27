@@ -108,7 +108,7 @@ export class ConversationList implements OnInit, OnDestroy {
         c.name ||
         'Người dùng';
       const presence = c.recipient?.id
-        ? this.presenceService.getPresence(c.recipient.id)()
+        ? this.presenceService.resolvePresence(c.recipient.id)
         : ((c.recipient?.presence as PresenceStatus) || 'offline');
       return {
         id: c.id,
@@ -253,6 +253,10 @@ export class ConversationList implements OnInit, OnDestroy {
     if (conv.recipientId && this.userSettingsService) {
       this.userSettingsService.toggleMuteFriend(conv.recipientId);
     }
+  }
+
+  protected onViewProfile(_conv: DisplayConversation): void {
+    // Chức năng Xem hồ sơ - chỉ để nút bấm, sự kiện sẽ được implement sau
   }
 
   protected onEditNote(conv: DisplayConversation): void {

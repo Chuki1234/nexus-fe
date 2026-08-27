@@ -1,11 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import {
-  inject,
-  InjectionToken,
-  Injectable,
-  PLATFORM_ID,
-  signal,
-} from '@angular/core';
+import { inject, InjectionToken, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../../environments/environment';
@@ -27,11 +21,7 @@ import type {
 import type { DirectCallDto } from '../../../shared/dto/direct-calls.dto';
 import { AuthService } from '../auth/auth.service';
 
-export type ConnectionStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'error';
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
 export interface RoomRegistration {
   refCount: number;
@@ -39,10 +29,10 @@ export interface RoomRegistration {
   joinPromise: Promise<JoinConversationResponse> | null;
 }
 
-export const CHAT_SOCKET_FACTORY = new InjectionToken<typeof io>(
-  'CHAT_SOCKET_FACTORY',
-  { providedIn: 'root', factory: () => io },
-);
+export const CHAT_SOCKET_FACTORY = new InjectionToken<typeof io>('CHAT_SOCKET_FACTORY', {
+  providedIn: 'root',
+  factory: () => io,
+});
 
 @Injectable({
   providedIn: 'root',
@@ -52,8 +42,7 @@ export class ChatSocketService {
   private readonly auth = inject(AuthService);
 
   private readonly socketFactory = inject(CHAT_SOCKET_FACTORY);
-  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null =
-    null;
+  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
   private currentToken: string | null = null;
 
@@ -103,7 +92,8 @@ export class ChatSocketService {
   }>();
   private readonly reactionUpdatedSubject = new Subject<ReactionUpdatedPayload>();
   private readonly messagePinUpdatedSubject = new Subject<{
-    channelId: string;
+    channelId: string | null;
+    conversationId: string | null;
     message: MessagePayload;
     pinned: boolean;
   }>();
@@ -119,7 +109,10 @@ export class ChatSocketService {
     inviteeId: string;
     status: 'accepted' | 'declined' | 'revoked' | 'expired';
   }>();
-  private readonly capabilitiesUpdatedSubject = new Subject<{ serverId: string; capabilities: any }>();
+  private readonly capabilitiesUpdatedSubject = new Subject<{
+    serverId: string;
+    capabilities: any;
+  }>();
   private readonly serverDeletedSubject = new Subject<{ serverId: string }>();
   private readonly serverMemberLeftSubject = new Subject<{ serverId: string; userId: string }>();
   private readonly voiceStateUpdatedSubject = new Subject<VoiceStateUpdatePayload>();
@@ -142,12 +135,18 @@ export class ChatSocketService {
   private readonly directCallIncomingSubject = new Subject<DirectCallDto>();
   private readonly directCallRingingSubject = new Subject<DirectCallDto>();
   private readonly directCallAcceptedSubject = new Subject<DirectCallDto>();
-  private readonly directCallConnectedSubject = new Subject<{ callId: string; connectedAt: string }>();
+  private readonly directCallConnectedSubject = new Subject<{
+    callId: string;
+    connectedAt: string;
+  }>();
   private readonly directCallDeclinedSubject = new Subject<DirectCallDto>();
   private readonly directCallCancelledSubject = new Subject<DirectCallDto>();
   private readonly directCallEndedSubject = new Subject<DirectCallDto>();
   private readonly directCallMissedSubject = new Subject<DirectCallDto>();
-  private readonly directCallBusySubject = new Subject<{ conversationId: string; calleeId: string }>();
+  private readonly directCallBusySubject = new Subject<{
+    conversationId: string;
+    calleeId: string;
+  }>();
   private readonly directCallStateSyncSubject = new Subject<DirectCallDto | null>();
 
   // Block & Relationship Invalidation Subjects
@@ -181,7 +180,8 @@ export class ChatSocketService {
   readonly reactionUpdated$: Observable<ReactionUpdatedPayload> =
     this.reactionUpdatedSubject.asObservable();
   readonly messagePinUpdated$: Observable<{
-    channelId: string;
+    channelId: string | null;
+    conversationId: string | null;
     message: MessagePayload;
     pinned: boolean;
   }> = this.messagePinUpdatedSubject.asObservable();
@@ -204,8 +204,7 @@ export class ChatSocketService {
   }> = this.joinErrorSubject.asObservable();
   readonly presenceUpdated$: Observable<PresenceUpdatedPayload> =
     this.presenceUpdatedSubject.asObservable();
-  readonly presenceSync$: Observable<PresenceSyncPayload> =
-    this.presenceSyncSubject.asObservable();
+  readonly presenceSync$: Observable<PresenceSyncPayload> = this.presenceSyncSubject.asObservable();
 
   readonly channelsInvalidated$: Observable<{ serverId: string }> =
     this.channelsInvalidatedSubject.asObservable();
@@ -264,8 +263,7 @@ export class ChatSocketService {
     this.directCallDeclinedSubject.asObservable();
   readonly directCallCancelled$: Observable<DirectCallDto> =
     this.directCallCancelledSubject.asObservable();
-  readonly directCallEnded$: Observable<DirectCallDto> =
-    this.directCallEndedSubject.asObservable();
+  readonly directCallEnded$: Observable<DirectCallDto> = this.directCallEndedSubject.asObservable();
   readonly directCallMissed$: Observable<DirectCallDto> =
     this.directCallMissedSubject.asObservable();
   readonly directCallBusy$: Observable<{ conversationId: string; calleeId: string }> =
@@ -300,21 +298,16 @@ export class ChatSocketService {
     if (!isPlatformBrowser(this.platformId)) return;
 
     const tokenFromAuth =
-      this.auth && typeof this.auth.accessToken === 'function'
-        ? this.auth.accessToken()
-        : null;
+      this.auth && typeof this.auth.accessToken === 'function' ? this.auth.accessToken() : null;
 
-    const rawToken: string | undefined =
-      token || tokenFromAuth || (this.currentToken ?? undefined);
+    const rawToken: string | undefined = token || tokenFromAuth || (this.currentToken ?? undefined);
 
     if (!rawToken) {
       this._connectionStatus.set('disconnected');
       return;
     }
 
-    const authToken = rawToken.startsWith('Bearer ')
-      ? rawToken.slice(7).trim()
-      : rawToken.trim();
+    const authToken = rawToken.startsWith('Bearer ') ? rawToken.slice(7).trim() : rawToken.trim();
 
     if (this.socket && this.socket.connected && this.currentToken === authToken) {
       return;
@@ -405,9 +398,7 @@ export class ChatSocketService {
   }
 
   updateToken(newToken: string): void {
-    const cleanToken = newToken.startsWith('Bearer ')
-      ? newToken.slice(7).trim()
-      : newToken.trim();
+    const cleanToken = newToken.startsWith('Bearer ') ? newToken.slice(7).trim() : newToken.trim();
     this.currentToken = cleanToken;
     if (this.socket) {
       this.socket.auth = { token: cleanToken };
@@ -563,10 +554,7 @@ export class ChatSocketService {
   // Multi-Room Registry: Channels
   // ---------------------------------------------------------------------------
 
-  async joinChannel(
-    channelId: string,
-    timeoutMs = 5000,
-  ): Promise<JoinConversationResponse> {
+  async joinChannel(channelId: string, timeoutMs = 5000): Promise<JoinConversationResponse> {
     if (!isPlatformBrowser(this.platformId)) {
       return { success: false, status: 'disconnected' };
     }
@@ -614,43 +602,39 @@ export class ChatSocketService {
             }
           }, timeoutMs);
 
-          this.socket?.emit(
-            'channel:join',
-            { channelId },
-            (res: JoinConversationResponse) => {
-              if (resolved) return;
-              resolved = true;
-              clearTimeout(timer);
+          this.socket?.emit('channel:join', { channelId }, (res: JoinConversationResponse) => {
+            if (resolved) return;
+            resolved = true;
+            clearTimeout(timer);
 
-              if (!res?.success) {
-                reg.state = 'failed';
-                const isForbidden =
-                  res?.status === 'rejected' ||
-                  res?.error?.toLowerCase().includes('không có quyền') ||
-                  res?.error?.toLowerCase().includes('bị cấm') ||
-                  res?.error?.toLowerCase().includes('forbidden');
-                if (isForbidden) {
-                  this.channelRooms.delete(channelId);
-                  this.joinErrorSubject.next({
-                    channelId,
-                    error: res?.error || 'Không thể tham gia kênh máy chủ.',
-                  });
-                }
-                resolve({
-                  success: false,
+            if (!res?.success) {
+              reg.state = 'failed';
+              const isForbidden =
+                res?.status === 'rejected' ||
+                res?.error?.toLowerCase().includes('không có quyền') ||
+                res?.error?.toLowerCase().includes('bị cấm') ||
+                res?.error?.toLowerCase().includes('forbidden');
+              if (isForbidden) {
+                this.channelRooms.delete(channelId);
+                this.joinErrorSubject.next({
+                  channelId,
                   error: res?.error || 'Không thể tham gia kênh máy chủ.',
-                  status: res?.status ?? 'rejected',
                 });
-                return;
               }
-
-              reg.state = 'joined';
               resolve({
-                success: true,
-                status: 'joined',
+                success: false,
+                error: res?.error || 'Không thể tham gia kênh máy chủ.',
+                status: res?.status ?? 'rejected',
               });
-            },
-          );
+              return;
+            }
+
+            reg.state = 'joined';
+            resolve({
+              success: true,
+              status: 'joined',
+            });
+          });
         });
       } catch (err: any) {
         reg.state = 'failed';
@@ -882,7 +866,12 @@ export class ChatSocketService {
     });
 
     this.socket.on('message:pin-updated', (payload) => {
-      this.messagePinUpdatedSubject.next(payload);
+      this.messagePinUpdatedSubject.next({
+        channelId: payload.channelId ?? null,
+        conversationId: payload.conversationId ?? null,
+        message: payload.message,
+        pinned: payload.pinned,
+      });
     });
 
     this.socket.on('message:read', (payload) => {
@@ -1044,14 +1033,18 @@ export class ChatSocketService {
       if (!this.socket || !this.socket.connected) {
         return resolve({ serverId, states: [] });
       }
-      this.socket.emit('voice:get-server-states', { serverId }, (response: VoiceServerStatesSyncPayload) => {
-        if (response && response.states) {
-          this.voiceServerStatesSyncSubject.next(response);
-          resolve(response);
-        } else {
-          resolve({ serverId, states: [] });
-        }
-      });
+      this.socket.emit(
+        'voice:get-server-states',
+        { serverId },
+        (response: VoiceServerStatesSyncPayload) => {
+          if (response && response.states) {
+            this.voiceServerStatesSyncSubject.next(response);
+            resolve(response);
+          } else {
+            resolve({ serverId, states: [] });
+          }
+        },
+      );
     });
   }
 

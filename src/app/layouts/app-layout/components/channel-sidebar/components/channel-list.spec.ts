@@ -638,32 +638,92 @@ describe('ChannelList', () => {
       expect(rootDropDirective?.connectedTo).toEqual([
         'channel-group-cat-study',
         'category-header-drop-cat-study',
-        'root-channel-drop-slot-0',
-        'root-channel-drop-slot-1',
+        'channel-sidebar-root-list',
       ]);
 
       const instance = fixture.componentInstance;
       const categoryDrag = { data: { kind: 'category', category: { id: 'cat-1' } } } as any;
-      const childChannelDrag = {
-        data: { kind: 'channel', channel: { id: 'ch-1' } },
-        dropContainer: { id: 'channel-group-cat-study' },
-      } as any;
-      const rootChannelDrag = {
-        data: { kind: 'channel', channel: { id: 'ch-1' } },
-        dropContainer: { id: 'channel-sidebar-root-list' },
-      } as any;
+      const channelDrag = { data: { kind: 'channel', channel: { id: 'ch-1' } } } as any;
       const voiceMemberDrag = { data: { userId: 'u-1', name: 'User 1' } } as any;
 
-      // Root không được cướp channel từ nested category list.
+      // Root nhận cả category lẫn channel (kéo kênh ra cấp máy chủ), từ chối
+      // voice member. Thứ tự connectedTo mới là thứ bảo vệ list con khỏi root.
       expect(instance['isRootEnterPredicate'](categoryDrag)).toBe(true);
-      expect(instance['isRootEnterPredicate'](childChannelDrag)).toBe(false);
-      expect(instance['isRootEnterPredicate'](rootChannelDrag)).toBe(true);
+      expect(instance['isRootEnterPredicate'](channelDrag)).toBe(true);
       expect(instance['isRootEnterPredicate'](voiceMemberDrag)).toBe(false);
 
       // Category con CHỈ chấp nhận channel, từ chối category và voice member
       expect(instance['isCategoryChildEnterPredicate'](categoryDrag)).toBe(false);
-      expect(instance['isCategoryChildEnterPredicate'](childChannelDrag)).toBe(true);
+      expect(instance['isCategoryChildEnterPredicate'](channelDrag)).toBe(true);
       expect(instance['isCategoryChildEnterPredicate'](voiceMemberDrag)).toBe(false);
+    });
+
+    it('mọi channel cdkDrag phân giải đúng CdkDropList chứa nó (chặn hồi quy free-drag)', async () => {
+      const fixture = await mount('custom-server', false);
+      const serversStore = TestBed.inject(ServersStore);
+
+      serversStore.setCategories('custom-server', [{ id: 'cat-study', name: 'Học tập' }]);
+      serversStore.setChannels('custom-server', [
+        { id: 'ch-a', name: 'Kênh A', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+        { id: 'ch-b', name: 'Kênh B', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+        { id: 'ch-free', name: 'Kênh gốc', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-uncategorized' },
+      ]);
+      fixture.detectChanges();
+
+      // Trước đây channel row được render qua *ngTemplateOutlet với template khai
+      // báo ở gốc component. Embedded view phân giải DI tại NƠI KHAI BÁO, nên
+      // CdkDrag nhận dropContainer = null và trở thành free-drag: không sort,
+      // không phát cdkDropListDropped, thả xong nhảy về chỗ cũ.
+      const channelDrags = fixture.debugElement
+        .queryAll(By.directive(CdkDrag))
+        .filter((el) => el.nativeElement.classList.contains('channel-row'));
+
+      expect(channelDrags.length).toBe(3);
+
+      const containerOf = (name: string) =>
+        channelDrags
+          .find((el) => el.nativeElement.textContent.includes(name))
+          ?.injector.get(CdkDrag).dropContainer?.id;
+
+      expect(containerOf('Kênh A')).toBe('channel-group-cat-study');
+      expect(containerOf('Kênh B')).toBe('channel-group-cat-study');
+      expect(containerOf('Kênh gốc')).toBe('channel-sidebar-root-list');
+
+      for (const el of channelDrags) {
+        expect(el.injector.get(CdkDrag).dropContainer).toBeTruthy();
+      }
+    });
+
+    it('root từ chối nhận channel khi con trỏ đang ở trong cây con của category', async () => {
+      const fixture = await mount('custom-server', false);
+      const serversStore = TestBed.inject(ServersStore);
+
+      serversStore.setCategories('custom-server', [{ id: 'cat-study', name: 'Học tập' }]);
+      serversStore.setChannels('custom-server', [
+        { id: 'ch-a', name: 'Kênh A', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+      ]);
+      fixture.detectChanges();
+
+      const instance = fixture.componentInstance;
+      const channelDrag = { data: { kind: 'channel', channel: { id: 'ch-a' } } } as any;
+
+      // Chưa có toạ độ (pha kích hoạt receiver của CDK): phải chấp nhận, nếu
+      // không DropListRef._startReceiving() sẽ không cache DOMRect và root
+      // không bao giờ nhận được drop trong suốt thao tác kéo.
+      expect(instance['isRootEnterPredicate'](channelDrag)).toBe(true);
+
+      const elementFromPoint = vi
+        .spyOn(document, 'elementFromPoint')
+        .mockReturnValue(fixture.nativeElement.querySelector('#channel-group-cat-study'));
+      instance['lastDragPointer'] = { x: 10, y: 10 };
+
+      expect(instance['isRootEnterPredicate'](channelDrag)).toBe(false);
+
+      elementFromPoint.mockReturnValue(fixture.nativeElement.querySelector('#channel-sidebar-root-list'));
+      expect(instance['isRootEnterPredicate'](channelDrag)).toBe(true);
+
+      elementFromPoint.mockRestore();
+      instance['lastDragPointer'] = null;
     });
 
     it('onCategoryChildDrop sắp xếp kênh trong cùng category; placeholder child có class thụt lề', async () => {
@@ -685,6 +745,7 @@ describe('ChannelList', () => {
         container: { data: { categoryId: 'cat-study' } },
         previousContainer: { data: { categoryId: 'cat-study' } },
         item: { data: { kind: 'channel', channel: { id: 'ch-c', name: 'Kênh C' } } },
+        dropPoint: { x: 5, y: 5 },
       } as any;
       dropEvent.previousContainer = dropEvent.container;
 
@@ -695,7 +756,7 @@ describe('ChannelList', () => {
       expect(layout.categoryChannels['cat-study']).toEqual(['ch-c', 'ch-a', 'ch-b']);
     });
 
-    it('thả trên Category Header đưa channel vào category và root slot đưa channel ra ngoài', async () => {
+    it('thả trên Category Header đưa channel vào category; thả xuống root đưa channel ra cấp máy chủ', async () => {
       const fixture = await mount('custom-server', false);
       const serversStore = TestBed.inject(ServersStore);
 
@@ -716,6 +777,7 @@ describe('ChannelList', () => {
         container: { data: { kind: 'category-header', categoryId: 'cat-study' } },
         previousContainer: { data: { kind: 'root' } },
         item: { data: { id: 'ch-a', name: 'Kênh A', type: 'text' } },
+        dropPoint: { x: 5, y: 5 },
       } as any;
 
       fixture.componentInstance['onCategoryHeaderDrop'](headerDropEvent, 'cat-study');
@@ -724,21 +786,55 @@ describe('ChannelList', () => {
       const layoutAfterHeaderDrop = serversStore.getServerLayout('custom-server');
       expect(layoutAfterHeaderDrop.categoryChannels['cat-study']).toContain('ch-a');
 
-      // Kéo từ category vào insertion slot ở root
+      // Kéo từ category ra root list (container khác nhau => đổi cấp)
+      const rootContainer = { data: { kind: 'root' } };
       const rootDropEvent = {
         previousIndex: 0,
         currentIndex: 0,
-        container: { data: { kind: 'root-slot', rootIndex: 0 } },
-        previousContainer: { data: { categoryId: 'cat-study' } },
-        item: { data: { kind: 'channel', channel: { id: 'ch-a', name: 'Kênh A' } } },
+        container: rootContainer,
+        previousContainer: { data: { kind: 'category', categoryId: 'cat-study' } },
+        item: { data: { id: 'ch-a', name: 'Kênh A', type: 'text' } },
+        dropPoint: { x: 5, y: 5 },
       } as any;
 
-      fixture.componentInstance['onRootChannelSlotDrop'](rootDropEvent, 0);
+      fixture.componentInstance['onRootDrop'](rootDropEvent);
       fixture.detectChanges();
 
       const layoutAfterRootDrop = serversStore.getServerLayout('custom-server');
       expect(layoutAfterRootDrop.categoryChannels['cat-study']).not.toContain('ch-a');
       expect(layoutAfterRootDrop.rootItems[0]).toEqual({ kind: 'channel', id: 'ch-a' });
+    });
+
+    it('thả ra ngoài vùng sidebar thì rollback, không mutate layout', async () => {
+      const fixture = await mount('custom-server', false);
+      const serversStore = TestBed.inject(ServersStore);
+
+      serversStore.setCategories('custom-server', [{ id: 'cat-study', name: 'Học tập' }]);
+      serversStore.setChannels('custom-server', [
+        { id: 'ch-a', name: 'Kênh A', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+        { id: 'ch-b', name: 'Kênh B', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+      ]);
+      fixture.detectChanges();
+
+      const before = serversStore.getServerLayout('custom-server');
+      const hostRect = (fixture.nativeElement as HTMLElement).getBoundingClientRect();
+
+      const container = { data: { kind: 'category', categoryId: 'cat-study' } };
+      const outsideDrop = {
+        previousIndex: 1,
+        currentIndex: 0,
+        container,
+        previousContainer: container,
+        item: { data: { id: 'ch-b', name: 'Kênh B', type: 'text' } },
+        dropPoint: { x: hostRect.right + 500, y: hostRect.bottom + 500 },
+      } as any;
+
+      fixture.componentInstance['onCategoryChildDrop'](outsideDrop, 'cat-study');
+      fixture.detectChanges();
+
+      expect(serversStore.getServerLayout('custom-server').categoryChannels['cat-study']).toEqual(
+        before.categoryChannels['cat-study'],
+      );
     });
 
     it('trigger cdkDragStarted/cdkDragEnded qua template binding và Dwell Timer tự động mở rộng category', async () => {

@@ -21,18 +21,7 @@
   </a>
 </mat-nav-list>
 
-<app-section-label class="mt-5 mb-2 block" [text]="sectionTitle()">
-  <button
-    slot="action"
-    type="button"
-    disabled
-    matTooltip="Tạo tin nhắn (chưa làm)"
-    class="rounded-xs text-steel disabled:cursor-not-allowed"
-  >
-    <mat-icon aria-hidden="true" class="!size-4 !text-base">add</mat-icon>
-    <span class="sr-only">Tạo tin nhắn mới</span>
-  </button>
-</app-section-label>
+<app-section-label class="mt-5 mb-2 block" [text]="sectionTitle()" />
 
 @if (loading()) {
   <div class="flex items-center justify-center py-6">
@@ -151,9 +140,9 @@
       </mat-icon>
       <span class="text-ink">{{ isMuted(conv) ? 'Bật thông báo' : 'Tắt thông báo' }}</span>
     </button>
-    <button mat-menu-item type="button" (click)="onEditNote(conv)">
-      <mat-icon aria-hidden="true" class="text-steel">edit_note</mat-icon>
-      <span class="text-ink">Ghi chú</span>
+    <button mat-menu-item type="button" (click)="onViewProfile(conv)">
+      <mat-icon aria-hidden="true" class="text-steel">account_circle</mat-icon>
+      <span class="text-ink">Xem hồ sơ</span>
     </button>
 
     <div class="friend-options__divider" role="separator"></div>

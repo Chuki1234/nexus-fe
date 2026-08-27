@@ -7,6 +7,7 @@ import { DirectCallCoordinatorService } from '../../../../core/calls/direct-call
 import { FriendRow } from './friend-row';
 
 import { FriendsStore } from '../services/friends-store';
+import { PresenceService } from '../../../../core/presence/presence.service';
 
 const NGUOI: ConversationSummary = {
   id: 'ho-be',
@@ -59,6 +60,13 @@ describe('FriendRow', () => {
         { provide: ConversationsApiService, useValue: mockConversationsApi },
         { provide: DirectCallCoordinatorService, useValue: mockDirectCallCoordinator },
         { provide: FriendsStore, useValue: mockFriendsStore },
+        {
+          provide: PresenceService,
+          useValue: {
+            resolvePresence: () => 'dnd',
+            getLastSeenLabel: () => signal(null),
+          },
+        },
       ],
     }).compileComponents();
 

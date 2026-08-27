@@ -12,6 +12,7 @@ import {
 } from '../services/dashboard-ui-state';
 import { FriendsPage } from './friends';
 import { FriendsStore } from './services/friends-store';
+import { PresenceService } from '../../../core/presence/presence.service';
 
 describe('FriendsPage', () => {
   const PEOPLE: ConversationSummary[] = [
@@ -86,12 +87,20 @@ describe('FriendsPage', () => {
       acceptInvitation: vi.fn().mockResolvedValue({ success: true, serverId: 's1', alreadyMember: false }),
       declineInvitation: vi.fn().mockResolvedValue({ success: true }),
     };
+    const presenceByUser = new Map(people.map((person) => [person.id, person.presence]));
     await TestBed.configureTestingModule({
       imports: [FriendsPage],
       providers: [
         provideRouter([]),
         { provide: FriendsStore, useValue: friendStore },
         { provide: ServerInvitationsStore, useValue: serverInvitationsStore },
+        {
+          provide: PresenceService,
+          useValue: {
+            resolvePresence: (userId: string) => presenceByUser.get(userId) ?? 'offline',
+            getLastSeenLabel: () => signal(null),
+          },
+        },
         {
           provide: DashboardUiState,
           useValue: { blockingState, connectionState, clearPreview: async () => true },

@@ -1,0 +1,64 @@
+@if (messages().length === 0) {
+  <div class="pins-empty" role="status">
+    <span class="pins-empty__mark" aria-hidden="true">
+      <mat-icon>push_pin</mat-icon>
+    </span>
+    <p>{{ emptyLabel() }}</p>
+  </div>
+} @else {
+  <ol class="pins-list" aria-label="Tin nhắn đã ghim">
+    @for (message of messages(); track message.id) {
+      <li class="pin-entry">
+        <span class="pin-entry__rail" aria-hidden="true"></span>
+        <button
+          type="button"
+          class="pin-entry__jump"
+          (click)="jump.emit(message)"
+          [attr.aria-label]="
+            'Đi tới tin nhắn của ' +
+            (message.author?.displayName || message.author?.username || 'người dùng')
+          "
+        >
+          <app-avatar
+            [name]="message.author?.displayName || message.author?.username || 'Người dùng'"
+            [src]="message.author?.avatarUrl ?? null"
+            size="sm"
+          />
+          <span class="pin-entry__copy">
+            <span class="pin-entry__meta">
+              <strong>{{
+                message.author?.displayName || message.author?.username || 'Người dùng'
+              }}</strong>
+              <time [attr.datetime]="message.createdAt">{{
+                message.createdAt | date: 'dd/MM, HH:mm'
+              }}</time>
+            </span>
+            <span class="pin-entry__excerpt">{{ excerpt(message) }}</span>
+            <span class="pin-entry__hint">
+              <mat-icon aria-hidden="true">subdirectory_arrow_right</mat-icon>
+              Đi tới tin nhắn
+            </span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          class="pin-entry__unpin"
+          [disabled]="busyIds().has(message.id)"
+          (click)="unpin.emit(message)"
+          matTooltip="Bỏ ghim tin nhắn"
+          [attr.aria-label]="
+            'Bỏ ghim tin nhắn của ' +
+            (message.author?.displayName || message.author?.username || 'người dùng')
+          "
+        >
+          @if (busyIds().has(message.id)) {
+            <mat-spinner diameter="16" strokeWidth="2" />
+          } @else {
+            <mat-icon aria-hidden="true">keep_off</mat-icon>
+          }
+        </button>
+      </li>
+    }
+  </ol>
+}

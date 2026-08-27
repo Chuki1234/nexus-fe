@@ -70,11 +70,7 @@ export class FriendRow {
   readonly errorMessage = signal<string | null>(null);
 
   protected readonly effectivePresence = computed<PresenceStatus>(() => {
-    const id = this.person().id;
-    if (this.presenceService.hasPresence(id)) {
-      return this.presenceService.getPresence(id)();
-    }
-    return this.person().presence || 'offline';
+    return this.presenceService.resolvePresence(this.person().id);
   });
 
   protected readonly isMuted = computed(() =>
@@ -171,6 +167,10 @@ export class FriendRow {
 
   onToggleMute(): void {
     this.userSettingsService.toggleMuteFriend(this.person().id);
+  }
+
+  onViewProfile(): void {
+    // Chức năng Xem hồ sơ - chỉ để nút bấm, sự kiện sẽ được implement sau
   }
 
   onEditNote(): void {

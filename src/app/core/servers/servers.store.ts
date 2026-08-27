@@ -17,6 +17,13 @@ import type {
 const STORAGE_PREFIX = 'nexuscord_server_groups_';
 const CATEGORIES_STORAGE_PREFIX = 'nexuscord_server_categories_';
 const CHANNEL_LAYOUT_PREFIX = 'nexuscord_channel_layout_v1_';
+const CHANNEL_META_PREFIX = 'nexuscord_channel_meta_v1_';
+
+interface PersistedChannelMeta {
+  slowmode?: number;
+  isAgeRestricted?: boolean;
+  contentVisibility?: 'default' | 'age_restricted';
+}
 
 interface PersistedGroupsPayload {
   version: 1;
@@ -175,7 +182,7 @@ export class ServersStore {
 
     const channelMap: Record<string, ChannelSummary[]> = {};
     for (const s of serversWithChannels) {
-      channelMap[s.id] = (s.channels ?? []).map((c) => ({ ...c }));
+      channelMap[s.id] = (s.channels ?? []).map((c) => this.enrichChannel(c));
     }
 
     this.serverList.set(servers);
@@ -196,7 +203,7 @@ export class ServersStore {
   setChannels(serverId: string, channels: ChannelSummary[]): void {
     this.channelsByServer.update((current) => ({
       ...current,
-      [serverId]: channels.map((c) => ({ ...c })),
+      [serverId]: channels.map((c) => this.enrichChannel(c)),
     }));
     this.reconcileServerLayout(serverId);
   }
@@ -215,7 +222,7 @@ export class ServersStore {
 
     this.channelsByServer.update((current) => ({
       ...current,
-      [server.id]: channels.map((c) => ({ ...c })),
+      [server.id]: channels.map((c) => this.enrichChannel(c)),
     }));
 
     this.reconcileServerLayout(server.id);
@@ -483,16 +490,54 @@ export class ServersStore {
   }
 
   /**
-   * Cập nhật thông tin của một kênh.
+   * Cập nhật thông tin của một kênh và lưu metadata vào local storage.
    */
   updateChannel(serverId: string, channel: ChannelSummary): void {
+    this.saveChannelMeta(channel.id, {
+      slowmode: channel.slowmode,
+      isAgeRestricted: channel.isAgeRestricted,
+      contentVisibility: channel.contentVisibility,
+    });
+
     this.channelsByServer.update((current) => {
       const existing = current[serverId] ?? [];
       return {
         ...current,
-        [serverId]: existing.map((c) => (c.id === channel.id ? channel : c)),
+        [serverId]: existing.map((c) => (c.id === channel.id ? this.enrichChannel({ ...c, ...channel }) : c)),
       };
     });
+  }
+
+  private getChannelMeta(channelId: string): PersistedChannelMeta {
+    if (typeof localStorage === 'undefined') return {};
+    try {
+      const raw = localStorage.getItem(`${CHANNEL_META_PREFIX}${channelId}`);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private saveChannelMeta(channelId: string, meta: PersistedChannelMeta): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(`${CHANNEL_META_PREFIX}${channelId}`, JSON.stringify(meta));
+    } catch {
+      // ignore
+    }
+  }
+
+  private enrichChannel(c: ChannelSummary): ChannelSummary {
+    const meta = this.getChannelMeta(c.id);
+    return {
+      ...c,
+      slowmode: c.slowmode !== undefined ? c.slowmode : (meta.slowmode ?? 0),
+      isAgeRestricted: c.isAgeRestricted !== undefined ? c.isAgeRestricted : (meta.isAgeRestricted ?? false),
+      contentVisibility:
+        c.contentVisibility !== undefined
+          ? c.contentVisibility
+          : (meta.contentVisibility ?? (meta.isAgeRestricted ? 'age_restricted' : 'default')),
+    };
   }
 
   /**

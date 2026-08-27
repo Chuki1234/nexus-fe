@@ -28,6 +28,9 @@ export interface ChannelSummary {
   unread: boolean;
   mentionCount: number;
   categoryId?: string | null;
+  slowmode?: number;
+  isAgeRestricted?: boolean;
+  contentVisibility?: 'default' | 'age_restricted';
 }
 
 export interface ServerRailRef {

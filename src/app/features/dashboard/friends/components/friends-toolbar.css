@@ -39,6 +39,7 @@
   background: var(--color-surface-feature);
   color: var(--color-primary-soft);
   box-shadow: var(--shadow-glow);
+  margin-left: 4px;
 }
 
 .friends-toolbar__badge .mat-icon {
@@ -61,13 +62,14 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 4px 6px;
+  padding: 3px 5px;
   border-radius: var(--radius-xl);
   background: var(--color-surface);
   border: 1px solid var(--nexus-border-subtle);
   box-shadow: var(--shadow-glow);
   /* ensure container itself is vertically centered */
   line-height: 0;
+  margin-right: 4px;
 }
 
 .friends-toolbar__actions .nexus-icon-control {
@@ -100,30 +102,38 @@
   overflow-y: hidden;
   flex-wrap: nowrap;
   justify-content: flex-start;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-hairline-strong, #5c7883) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  touch-action: pan-x;
 }
 
 .friends-segmented::-webkit-scrollbar {
-  height: 4px;
-  display: block;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-.friends-segmented::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 4px;
+.friends-toolbar__title {
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  z-index: 1;
 }
 
-.friends-segmented::-webkit-scrollbar-thumb {
-  background: var(--color-hairline-strong, #5c7883);
-  border-radius: 4px;
-  transition: background-color 150ms ease;
+.friends-toolbar__title h1 {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
-.friends-segmented::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary, #00ed64);
+:host-context(.dashboard-mobile-container) .friends-toolbar {
+  padding-left: 3.75rem !important;
+}
+
+:host-context(.dashboard-mobile-container) .friends-toolbar__badge {
+  display: none !important;
 }
 
 @media (max-width: 63.999rem) {
@@ -135,6 +145,11 @@
 @media (max-width: 767.98px) {
   .friends-toolbar {
     padding-left: 3.75rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .friends-toolbar__badge {
+    display: none !important;
   }
 }
 

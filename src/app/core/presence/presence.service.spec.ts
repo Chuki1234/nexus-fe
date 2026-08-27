@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
@@ -16,6 +17,7 @@ describe('PresenceService (Frontend Canonical Presence Store)', () => {
     mockPresenceSync$ = new Subject<PresenceSyncPayload>();
 
     mockChatSocketService = {
+      connectionStatus: signal<'disconnected' | 'connected'>('disconnected'),
       presenceUpdated$: mockPresenceUpdated$.asObservable(),
       presenceSync$: mockPresenceSync$.asObservable(),
       getPresenceSnapshot: vi.fn().mockResolvedValue({
@@ -94,6 +96,28 @@ describe('PresenceService (Frontend Canonical Presence Store)', () => {
 
     expect(alicePresence()).toBe('online');
     expect(charliePresence()).toBe('idle');
+  });
+
+  it('snapshot mới thay thế snapshot cũ để user biến mất trở thành offline', () => {
+    service.setPresence('user-stale', 'idle');
+    expect(service.resolvePresence('user-stale')).toBe('idle');
+
+    mockPresenceSync$.next({
+      presences: {
+        'user-alice': { userId: 'user-alice', status: 'online', lastSeenAt: null },
+      },
+    });
+
+    expect(service.resolvePresence('user-alice')).toBe('online');
+    expect(service.resolvePresence('user-stale')).toBe('offline');
+  });
+
+  it('tự refresh canonical snapshot khi socket kết nối lại', async () => {
+    mockChatSocketService.connectionStatus.set('connected');
+    TestBed.flushEffects();
+    await Promise.resolve();
+
+    expect(mockChatSocketService.getPresenceSnapshot).toHaveBeenCalled();
   });
 
   it('refreshSnapshot gọi getPresenceSnapshot từ socket và cập nhật store', async () => {

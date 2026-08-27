@@ -30,11 +30,16 @@ export class VoiceControls {
   readonly isFullscreen = signal<boolean>(false);
 
   protected readonly isMicMuted = this.voiceRoom.isMicMuted;
+  protected readonly isDeafened = this.voiceRoom.isDeafened;
   protected readonly isCameraOn = this.voiceRoom.isCameraOn;
   protected readonly isScreenSharing = this.voiceRoom.isScreenSharing;
 
   protected toggleMic(): void {
     void this.voiceRoom.toggleMicrophone();
+  }
+
+  protected toggleDeafen(): void {
+    void this.voiceRoom.toggleDeafen();
   }
 
   protected toggleCamera(): void {

@@ -81,6 +81,16 @@
     box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.server-tile mat-icon {
+  font-size: 20px !important;
+  width: 20px !important;
+  height: 20px !important;
+  line-height: 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
 .server-tile:not(:active):is(:hover, :focus-visible),
 .server-folder-toggle:not(:active):is(:hover, :focus-visible),
 .server-rail-action:not(:active):is(:hover, :focus-visible) {

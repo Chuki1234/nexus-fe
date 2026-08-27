@@ -102,7 +102,7 @@
     <app-avatar
       [name]="person().name"
       [src]="person().avatarUrl ?? null"
-      [presence]="person().presence"
+      [presence]="effectivePresence()"
       size="md"
       ring="surface"
     />
@@ -130,9 +130,9 @@
     </mat-icon>
     <span class="text-ink">{{ isMuted() ? 'Bật thông báo' : 'Tắt thông báo' }}</span>
   </button>
-  <button mat-menu-item type="button" (click)="onEditNote()">
-    <mat-icon aria-hidden="true" class="text-steel">edit_note</mat-icon>
-    <span class="text-ink">Ghi chú</span>
+  <button mat-menu-item type="button" (click)="onViewProfile()">
+    <mat-icon aria-hidden="true" class="text-steel">account_circle</mat-icon>
+    <span class="text-ink">Xem hồ sơ</span>
   </button>
 
   <div class="friend-options__divider" role="separator"></div>

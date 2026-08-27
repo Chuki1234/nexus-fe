@@ -52,6 +52,12 @@ export function extractErrorMessage(
     }
   }
   if (err instanceof Error) {
+    if (err.name === 'TimeoutError' || err.message.includes('Timeout')) {
+      return 'Quá thời gian tải lên tệp (timeout). Vui lòng thử lại.';
+    }
+    if (err.message.includes('Failed to fetch')) {
+      return 'Mạng bị gián đoạn hoặc không thể kết nối máy chủ.';
+    }
     return err.message;
   }
   return defaultMessage;

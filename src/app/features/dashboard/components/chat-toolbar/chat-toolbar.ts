@@ -27,6 +27,7 @@ export class ChatToolbar {
   readonly detailsLabel = input<string>('hồ sơ');
   readonly showSearch = input<boolean>(false);
   readonly showPins = input<boolean>(false);
+  readonly pinsOpen = input<boolean>(false);
 
   readonly toggleDetails = output<void>();
   readonly startAudioCall = output<void>();

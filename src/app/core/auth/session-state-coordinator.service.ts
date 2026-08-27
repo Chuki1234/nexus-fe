@@ -2,6 +2,7 @@ import { effect, inject, Injectable, DestroyRef } from '@angular/core';
 import { AuthService } from './auth.service';
 import { FriendsStore } from '../../features/dashboard/friends/services/friends-store';
 import { ChatSocketService } from '../realtime/chat-socket.service';
+import { PresenceService } from '../presence/presence.service';
 
 /**
  * SessionStateCoordinator lắng nghe trạng thái phiên đăng nhập của người dùng
@@ -18,6 +19,7 @@ export class SessionStateCoordinator {
   private readonly auth = inject(AuthService);
   private readonly friendsStore = inject(FriendsStore);
   private readonly chatSocket = inject(ChatSocketService);
+  private readonly presenceService = inject(PresenceService);
   private readonly destroyRef = inject(DestroyRef);
   private previousUserId: string | null = null;
 
@@ -30,12 +32,14 @@ export class SessionStateCoordinator {
         // User đã đăng xuất
         if (this.previousUserId !== null) {
           this.friendsStore.clear();
+          this.presenceService.clear();
           this.previousUserId = null;
         }
       } else if (currentUserId !== this.previousUserId) {
         // Chuyển đổi sang tài khoản khác
         if (this.previousUserId !== null) {
           this.friendsStore.clear();
+          this.presenceService.clear();
         }
         this.previousUserId = currentUserId;
       }

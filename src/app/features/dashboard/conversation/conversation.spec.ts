@@ -71,6 +71,8 @@ describe('ConversationPage', () => {
     const chatErrorSignal = signal<any>(null);
     const paginationErrorSignal = signal<string | null>(null);
     typingUserIdsSignal = signal<string[]>([]);
+    const pinnedMessagesSignal = signal<any[]>([]);
+    const pinnedIdsSignal = signal(new Set<string>());
 
     mockActiveChatStore = {
       allMessages: messagesSignal.asReadonly(),
@@ -81,6 +83,8 @@ describe('ConversationPage', () => {
       chatError: chatErrorSignal.asReadonly(),
       paginationError: paginationErrorSignal.asReadonly(),
       typingUserIds: typingUserIdsSignal.asReadonly(),
+      pinnedMessages: pinnedMessagesSignal.asReadonly(),
+      pinnedIds: pinnedIdsSignal.asReadonly(),
       setActiveConversation: vi.fn().mockResolvedValue(undefined),
       clear: vi.fn(),
       loadOlderMessages: vi.fn().mockResolvedValue(undefined),
@@ -91,8 +95,13 @@ describe('ConversationPage', () => {
       editMessage: vi.fn().mockResolvedValue(undefined),
       deleteMessage: vi.fn().mockResolvedValue(undefined),
       markAsRead: vi.fn().mockResolvedValue(undefined),
-      refreshAttachmentUrl: vi.fn().mockResolvedValue('https://storage.supabase.co/signed/fresh.png'),
+      refreshAttachmentUrl: vi
+        .fn()
+        .mockResolvedValue('https://storage.supabase.co/signed/fresh.png'),
       setTyping: vi.fn(),
+      pinMessage: vi.fn().mockResolvedValue(undefined),
+      unpinMessage: vi.fn().mockResolvedValue(undefined),
+      revealPinnedMessage: vi.fn(),
     };
 
     mockConversationsApi = {
@@ -189,7 +198,9 @@ describe('ConversationPage', () => {
     expect(harness.routeNativeElement!.textContent).toContain('Tin nhắn này bị lỗi mạng');
     expect(harness.routeNativeElement!.textContent).toContain('Gửi thất bại.');
 
-    const retryBtn = harness.routeNativeElement!.querySelector('button:contains("Thử lại"), button') as HTMLButtonElement;
+    const retryBtn = harness.routeNativeElement!.querySelector(
+      'button:contains("Thử lại"), button',
+    ) as HTMLButtonElement;
     expect(harness.routeNativeElement!.textContent).toContain('Thử lại');
     expect(harness.routeNativeElement!.textContent).toContain('Hủy');
   });
@@ -332,7 +343,9 @@ describe('ConversationPage', () => {
       harness.fixture.detectChanges();
 
       expect(harness.routeNativeElement!.textContent).toContain('Kết nối trực tiếp');
-      expect(harness.routeNativeElement!.textContent).toContain('Đây là phần mở đầu lịch sử tin nhắn trực tiếp');
+      expect(harness.routeNativeElement!.textContent).toContain(
+        'Đây là phần mở đầu lịch sử tin nhắn trực tiếp',
+      );
       const messagesList = harness.routeNativeElement!.querySelector('.message-list');
       expect(messagesList).toBeNull();
       const demoMsg = harness.routeNativeElement!.querySelector('[data-demo-message]');
@@ -345,7 +358,9 @@ describe('ConversationPage', () => {
       await harness.fixture.whenStable();
       harness.fixture.detectChanges();
 
-      expect(harness.routeNativeElement!.textContent).toContain('Không tìm thấy cuộc trò chuyện này');
+      expect(harness.routeNativeElement!.textContent).toContain(
+        'Không tìm thấy cuộc trò chuyện này',
+      );
       expect(harness.routeNativeElement!.textContent).toContain('Quay lại Bạn bè');
       const demoMsg = harness.routeNativeElement!.querySelector('[data-demo-message]');
       expect(demoMsg).toBeNull();
@@ -380,7 +395,9 @@ describe('ConversationPage', () => {
       harness.fixture.detectChanges();
 
       expect(harness.routeNativeElement!.textContent).toContain('Lỗi kết nối máy chủ tin nhắn.');
-      const retryBtn = harness.routeNativeElement!.querySelector('button:contains("Thử lại"), button') as HTMLButtonElement;
+      const retryBtn = harness.routeNativeElement!.querySelector(
+        'button:contains("Thử lại"), button',
+      ) as HTMLButtonElement;
       expect(retryBtn).toBeTruthy();
     });
 
@@ -419,7 +436,9 @@ describe('ConversationPage', () => {
       await harness.fixture.whenStable();
       harness.fixture.detectChanges();
 
-      const viewport = harness.routeNativeElement!.querySelector('.chat-viewport[data-chat-wallpaper="doodle"]');
+      const viewport = harness.routeNativeElement!.querySelector(
+        '.chat-viewport[data-chat-wallpaper="doodle"]',
+      );
       expect(viewport).toBeTruthy();
 
       const history = viewport!.querySelector('.chat-history');
@@ -432,7 +451,9 @@ describe('ConversationPage', () => {
       await harness.fixture.whenStable();
       harness.fixture.detectChanges();
 
-      const viewport = harness.routeNativeElement!.querySelector('.chat-viewport[data-chat-wallpaper="doodle"]');
+      const viewport = harness.routeNativeElement!.querySelector(
+        '.chat-viewport[data-chat-wallpaper="doodle"]',
+      );
       expect(viewport).toBeTruthy();
       expect(harness.routeNativeElement!.querySelector('.chat-intro')).toBeTruthy();
     });
@@ -815,12 +836,17 @@ describe('ConversationPage', () => {
       await harness.fixture.whenStable();
       harness.fixture.detectChanges();
 
-      const fileTile = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('.message-file-tile');
+      const fileTile =
+        harness.routeNativeElement!.querySelector<HTMLAnchorElement>('.message-file-tile');
       expect(fileTile).toBeTruthy();
       expect(fileTile?.querySelector('.message-file-tile__icon-box')).toBeTruthy();
       expect(fileTile?.querySelector('.message-file-tile__meta')).toBeTruthy();
-      expect(fileTile?.querySelector('.message-file-tile__name')?.textContent).toContain('report.pdf');
-      expect(fileTile?.querySelector('.message-file-tile__size')?.textContent).toContain('200.0 KB');
+      expect(fileTile?.querySelector('.message-file-tile__name')?.textContent).toContain(
+        'report.pdf',
+      );
+      expect(fileTile?.querySelector('.message-file-tile__size')?.textContent).toContain(
+        '200.0 KB',
+      );
       expect(fileTile?.querySelector('.message-file-tile__download-icon')).toBeTruthy();
     });
 
@@ -916,7 +942,9 @@ describe('ConversationPage', () => {
       expect(rows[2].classList.contains('message-row--file-only')).toBe(true);
       const fileTile = rows[2].querySelector('.message-file-tile');
       expect(fileTile).toBeTruthy();
-      expect(fileTile?.querySelector('.message-file-tile__name')?.textContent).toContain('chiSoSI.pdf');
+      expect(fileTile?.querySelector('.message-file-tile__name')?.textContent).toContain(
+        'chiSoSI.pdf',
+      );
       expect(fileTile?.querySelector('.message-file-tile__size')?.textContent).toContain('51.5 KB');
       expect(fileTile?.querySelector('.message-file-tile__download-icon')).toBeTruthy();
     });
@@ -1010,7 +1038,13 @@ describe('ConversationPage', () => {
     describe('Template Rendering & Stream Item Integration', () => {
       it('T1-T4 & T12: Render đúng Date Dividers với nhãn semantic và role separator', async () => {
         const today = new Date();
-        const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 15, 0);
+        const yesterday = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate() - 1,
+          15,
+          0,
+        );
         const older = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 5, 10, 0);
 
         messagesSignal.set([
@@ -1065,7 +1099,8 @@ describe('ConversationPage', () => {
         await harness.fixture.whenStable();
         harness.fixture.detectChanges();
 
-        const dividers = harness.routeNativeElement!.querySelectorAll<HTMLLIElement>('.chat-date-divider');
+        const dividers =
+          harness.routeNativeElement!.querySelectorAll<HTMLLIElement>('.chat-date-divider');
         expect(dividers.length).toBe(3);
 
         // Divider 1: Ngày cũ
@@ -1203,7 +1238,13 @@ describe('ConversationPage', () => {
         expect(dividers.length).toBe(1); // Vẫn duy nhất 1 divider
 
         // T7: Pagination prepend tin nhắn của ngày hôm qua lên đầu mảng
-        const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 10, 0);
+        const yesterday = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate() - 1,
+          10,
+          0,
+        );
         messagesSignal.set([
           {
             id: 'msg-yesterday',
@@ -1321,7 +1362,9 @@ describe('ConversationPage', () => {
         await harness.fixture.whenStable();
         harness.fixture.detectChanges();
 
-        expect(harness.routeNativeElement!.querySelectorAll('.chat-date-divider').length).toBeGreaterThan(0);
+        expect(
+          harness.routeNativeElement!.querySelectorAll('.chat-date-divider').length,
+        ).toBeGreaterThan(0);
 
         // Xóa tin nhắn khi chuyển sang phòng chat mới
         messagesSignal.set([]);
@@ -1536,7 +1579,9 @@ describe('ConversationPage', () => {
         component.showNewMessagesPill.set(true);
         harness.fixture.detectChanges();
 
-        const pill = harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]') as HTMLButtonElement;
+        const pill = harness.routeNativeElement!.querySelector(
+          'button[aria-label*="Đi tới"]',
+        ) as HTMLButtonElement;
         expect(pill).toBeTruthy();
 
         pill.click();
@@ -1731,10 +1776,14 @@ describe('ConversationPage', () => {
       });
 
       it('D3: Tải file DOCX/PDF với tên tiếng Việt: downloadAttachment gọi fetch, tạo object URL và revoke sau khi tải', async () => {
-        const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:http://localhost/mock-blob-1');
+        const createObjectURLSpy = vi
+          .spyOn(URL, 'createObjectURL')
+          .mockReturnValue('blob:http://localhost/mock-blob-1');
         const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 
-        const mockBlob = new Blob(['mock content'], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        const mockBlob = new Blob(['mock content'], {
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        });
         const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
           ok: true,
           status: 200,
@@ -1783,7 +1832,9 @@ describe('ConversationPage', () => {
           } as Response);
         });
 
-        mockActiveChatStore.refreshAttachmentUrl.mockResolvedValue('https://storage/signed/fresh-url.pdf');
+        mockActiveChatStore.refreshAttachmentUrl.mockResolvedValue(
+          'https://storage/signed/fresh-url.pdf',
+        );
 
         const harness = await mount('conv-123');
         await harness.fixture.whenStable();
@@ -1815,7 +1866,12 @@ describe('ConversationPage', () => {
         const openSpy = vi.spyOn(lightboxService, 'open');
 
         // Mở lightbox với ảnh
-        component.openLightbox('https://storage/signed/photo.png', 'Ảnh phong cảnh.png', '905', 'att-img-1');
+        component.openLightbox(
+          'https://storage/signed/photo.png',
+          'Ảnh phong cảnh.png',
+          '905',
+          'att-img-1',
+        );
         harness.fixture.detectChanges();
 
         expect(component.activeLightbox()).toEqual({
@@ -1840,12 +1896,16 @@ describe('ConversationPage', () => {
         const component = harness.component;
 
         // Set att-1 đang tải
-        component.downloadingAttachmentIds.update((s: ReadonlySet<string>) => new Set(s).add('att-1'));
+        component.downloadingAttachmentIds.update((s: ReadonlySet<string>) =>
+          new Set(s).add('att-1'),
+        );
         expect(component.downloadingAttachmentIds().has('att-1')).toBe(true);
         expect(component.downloadingAttachmentIds().has('att-2')).toBe(false);
 
         // att-2 tải độc lập không bị chặn bởi att-1
-        component.downloadingAttachmentIds.update((s: ReadonlySet<string>) => new Set(s).add('att-2'));
+        component.downloadingAttachmentIds.update((s: ReadonlySet<string>) =>
+          new Set(s).add('att-2'),
+        );
         expect(component.downloadingAttachmentIds().has('att-2')).toBe(true);
 
         component.downloadingAttachmentIds.update((s: ReadonlySet<string>) => {
@@ -1985,14 +2045,18 @@ describe('ConversationPage', () => {
         const component = harness.component;
 
         // Ban đầu ở đáy: nút không có trong DOM
-        expect(harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]')).toBeNull();
+        expect(
+          harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]'),
+        ).toBeNull();
 
         // Bật showScrollDownButton & unreadCount = 4
         component.scrollController.showScrollDownButton.set(true);
         component.scrollController.unreadCount.set(4);
         harness.fixture.detectChanges();
 
-        const scrollBtn = harness.routeNativeElement!.querySelector('button[aria-label*="Đi tới"]') as HTMLButtonElement;
+        const scrollBtn = harness.routeNativeElement!.querySelector(
+          'button[aria-label*="Đi tới"]',
+        ) as HTMLButtonElement;
         expect(scrollBtn).toBeTruthy();
         expect(scrollBtn.getAttribute('aria-label')).toBe('Đi tới 4 tin nhắn mới nhất');
         expect(scrollBtn.textContent).toContain('4');
