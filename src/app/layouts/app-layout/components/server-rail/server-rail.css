@@ -201,17 +201,6 @@
   width: 100%;
 }
 
-/* Hiệu năng cho danh sách server DÀI (hàng trăm–nghìn): bỏ qua render/layout các
-   mục NGOÀI màn hình mà vẫn GIỮ chúng trong DOM — nhờ đó kéo-thả (cdkDrag) và
-   folder vẫn hoạt động (khác virtual-scroll vốn gỡ item khỏi DOM và làm hỏng hai
-   thứ này). `contain-intrinsic-size: auto <h>` giữ đúng chiều cao thanh cuộn:
-   dùng 56px làm ước lượng ban đầu, sau khi render một lần thì `auto` nhớ kích
-   thước thật (kể cả folder cao hơn). */
-.server-rail-list > li {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 56px;
-}
-
 /* Enforce strict static alignment: in-rail items NEVER get translated out of position */
 .server-tile:not(.server-tile--merge-active) {
   transform: none !important;
