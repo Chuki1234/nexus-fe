@@ -7,6 +7,7 @@ import type {
   ClientToServerEvents,
   JoinConversationResponse,
   MessagePayload,
+  NotificationPayload,
   PresenceSyncPayload,
   PresenceUpdatedPayload,
   ReactionUpdatedPayload,
@@ -20,6 +21,7 @@ import type {
 } from '../../../shared/socket-events';
 import type { DirectCallDto } from '../../../shared/dto/direct-calls.dto';
 import { AuthService } from '../auth/auth.service';
+import type { ServerChannelStructure } from '../servers/server.models';
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -44,10 +46,10 @@ interface LocalVoiceState {
   isScreenSharing?: boolean;
 }
 
-export const CHAT_SOCKET_FACTORY = new InjectionToken<typeof io>(
-  'CHAT_SOCKET_FACTORY',
-  { providedIn: 'root', factory: () => io },
-);
+export const CHAT_SOCKET_FACTORY = new InjectionToken<typeof io>('CHAT_SOCKET_FACTORY', {
+  providedIn: 'root',
+  factory: () => io,
+});
 
 @Injectable({
   providedIn: 'root',
@@ -96,6 +98,17 @@ export class ChatSocketService {
     userId: string;
     lastReadMessageId: string;
   }>();
+  private readonly unreadUpdateSubject = new Subject<{
+    channelId: string | null;
+    conversationId: string | null;
+    serverId: string | null;
+    unreadCount: number;
+    mentionCount: number;
+    authorId: string | null;
+    messageId: string | null;
+  }>();
+  private readonly notificationNewSubject = new Subject<NotificationPayload>();
+
   private readonly typingUpdatedSubject = new Subject<{
     conversationId?: string | null;
     channelId?: string | null;
@@ -118,6 +131,11 @@ export class ChatSocketService {
   private readonly presenceSyncSubject = new Subject<PresenceSyncPayload>();
 
   private readonly channelsInvalidatedSubject = new Subject<{ serverId: string }>();
+  private readonly channelStructureUpdatedSubject = new Subject<{
+    serverId: string;
+    structure: ServerChannelStructure;
+    updatedBy: string;
+  }>();
   private readonly channelCreatedSubject = new Subject<{ serverId: string; channel: any }>();
   private readonly invitationReceivedSubject = new Subject<{ invitation: any }>();
   private readonly invitationUpdatedSubject = new Subject<{
@@ -208,6 +226,18 @@ export class ChatSocketService {
     userId: string;
     lastReadMessageId: string;
   }> = this.messageReadSubject.asObservable();
+  readonly unreadUpdate$: Observable<{
+    channelId: string | null;
+    conversationId: string | null;
+    serverId: string | null;
+    unreadCount: number;
+    mentionCount: number;
+    authorId: string | null;
+    messageId: string | null;
+  }> = this.unreadUpdateSubject.asObservable();
+  readonly notificationNew$: Observable<NotificationPayload> =
+    this.notificationNewSubject.asObservable();
+
   readonly typingUpdated$: Observable<{
     conversationId?: string | null;
     channelId?: string | null;
@@ -225,6 +255,11 @@ export class ChatSocketService {
 
   readonly channelsInvalidated$: Observable<{ serverId: string }> =
     this.channelsInvalidatedSubject.asObservable();
+  readonly channelStructureUpdated$: Observable<{
+    serverId: string;
+    structure: ServerChannelStructure;
+    updatedBy: string;
+  }> = this.channelStructureUpdatedSubject.asObservable();
   readonly channelCreated$: Observable<{ serverId: string; channel: any }> =
     this.channelCreatedSubject.asObservable();
   readonly invitationReceived$: Observable<{ invitation: any }> =
@@ -921,6 +956,24 @@ export class ChatSocketService {
       });
     });
 
+    this.socket.on('unread:update', (payload) => {
+      this.unreadUpdateSubject.next({
+        channelId: payload.channelId ?? null,
+        conversationId: payload.conversationId ?? null,
+        serverId: payload.serverId ?? null,
+        unreadCount: payload.unreadCount ?? 0,
+        mentionCount: payload.mentionCount ?? 0,
+        authorId: payload.authorId ?? null,
+        messageId: payload.messageId ?? null,
+      });
+    });
+
+    this.socket.on('notification:new', (payload) => {
+      if (payload?.notification) {
+        this.notificationNewSubject.next(payload.notification);
+      }
+    });
+
     this.socket.on('typing:updated', (payload) => {
       this.typingUpdatedSubject.next({
         conversationId: payload.conversationId ?? null,
@@ -959,6 +1012,10 @@ export class ChatSocketService {
 
     this.socket.on('server:channels-invalidated', (payload) => {
       this.channelsInvalidatedSubject.next(payload);
+    });
+
+    this.socket.on('server:channel-structure-updated', (payload) => {
+      this.channelStructureUpdatedSubject.next(payload);
     });
 
     this.socket.on('server:channel-created', (payload) => {

@@ -7,6 +7,8 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ServerInvitePreviewDto } from '../../../shared/dto/server-invitations.dto';
 import { ServersApiService } from '../../core/api/servers-api.service';
@@ -16,6 +18,7 @@ import { ChatSocketService } from '../../core/realtime/chat-socket.service';
 import { ServerCapabilitiesService } from '../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../core/servers/servers.store';
 import { ToastService } from '../../core/toast/toast.service';
+import { Avatar } from '../../shared/ui/avatar/avatar';
 
 /**
  * Trang Landing xem trước và tham gia máy chủ qua liên kết mời (Invite Link Preview).
@@ -24,7 +27,7 @@ import { ToastService } from '../../core/toast/toast.service';
 @Component({
   selector: 'app-invite-landing-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule, Avatar],
   templateUrl: './invite-landing.page.html',
   styleUrl: './invite-landing.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

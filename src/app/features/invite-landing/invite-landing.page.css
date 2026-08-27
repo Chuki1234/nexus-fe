@@ -1,27 +1,103 @@
 :host {
   display: block;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
 }
 
-.invite-page-container {
-  background-color: var(--color-surface-base, #0d1117);
+.invite-page {
+  background-color: var(--color-canvas, #001e2b);
+  position: relative;
+  isolation: isolate;
 }
 
+/* Doodle Wallpaper Pattern Layer (Soft, Subtle) */
+.invite-wallpaper {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-color: var(--color-doodle-tint, #00ed64);
+  opacity: var(--opacity-doodle, 0.04);
+  -webkit-mask-image: url('/assets/doodle.svg');
+  mask-image: url('/assets/doodle.svg');
+  -webkit-mask-position: top left;
+  mask-position: top left;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  -webkit-mask-size: var(--size-doodle-tile, 320px) auto;
+  mask-size: var(--size-doodle-tile, 320px) auto;
+}
+
+@supports not ((mask-image: url('/assets/doodle.svg')) or (-webkit-mask-image: url('/assets/doodle.svg'))) {
+  .invite-wallpaper {
+    display: none;
+  }
+}
+
+/* Central Invite Card */
 .invite-card {
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 30px 0 rgba(74, 222, 128, 0.05);
+  background-color: var(--color-surface, #002634);
+  border: 1px solid var(--color-hairline, #1c4553);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.55);
 }
 
-.server-icon-wrap img,
-.server-icon-wrap div {
+/* Inviter Pill */
+.inviter-pill {
+  background-color: var(--color-surface-soft, #082b38);
+  border: 1px solid var(--color-hairline, #1c4553);
+}
+
+/* Server Icon & Squircle */
+.server-icon-container {
   transition: transform 0.2s ease;
 }
 
-.server-icon-wrap:hover img,
-.server-icon-wrap:hover div {
-  transform: scale(1.05);
+.server-icon-container:hover {
+  transform: scale(1.04);
 }
 
-.cta-btn {
-  min-height: 48px;
+.server-icon-img {
+  border: 1px solid var(--color-hairline, #1c4553);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.server-icon-placeholder {
+  background-color: var(--color-surface-feature, #003d4f);
+  border: 1px solid var(--color-hairline-strong, #5c7883);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Primary CTA Button */
+.invite-primary-btn {
+  background-color: var(--color-primary, #00ed64);
+  color: var(--color-on-primary, #001e2b);
+  border: none;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.invite-primary-btn:hover:not(:disabled) {
+  background-color: var(--color-primary-soft, #00b545);
+}
+
+.invite-primary-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.invite-primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Secondary Button */
+.invite-secondary-btn {
+  background-color: var(--color-surface-feature, #003d4f);
+  color: var(--color-ink, #ffffff);
+  border: 1px solid var(--color-hairline, #1c4553);
+  transition: background-color 0.15s ease;
+}
+
+.invite-secondary-btn:hover {
+  background-color: var(--color-hairline-strong, #5c7883);
 }

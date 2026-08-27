@@ -493,12 +493,18 @@ export class VoiceRoomService implements OnDestroy {
 
   /**
    * Bật / Tắt Microphone của local user.
+   * - Nếu tai nghe đang tắt (Deafened), bấm Mic sẽ đồng thời mở cả Tai nghe và Mic (chuẩn Discord).
+   * - Nếu tai nghe đang mở, bấm Mic sẽ chỉ bật/tắt riêng Mic.
    */
   async toggleMicrophone(): Promise<void> {
     if (!this.room) return;
+
+    // Nếu tai nghe đang tắt (Deafened), bấm Mic sẽ mở cả Tai nghe và Mic
     if (this.isDeafened()) {
+      await this.toggleDeafen();
       return;
     }
+
     const isMuted = this.isMicMuted();
     try {
       await this.room.localParticipant.setMicrophoneEnabled(isMuted);

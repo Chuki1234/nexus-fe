@@ -159,11 +159,9 @@ describe('ChatSocketService', () => {
 
     service.connect('jwt-token-123');
 
-    const errorPromise = new Promise<any>(
-      (resolve) => {
-        service.joinError$.subscribe((err) => resolve(err));
-      },
-    );
+    const errorPromise = new Promise<any>((resolve) => {
+      service.joinError$.subscribe((err) => resolve(err));
+    });
 
     const res = await service.joinConversation('conv-forbidden');
     const err = await errorPromise;
@@ -493,6 +491,30 @@ describe('ChatSocketService', () => {
     const received = await promise;
 
     expect(received).toEqual({ serverId: 'srv-deleted-1' });
+  });
+
+  it('phát tán structure canonical khi nhận server:channel-structure-updated', () => {
+    const received: any[] = [];
+    service.channelStructureUpdated$.subscribe((payload) => received.push(payload));
+    service.connect('jwt-token-123');
+
+    const listener = mockSocket.on.mock.calls.find(
+      (call: any[]) => call[0] === 'server:channel-structure-updated',
+    )?.[1];
+    const payload = {
+      serverId: 'server-1',
+      updatedBy: 'owner-1',
+      structure: {
+        version: 1,
+        categories: [{ id: 'cat-main', name: 'Chính' }],
+        rootItems: [{ kind: 'category', id: 'cat-main' }],
+        categoryChannels: { 'cat-main': ['channel-1'] },
+        revision: 2,
+      },
+    };
+
+    listener(payload);
+    expect(received).toEqual([payload]);
   });
 
   it('phát tán sự kiện serverMemberLeft$ khi nhận server:member-left', async () => {

@@ -50,9 +50,7 @@ export interface ServerInviteCardData {
   targetChannelId: string;
 }
 
-export type ServerRootItem =
-  | { kind: 'category'; id: string }
-  | { kind: 'channel'; id: string };
+export type ServerRootItem = { kind: 'category'; id: string } | { kind: 'channel'; id: string };
 
 export interface ServerChannelLayout {
   version: 1;
@@ -60,3 +58,9 @@ export interface ServerChannelLayout {
   categoryChannels: Record<string, string[]>;
 }
 
+/** Cấu trúc category/channel dùng chung cho mọi thành viên của một server. */
+export interface ServerChannelStructure extends ServerChannelLayout {
+  categories: ServerCategorySummary[];
+  revision?: number;
+  updatedAt?: string | null;
+}

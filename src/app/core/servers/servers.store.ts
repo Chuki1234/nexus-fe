@@ -4,6 +4,7 @@ import type {
   ChannelSummary,
   ServerCategorySummary,
   ServerChannelLayout,
+  ServerChannelStructure,
   ServerGroupSummary,
   ServerRailRef,
   ServerRootItem,
@@ -114,7 +115,8 @@ export class ServersStore {
   readonly serverCount = computed(() => this.serverList().length);
 
   /**
-   * Thiết lập danh tính user đang đăng nhập và nạp server groups, categories và channel layouts từ localStorage.
+   * Thiết lập danh tính user. Chỉ folder trên server rail là tùy chọn cá nhân;
+   * category/channel layout được hydrate từ backend theo server.
    */
   setActiveUser(userId: string | null): void {
     if (this.activeUserId() === userId) {
@@ -122,8 +124,9 @@ export class ServersStore {
     }
     this.activeUserId.set(userId);
     this.hydrateServerGroupsFromStorage(userId);
-    this.hydrateServerCategoriesFromStorage(userId);
-    this.hydrateChannelLayoutsFromStorage(userId);
+    this.categoriesByServer.set({});
+    this.serverChannelLayouts.set({});
+    this.removeLegacyPerUserChannelStructure(userId);
   }
 
   /**
@@ -170,6 +173,7 @@ export class ServersStore {
       unread?: boolean;
       mentionCount?: number;
       channels?: ChannelSummary[];
+      channelStructure?: ServerChannelStructure | null;
     }>,
   ): void {
     const servers: ServerSummary[] = serversWithChannels.map((s) => ({
@@ -187,10 +191,12 @@ export class ServersStore {
 
     this.serverList.set(servers);
     this.channelsByServer.set(channelMap);
+    this.categoriesByServer.set({});
+    this.serverChannelLayouts.set({});
 
-    // Reconcile layout cho từng server
+    // Ưu tiên structure canonical từ backend; null thì derive layout mặc định.
     for (const s of serversWithChannels) {
-      this.reconcileServerLayout(s.id);
+      this.applyServerChannelStructure(s.id, s.channelStructure ?? null);
     }
 
     // Tự động prune serverGroups để loại bỏ các serverId không còn tồn tại
@@ -277,7 +283,8 @@ export class ServersStore {
     if (!layout) {
       return raw.map((c) => ({
         ...c,
-        categoryId: catMap[c.id] ?? (c.categoryId === 'cat-uncategorized' ? null : (c.categoryId ?? null)),
+        categoryId:
+          catMap[c.id] ?? (c.categoryId === 'cat-uncategorized' ? null : (c.categoryId ?? null)),
       }));
     }
 
@@ -314,7 +321,9 @@ export class ServersStore {
       if (!visited.has(ch.id)) {
         orderedList.push({
           ...ch,
-          categoryId: catMap[ch.id] ?? (ch.categoryId === 'cat-uncategorized' ? null : (ch.categoryId ?? null)),
+          categoryId:
+            catMap[ch.id] ??
+            (ch.categoryId === 'cat-uncategorized' ? null : (ch.categoryId ?? null)),
         });
         visited.add(ch.id);
       }
@@ -325,6 +334,70 @@ export class ServersStore {
 
   getChannels(serverId: string): ChannelSummary[] {
     return this.channelsOf(serverId);
+  }
+
+  /** Snapshot structure hiện tại để gửi backend sau một thao tác quản trị. */
+  channelStructureOf(serverId: string): ServerChannelStructure {
+    const layout = this.computeServerLayout(serverId);
+    return {
+      version: 1,
+      categories: this.categoriesOf(serverId).map((category) => ({ ...category })),
+      rootItems: layout.rootItems.map((item) => ({ ...item })),
+      categoryChannels: Object.fromEntries(
+        Object.entries(layout.categoryChannels).map(([id, channelIds]) => [id, [...channelIds]]),
+      ),
+      revision: this.serverChannelLayouts()[serverId]
+        ? (this.serverChannelLayouts()[serverId] as ServerChannelStructure).revision
+        : undefined,
+    };
+  }
+
+  /** Áp dụng structure canonical nhận từ REST hoặc realtime. */
+  applyServerChannelStructure(serverId: string, structure: ServerChannelStructure | null): void {
+    if (!structure) {
+      this.categoriesByServer.update((current) => {
+        const next = { ...current };
+        delete next[serverId];
+        return next;
+      });
+      this.serverChannelLayouts.update((current) => {
+        const next = { ...current };
+        delete next[serverId];
+        return next;
+      });
+      this.reconcileServerLayout(serverId);
+      return;
+    }
+
+    const current = this.serverChannelLayouts()[serverId] as ServerChannelStructure | undefined;
+    if (
+      current?.revision !== undefined &&
+      structure.revision !== undefined &&
+      structure.revision < current.revision
+    ) {
+      return;
+    }
+
+    this.categoriesByServer.update((all) => ({
+      ...all,
+      [serverId]: structure.categories.map((category) => ({ ...category })),
+    }));
+    this.serverChannelLayouts.update((all) => ({
+      ...all,
+      [serverId]: {
+        version: 1,
+        rootItems: structure.rootItems.map((item) => ({ ...item })),
+        categoryChannels: Object.fromEntries(
+          Object.entries(structure.categoryChannels).map(([id, channelIds]) => [
+            id,
+            [...channelIds],
+          ]),
+        ),
+        revision: structure.revision,
+        updatedAt: structure.updatedAt,
+      } as ServerChannelStructure,
+    }));
+    this.reconcileServerLayout(serverId);
   }
 
   /**
@@ -461,7 +534,8 @@ export class ServersStore {
 
     const layout = this.reconcileServerLayout(serverId);
     const knownCats = new Set(this.categoriesOf(serverId).map((c) => c.id));
-    const targetCatId = channel.categoryId && knownCats.has(channel.categoryId) ? channel.categoryId : null;
+    const targetCatId =
+      channel.categoryId && knownCats.has(channel.categoryId) ? channel.categoryId : null;
 
     // Đảm bảo kênh không bị duplicate
     const nextRoot = layout.rootItems.filter(
@@ -503,7 +577,9 @@ export class ServersStore {
       const existing = current[serverId] ?? [];
       return {
         ...current,
-        [serverId]: existing.map((c) => (c.id === channel.id ? this.enrichChannel({ ...c, ...channel }) : c)),
+        [serverId]: existing.map((c) =>
+          c.id === channel.id ? this.enrichChannel({ ...c, ...channel }) : c,
+        ),
       };
     });
   }
@@ -532,7 +608,8 @@ export class ServersStore {
     return {
       ...c,
       slowmode: c.slowmode !== undefined ? c.slowmode : (meta.slowmode ?? 0),
-      isAgeRestricted: c.isAgeRestricted !== undefined ? c.isAgeRestricted : (meta.isAgeRestricted ?? false),
+      isAgeRestricted:
+        c.isAgeRestricted !== undefined ? c.isAgeRestricted : (meta.isAgeRestricted ?? false),
       contentVisibility:
         c.contentVisibility !== undefined
           ? c.contentVisibility
@@ -724,14 +801,21 @@ export class ServersStore {
    */
   reconcileServerLayout(serverId: string): ServerChannelLayout {
     const cleanLayout = this.computeServerLayout(serverId);
+    const existing = this.serverChannelLayouts()[serverId] as ServerChannelStructure | undefined;
+    const reconciled: ServerChannelStructure = {
+      ...cleanLayout,
+      revision: existing?.revision,
+      updatedAt: existing?.updatedAt,
+      categories: this.categoriesOf(serverId).map((category) => ({ ...category })),
+    };
 
     this.serverChannelLayouts.update((current) => ({
       ...current,
-      [serverId]: cleanLayout,
+      [serverId]: reconciled,
     }));
 
     this.persistChannelLayoutsToStorage();
-    return cleanLayout;
+    return reconciled;
   }
 
   /**
@@ -770,7 +854,10 @@ export class ServersStore {
     }
 
     // 2. Chèn channelId vào đích đến mới
-    if (effectiveTargetCategoryId && nextCategoryChannels[effectiveTargetCategoryId] !== undefined) {
+    if (
+      effectiveTargetCategoryId &&
+      nextCategoryChannels[effectiveTargetCategoryId] !== undefined
+    ) {
       const targetArray = nextCategoryChannels[effectiveTargetCategoryId];
       const clampedIndex = Math.max(0, Math.min(targetIndex, targetArray.length));
       targetArray.splice(clampedIndex, 0, channelId);
@@ -1471,16 +1558,7 @@ export class ServersStore {
   }
 
   private persistCategoriesToStorage(): void {
-    const userId = this.activeUserId();
-    if (!userId) return;
-    try {
-      localStorage.setItem(
-        `${CATEGORIES_STORAGE_PREFIX}${userId}`,
-        JSON.stringify(this.categoriesByServer()),
-      );
-    } catch {
-      // Storage unavailable or full
-    }
+    // Category là cấu trúc chung của server, không được ghi theo từng user.
   }
 
   private hydrateChannelLayoutsFromStorage(userId: string | null): void {
@@ -1574,21 +1652,16 @@ export class ServersStore {
   }
 
   private persistChannelLayoutsToStorage(): void {
-    const userId = this.activeUserId();
-    if (!userId || typeof window === 'undefined' || !window.localStorage) {
-      return;
-    }
+    // Layout là cấu trúc chung của server, không được ghi theo từng user.
+  }
 
-    const storageKey = `${CHANNEL_LAYOUT_PREFIX}${userId}`;
+  private removeLegacyPerUserChannelStructure(userId: string | null): void {
+    if (!userId || typeof window === 'undefined' || !window.localStorage) return;
     try {
-      const layouts = this.serverChannelLayouts();
-      if (Object.keys(layouts).length === 0) {
-        localStorage.removeItem(storageKey);
-        return;
-      }
-      localStorage.setItem(storageKey, JSON.stringify(layouts));
+      localStorage.removeItem(`${CATEGORIES_STORAGE_PREFIX}${userId}`);
+      localStorage.removeItem(`${CHANNEL_LAYOUT_PREFIX}${userId}`);
     } catch {
-      // Storage unavailable or full
+      // Storage unavailable
     }
   }
 

@@ -163,6 +163,40 @@ describe('ServersApiService', () => {
     expect(result).toEqual(mockChannel);
   });
 
+  it('loads the canonical shared channel structure of a server', async () => {
+    const structure = {
+      version: 1 as const,
+      categories: [{ id: 'cat-main', name: 'Chính' }],
+      rootItems: [{ kind: 'category' as const, id: 'cat-main' }],
+      categoryChannels: { 'cat-main': ['channel-1'] },
+      revision: 3,
+    };
+    const promise = service.getChannelStructure('server-1');
+
+    const req = httpTesting.expectOne(`${environment.apiUrl}/servers/server-1/channel-structure`);
+    expect(req.request.method).toBe('GET');
+    req.flush(structure);
+
+    await expect(promise).resolves.toEqual(structure);
+  });
+
+  it('saves the canonical shared channel structure for all members', async () => {
+    const structure = {
+      version: 1 as const,
+      categories: [{ id: 'cat-main', name: 'Chính' }],
+      rootItems: [{ kind: 'category' as const, id: 'cat-main' }],
+      categoryChannels: { 'cat-main': ['channel-1'] },
+    };
+    const promise = service.updateChannelStructure('server-1', structure);
+
+    const req = httpTesting.expectOne(`${environment.apiUrl}/servers/server-1/channel-structure`);
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ structure });
+    req.flush({ ...structure, revision: 1 });
+
+    await expect(promise).resolves.toEqual({ ...structure, revision: 1 });
+  });
+
   it('should call DELETE /api/servers/:serverId when deleteServer is called', async () => {
     const promise = service.deleteServer('srv-100');
 
@@ -211,7 +245,10 @@ describe('ServersApiService', () => {
     it('should extract migration / db message for status 503 or 500', () => {
       const error = new HttpErrorResponse({
         status: 503,
-        error: { message: 'Cơ sở dữ liệu chưa sẵn sàng: RPC create_server_with_template chưa được tạo trên Supabase' },
+        error: {
+          message:
+            'Cơ sở dữ liệu chưa sẵn sàng: RPC create_server_with_template chưa được tạo trên Supabase',
+        },
       });
       expect(formatApiError(error)).toContain('RPC create_server_with_template');
     });

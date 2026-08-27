@@ -1,11 +1,24 @@
 <mat-toolbar class="chat-toolbar pl-[68px] md:pl-8 pr-4 sm:pr-6 md:pr-8">
-  <span
-    class="chat-toolbar__identity-icon hidden md:flex mr-2.5 ml-1 size-9 items-center justify-center rounded-xl shrink-0"
-  >
-    <mat-icon aria-hidden="true" class="!size-5 !text-[20px] leading-none">{{
-      leadingIcon()
-    }}</mat-icon>
-  </span>
+  @if (showAvatar()) {
+    <div class="chat-toolbar__avatar hidden md:flex mr-2.5 ml-1 relative shrink-0 items-center justify-center">
+      <app-avatar
+        [src]="avatarSrc()"
+        [name]="title()"
+        [userId]="avatarUserId()"
+        [presence]="avatarPresence()"
+        size="md"
+        ring="canvas"
+      />
+    </div>
+  } @else {
+    <span
+      class="chat-toolbar__identity-icon hidden md:flex mr-2.5 ml-1 size-9 items-center justify-center rounded-xl shrink-0"
+    >
+      <mat-icon aria-hidden="true" class="!size-5 !text-[20px] leading-none">{{
+        leadingIcon()
+      }}</mat-icon>
+    </span>
+  }
 
   <h1 class="truncate text-body-md font-bold text-ink">{{ title() }}</h1>
 
@@ -21,7 +34,7 @@
       <button
         mat-icon-button
         type="button"
-        class="nexus-icon-control !size-9 !rounded-lg"
+        class="nexus-icon-control !size-9 !rounded-full"
         matTooltip="Bắt đầu cuộc gọi thoại"
         (click)="startAudioCall.emit()"
       >
@@ -31,7 +44,7 @@
       <button
         mat-icon-button
         type="button"
-        class="nexus-icon-control !size-9 !rounded-lg"
+        class="nexus-icon-control !size-9 !rounded-full"
         matTooltip="Bắt đầu cuộc gọi video"
         (click)="startVideoCall.emit()"
       >
@@ -69,7 +82,7 @@
       <button
         mat-icon-button
         type="button"
-        class="nexus-icon-control !size-9 !rounded-lg"
+        class="nexus-icon-control !size-9 !rounded-full"
         [class.nexus-icon-control--active]="pinsOpen()"
         [attr.aria-expanded]="pinsOpen()"
         [attr.aria-label]="pinsOpen() ? 'Đóng tin nhắn đã ghim' : 'Mở tin nhắn đã ghim'"
@@ -84,7 +97,7 @@
       <button
         mat-icon-button
         type="button"
-        class="nexus-icon-control !size-9 !rounded-lg"
+        class="nexus-icon-control !size-9 !rounded-full"
         [class.nexus-icon-control--active]="detailsOpen()"
         [attr.aria-expanded]="detailsOpen()"
         [attr.aria-label]="detailsOpen() ? 'Ẩn ' + detailsLabel() : 'Hiện ' + detailsLabel()"

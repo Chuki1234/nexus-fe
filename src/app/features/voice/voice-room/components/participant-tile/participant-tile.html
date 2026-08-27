@@ -94,6 +94,16 @@
 
       <!-- Status Icons -->
       <div class="flex items-center gap-1.5 rounded-lg bg-canvas/80 px-2 py-1 backdrop-blur-xs">
+        @if (participant().isMuted) {
+          <mat-icon
+            class="!size-4 !text-base text-danger"
+            matTooltip="Đang tắt mic"
+            aria-label="Micro đang tắt"
+          >
+            mic_off
+          </mat-icon>
+        }
+
         @if (participant().isDeafened) {
           <mat-icon
             class="!size-4 !text-base text-danger"
@@ -101,14 +111,6 @@
             aria-label="Tai nghe đang tắt"
           >
             headset_off
-          </mat-icon>
-        } @else if (participant().isMuted) {
-          <mat-icon
-            class="!size-4 !text-base text-danger"
-            matTooltip="Đang tắt mic"
-            aria-label="Micro đang tắt"
-          >
-            mic_off
           </mat-icon>
         }
 

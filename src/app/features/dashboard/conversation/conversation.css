@@ -43,8 +43,8 @@
 }
 
 .chat-intro__avatar {
-  border-radius: var(--radius-xxl);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent);
+  display: inline-flex;
+  border-radius: var(--radius-full);
 }
 
 @keyframes chat-intro-enter {

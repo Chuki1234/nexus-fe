@@ -4,7 +4,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Router } from '@angular/router';
 import { ProfileService } from '../../../../core/profile/profile.service';
+import { PresenceService } from '../../../../core/presence/presence.service';
+import { PRESENCE_LABEL } from '../../../../../shared/dto/common';
 import { ProfileDialogService } from '../../../../features/profile/profile-dialog.service';
 import { ProfilePopover } from '../../../../features/profile/components/profile-popover/profile-popover';
 import { ProfileStore } from '../../../../features/profile/profile-store';
@@ -38,7 +41,9 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
   styleUrl: './user-panel.css',
 })
 export class UserPanel {
+  private readonly router = inject(Router);
   private readonly profile = inject(ProfileService);
+  private readonly presenceService = inject(PresenceService);
   private readonly settingsService = inject(UserSettingsService);
   private readonly profileDialog = inject(ProfileDialogService);
   readonly voiceRoom = inject(VoiceRoomService);
@@ -66,6 +71,13 @@ export class UserPanel {
 
   protected readonly displayName = computed(
     () => this.profile.current()?.displayName ?? this.profile.current()?.username ?? 'Bạn',
+  );
+
+  protected readonly currentPresence = computed(() =>
+    this.presenceService.resolvePresence(this.profile.current()?.id),
+  );
+  protected readonly currentPresenceLabel = computed(
+    () => PRESENCE_LABEL[this.currentPresence()],
   );
 
   /** Username để điều hướng sang trang hồ sơ đầy đủ. */
@@ -130,6 +142,18 @@ export class UserPanel {
   protected toggleDeafen(): void {
     if (this.isVoiceConnected()) {
       void this.voiceRoom.toggleDeafen();
+    }
+  }
+
+  protected onNavigateToActiveVoiceRoom(): void {
+    const srvId = this.voiceRoom.currentServerId();
+    const chId = this.voiceRoom.currentChannelId();
+    if (!chId) return;
+
+    if (srvId && srvId !== '@me') {
+      void this.router.navigate(['/channels', srvId, chId]);
+    } else {
+      void this.router.navigate(['/channels/@me', chId]);
     }
   }
 

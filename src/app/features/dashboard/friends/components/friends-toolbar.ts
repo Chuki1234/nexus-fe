@@ -42,4 +42,15 @@ export class FriendsToolbar {
   protected toggleTheme(): void {
     this.theme.set(this.theme() === 'dark' ? 'light' : 'dark');
   }
+
+  protected onSegmentedWheel(event: WheelEvent): void {
+    const el = event.currentTarget as HTMLElement;
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    if (event.deltaY !== 0) {
+      el.scrollLeft += event.deltaY;
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+    }
+  }
 }

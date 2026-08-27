@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { describe, expect, it, vi } from 'vitest';
 import { ServersStore } from '../../../../../../core/servers/servers.store';
+import { ServerChannelStructureSyncService } from '../../../../../../core/servers/server-channel-structure-sync.service';
 import { CreateCategoryDialog } from './create-category-dialog';
 
 describe('CreateCategoryDialog', () => {
@@ -16,6 +17,10 @@ describe('CreateCategoryDialog', () => {
       providers: [
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: mockDialogRef },
+        {
+          provide: ServerChannelStructureSyncService,
+          useValue: { save: vi.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compileComponents();
 

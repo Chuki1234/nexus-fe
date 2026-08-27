@@ -9,15 +9,17 @@
     [attr.aria-current]="friends.isActive ? 'page' : null"
     class="nexus-nav-item"
   >
-    <mat-icon matListItemIcon aria-hidden="true">group</mat-icon>
+    <span matListItemIcon class="relative !mr-3 !flex !size-6 !items-center !justify-center !overflow-visible">
+      <mat-icon aria-hidden="true">group</mat-icon>
+      @if (pendingFriendRequestsCount() > 0) {
+        <app-unread-badge
+          class="pointer-events-none absolute -right-2 -top-2 z-20 origin-top-right scale-75"
+          [count]="pendingFriendRequestsCount()"
+          label="yêu cầu và lời mời chưa xử lý"
+        />
+      }
+    </span>
     <span matListItemTitle [class.text-ink]="friends.isActive">Bạn bè</span>
-    @if (pendingFriendRequestsCount() > 0) {
-      <app-unread-badge
-        matListItemMeta
-        [count]="pendingFriendRequestsCount()"
-        label="yêu cầu và lời mời chưa xử lý"
-      />
-    }
   </a>
 </mat-nav-list>
 
@@ -64,6 +66,13 @@
               ring="surface"
             />
           }
+          @if (conversation.unreadCount > 0) {
+            <app-unread-badge
+              class="pointer-events-none absolute -right-1.5 -top-1.5 z-20 origin-top-right scale-75"
+              [count]="conversation.unreadCount"
+              label="tin nhắn chưa đọc"
+            />
+          }
         </span>
         <span
           matListItemTitle
@@ -71,9 +80,6 @@
           [class.text-ink]="!link.isActive && conversation.unread"
         >
           <app-overflow-marquee class="min-w-0 flex-1" [text]="conversation.name" />
-          @if (conversation.unreadCount > 0) {
-            <app-unread-badge [count]="conversation.unreadCount" />
-          }
         </span>
       </a>
     } @empty {

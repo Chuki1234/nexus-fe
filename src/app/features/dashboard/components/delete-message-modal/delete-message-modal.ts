@@ -58,6 +58,16 @@ export class DeleteMessageModal {
 
   protected readonly selectedScope = signal<'for_me' | 'everyone'>('for_me');
 
+  constructor() {
+    // The action that opens this dialog is labelled "Thu hồi tin nhắn" when
+    // the user has recall permission. Select that matching scope by default
+    // so confirming the dialog cannot silently perform the different
+    // "hide only for me" action.
+    if (this.dialogData?.canRecall) {
+      this.selectedScope.set('everyone');
+    }
+  }
+
   @HostListener('document:keydown.escape', ['$event'])
   onEscapeKey(event?: Event): void {
     if (!this.isSubmitting()) {
