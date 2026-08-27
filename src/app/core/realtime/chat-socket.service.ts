@@ -29,12 +29,6 @@ export interface RoomRegistration {
   joinPromise: Promise<JoinConversationResponse> | null;
 }
 
-<<<<<<< HEAD
-export const CHAT_SOCKET_FACTORY = new InjectionToken<typeof io>('CHAT_SOCKET_FACTORY', {
-  providedIn: 'root',
-  factory: () => io,
-});
-=======
 interface ServerRoomRegistration {
   refCount: number;
   state: 'idle' | 'joining' | 'joined' | 'failed';
@@ -54,7 +48,6 @@ export const CHAT_SOCKET_FACTORY = new InjectionToken<typeof io>(
   'CHAT_SOCKET_FACTORY',
   { providedIn: 'root', factory: () => io },
 );
->>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2
 
 @Injectable({
   providedIn: 'root',
