@@ -15,14 +15,14 @@
 .nexus-lightbox-main-img {
   max-height: calc(100vh - 180px);
   object-fit: contain;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
-  animation: lightboxImgFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: lightboxImgFade 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @keyframes lightboxImgFade {
   from {
     opacity: 0;
-    transform: scale(0.97);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
@@ -44,7 +44,21 @@
 }
 
 .nexus-lightbox-nav-btn {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.nexus-lightbox-download-btn,
+.nexus-lightbox-sub-btn,
+.nexus-lightbox-close-btn {
+  outline: none;
+  text-decoration: none;
+}
+
+.nexus-lightbox-download-btn:focus-visible,
+.nexus-lightbox-sub-btn:focus-visible,
+.nexus-lightbox-close-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 @media (max-width: 640px) {

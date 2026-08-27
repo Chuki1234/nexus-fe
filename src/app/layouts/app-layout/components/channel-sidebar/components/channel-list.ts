@@ -750,9 +750,9 @@ export class ChannelList implements OnDestroy {
     }));
   }
 
-  /** Số nhắc tên chưa đọc của một kênh — lấy từ NotificationStore realtime. */
-  protected channelMention(channelId: string): number {
-    return this.notificationStore.channelMention(channelId);
+  /** Số tin chưa đọc của đúng kênh — dùng chung cho kênh chữ và chat kênh thoại. */
+  protected channelUnreadCount(channelId: string): number {
+    return this.notificationStore.channelUnreadCount(channelId);
   }
 
   /** Kênh có tin chưa đọc (để in đậm / hiện chấm). */
@@ -760,16 +760,12 @@ export class ChannelList implements OnDestroy {
     return this.notificationStore.channelHasUnread(channelId);
   }
 
-  /** Tổng nhắc tên của category (gộp mọi kênh con) — badge trên header cha. */
-  protected getGroupMentionCount(group: ChannelGroupViewModel | SidebarCategoryItem): number {
+  /** Tổng số tin chưa đọc của category khi category đang thu gọn. */
+  protected getGroupUnreadCount(group: ChannelGroupViewModel | SidebarCategoryItem): number {
     return group.channels.reduce(
-      (acc, ch) => acc + this.notificationStore.channelMention(ch.id),
+      (acc, ch) => acc + this.notificationStore.channelUnreadCount(ch.id),
       0,
     );
-  }
-
-  protected getGroupHasUnread(group: ChannelGroupViewModel | SidebarCategoryItem): boolean {
-    return group.channels.some((ch) => this.notificationStore.channelHasUnread(ch.id));
   }
 
   protected getVoiceChannelMembers(channelId: string): VoiceChannelMemberViewModel[] {

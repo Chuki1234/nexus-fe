@@ -176,6 +176,15 @@ export class NotificationStore {
     return this.channelCounts()[channelId]?.mention ?? 0;
   }
 
+  /**
+   * Tổng số tin chưa đọc hiển thị trên đúng kênh.
+   * Mention là một phần của unread nên lấy max để không đếm đôi cùng một tin.
+   */
+  channelUnreadCount(channelId: string): number {
+    const counts = this.channelCounts()[channelId];
+    return counts ? Math.max(counts.unread, counts.mention) : 0;
+  }
+
   channelHasUnread(channelId: string): boolean {
     const c = this.channelCounts()[channelId];
     return !!c && (c.unread > 0 || c.mention > 0);
@@ -197,6 +206,24 @@ export class NotificationStore {
     for (const [channelId, c] of Object.entries(entries)) {
       if (c.serverId === serverId && this.isChannelVisible(serverId, channelId)) {
         total += c.mention;
+      }
+    }
+    return total;
+  }
+
+  /**
+   * Tổng số thông báo chưa đọc của một server.
+   *
+   * `mention` là một lát cắt của `unread`, không cộng hai giá trị với nhau vì
+   * một tin @mention sẽ bị đếm đôi. Dùng `max` cũng giữ được badge khi client
+   * chỉ nhận mention qua user-room nhưng lỡ nhịp unread từ server-room.
+   */
+  serverUnreadCount(serverId: string): number {
+    const entries = this.channelCounts();
+    let total = 0;
+    for (const [channelId, c] of Object.entries(entries)) {
+      if (c.serverId === serverId && this.isChannelVisible(serverId, channelId)) {
+        total += Math.max(c.unread, c.mention);
       }
     }
     return total;
