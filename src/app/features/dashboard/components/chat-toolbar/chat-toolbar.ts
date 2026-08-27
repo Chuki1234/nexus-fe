@@ -3,6 +3,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import type { PresenceStatus } from '../../../../../shared/dto/common';
 
 /**
  * Thanh trên cùng của khu nội dung.
@@ -12,7 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
  */
 @Component({
   selector: 'app-chat-toolbar',
-  imports: [MatButtonModule, MatIconModule, MatToolbarModule, MatTooltipModule],
+  imports: [Avatar, MatButtonModule, MatIconModule, MatToolbarModule, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './chat-toolbar.css',
   templateUrl: './chat-toolbar.html',
@@ -21,6 +23,10 @@ export class ChatToolbar {
   readonly title = input.required<string>();
   readonly subtitle = input<string | null>(null);
   readonly leadingIcon = input<string>('tag');
+  readonly showAvatar = input<boolean>(false);
+  readonly avatarSrc = input<string | null>(null);
+  readonly avatarUserId = input<string | null>(null);
+  readonly avatarPresence = input<PresenceStatus | null>(null);
   readonly showCallActions = input<boolean>(false);
   readonly showDetailsAction = input<boolean>(true);
   readonly detailsOpen = input<boolean>(false);

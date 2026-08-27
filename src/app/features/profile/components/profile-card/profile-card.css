@@ -1,31 +1,24 @@
-/* Trạng thái dạng "bong bóng thoại" toả ra từ avatar (kiểu Discord).
-   Neo tuyệt đối trong cụm avatar (relative), đặt HẲN ra ngoài mép avatar có
-   khoảng hở để không đè lên ảnh đại diện. Chỉ dùng token design system. */
+/* "Đám mây suy nghĩ" toả ra từ avatar: bong bóng pill + 2 chấm tròn nhỏ dần làm
+   đuôi mây nối xuống avatar — gợi cảm giác ĐANG SUY NGHĨ. Giữ token teal Nexus.
+
+   Đây là thẻ ĐẦY ĐỦ (dialog / trang /u): bong bóng rộng hơn (tối đa 20rem) nên
+   phần lớn trạng thái hiện trọn trên 1 dòng; quá dài mới cắt "…". Vẫn 1 dòng
+   ngang, không xổ dọc. Chỉ dùng token design system. */
 .status-cloud {
   position: absolute;
-  left: calc(100% + 10px);
-  bottom: 72%;
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
+  /* Bốc LÊN từ ĐỈNH đầu (góc trên–phải avatar). */
+  left: calc(100% - 6px);
+  bottom: calc(100% - 8px);
   z-index: 3;
 }
 
-.status-cloud .status-tail-lg {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 9999px;
-  background: var(--color-surface-soft);
-  box-shadow: 0 0 0 1px var(--color-hairline);
-  margin-bottom: 3px;
-}
-
 .status-cloud .status-bubble {
-  margin-bottom: 8px;
-  max-width: 15rem;
-  padding: 7px 13px;
-  border-radius: 14px;
+  position: relative;
+  display: block;
+  min-width: 0;
+  max-width: 20rem;
+  padding: 8px 15px;
+  border-radius: 9999px;
   background: var(--color-surface-soft);
   box-shadow: 0 0 0 1px var(--color-hairline);
   color: var(--color-charcoal);
@@ -34,4 +27,25 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.status-cloud .status-tail {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--color-surface-soft);
+  box-shadow: 0 0 0 1px var(--color-hairline);
+}
+
+.status-cloud .status-tail--md {
+  width: 11px;
+  height: 11px;
+  left: -9px;
+  bottom: -10px;
+}
+
+.status-cloud .status-tail--sm {
+  width: 8px;
+  height: 8px;
+  left: -15px;
+  bottom: -14px;
 }

@@ -311,10 +311,13 @@
 }
 
 .composer-textarea {
-  min-height: 24px;
+  min-height: 22px;
   max-height: 160px;
-  line-height: 1.4;
+  line-height: 22px;
   overflow-y: auto;
+  padding: 0 !important;
+  margin: auto 0;
+  display: block;
 }
 
 .composer-textarea::-webkit-scrollbar {

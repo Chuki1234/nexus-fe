@@ -26,6 +26,7 @@ import type { DisplayConversation } from '../../../../../core/conversations/conv
 export type { DisplayConversation };
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
+import { NotificationStore } from '../../../../../core/notification/notification-store';
 import { PresenceService } from '../../../../../core/presence/presence.service';
 import { DirectCallCoordinatorService } from '../../../../../core/calls/direct-call-coordinator.service';
 import { UserSettingsService } from '../../../../../features/settings/services/user-settings.service';
@@ -69,6 +70,7 @@ import { OverflowMarquee } from '../../../../../shared/ui/overflow-marquee/overf
 export class ConversationList implements OnInit, OnDestroy {
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly chatSocket = inject(ChatSocketService);
+  private readonly notificationStore = inject(NotificationStore);
   private readonly presenceService = inject(PresenceService);
   private readonly auth = inject(AuthService);
   private readonly activeChatStore = inject(ActiveChatStore);
@@ -118,8 +120,10 @@ export class ConversationList implements OnInit, OnDestroy {
         avatarUrl: c.recipient?.avatarUrl || c.iconUrl || null,
         presence,
         statusMessage: c.recipient?.statusMessage || null,
-        unread: c.unreadCount > 0,
-        unreadCount: c.unreadCount,
+        // Số chưa đọc lấy từ NotificationStore toàn cục (không bị mất khi đổi
+        // server/route). Store đã được seed từ REST bên dưới.
+        unread: this.notificationStore.dmUnread(c.id) > 0,
+        unreadCount: this.notificationStore.dmUnread(c.id),
       };
     });
 
@@ -150,6 +154,9 @@ export class ConversationList implements OnInit, OnDestroy {
     try {
       const list = await this.conversationsApi.listConversations();
       this.realConversations.set(list ?? []);
+      this.notificationStore.seedDmUnread(
+        (list ?? []).map((c) => ({ id: c.id, unreadCount: c.unreadCount })),
+      );
       this.error.set(null);
     } catch {
       this.realConversations.set([]);
@@ -159,50 +166,21 @@ export class ConversationList implements OnInit, OnDestroy {
   }
 
   private setupRealtimeListeners(): void {
-    // 1. User-room notification: conversation nhận tin nhắn mới từ người khác
+    // 1. Số chưa đọc DM do NotificationStore (root) sở hữu và cộng dồn — ở đây chỉ
+    //    cần phát hiện DM MỚI chưa có trong sidebar để tải lại danh sách.
     if (this.chatSocket.conversationUpdated$) {
       this.subs.add(
         this.chatSocket.conversationUpdated$.subscribe(({ conversationId, senderId }) => {
-          const myId = this.auth.user()?.id;
-
-          // Defense-in-depth: skip nếu sender là chính mình (backend đã loại nhưng an toàn thêm)
-          if (senderId === myId) return;
-
-          // Không tăng unread nếu conversation đó đang được mở (user đang đọc)
-          const activeConvId = this.activeChatStore.conversationId();
-          if (activeConvId === conversationId) return;
-
-          this.realConversations.update((list) => {
-            const exists = list.some((c) => c.id === conversationId);
-            if (!exists) {
-              // Conversation chưa có trong sidebar (ví dụ DM mới tạo) — tải lại danh sách
-              void this.loadRealConversations();
-              return list;
-            }
-            return list.map((conv) =>
-              conv.id === conversationId
-                ? { ...conv, unreadCount: conv.unreadCount + 1 }
-                : conv,
-            );
-          });
+          if (senderId === this.auth.user()?.id) return;
+          const exists = this.realConversations().some((c) => c.id === conversationId);
+          if (!exists) {
+            void this.loadRealConversations();
+          }
         }),
       );
     }
 
-    // 2. Read state: reset unread khi user đánh dấu đã đọc
-    if (this.chatSocket.messageRead$) {
-      this.subs.add(
-        this.chatSocket.messageRead$.subscribe(({ conversationId }) => {
-          this.realConversations.update((list) =>
-            list.map((conv) =>
-              conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv,
-            ),
-          );
-        }),
-      );
-    }
-
-    // 3. Conversation deleted: xóa khỏi sidebar và điều hướng an toàn nếu đang ở trong đoạn chat đó
+    // 2. Conversation deleted: xóa khỏi sidebar và điều hướng an toàn nếu đang ở trong đoạn chat đó
     if (this.chatSocket.conversationDeleted$) {
       this.subs.add(
         this.chatSocket.conversationDeleted$.subscribe(({ conversationId, friendId }) => {
@@ -255,8 +233,11 @@ export class ConversationList implements OnInit, OnDestroy {
     }
   }
 
-  protected onViewProfile(_conv: DisplayConversation): void {
-    // Chức năng Xem hồ sơ - chỉ để nút bấm, sự kiện sẽ được implement sau
+  protected onViewProfile(conv: DisplayConversation): void {
+    const target = conv.username || conv.name || conv.recipientId;
+    if (target) {
+      void this.router.navigate(['/u', target]);
+    }
   }
 
   protected onEditNote(conv: DisplayConversation): void {

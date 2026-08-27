@@ -16,6 +16,7 @@ describe('ServerRealtimeCoordinator', () => {
   let snackBar: MatSnackBar;
 
   let channelsInvalidatedSubject: Subject<{ serverId: string }>;
+  let channelStructureUpdatedSubject: Subject<any>;
   let serverDeletedSubject: Subject<{ serverId: string }>;
   let serverMemberLeftSubject: Subject<{ serverId: string; userId: string }>;
   let presenceSyncSubject: Subject<any>;
@@ -27,12 +28,14 @@ describe('ServerRealtimeCoordinator', () => {
 
   beforeEach(() => {
     channelsInvalidatedSubject = new Subject();
+    channelStructureUpdatedSubject = new Subject();
     serverDeletedSubject = new Subject();
     serverMemberLeftSubject = new Subject();
     presenceSyncSubject = new Subject();
 
     mockChatSocket = {
       channelsInvalidated$: channelsInvalidatedSubject,
+      channelStructureUpdated$: channelStructureUpdatedSubject,
       serverDeleted$: serverDeletedSubject,
       serverMemberLeft$: serverMemberLeftSubject,
       presenceSync$: presenceSyncSubject,
@@ -45,6 +48,7 @@ describe('ServerRealtimeCoordinator', () => {
         { id: 'chan-text-1', name: 'chung', type: 'text' },
         { id: 'chan-voice-1', name: 'thoại', type: 'voice' },
       ]),
+      getChannelStructure: vi.fn().mockResolvedValue(null),
     };
 
     mockAuth = {
@@ -125,5 +129,44 @@ describe('ServerRealtimeCoordinator', () => {
       expect.any(Object),
     );
     expect(navigateSpy).toHaveBeenCalledWith(['/channels', 'srv-1', 'chan-text-1']);
+  });
+
+  it('áp dụng structure realtime dùng chung cho thành viên server', () => {
+    serversStore.setChannels('srv-1', [
+      {
+        id: 'chan-text-1',
+        name: 'chung',
+        type: 'text',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+      },
+      {
+        id: 'chan-voice-1',
+        name: 'thoại',
+        type: 'voice',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+      },
+    ]);
+
+    channelStructureUpdatedSubject.next({
+      serverId: 'srv-1',
+      updatedBy: 'owner-1',
+      structure: {
+        version: 1,
+        categories: [{ id: 'cat-main', name: 'Chính' }],
+        rootItems: [{ kind: 'category', id: 'cat-main' }],
+        categoryChannels: { 'cat-main': ['chan-voice-1', 'chan-text-1'] },
+        revision: 2,
+      },
+    });
+
+    expect(serversStore.channelsOf('srv-1').map((channel) => channel.id)).toEqual([
+      'chan-voice-1',
+      'chan-text-1',
+    ]);
+    expect(serversStore.categoriesOf('srv-1')[0].name).toBe('Chính');
   });
 });

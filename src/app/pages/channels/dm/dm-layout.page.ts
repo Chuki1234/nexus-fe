@@ -48,6 +48,14 @@ import { UserBarComponent } from '../ui/user-bar.component';
                   ringClass="border-canvas-soft"
                   class="absolute right-0 bottom-0"
                 />
+                @if (conversation.unread) {
+                  <span
+                    class="absolute -right-1 -top-1 z-20 flex min-w-5 items-center justify-center rounded-pill bg-danger px-1.5 text-caption-strong text-ink-strong"
+                  >
+                    <span aria-hidden="true">{{ conversation.unread }}</span>
+                    <span class="sr-only">{{ conversation.unread }} tin chưa đọc</span>
+                  </span>
+                }
               </span>
 
               <span class="min-w-0 flex-1">
@@ -59,14 +67,6 @@ import { UserBarComponent } from '../ui/user-bar.component';
                 }}</span>
               </span>
 
-              @if (conversation.unread) {
-                <span
-                  class="flex min-w-5 shrink-0 items-center justify-center rounded-pill bg-danger px-1.5 text-caption-strong text-ink-strong"
-                >
-                  <span aria-hidden="true">{{ conversation.unread }}</span>
-                  <span class="sr-only">{{ conversation.unread }} tin chưa đọc</span>
-                </span>
-              }
             </a>
           </li>
         }

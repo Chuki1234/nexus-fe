@@ -80,12 +80,12 @@ export class GiphyPickerComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const hasKey = this.giphyApi.hasApiKey();
-    this.hasConfiguredKey.set(hasKey);
+    const isConfigured = this.giphyApi.isConfigured();
+    this.hasConfiguredKey.set(isConfigured);
 
-    if (!hasKey) {
+    if (!isConfigured) {
       this.errorMessage.set(
-        'Chưa cấu hình GIPHY API key. Vui lòng thiết lập giphyApiKey trong môi trường.',
+        'Dịch vụ GIF chưa sẵn sàng. Vui lòng kiểm tra cấu hình kết nối backend.',
       );
       return;
     }

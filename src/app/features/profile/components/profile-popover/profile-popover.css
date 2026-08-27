@@ -1,0 +1,51 @@
+/* "Đám mây suy nghĩ" toả ra từ avatar: bong bóng pill chứa trạng thái + 2 chấm
+   tròn nhỏ dần làm đuôi mây nối chéo xuống avatar — gợi cảm giác người này ĐANG
+   SUY NGHĨ (kiểu bong bóng suy nghĩ truyện tranh). Giữ token teal Nexus.
+
+   Bong bóng LUÔN nằm ngang 1 dòng, quá dài cắt "…" (không bao giờ xổ dọc/tràn);
+   muốn đọc trọn thì mở dialog (bong bóng ở đó rộng hơn). Chỉ dùng token DS. */
+.status-cloud {
+  position: absolute;
+  /* Bốc LÊN từ ĐỈNH đầu (góc trên–phải avatar), không phải từ giữa/đáy. */
+  left: calc(100% - 6px);
+  bottom: calc(100% - 8px);
+  z-index: 3;
+}
+
+.status-cloud .status-bubble {
+  position: relative;
+  display: block;
+  min-width: 0;
+  max-width: 150px;
+  padding: 6px 13px;
+  border-radius: 9999px;
+  background: var(--color-surface-soft);
+  box-shadow: 0 0 0 1px var(--color-hairline);
+  color: var(--color-charcoal);
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-cloud .status-tail {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--color-surface-soft);
+  box-shadow: 0 0 0 1px var(--color-hairline);
+}
+
+.status-cloud .status-tail--md {
+  width: 10px;
+  height: 10px;
+  left: -8px;
+  bottom: -9px;
+}
+
+.status-cloud .status-tail--sm {
+  width: 7px;
+  height: 7px;
+  left: -13px;
+  bottom: -12px;
+}

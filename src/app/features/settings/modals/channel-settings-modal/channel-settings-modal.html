@@ -99,35 +99,53 @@
             </div>
           </div>
 
-          <!-- Chế độ chậm (Slowmode) -->
-          <div class="flex flex-col gap-1.5">
-            <label for="settings-slowmode" class="text-micro-uppercase font-bold tracking-wider text-steel">
-              CHẾ ĐỘ CHẬM
-            </label>
-            <select
-              id="settings-slowmode"
-              [(ngModel)]="slowmode"
-              class="w-full rounded-xl bg-canvas border border-hairline px-3.5 py-2.5 text-body-sm text-ink outline-none focus:border-primary transition-colors cursor-pointer"
-            >
-              <option [value]="0">Tắt</option>
-              <option [value]="5">5 giây</option>
-              <option [value]="10">10 giây</option>
-              <option [value]="15">15 giây</option>
-              <option [value]="30">30 giây</option>
-              <option [value]="60">1 phút</option>
-              <option [value]="120">2 phút</option>
-              <option [value]="300">5 phút</option>
-              <option [value]="600">10 phút</option>
-              <option [value]="900">15 phút</option>
-              <option [value]="1800">30 phút</option>
-              <option [value]="3600">1 giờ</option>
-              <option [value]="7200">2 giờ</option>
-              <option [value]="21600">6 giờ</option>
-            </select>
-            <p class="text-caption text-steel mt-0.5">
-              Thành viên sẽ bị giới hạn gửi tin nhắn theo chu kỳ thời gian này.
-            </p>
-          </div>
+          <!-- Chế độ chậm (Slowmode) - Chỉ áp dụng cho kênh Chat, ẩn ở kênh Voice -->
+          @if (!isVoiceChannel()) {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-micro-uppercase font-bold tracking-wider text-steel">
+                CHẾ ĐỘ CHẬM
+              </label>
+
+              <!-- Custom Dropdown Trigger Button -->
+              <button
+                type="button"
+                [matMenuTriggerFor]="slowmodeMenu"
+                class="slowmode-dropdown-trigger flex w-full items-center justify-between rounded-xl bg-canvas border border-hairline px-3.5 py-2.5 text-body-sm text-ink outline-none hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-2xs group"
+              >
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <mat-icon class="!w-4.5 !h-4.5 !text-[18px] text-steel group-hover:text-primary transition-colors shrink-0">speed</mat-icon>
+                  <span class="font-semibold truncate">{{ slowmodeLabel() }}</span>
+                </div>
+                <mat-icon class="!w-4.5 !h-4.5 !text-[20px] text-steel shrink-0 transition-transform group-aria-expanded:rotate-180">expand_more</mat-icon>
+              </button>
+
+              <!-- Custom Dropdown Menu -->
+              <mat-menu #slowmodeMenu="matMenu" class="nexus-select-menu" xPosition="after">
+                <div class="slowmode-menu-scroll nexus-scrollbar max-h-64 overflow-y-auto p-1 flex flex-col gap-0.5">
+                  @for (opt of slowmodeOptions; track opt.value) {
+                    <button
+                      mat-menu-item
+                      type="button"
+                      (click)="slowmode.set(opt.value)"
+                      class="nexus-select-item !flex !items-center !justify-between !w-full !px-3 !py-2 !rounded-lg !text-body-sm transition-colors cursor-pointer"
+                      [class.nexus-select-item--active]="slowmode() === opt.value"
+                    >
+                      <span class="font-medium">{{ opt.label }}</span>
+                      @if (slowmode() === opt.value) {
+                        <svg class="size-4 text-primary shrink-0 ml-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      }
+                    </button>
+                  }
+                </div>
+              </mat-menu>
+
+              <p class="text-caption text-steel mt-0.5">
+                Thành viên sẽ bị giới hạn gửi tin nhắn theo chu kỳ thời gian này.
+              </p>
+            </div>
+          }
 
           <!-- Độ Hiển Thị Nội Dung -->
           <div class="flex flex-col gap-1.5">
@@ -232,18 +250,17 @@
       type="button"
       (click)="deleteChannel()"
       [disabled]="isDeleting()"
-      class="flex items-center gap-1.5 text-danger hover:bg-danger/10 px-3 py-1.5 rounded-lg text-body-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
+      class="flex items-center gap-1.5 h-[38px] px-4 rounded-full text-body-sm font-semibold text-danger hover:bg-danger/15 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
     >
       <mat-icon class="!size-4 !text-base">delete</mat-icon>
       <span>Xóa kênh</span>
     </button>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2.5">
       <button
         type="button"
-        mat-button
         (click)="close()"
-        class="!text-steel hover:!text-ink !font-medium"
+        class="flex items-center justify-center h-[38px] px-5 rounded-full text-body-sm font-semibold text-steel hover:text-ink hover:bg-surface-feature/70 active:scale-95 transition-all cursor-pointer"
       >
         Hủy
       </button>
@@ -251,7 +268,7 @@
         type="button"
         [disabled]="!isDirty() || isSaving()"
         (click)="saveChanges()"
-        class="nexus-save-channel-btn flex items-center justify-center gap-2 px-5 py-2 rounded-full font-bold text-body-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        class="nexus-save-channel-btn flex items-center justify-center gap-2 h-[38px] px-5 rounded-full font-bold text-body-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
         [class.bg-primary]="isDirty() && !isSaving()"
         [class.text-on-primary]="isDirty() && !isSaving()"
         [class.hover:bg-primary-soft]="isDirty() && !isSaving()"

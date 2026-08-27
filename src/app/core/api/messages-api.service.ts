@@ -516,9 +516,7 @@ export class MessagesApiService {
   /**
    * Ẩn tin nhắn chỉ riêng ở phía người dùng (Hide for Me).
    */
-  async hideMessage(
-    messageId: string,
-  ): Promise<{
+  async hideMessage(messageId: string): Promise<{
     id: string;
     hidden: boolean;
     scope: 'for_me';
@@ -542,9 +540,7 @@ export class MessagesApiService {
   /**
    * Thu hồi tin nhắn đối với tất cả mọi người trong cuộc trò chuyện (Recall for Everyone).
    */
-  async recallMessage(
-    messageId: string,
-  ): Promise<{
+  async recallMessage(messageId: string): Promise<{
     id: string;
     deleted: boolean;
     scope: 'everyone';

@@ -17,7 +17,7 @@
 <div class="relative px-4 pb-4">
   <!-- Avatar đè lên đúng một nửa ảnh bìa. Vòng khuyên 6px trùng màu mặt thẻ tạo
        cảm giác ảnh bìa bị khoét một lỗ tròn, thay vì avatar dán đè lên trên. -->
-  <div class="-mt-10 mb-2 inline-flex rounded-full bg-surface ring-6 ring-surface">
+  <div class="relative -mt-10 mb-2 inline-flex rounded-full bg-surface ring-6 ring-surface">
     <app-avatar
       class="rounded-full"
       [name]="name()"
@@ -25,6 +25,17 @@
       size="xl"
       ring="surface"
     />
+
+    <!-- Trạng thái dạng "bong bóng thoại" toả ra từ avatar — đồng bộ với thẻ hồ
+         sơ đầy đủ (ProfileCard). Thẻ nhỏ hẹp nên bong bóng cho xuống dòng, gọn
+         hơn bản trong dialog. -->
+    @if (person.statusMessage; as status) {
+      <div class="status-cloud" role="note" [attr.aria-label]="'Trạng thái: ' + status">
+        <span class="status-bubble">{{ status }}</span>
+        <span class="status-tail status-tail--md" aria-hidden="true"></span>
+        <span class="status-tail status-tail--sm" aria-hidden="true"></span>
+      </div>
+    }
   </div>
 
   <!-- Khối danh tính bám sát nhau: Discord để tên và username liền một cụm rồi
@@ -32,13 +43,6 @@
   <div class="mb-3">
     <h3 class="text-heading-5 font-bold leading-tight text-ink">{{ name() }}</h3>
     <p class="text-caption leading-tight text-steel">&commat;{{ person.username }}</p>
-
-    @if (person.statusMessage; as status) {
-      <p class="mt-1.5 flex items-start gap-1.5">
-        <mat-icon aria-hidden="true" class="size-4! shrink-0 text-[16px]! text-steel">chat_bubble</mat-icon>
-        <span class="min-w-0 text-caption text-charcoal">{{ status }}</span>
-      </p>
-    }
   </div>
 
   <!-- Tấm nền phụ gom mọi thông tin còn lại. Trước đây là các khối ngăn nhau

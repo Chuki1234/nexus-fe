@@ -22,6 +22,7 @@ import { ServersApiService } from '../../core/api/servers-api.service';
 import { ServersStore } from '../../core/servers/servers.store';
 import { ChatSocketService } from '../../core/realtime/chat-socket.service';
 import { ServerRealtimeCoordinator } from '../../core/servers/server-realtime-coordinator.service';
+import { NotificationStore } from '../../core/notification/notification-store';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { SettingsModal } from '../../features/settings/settings-modal';
@@ -77,6 +78,9 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   private readonly serversStore = inject(ServersStore);
   private readonly chatSocket = inject(ChatSocketService);
   private readonly coordinator = inject(ServerRealtimeCoordinator);
+  // Khởi tạo sớm ở root để badge chưa đọc/nhắc tên lắng nghe socket xuyên suốt,
+  // không bị mất khi đổi server hay route.
+  private readonly notificationStore = inject(NotificationStore);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
   private readonly activityTracker = inject(UserActivityTrackerService);
   protected readonly layoutService = inject(DashboardLayoutService);

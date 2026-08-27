@@ -183,6 +183,27 @@ describe('MessageComposer', () => {
     expect(composer.text()).toBe('dang go');
   });
 
+  it('xóa input muộn do macOS IME phát lại sau khi Enter đã gửi', async () => {
+    const fixture = await mount();
+    const host = fixture.componentInstance;
+    const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+    const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+
+    composer.onInput('Tiếng Việt có dấu');
+    composer.onKeydown(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    // Safari có thể phát input/compositionend chứa lại giá trị cũ sau keydown.
+    textarea.value = 'Tiếng Việt có dấu';
+    composer.onInput(textarea.value);
+    composer.onCompositionEnd({ target: textarea } as unknown as CompositionEvent);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(host.sentPayloads).toHaveLength(1);
+    expect(composer.text()).toBe('');
+    expect(textarea.value).toBe('');
+  });
+
   it('thu hồi URL.revokeObjectURL khi xoá file hoặc khi huỷ composer, và chuyển giao URL khi submit', async () => {
     const fixture = await mount();
     const host = fixture.componentInstance;
@@ -302,8 +323,9 @@ describe('MessageComposer', () => {
       const fixture = await mount();
       const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
 
-      const files = Array.from({ length: 6 }, (_, i) =>
-        new File([`data-${i}`], `file-${i}.png`, { type: 'image/png' })
+      const files = Array.from(
+        { length: 6 },
+        (_, i) => new File([`data-${i}`], `file-${i}.png`, { type: 'image/png' }),
       );
 
       composer.addFiles(files);
@@ -349,12 +371,18 @@ describe('MessageComposer', () => {
       composer.addFiles(validMimes);
       fixture.detectChanges();
       expect(composer.pendingFiles().length).toBe(5);
-      expect(composer.pendingFiles().find((item) => item.name === 'voice.mp3')?.mediaKind).toBe('audio');
-      expect(composer.pendingFiles().find((item) => item.name === 'clip.mp4')?.mediaKind).toBe('video');
+      expect(composer.pendingFiles().find((item) => item.name === 'voice.mp3')?.mediaKind).toBe(
+        'audio',
+      );
+      expect(composer.pendingFiles().find((item) => item.name === 'clip.mp4')?.mediaKind).toBe(
+        'video',
+      );
 
       // Thử file MIME không được hỗ trợ
       composer.removeFile(composer.pendingFiles()[0].id);
-      const invalidMimeFile = new File(['binary'], 'program.exe', { type: 'application/x-msdownload' });
+      const invalidMimeFile = new File(['binary'], 'program.exe', {
+        type: 'application/x-msdownload',
+      });
       composer.addFiles([invalidMimeFile]);
       fixture.detectChanges();
 

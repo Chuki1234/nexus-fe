@@ -37,10 +37,7 @@ import {
   CdkDropListGroup,
   type CdkDragStart,
 } from '@angular/cdk/drag-drop';
-import {
-  ChannelSummary,
-  ServerCategorySummary,
-} from '../../../../../core/servers/server.models';
+import { ChannelSummary, ServerCategorySummary } from '../../../../../core/servers/server.models';
 import { ServerCapabilitiesService } from '../../../../../core/servers/server-capabilities.service';
 import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
 import { ChatSocketService } from '../../../../../core/realtime/chat-socket.service';
@@ -51,7 +48,10 @@ import { OverflowMarquee } from '../../../../../shared/ui/overflow-marquee/overf
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
 import { InviteChannelDialog } from './invite-channel-dialog/invite-channel-dialog';
 import { ServersStore } from '../../../../../core/servers/servers.store';
+import { NotificationStore } from '../../../../../core/notification/notification-store';
 import { ServerVoiceStatesStore } from '../../../../../core/servers/server-voice-states.store';
+import { UserSettingsService } from '../../../../../features/settings/services/user-settings.service';
+import { ServerChannelStructureSyncService } from '../../../../../core/servers/server-channel-structure-sync.service';
 
 export interface ChannelGroupViewModel {
   id: string;
@@ -122,6 +122,7 @@ export class ChannelList implements OnDestroy {
   @ViewChildren(CdkDropList) private readonly dropLists?: QueryList<CdkDropList>;
 
   private readonly serversStore = inject(ServersStore);
+  private readonly notificationStore = inject(NotificationStore);
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
   private readonly voiceStatesStore = inject(ServerVoiceStatesStore);
   private readonly chatSocket = inject(ChatSocketService);
@@ -129,6 +130,8 @@ export class ChannelList implements OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly userSettings = inject(UserSettingsService);
+  private readonly structureSync = inject(ServerChannelStructureSyncService);
   readonly voiceRoom = inject(VoiceRoomService);
 
   readonly serverId = input.required<string>();
@@ -183,7 +186,11 @@ export class ChannelList implements OnDestroy {
    */
   protected onPrepDrag(event: Event): void {
     const el = event.currentTarget as HTMLElement;
-    const container = el.closest('.channel-drop-list') ?? el.closest('mat-nav-list') ?? el.closest('.channel-sidebar-root-list') ?? el.parentElement;
+    const container =
+      el.closest('.channel-drop-list') ??
+      el.closest('mat-nav-list') ??
+      el.closest('.channel-sidebar-root-list') ??
+      el.parentElement;
     if (container) {
       this.dragPreviewWidth = Math.round(container.getBoundingClientRect().width - 4);
     }
@@ -191,11 +198,13 @@ export class ChannelList implements OnDestroy {
 
   protected onPrepChannelDrag(event: Event): void {
     const row = event.currentTarget as HTMLElement;
-    const container = (row.closest('.channel-drop-list') ?? row.closest('.channel-sidebar-root-list')) as HTMLElement | null;
+    const container = (row.closest('.channel-drop-list') ??
+      row.closest('.channel-sidebar-root-list')) as HTMLElement | null;
     const rowRect = row.getBoundingClientRect();
     const containerStyle = container ? getComputedStyle(container) : null;
     const horizontalPadding = containerStyle
-      ? parseFloat(containerStyle.paddingLeft || '0') + parseFloat(containerStyle.paddingRight || '0')
+      ? parseFloat(containerStyle.paddingLeft || '0') +
+        parseFloat(containerStyle.paddingRight || '0')
       : 0;
     const measuredWidth = container
       ? container.getBoundingClientRect().width - horizontalPadding
@@ -392,10 +401,7 @@ export class ChannelList implements OnDestroy {
     }
   }
 
-  protected onCategoryHeaderDrop(
-    event: CdkDragDrop<any>,
-    targetCategoryId: string,
-  ): void {
+  protected onCategoryHeaderDrop(event: CdkDragDrop<any>, targetCategoryId: string): void {
     if (!this.canManageChannels()) return;
     this.onChannelDragEnded();
     if (this.isDropOutsideSidebar(event)) {
@@ -404,14 +410,17 @@ export class ChannelList implements OnDestroy {
     }
 
     const data = event.item.data as { kind?: string; channel?: ChannelSummary } | ChannelSummary;
-    const channel = (data as any)?.channel ?? (('type' in (data as any)) ? data : null);
+    const channel = (data as any)?.channel ?? ('type' in (data as any) ? data : null);
     if (!channel) return;
 
     const serverId = this.serverId();
-    const targetCat = this.serversStore.categoriesOf(serverId).find((c) => c.id === targetCategoryId);
+    const targetCat = this.serversStore
+      .categoriesOf(serverId)
+      .find((c) => c.id === targetCategoryId);
     const targetName = targetCat?.name ?? 'danh mục';
 
     this.serversStore.moveChannel(serverId, channel.id, targetCategoryId, 0);
+    this.persistStructure(serverId);
     this.announce(`Đã chuyển kênh ${channel.name} vào danh mục ${targetName}.`);
   }
 
@@ -519,8 +528,12 @@ export class ChannelList implements OnDestroy {
   });
 
   protected readonly isOwner = computed(() => this.capabilities()?.isOwner ?? false);
-  protected readonly canManageChannels = computed(() => this.capabilities()?.canManageChannels ?? false);
-  protected readonly canInviteMembers = computed(() => this.capabilities()?.canInviteMembers ?? false);
+  protected readonly canManageChannels = computed(
+    () => this.capabilities()?.canManageChannels ?? false,
+  );
+  protected readonly canInviteMembers = computed(
+    () => this.capabilities()?.canInviteMembers ?? false,
+  );
 
   /** Quản lý trạng thái thu gọn/mở rộng từng nhóm kênh */
   protected readonly collapsedGroups = signal<Record<string, boolean>>({});
@@ -701,7 +714,9 @@ export class ChannelList implements OnDestroy {
    * Tính danh sách kênh hiển thị:
    * Khi Category đóng, ẩn toàn bộ kênh con.
    */
-  protected visibleChannelsOf(group: ChannelGroupViewModel | SidebarCategoryItem): ChannelSummary[] {
+  protected visibleChannelsOf(
+    group: ChannelGroupViewModel | SidebarCategoryItem,
+  ): ChannelSummary[] {
     const groupId = 'category' in group ? group.category.id : group.id;
     const isCollapsed = this.isGroupCollapsed(groupId);
     if (isCollapsed) {
@@ -735,12 +750,26 @@ export class ChannelList implements OnDestroy {
     }));
   }
 
+  /** Số nhắc tên chưa đọc của một kênh — lấy từ NotificationStore realtime. */
+  protected channelMention(channelId: string): number {
+    return this.notificationStore.channelMention(channelId);
+  }
+
+  /** Kênh có tin chưa đọc (để in đậm / hiện chấm). */
+  protected channelHasUnread(channelId: string): boolean {
+    return this.notificationStore.channelHasUnread(channelId);
+  }
+
+  /** Tổng nhắc tên của category (gộp mọi kênh con) — badge trên header cha. */
   protected getGroupMentionCount(group: ChannelGroupViewModel | SidebarCategoryItem): number {
-    return group.channels.reduce((acc, ch) => acc + (ch.mentionCount || 0), 0);
+    return group.channels.reduce(
+      (acc, ch) => acc + this.notificationStore.channelMention(ch.id),
+      0,
+    );
   }
 
   protected getGroupHasUnread(group: ChannelGroupViewModel | SidebarCategoryItem): boolean {
-    return group.channels.some((ch) => ch.unread || (ch.mentionCount || 0) > 0);
+    return group.channels.some((ch) => this.notificationStore.channelHasUnread(ch.id));
   }
 
   protected getVoiceChannelMembers(channelId: string): VoiceChannelMemberViewModel[] {
@@ -814,7 +843,10 @@ export class ChannelList implements OnDestroy {
     }
   }
 
-  protected openCreateChannelDialog(group?: ChannelGroupViewModel | SidebarCategoryItem | 'text' | 'voice', event?: Event): void {
+  protected openCreateChannelDialog(
+    group?: ChannelGroupViewModel | SidebarCategoryItem | 'text' | 'voice',
+    event?: Event,
+  ): void {
     event?.preventDefault();
     event?.stopPropagation();
 
@@ -909,25 +941,23 @@ export class ChannelList implements OnDestroy {
       y = rect.top + rect.height / 2;
     }
 
-    const vm: ChannelGroupViewModel = 'category' in group
-      ? {
-          id: group.category.id,
-          label: group.category.name,
-          isPrivate: group.category.isPrivate,
-          channels: group.channels,
-          isCategory: true,
-        }
-      : group;
+    const vm: ChannelGroupViewModel =
+      'category' in group
+        ? {
+            id: group.category.id,
+            label: group.category.name,
+            isPrivate: group.category.isPrivate,
+            channels: group.channels,
+            isCategory: true,
+          }
+        : group;
 
     this.selectedGroup.set(vm);
     this.contextMenuPosition.set({ x, y });
     this.categoryMenuTrigger?.openMenu();
   }
 
-  protected onChannelContextMenu(
-    event: MouseEvent | KeyboardEvent,
-    channel: ChannelSummary,
-  ): void {
+  protected onChannelContextMenu(event: MouseEvent | KeyboardEvent, channel: ChannelSummary): void {
     event.preventDefault();
     event.stopPropagation();
 
@@ -982,7 +1012,11 @@ export class ChannelList implements OnDestroy {
     const target = channel ?? this.selectedChannel();
     const type = target?.type === 'voice' ? 'voice' : 'text';
     const categoryId = target?.categoryId ?? (type === 'voice' ? 'cat-voice' : 'cat-text');
-    this.openCreateChannelDialog({ id: categoryId, label: type === 'voice' ? 'Kênh thoại' : 'Kênh chữ', channels: [] });
+    this.openCreateChannelDialog({
+      id: categoryId,
+      label: type === 'voice' ? 'Kênh thoại' : 'Kênh chữ',
+      channels: [],
+    });
   }
 
   protected onActionSeam(action: string, target?: unknown): void {}
@@ -1007,9 +1041,7 @@ export class ChannelList implements OnDestroy {
   /**
    * Xử lý thả phần tử tại cấp Root (Category hoặc Root Channel).
    */
-  protected onRootDrop(
-    event: CdkDragDrop<any>,
-  ): void {
+  protected onRootDrop(event: CdkDragDrop<any>): void {
     if (!this.canManageChannels()) return;
     this.onChannelDragEnded();
     if (this.isDropOutsideSidebar(event)) {
@@ -1017,21 +1049,36 @@ export class ChannelList implements OnDestroy {
       return;
     }
 
-    const data = event.item.data as { kind?: string; channel?: ChannelSummary; category?: ServerCategorySummary } | ChannelSummary | ChannelGroupViewModel;
+    const data = event.item.data as
+      | { kind?: string; channel?: ChannelSummary; category?: ServerCategorySummary }
+      | ChannelSummary
+      | ChannelGroupViewModel;
     const serverId = this.serverId();
 
     if (event.previousContainer === event.container) {
       if (event.previousIndex === event.currentIndex) return;
       this.serversStore.moveRootItem(serverId, event.previousIndex, event.currentIndex);
-      const name = (data as any)?.category?.name ?? (data as any)?.channel?.name ?? (data as any)?.name ?? 'phần tử';
+      this.persistStructure(serverId);
+      const name =
+        (data as any)?.category?.name ??
+        (data as any)?.channel?.name ??
+        (data as any)?.name ??
+        'phần tử';
       this.announce(`Đã đổi vị trí ${name}.`);
       return;
     }
 
     // Kéo từ category ra root list
-    const channel = (data as any)?.channel ?? (('type' in (data as any)) ? data : null);
+    const channel = (data as any)?.channel ?? ('type' in (data as any) ? data : null);
     if (channel) {
-      this.serversStore.moveChannel(serverId, channel.id, null, event.currentIndex, event.currentIndex);
+      this.serversStore.moveChannel(
+        serverId,
+        channel.id,
+        null,
+        event.currentIndex,
+        event.currentIndex,
+      );
+      this.persistStructure(serverId);
       this.announce(`Đã đưa kênh ${channel.name} ra cấp máy chủ.`);
     }
   }
@@ -1039,10 +1086,7 @@ export class ChannelList implements OnDestroy {
   /**
    * Xử lý thả kênh vào danh mục (sắp xếp con hoặc chuyển danh mục).
    */
-  protected onCategoryChildDrop(
-    event: CdkDragDrop<any>,
-    targetCategoryId: string,
-  ): void {
+  protected onCategoryChildDrop(event: CdkDragDrop<any>, targetCategoryId: string): void {
     if (!this.canManageChannels()) return;
     this.onChannelDragEnded();
     if (this.isDropOutsideSidebar(event)) {
@@ -1051,21 +1095,30 @@ export class ChannelList implements OnDestroy {
     }
 
     const data = event.item.data as { kind?: string; channel?: ChannelSummary } | ChannelSummary;
-    const channel = (data as any)?.channel ?? (('type' in (data as any)) ? data : null);
+    const channel = (data as any)?.channel ?? ('type' in (data as any) ? data : null);
     if (!channel) return;
 
     const serverId = this.serverId();
-    const targetCat = this.serversStore.categoriesOf(serverId).find((c) => c.id === targetCategoryId);
+    const targetCat = this.serversStore
+      .categoriesOf(serverId)
+      .find((c) => c.id === targetCategoryId);
     const targetName = targetCat?.name ?? 'danh mục';
 
     if (event.previousContainer === event.container) {
       if (event.previousIndex === event.currentIndex) return;
-      this.serversStore.reorderCategoryChildren(serverId, targetCategoryId, event.previousIndex, event.currentIndex);
+      this.serversStore.reorderCategoryChildren(
+        serverId,
+        targetCategoryId,
+        event.previousIndex,
+        event.currentIndex,
+      );
+      this.persistStructure(serverId);
       this.announce(`Đã đổi vị trí kênh ${channel.name} trong danh mục ${targetName}.`);
       return;
     }
 
     this.serversStore.moveChannel(serverId, channel.id, targetCategoryId, event.currentIndex);
+    this.persistStructure(serverId);
     this.announce(`Đã chuyển kênh ${channel.name} vào danh mục ${targetName}.`);
   }
 
@@ -1079,6 +1132,7 @@ export class ChannelList implements OnDestroy {
     if (event.previousIndex === event.currentIndex) return;
 
     this.serversStore.moveRootItem(this.serverId(), event.previousIndex, event.currentIndex);
+    this.persistStructure(this.serverId());
   }
 
   /**
@@ -1092,11 +1146,22 @@ export class ChannelList implements OnDestroy {
     if (!channel) return;
 
     const targetGroup = event.container.data;
-    const targetCategoryId = !targetGroup || targetGroup.id === 'cat-uncategorized' || targetGroup.isCategory === false
-      ? null
-      : targetGroup.id;
+    const targetCategoryId =
+      !targetGroup || targetGroup.id === 'cat-uncategorized' || targetGroup.isCategory === false
+        ? null
+        : targetGroup.id;
 
-    this.serversStore.moveChannel(this.serverId(), channel.id, targetCategoryId, event.currentIndex);
+    this.serversStore.moveChannel(
+      this.serverId(),
+      channel.id,
+      targetCategoryId,
+      event.currentIndex,
+    );
+    this.persistStructure(this.serverId());
+  }
+
+  private persistStructure(serverId: string): void {
+    void this.structureSync.save(serverId).catch(() => undefined);
   }
 
   /**
@@ -1147,7 +1212,40 @@ export class ChannelList implements OnDestroy {
     }
   }
 
-  protected onViewMemberProfile(member: VoiceChannelMemberViewModel): void {}
+  protected onViewMemberProfile(member: VoiceChannelMemberViewModel): void {
+    if (member.name) {
+      void this.router.navigate(['/u', member.name]);
+    }
+  }
+
+  protected toggleSelfMute(): void {
+    void this.voiceRoom.toggleMicrophone();
+  }
+
+  protected toggleSelfDeafen(): void {
+    void this.voiceRoom.toggleDeafen();
+  }
+
+  protected openProfileSettings(): void {
+    this.userSettings.openUserSettings('profile');
+  }
+
+  protected onMoveSelfToChannel(targetChannelId: string): void {
+    const srvId = this.serverId();
+    const currentChannel = this.selectedMemberChannel();
+    if (currentChannel?.id === targetChannelId) return;
+
+    const targetChannel = this.serversStore.channelsOf(srvId).find((c) => c.id === targetChannelId);
+    const targetName = targetChannel?.name || 'Kênh thoại';
+
+    void this.voiceRoom.joinRoom(srvId, targetChannelId, targetName);
+    this.chatSocket.moveVoiceMember(
+      srvId,
+      this.voiceRoom.localParticipant()?.identity || '',
+      targetChannelId,
+    );
+    void this.router.navigate(['/channels', srvId, targetChannelId]);
+  }
 
   /**
    * Kéo thả thành viên sang kênh thoại khác (Dành cho Chủ Server / Admin).

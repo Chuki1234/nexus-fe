@@ -9,7 +9,7 @@ describe('GiphyPickerComponent', () => {
   let component: GiphyPickerComponent;
   let fixture: ComponentFixture<GiphyPickerComponent>;
   let mockGiphyApi: {
-    hasApiKey: ReturnType<typeof vi.fn>;
+    isConfigured: ReturnType<typeof vi.fn>;
     getTrending: ReturnType<typeof vi.fn>;
     searchGifs: ReturnType<typeof vi.fn>;
   };
@@ -30,7 +30,7 @@ describe('GiphyPickerComponent', () => {
 
   beforeEach(async () => {
     mockGiphyApi = {
-      hasApiKey: vi.fn(),
+      isConfigured: vi.fn(),
       getTrending: vi.fn(),
       searchGifs: vi.fn(),
     };
@@ -41,20 +41,20 @@ describe('GiphyPickerComponent', () => {
     }).compileComponents();
   });
 
-  it('hiển thị thông báo yêu cầu cấu hình key nếu hasApiKey() = false', () => {
-    mockGiphyApi.hasApiKey.mockReturnValue(false);
+  it('hiển thị thông báo kiểm tra backend nếu isConfigured() = false', () => {
+    mockGiphyApi.isConfigured.mockReturnValue(false);
 
     fixture = TestBed.createComponent(GiphyPickerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
 
     expect(component.hasConfiguredKey()).toBe(false);
-    expect(component.errorMessage()).toContain('Chưa cấu hình GIPHY API key');
+    expect(component.errorMessage()).toContain('kiểm tra cấu hình kết nối backend');
     expect(mockGiphyApi.getTrending).not.toHaveBeenCalled();
   });
 
   it('tự động tải danh sách Trending khi đã cấu hình key', () => {
-    mockGiphyApi.hasApiKey.mockReturnValue(true);
+    mockGiphyApi.isConfigured.mockReturnValue(true);
     mockGiphyApi.getTrending.mockReturnValue(of([sampleGif]));
 
     fixture = TestBed.createComponent(GiphyPickerComponent);
@@ -69,7 +69,7 @@ describe('GiphyPickerComponent', () => {
   it('gọi searchGifs khi người dùng gõ từ khóa sau thời gian debounce 300ms', () => {
     vi.useFakeTimers();
     try {
-      mockGiphyApi.hasApiKey.mockReturnValue(true);
+      mockGiphyApi.isConfigured.mockReturnValue(true);
       mockGiphyApi.getTrending.mockReturnValue(of([]));
       mockGiphyApi.searchGifs.mockReturnValue(of([sampleGif]));
 
@@ -89,7 +89,7 @@ describe('GiphyPickerComponent', () => {
   });
 
   it('emit gifSelected và closePicker khi chọn một GIF', () => {
-    mockGiphyApi.hasApiKey.mockReturnValue(true);
+    mockGiphyApi.isConfigured.mockReturnValue(true);
     mockGiphyApi.getTrending.mockReturnValue(of([sampleGif]));
 
     fixture = TestBed.createComponent(GiphyPickerComponent);
@@ -106,7 +106,7 @@ describe('GiphyPickerComponent', () => {
   });
 
   it('emit closePicker khi nhấn phím Escape', () => {
-    mockGiphyApi.hasApiKey.mockReturnValue(true);
+    mockGiphyApi.isConfigured.mockReturnValue(true);
     mockGiphyApi.getTrending.mockReturnValue(of([]));
 
     fixture = TestBed.createComponent(GiphyPickerComponent);

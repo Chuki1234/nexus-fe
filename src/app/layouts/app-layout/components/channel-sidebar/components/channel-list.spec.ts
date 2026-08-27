@@ -9,6 +9,7 @@ import { ChannelSummary } from '../../../../../core/servers/server.models';
 import { ServerCapabilitiesService } from '../../../../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../../../../core/servers/servers.store';
 import { ServerVoiceStatesStore } from '../../../../../core/servers/server-voice-states.store';
+import { ServerChannelStructureSyncService } from '../../../../../core/servers/server-channel-structure-sync.service';
 import { VoiceRoomService } from '../../../../../features/voice/services/voice-room.service';
 import { ChannelList } from './channel-list';
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
@@ -38,10 +39,7 @@ describe('ChannelList', () => {
       capabilitiesMap: signal(
         new Map([
           [serverId, caps],
-          [
-            'lofi',
-            caps,
-          ],
+          ['lofi', caps],
         ]),
       ),
       load: vi.fn().mockResolvedValue(caps),
@@ -55,15 +53,33 @@ describe('ChannelList', () => {
         provideRouter([{ path: '**', component: ChannelList }]),
         { provide: MatDialog, useValue: mockDialog },
         { provide: ServerCapabilitiesService, useValue: mockCapabilitiesService },
+        {
+          provide: ServerChannelStructureSyncService,
+          useValue: { save: vi.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compileComponents();
 
     const serversStore = TestBed.inject(ServersStore);
     if (hasChannels) {
       serversStore.setChannels(serverId, [
-        { id: 'chung', name: 'chung', type: 'text', topic: 'Kênh chung', unread: false, mentionCount: 0 },
+        {
+          id: 'chung',
+          name: 'chung',
+          type: 'text',
+          topic: 'Kênh chung',
+          unread: false,
+          mentionCount: 0,
+        },
         { id: 'nhac', name: 'nhạc', type: 'text', topic: null, unread: true, mentionCount: 0 },
-        { id: 'phong-hop', name: 'Phòng họp', type: 'voice', topic: null, unread: false, mentionCount: 0 },
+        {
+          id: 'phong-hop',
+          name: 'Phòng họp',
+          type: 'voice',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+        },
       ]);
     }
 
@@ -120,7 +136,11 @@ describe('ChannelList', () => {
     fixture.detectChanges();
 
     expect(textGroupHeader.getAttribute('aria-expanded')).toBe('true');
-    expect(fixture.nativeElement.querySelector('#channel-group-cat-text')?.querySelectorAll('.channel-row').length).toBeGreaterThan(0);
+    expect(
+      fixture.nativeElement
+        .querySelector('#channel-group-cat-text')
+        ?.querySelectorAll('.channel-row').length,
+    ).toBeGreaterThan(0);
   });
 
   it('bấm nút + trên header mở CreateChannelDialog với đúng defaultType', async () => {
@@ -171,11 +191,15 @@ describe('ChannelList', () => {
     expect(textActions[1].getAttribute('aria-label')).toContain('Chỉnh sửa kênh chung');
 
     // Kênh thoại (phong-hop): có 3 action buttons (Mở chat, Mời, Cài đặt)
-    const voiceChannelRow = fixture.nativeElement.querySelector('a[href="/channels/lofi/phong-hop"]');
+    const voiceChannelRow = fixture.nativeElement.querySelector(
+      'a[href="/channels/lofi/phong-hop"]',
+    );
     expect(voiceChannelRow).toBeTruthy();
     const voiceActions = voiceChannelRow.querySelectorAll('.channel-action-btn');
     expect(voiceActions.length).toBe(3);
-    expect(voiceActions[0].getAttribute('aria-label')).toContain('Mở trò chuyện của kênh thoại Phòng họp');
+    expect(voiceActions[0].getAttribute('aria-label')).toContain(
+      'Mở trò chuyện của kênh thoại Phòng họp',
+    );
     expect(voiceActions[1].getAttribute('aria-label')).toContain('Tạo lời mời vào kênh Phòng họp');
     expect(voiceActions[2].getAttribute('aria-label')).toContain('Chỉnh sửa kênh Phòng họp');
   });
@@ -204,18 +228,34 @@ describe('ChannelList', () => {
     await TestBed.configureTestingModule({
       imports: [ChannelList],
       providers: [
-        provideRouter([
-          { path: 'channels/:serverId/:channelId', component: ChannelList },
-        ]),
+        provideRouter([{ path: 'channels/:serverId/:channelId', component: ChannelList }]),
         { provide: MatDialog, useValue: mockDialog },
+        {
+          provide: ServerChannelStructureSyncService,
+          useValue: { save: vi.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compileComponents();
 
     const serversStore = TestBed.inject(ServersStore);
     serversStore.setChannels('lofi', [
-      { id: 'chung', name: 'chung', type: 'text', topic: 'Kênh chung', unread: false, mentionCount: 0 },
+      {
+        id: 'chung',
+        name: 'chung',
+        type: 'text',
+        topic: 'Kênh chung',
+        unread: false,
+        mentionCount: 0,
+      },
       { id: 'nhac', name: 'nhạc', type: 'text', topic: null, unread: true, mentionCount: 0 },
-      { id: 'phong-hop', name: 'Phòng họp', type: 'voice', topic: null, unread: false, mentionCount: 0 },
+      {
+        id: 'phong-hop',
+        name: 'Phòng họp',
+        type: 'voice',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+      },
     ]);
 
     const fixture = TestBed.createComponent(ChannelList);
@@ -317,9 +357,7 @@ describe('ChannelList', () => {
     };
     fixture.componentInstance['copyChannelLink'](channel);
 
-    expect(writeTextSpy).toHaveBeenCalledWith(
-      expect.stringContaining('/channels/lofi/chung'),
-    );
+    expect(writeTextSpy).toHaveBeenCalledWith(expect.stringContaining('/channels/lofi/chung'));
   });
 
   it('createChannelOfSameType mở dialog tạo kênh với đúng loại kênh', async () => {
@@ -431,8 +469,24 @@ describe('ChannelList', () => {
     const serversStore = TestBed.inject(ServersStore);
 
     serversStore.setChannels('lofi', [
-      { id: 'c1', name: 'chat-chung', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-text' },
-      { id: 'c2', name: 'Thoại Trong Chữ', type: 'voice', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-text' },
+      {
+        id: 'c1',
+        name: 'chat-chung',
+        type: 'text',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+        categoryId: 'cat-text',
+      },
+      {
+        id: 'c2',
+        name: 'Thoại Trong Chữ',
+        type: 'voice',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+        categoryId: 'cat-text',
+      },
     ]);
     fixture.detectChanges();
 
@@ -450,12 +504,26 @@ describe('ChannelList', () => {
     const fixture = await mount('lofi', false);
     const serversStore = TestBed.inject(ServersStore);
 
-    serversStore.setCategories('lofi', [
-      { id: 'cat-hoc-tap', name: 'HỌC TẬP', isPrivate: false },
-    ]);
+    serversStore.setCategories('lofi', [{ id: 'cat-hoc-tap', name: 'HỌC TẬP', isPrivate: false }]);
     serversStore.setChannels('lofi', [
-      { id: 'c1', name: 'tai-lieu', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-hoc-tap' },
-      { id: 'c2', name: 'Thảo Luận Nhóm', type: 'voice', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-hoc-tap' },
+      {
+        id: 'c1',
+        name: 'tai-lieu',
+        type: 'text',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+        categoryId: 'cat-hoc-tap',
+      },
+      {
+        id: 'c2',
+        name: 'Thảo Luận Nhóm',
+        type: 'voice',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+        categoryId: 'cat-hoc-tap',
+      },
     ]);
     fixture.detectChanges();
 
@@ -504,17 +572,31 @@ describe('ChannelList', () => {
     const voiceRoom = TestBed.inject(VoiceRoomService);
 
     voiceStatesStore.voiceStatesByServer.set({
-      lofi: [{
-        userId: 'mentor-id', channelId: 'phong-hop', serverId: 'lofi',
-        name: 'Anh Mentor', username: 'mentor', displayName: 'Anh Mentor', avatarUrl: null,
-        isMuted: false, isCameraOn: false, isScreenSharing: false,
-        joinedAt: '2026-08-26T10:00:00.000Z',
-      }],
+      lofi: [
+        {
+          userId: 'mentor-id',
+          channelId: 'phong-hop',
+          serverId: 'lofi',
+          name: 'Anh Mentor',
+          username: 'mentor',
+          displayName: 'Anh Mentor',
+          avatarUrl: null,
+          isMuted: false,
+          isCameraOn: false,
+          isScreenSharing: false,
+          joinedAt: '2026-08-26T10:00:00.000Z',
+        },
+      ],
     });
     voiceRoom.currentChannelId.set('phong-hop');
     voiceRoom.localParticipant.set({
-      identity: 'local-id', name: 'Minh Tài', isLocal: true, isSpeaking: false,
-      isMuted: false, isCameraOn: false, isScreenSharing: false,
+      identity: 'local-id',
+      name: 'Minh Tài',
+      isLocal: true,
+      isSpeaking: false,
+      isMuted: false,
+      isCameraOn: false,
+      isScreenSharing: false,
       connectionQuality: 'excellent',
     });
     voiceRoom.remoteParticipants.set([]);
@@ -573,9 +655,33 @@ describe('ChannelList', () => {
     ]);
 
     serversStore.setChannels('custom-server', [
-      { id: 'c-tai-1', name: 'tim-đồng-đội', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-tai' },
-      { id: 'c-top', name: 'kênh-mới-ở-top', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: null },
-      { id: 'c-gaming-1', name: 'lol-gameplay', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-gaming' },
+      {
+        id: 'c-tai-1',
+        name: 'tim-đồng-đội',
+        type: 'text',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+        categoryId: 'cat-tai',
+      },
+      {
+        id: 'c-top',
+        name: 'kênh-mới-ở-top',
+        type: 'text',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+        categoryId: null,
+      },
+      {
+        id: 'c-gaming-1',
+        name: 'lol-gameplay',
+        type: 'text',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+        categoryId: 'cat-gaming',
+      },
     ]);
 
     // Kéo c-top lên vị trí đầu tiên của root (index 0)
@@ -610,8 +716,24 @@ describe('ChannelList', () => {
     ]);
 
     serversStore.setChannels('custom-server', [
-      { id: 'c-1', name: 'kênh-1', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-1' },
-      { id: 'c-2', name: 'kênh-2', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-2' },
+      {
+        id: 'c-1',
+        name: 'kênh-1',
+        type: 'text',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+        categoryId: 'cat-1',
+      },
+      {
+        id: 'c-2',
+        name: 'kênh-2',
+        type: 'text',
+        topic: null,
+        unread: false,
+        mentionCount: 0,
+        categoryId: 'cat-2',
+      },
     ]);
 
     fixture.detectChanges();
@@ -643,13 +765,23 @@ describe('ChannelList', () => {
 
       serversStore.setCategories('custom-server', [{ id: 'cat-study', name: 'Học tập' }]);
       serversStore.setChannels('custom-server', [
-        { id: 'ch-a', name: 'Kênh A', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+        {
+          id: 'ch-a',
+          name: 'Kênh A',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-study',
+        },
       ]);
       fixture.detectChanges();
 
       // Kiểm tra CdkDrag directive thực tế trên phần tử DOM
       const dragDebugEls = fixture.debugElement.queryAll(By.directive(CdkDrag));
-      const channelDragEl = dragDebugEls.find((el) => el.nativeElement.classList.contains('channel-row'));
+      const channelDragEl = dragDebugEls.find((el) =>
+        el.nativeElement.classList.contains('channel-row'),
+      );
       expect(channelDragEl).toBeTruthy();
       const cdkDragDirective = channelDragEl?.injector.get(CdkDrag);
       expect(cdkDragDirective?.dragStartDelay).toEqual({ touch: 150, mouse: 0 });
@@ -657,7 +789,8 @@ describe('ChannelList', () => {
       // Nested category lists must be hit-tested before the root list, whose
       // bounding box contains the entire sidebar and would otherwise intercept
       // every channel drag.
-      const rootDropEl = fixture.debugElement.queryAll(By.directive(CdkDropList))
+      const rootDropEl = fixture.debugElement
+        .queryAll(By.directive(CdkDropList))
         .find((el) => el.nativeElement.id === 'channel-sidebar-root-list');
       const rootDropDirective = rootDropEl?.injector.get(CdkDropList);
       expect(rootDropDirective?.connectedTo).toEqual([
@@ -689,9 +822,33 @@ describe('ChannelList', () => {
 
       serversStore.setCategories('custom-server', [{ id: 'cat-study', name: 'Học tập' }]);
       serversStore.setChannels('custom-server', [
-        { id: 'ch-a', name: 'Kênh A', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
-        { id: 'ch-b', name: 'Kênh B', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
-        { id: 'ch-free', name: 'Kênh gốc', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-uncategorized' },
+        {
+          id: 'ch-a',
+          name: 'Kênh A',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-study',
+        },
+        {
+          id: 'ch-b',
+          name: 'Kênh B',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-study',
+        },
+        {
+          id: 'ch-free',
+          name: 'Kênh gốc',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-uncategorized',
+        },
       ]);
       fixture.detectChanges();
 
@@ -725,7 +882,15 @@ describe('ChannelList', () => {
 
       serversStore.setCategories('custom-server', [{ id: 'cat-study', name: 'Học tập' }]);
       serversStore.setChannels('custom-server', [
-        { id: 'ch-a', name: 'Kênh A', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+        {
+          id: 'ch-a',
+          name: 'Kênh A',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-study',
+        },
       ]);
       fixture.detectChanges();
 
@@ -738,16 +903,22 @@ describe('ChannelList', () => {
       expect(instance['isRootEnterPredicate'](channelDrag)).toBe(true);
 
       const elementFromPoint = vi
-        .spyOn(document, 'elementFromPoint')
+        .fn()
         .mockReturnValue(fixture.nativeElement.querySelector('#channel-group-cat-study'));
+      Object.defineProperty(document, 'elementFromPoint', {
+        configurable: true,
+        value: elementFromPoint,
+      });
       instance['lastDragPointer'] = { x: 10, y: 10 };
 
       expect(instance['isRootEnterPredicate'](channelDrag)).toBe(false);
 
-      elementFromPoint.mockReturnValue(fixture.nativeElement.querySelector('#channel-sidebar-root-list'));
+      elementFromPoint.mockReturnValue(
+        fixture.nativeElement.querySelector('#channel-sidebar-root-list'),
+      );
       expect(instance['isRootEnterPredicate'](channelDrag)).toBe(true);
 
-      elementFromPoint.mockRestore();
+      delete (document as any).elementFromPoint;
       instance['lastDragPointer'] = null;
     });
 
@@ -757,9 +928,33 @@ describe('ChannelList', () => {
 
       serversStore.setCategories('custom-server', [{ id: 'cat-study', name: 'Học tập' }]);
       serversStore.setChannels('custom-server', [
-        { id: 'ch-a', name: 'Kênh A', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
-        { id: 'ch-b', name: 'Kênh B', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
-        { id: 'ch-c', name: 'Kênh C', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+        {
+          id: 'ch-a',
+          name: 'Kênh A',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-study',
+        },
+        {
+          id: 'ch-b',
+          name: 'Kênh B',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-study',
+        },
+        {
+          id: 'ch-c',
+          name: 'Kênh C',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-study',
+        },
       ]);
       fixture.detectChanges();
 
@@ -770,7 +965,6 @@ describe('ChannelList', () => {
         container: { data: { categoryId: 'cat-study' } },
         previousContainer: { data: { categoryId: 'cat-study' } },
         item: { data: { kind: 'channel', channel: { id: 'ch-c', name: 'Kênh C' } } },
-        dropPoint: { x: 5, y: 5 },
       } as any;
       dropEvent.previousContainer = dropEvent.container;
 
@@ -787,7 +981,15 @@ describe('ChannelList', () => {
 
       serversStore.setCategories('custom-server', [{ id: 'cat-study', name: 'Học tập' }]);
       serversStore.setChannels('custom-server', [
-        { id: 'ch-a', name: 'Kênh A', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: null },
+        {
+          id: 'ch-a',
+          name: 'Kênh A',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: null,
+        },
       ]);
       fixture.detectChanges();
 
@@ -802,7 +1004,6 @@ describe('ChannelList', () => {
         container: { data: { kind: 'category-header', categoryId: 'cat-study' } },
         previousContainer: { data: { kind: 'root' } },
         item: { data: { id: 'ch-a', name: 'Kênh A', type: 'text' } },
-        dropPoint: { x: 5, y: 5 },
       } as any;
 
       fixture.componentInstance['onCategoryHeaderDrop'](headerDropEvent, 'cat-study');
@@ -819,7 +1020,6 @@ describe('ChannelList', () => {
         container: rootContainer,
         previousContainer: { data: { kind: 'category', categoryId: 'cat-study' } },
         item: { data: { id: 'ch-a', name: 'Kênh A', type: 'text' } },
-        dropPoint: { x: 5, y: 5 },
       } as any;
 
       fixture.componentInstance['onRootDrop'](rootDropEvent);
@@ -836,8 +1036,24 @@ describe('ChannelList', () => {
 
       serversStore.setCategories('custom-server', [{ id: 'cat-study', name: 'Học tập' }]);
       serversStore.setChannels('custom-server', [
-        { id: 'ch-a', name: 'Kênh A', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
-        { id: 'ch-b', name: 'Kênh B', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+        {
+          id: 'ch-a',
+          name: 'Kênh A',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-study',
+        },
+        {
+          id: 'ch-b',
+          name: 'Kênh B',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-study',
+        },
       ]);
       fixture.detectChanges();
 
@@ -869,13 +1085,23 @@ describe('ChannelList', () => {
 
       serversStore.setCategories('custom-server', [{ id: 'cat-study', name: 'Học tập' }]);
       serversStore.setChannels('custom-server', [
-        { id: 'ch-a', name: 'Kênh A', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
+        {
+          id: 'ch-a',
+          name: 'Kênh A',
+          type: 'text',
+          topic: null,
+          unread: false,
+          mentionCount: 0,
+          categoryId: 'cat-study',
+        },
       ]);
       fixture.detectChanges();
 
       // Lấy channel drag element khi đang mở
       let dragDebugEls = fixture.debugElement.queryAll(By.directive(CdkDrag));
-      let channelDragEl = dragDebugEls.find((el) => el.nativeElement.classList.contains('channel-row'));
+      let channelDragEl = dragDebugEls.find((el) =>
+        el.nativeElement.classList.contains('channel-row'),
+      );
       expect(channelDragEl).toBeTruthy();
 
       // Trigger cdkDragStarted thật thông qua DebugElement template binding
@@ -915,4 +1141,3 @@ describe('ChannelList', () => {
     });
   });
 });
-

@@ -2,6 +2,8 @@ import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { ChatSocketService } from '../realtime/chat-socket.service';
+import { ServersStore } from '../servers/servers.store';
+import { ActiveChatStore } from '../../features/dashboard/services/active-chat.store';
 import { UserSettingsService } from '../../features/settings/services/user-settings.service';
 
 export interface InAppNotification {
@@ -23,6 +25,8 @@ export class NotificationService {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly chatSocket = inject(ChatSocketService);
+  private readonly serversStore = inject(ServersStore);
+  private readonly activeChatStore = inject(ActiveChatStore);
   private readonly settings = inject(UserSettingsService);
 
   readonly notifications = signal<InAppNotification[]>([]);
@@ -30,10 +34,13 @@ export class NotificationService {
   private audioCtx: AudioContext | null = null;
 
   constructor() {
+    // Popup cho tin nhắn nhận realtime trong room đang mở. Nhắc tên trong KÊNH
+    // được xử lý riêng qua `notification:new` (bao phủ cả kênh không mở) nên ở
+    // đây không tự suy luận mention cho tin nhắn kênh để tránh popup trùng.
     this.chatSocket.messageCreated$.subscribe(({ message }) => {
       if (!message) return;
       const currentUserId = this.auth.user()?.id;
-      const authorId = message.author?.id || (message as any).senderId;
+      const authorId = message.author?.id || (message as { senderId?: string }).senderId;
       if (currentUserId && authorId === currentUserId) {
         return; // Không tự thông báo tin nhắn của chính mình
       }
@@ -42,27 +49,96 @@ export class NotificationService {
       const senderAvatarUrl = message.author?.avatarUrl || null;
       const content = message.content || (message.attachments?.length ? '[Đính kèm tệp]' : 'Tin nhắn mới');
 
-      let contextTag = 'Tin nhắn mới';
-      let routeUrl: string[] = ['/channels/@me'];
       if (message.channelId) {
-        contextTag = `# kênh chat`;
-        routeUrl = ['/channels', (message as any).serverId || '@me', message.channelId];
-      } else if (message.conversationId) {
-        contextTag = 'Tin nhắn trực tiếp';
-        routeUrl = ['/channels/@me', message.conversationId];
+        // Đang xem đúng kênh này thì không toast tin thường (tránh spam).
+        if (this.serversStore.activeChannelId() === message.channelId) return;
+        const serverId = this.serversStore.activeServerId() ?? undefined;
+        const channel = serverId
+          ? this.serversStore.channelsOf(serverId).find((c) => c.id === message.channelId)
+          : undefined;
+        const serverName = serverId ? this.serversStore.serverOf(serverId)?.name : undefined;
+        const contextTag = channel
+          ? `${serverName ?? 'Máy chủ'} # ${channel.name}`
+          : '# kênh chat';
+        this.show({
+          senderName,
+          senderAvatarUrl,
+          contextTag,
+          content,
+          routeUrl: ['/channels', serverId ?? '@me', message.channelId],
+          type: 'message',
+          serverId,
+        });
+        return;
       }
 
-      const myUsername = this.auth.user()?.user_metadata?.['username'] || '';
-      const isMention = !!myUsername && content.includes(`@${myUsername}`);
+      if (message.conversationId) {
+        // Đang mở đúng hội thoại này thì không toast (đang đọc).
+        if (this.activeChatStore.conversationId() === message.conversationId) return;
+        const myUsername = this.auth.user()?.user_metadata?.['username'] || '';
+        const isMention = !!myUsername && content.includes(`@${myUsername}`);
+        this.show({
+          senderName,
+          senderAvatarUrl,
+          contextTag: 'Tin nhắn trực tiếp',
+          content,
+          routeUrl: ['/channels/@me', message.conversationId],
+          type: isMention ? 'mention' : 'message',
+        });
+      }
+    });
+
+    // Lời mời kết bạn mới → popup (đường tới trang "chờ duyệt"). Tôn trọng
+    // setting: chỉ hiện khi người dùng bật thông báo desktop.
+    this.chatSocket.notificationNew$?.subscribe((notification) => {
+      if (notification.type !== 'friend_request') return;
+      if (!this.settings.preferences().desktopNotifications) return;
+      const p = notification.payload as {
+        requesterName?: string | null;
+        requesterAvatarUrl?: string | null;
+      };
+      this.show({
+        senderName: p.requesterName ?? 'Ai đó',
+        senderAvatarUrl: p.requesterAvatarUrl ?? null,
+        contextTag: 'Lời mời kết bạn',
+        content: 'đã gửi cho bạn một lời mời kết bạn',
+        routeUrl: ['/channels/@me'],
+        type: 'system',
+      });
+    });
+
+    // Nhắc tên @username / @everyone trong kênh server (kể cả kênh không mở).
+    this.chatSocket.notificationNew$?.subscribe((notification) => {
+      if (notification.type !== 'mention') return;
+      const p = notification.payload as {
+        serverId?: string;
+        channelId?: string;
+        channelName?: string | null;
+        serverName?: string | null;
+        authorId?: string | null;
+        authorName?: string | null;
+        authorAvatarUrl?: string | null;
+        preview?: string | null;
+        mentionType?: 'direct' | 'everyone';
+      };
+
+      const currentUserId = this.auth.user()?.id;
+      if (currentUserId && p.authorId && p.authorId === currentUserId) return;
+
+      const everyone = p.mentionType === 'everyone';
+      const contextTag = `${p.serverName ?? 'Máy chủ'} # ${p.channelName ?? 'kênh'}`;
+      const prefix = everyone ? '@everyone · ' : '';
 
       this.show({
-        senderName,
-        senderAvatarUrl,
+        senderName: p.authorName ?? 'Thành viên',
+        senderAvatarUrl: p.authorAvatarUrl ?? null,
         contextTag,
-        content,
-        routeUrl,
-        type: isMention ? 'mention' : 'message',
-        serverId: (message as any).serverId,
+        content: `${prefix}${p.preview ?? 'Đã nhắc tên bạn'}`,
+        routeUrl: p.channelId
+          ? ['/channels', p.serverId ?? '@me', p.channelId]
+          : ['/channels/@me'],
+        type: 'mention',
+        serverId: p.serverId,
       });
     });
   }

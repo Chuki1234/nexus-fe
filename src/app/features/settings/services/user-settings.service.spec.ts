@@ -17,10 +17,7 @@ describe('UserSettingsService', () => {
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        UserSettingsService,
-        { provide: ProfileService, useValue: profileStub },
-      ],
+      providers: [UserSettingsService, { provide: ProfileService, useValue: profileStub }],
     });
 
     service = TestBed.inject(UserSettingsService);

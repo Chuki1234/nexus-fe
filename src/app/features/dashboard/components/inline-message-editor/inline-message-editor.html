@@ -11,7 +11,6 @@
     (keydown)="onKeydown($event)"
     [disabled]="saving()"
     rows="1"
-    maxlength="4500"
     placeholder="Nhập nội dung tin nhắn..."
     class="inline-editor-textarea w-full resize-none bg-transparent text-body-sm text-ink placeholder:text-steel focus:outline-none leading-relaxed"
   ></textarea>
@@ -40,16 +39,6 @@
     </div>
 
     <div class="inline-editor-actions flex items-center gap-2 ml-auto">
-      @if (charCount() > 3500) {
-        <span
-          class="inline-editor-counter text-xs"
-          [class.text-danger]="isOverLimit()"
-          [class.font-semibold]="isOverLimit()"
-        >
-          {{ charCount() }}/4000
-        </span>
-      }
-
       <button
         type="button"
         (click)="cancel.emit()"

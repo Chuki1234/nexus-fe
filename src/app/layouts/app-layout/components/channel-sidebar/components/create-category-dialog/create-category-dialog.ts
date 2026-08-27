@@ -1,20 +1,11 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import {
-  MAT_DIALOG_DATA,
-  MatDialogModule,
-  MatDialogRef,
-} from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { ServerCategorySummary } from '../../../../../../core/servers/server.models';
 import { ServersStore } from '../../../../../../core/servers/servers.store';
+import { ServerChannelStructureSyncService } from '../../../../../../core/servers/server-channel-structure-sync.service';
 
 export interface CreateCategoryDialogData {
   serverId: string;
@@ -23,22 +14,16 @@ export interface CreateCategoryDialogData {
 
 @Component({
   selector: 'app-create-category-dialog',
-  imports: [
-    FormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatIconModule,
-  ],
+  imports: [FormsModule, MatButtonModule, MatDialogModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './create-category-dialog.html',
   styleUrl: './create-category-dialog.css',
 })
 export class CreateCategoryDialog {
-  readonly dialogRef = inject(
-    MatDialogRef<CreateCategoryDialog, ServerCategorySummary | null>,
-  );
+  readonly dialogRef = inject(MatDialogRef<CreateCategoryDialog, ServerCategorySummary | null>);
   readonly data = inject<CreateCategoryDialogData>(MAT_DIALOG_DATA);
   private readonly serversStore = inject(ServersStore);
+  private readonly structureSync = inject(ServerChannelStructureSyncService);
 
   protected readonly categoryName = signal('');
   protected readonly isPrivate = signal(false);
@@ -58,6 +43,7 @@ export class CreateCategoryDialog {
     };
 
     this.serversStore.addCategory(this.data.serverId, category);
+    void this.structureSync.save(this.data.serverId).catch(() => undefined);
     this.dialogRef.close(category);
   }
 }

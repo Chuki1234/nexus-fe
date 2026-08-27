@@ -61,6 +61,10 @@
   <app-chat-toolbar
     [title]="recipientName()"
     [subtitle]="recipientStatusSubtitle()"
+    [showAvatar]="true"
+    [avatarSrc]="recipientAvatar()"
+    [avatarUserId]="conversationDetails()?.recipient?.id ?? null"
+    [avatarPresence]="recipientPresence()"
     leadingIcon="alternate_email"
     [showCallActions]="!isRecipientBlocked() && !isRelationshipInvalidated()"
     [showDetailsAction]="recipientUsername() !== null"
@@ -222,19 +226,29 @@
                     <!-- Cột Gutter: Avatar cho Head Message, Hover Time cho Grouped Message -->
                     <div class="message-gutter" aria-hidden="true">
                       @if (!item.isGrouped) {
-                        @if (msg.author?.username; as authorName) {
-                          <!-- Bấm avatar tác giả → mở thẻ hồ sơ của họ. -->
-                          <app-profile-avatar
-                            [username]="authorName"
-                            [name]="msg.author?.displayName || authorName"
-                            size="md"
-                            ring="canvas"
-                          />
+                        @if (msg.author; as author) {
+                          @if (author.username; as authorName) {
+                            <!-- Bấm avatar tác giả → mở thẻ hồ sơ của họ. -->
+                            <app-profile-avatar
+                              [username]="authorName"
+                              [name]="author.displayName || authorName"
+                              size="md"
+                              ring="canvas"
+                            />
+                          } @else {
+                            <app-avatar
+                              [userId]="msg.authorId"
+                              [name]="author.displayName || author.username || 'Người dùng'"
+                              [src]="author.avatarUrl ?? null"
+                              size="md"
+                              ring="canvas"
+                            />
+                          }
                         } @else {
                           <app-avatar
                             [userId]="msg.authorId"
-                            [name]="msg.author?.displayName || msg.author?.username || 'Người dùng'"
-                            [src]="msg.author?.avatarUrl ?? null"
+                            name="Người dùng"
+                            [src]="null"
                             size="md"
                             ring="canvas"
                           />
@@ -363,7 +377,7 @@
                             class="message-deleted-text text-body-sm italic text-steel flex items-center gap-1.5 py-0.5"
                           >
                             <mat-icon class="!size-4 !text-base">delete_outline</mat-icon>
-                            <span>Tin nhắn này đã bị xóa</span>
+                            <span>Tin nhắn đã bị xóa</span>
                           </p>
                         }
 
@@ -1196,9 +1210,7 @@
                               [excerpt]="getMessageExcerpt(msg)"
                               [ownMessage]="isMine(msg)"
                               [canEdit]="canEdit(msg)"
-                              [pinned]="activeChatStore.pinnedIds().has(msg.id)"
-                              (action)="onMessageAction($event)"
-                              (reaction)="onToggleReaction(msg.id, $event)"
+                              [pinned]="pinnedIds().has(msg.id)"
                               (action)="onMessageAction($event)"
                               (reaction)="onToggleReaction(msg.id, $event)"
                             />
@@ -1313,7 +1325,7 @@
     <app-context-panel title="Tin nhắn đã ghim" [open]="pinsOpen()" (closed)="pinsOpen.set(false)">
       <section class="p-3" aria-label="Danh sách tin nhắn đã ghim">
         <app-pinned-messages-list
-          [messages]="activeChatStore.pinnedMessages()"
+          [messages]="pinnedMessages()"
           [busyIds]="pinBusyIds()"
           (jump)="jumpFromPins($event)"
           (unpin)="unpinFromPanel($event)"
@@ -1326,6 +1338,7 @@
       <app-context-panel
         title="Hồ sơ"
         [open]="profilePanelOpen()"
+        [hideHeader]="true"
         (closed)="profilePanelOpen.set(false)"
       >
         <app-profile-panel [username]="uname" />

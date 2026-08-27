@@ -3,7 +3,8 @@
   <div>
     <h2 class="text-heading-4 font-bold text-ink">Văn Bản & Hình Ảnh</h2>
     <p class="text-caption text-steel mt-1">
-      Kiểm soát cách hình ảnh, video, liên kết và khối mã được định dạng và hiển thị trong kênh chat.
+      Kiểm soát cách hình ảnh, video, liên kết và khối mã được định dạng và hiển thị trong kênh
+      chat.
     </p>
   </div>
 
@@ -17,8 +18,12 @@
     <div class="divide-y divide-hairline/60">
       <div class="flex items-center justify-between gap-4 py-3">
         <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Hiển thị hình ảnh, tệp tin và video xem trước trực tiếp</span>
-          <span class="text-caption text-steel">Tự động phát media tải lên thay vì chỉ hiển thị link tệp đính kèm.</span>
+          <span class="block text-body-sm-medium font-semibold text-ink"
+            >Hiển thị hình ảnh, tệp tin và video xem trước trực tiếp</span
+          >
+          <span class="text-caption text-steel"
+            >Tự động phát media tải lên thay vì chỉ hiển thị link tệp đính kèm.</span
+          >
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().displayMediaInline"
@@ -28,8 +33,13 @@
 
       <div class="flex items-center justify-between gap-4 py-3">
         <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Xem trước nội dung liên kết web (Rich Link Embeds)</span>
-          <span class="text-caption text-steel">Tự động trích xuất tiêu đề, hình ảnh thu nhỏ và tóm tắt của trang web khi gửi link.</span>
+          <span class="block text-body-sm-medium font-semibold text-ink"
+            >Xem trước nội dung liên kết web (Rich Link Embeds)</span
+          >
+          <span class="text-caption text-steel"
+            >Tự động trích xuất tiêu đề, hình ảnh thu nhỏ và tóm tắt của trang web khi gửi
+            link.</span
+          >
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().displayLinkPreviews"
@@ -49,8 +59,12 @@
     <div class="divide-y divide-hairline/60">
       <div class="flex items-center justify-between gap-4 py-3">
         <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Tự động chuyển ký tự thành biểu tượng cảm xúc</span>
-          <span class="text-caption text-steel">Ví dụ: khi bạn gõ :) sẽ tự động chuyển thành biểu tượng 😊.</span>
+          <span class="block text-body-sm-medium font-semibold text-ink"
+            >Tự động chuyển ký tự thành biểu tượng cảm xúc</span
+          >
+          <span class="text-caption text-steel"
+            >Ví dụ: khi bạn gõ :) sẽ tự động chuyển thành biểu tượng 😊.</span
+          >
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().convertEmoticons"
@@ -60,14 +74,37 @@
 
       <div class="flex items-center justify-between gap-4 py-3">
         <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Gợi ý Sticker và Emoji khi gõ tin nhắn</span>
-          <span class="text-caption text-steel">Hiển thị thanh gợi ý nhanh khi bạn gõ các từ khóa như :vui, :buon, :game.</span>
+          <span class="block text-body-sm-medium font-semibold text-ink"
+            >Gợi ý Sticker và Emoji khi gõ tin nhắn</span
+          >
+          <span class="text-caption text-steel"
+            >Hiển thị thanh gợi ý nhanh khi bạn gõ các từ khóa như :vui, :buon, :game.</span
+          >
         </div>
         <mat-slide-toggle
           [checked]="settingsService.preferences().suggestStickers"
           (change)="toggleSuggestStickers($event.checked)"
         />
       </div>
+<<<<<<< HEAD
+=======
+
+      <div class="flex items-center justify-between gap-4 py-3">
+        <div>
+          <span class="block text-body-sm-medium font-semibold text-ink"
+            >Tô màu cú pháp khối mã (Code Syntax Highlighting)</span
+          >
+          <span class="text-caption text-steel"
+            >Tự động highlight màu từ khóa cho các đoạn mã JavaScript, TypeScript, Python, C++,
+            v.v.</span
+          >
+        </div>
+        <mat-slide-toggle
+          [checked]="settingsService.preferences().codeHighlighting"
+          (change)="toggleCodeHighlighting($event.checked)"
+        />
+      </div>
+>>>>>>> f7c20ffb00eb1b07967a283b5de799bcfd140ed6
     </div>
   </div>
 
@@ -97,7 +134,9 @@
             class="accent-primary w-4 h-4 cursor-pointer"
           />
         </div>
-        <span class="text-caption text-steel">Che mờ hình ảnh và chữ, chỉ mở khi bạn chủ động nhấp chuột.</span>
+        <span class="text-caption text-steel"
+          >Che mờ hình ảnh và chữ, chỉ mở khi bạn chủ động nhấp chuột.</span
+        >
       </button>
 
       <button
@@ -118,7 +157,9 @@
             class="accent-primary w-4 h-4 cursor-pointer"
           />
         </div>
-        <span class="text-caption text-steel">Không che bất kỳ nội dung nào được đánh dấu spoiler.</span>
+        <span class="text-caption text-steel"
+          >Không che bất kỳ nội dung nào được đánh dấu spoiler.</span
+        >
       </button>
     </div>
   </div>

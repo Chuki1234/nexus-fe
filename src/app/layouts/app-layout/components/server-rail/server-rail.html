@@ -8,7 +8,7 @@
       matTooltip="Tin nhắn trực tiếp"
       matTooltipPosition="right"
       [attr.aria-current]="dmLink.isActive ? 'page' : null"
-      class="server-tile nexus-icon-control"
+      class="server-tile"
       [class.server-tile--active]="dmLink.isActive"
     >
       <mat-icon aria-hidden="true" class="!size-5 !text-[20px]">forum</mat-icon>
@@ -71,7 +71,7 @@
             matTooltipPosition="right"
             [attr.aria-current]="isServerActive(item.id) ? 'page' : null"
             [attr.data-server-id]="item.id"
-            class="server-tile nexus-icon-control"
+            class="server-tile"
             [class.server-tile--active]="isServerActive(item.id)"
             [class.server-tile--merge-active]="isMergeActive(item.id)"
             [class.server-drag-source]="draggingServerId() === item.id"
@@ -102,14 +102,14 @@
           <span
             class="server-pill-indicator"
             [class.server-pill-indicator--active]="isServerActive(item.id)"
-            [class.server-pill-indicator--unread]="!isServerActive(item.id) && item.server.unread"
+            [class.server-pill-indicator--unread]="!isServerActive(item.id) && serverHasUnread(item.server.id)"
             aria-hidden="true"
           ></span>
 
-          @if (item.server.mentionCount > 0) {
+          @if (serverMention(item.server.id) > 0) {
             <app-unread-badge
               class="server-tile-unread-badge pointer-events-none absolute"
-              [count]="item.server.mentionCount"
+              [count]="serverMention(item.server.id)"
               label="lượt nhắc tên chưa đọc"
             />
           }
@@ -131,7 +131,7 @@
           <div class="server-group-dropzone server-tile-wrapper">
             <button
               type="button"
-              class="server-group-tile nexus-icon-control"
+              class="server-group-tile"
               [class.server-tile--merge-active]="isMergeActive(item.id)"
               [attr.aria-expanded]="false"
               [attr.aria-label]="
@@ -184,7 +184,7 @@
               <button
                 type="button"
                 (click)="toggleGroup(item.id)"
-                class="server-folder-toggle nexus-icon-control"
+                class="server-folder-toggle"
                 [matTooltip]="groupServerNamesTooltip(item.folder.name, item.servers)"
                 matTooltipPosition="right"
                 [attr.aria-expanded]="true"
@@ -223,7 +223,7 @@
                     matTooltipPosition="right"
                     [attr.aria-current]="isServerActive(server.id) ? 'page' : null"
                     [attr.data-server-id]="server.id"
-                    class="server-tile nexus-icon-control"
+                    class="server-tile"
                     [class.server-tile--active]="isServerActive(server.id)"
                     [class.server-tile--merge-active]="isMergeActive(server.id)"
                     [class.server-drag-source]="draggingServerId() === server.id"
@@ -251,10 +251,10 @@
                     </div>
                   </a>
 
-                  @if (server.mentionCount > 0) {
+                  @if (serverMention(server.id) > 0) {
                     <app-unread-badge
                       class="server-tile-unread-badge pointer-events-none absolute"
-                      [count]="server.mentionCount"
+                      [count]="serverMention(server.id)"
                       label="lượt nhắc tên chưa đọc"
                     />
                   }
@@ -306,7 +306,7 @@
     aria-label="Điều hướng tới máy chủ, kênh hoặc tin nhắn trực tiếp"
     aria-keyshortcuts="Control+K Meta+K"
     data-action="global-search"
-    class="server-rail-action nexus-icon-control flex size-11 items-center justify-center rounded-full"
+    class="server-rail-action flex size-11 items-center justify-center rounded-full"
   >
     <mat-icon aria-hidden="true">search</mat-icon>
   </button>
@@ -316,7 +316,7 @@
     aria-label="Thêm máy chủ"
     matTooltip="Thêm máy chủ"
     matTooltipPosition="right"
-    class="server-rail-action nexus-icon-control flex size-11 items-center justify-center rounded-full"
+    class="server-rail-action flex size-11 items-center justify-center rounded-full"
     (click)="openAddServer(addServerDialog)"
   >
     <mat-icon aria-hidden="true">add</mat-icon>
@@ -457,7 +457,7 @@
       {{ resultAnnouncement() }}
     </div>
 
-    <div class="command-center__body nexus-scrollbar min-h-0 overflow-y-auto px-3 pb-3">
+    <div class="command-center__body nexus-scrollbar min-h-0 overflow-y-auto overflow-x-hidden px-3 pb-3">
       @if (commandResults().length > 0) {
         <p class="px-3 py-2 text-micro-uppercase text-stone">
           {{ scopeHeading() }}
@@ -467,7 +467,7 @@
           id="command-results-list"
           role="listbox"
           aria-label="Kết quả tìm nhanh"
-          class="grid gap-1"
+          class="grid gap-1 w-full min-w-0"
         >
           @for (result of commandResults(); track result.id; let index = $index) {
             <a
@@ -476,7 +476,7 @@
               [attr.aria-selected]="index === activeResultIndex()"
               (click)="selectResult(result, $event)"
               (mouseenter)="activeResultIndex.set(index)"
-              class="command-result group flex min-h-15 items-center gap-3 rounded-lg px-3 py-2 cursor-pointer"
+              class="command-result group flex min-h-15 w-full min-w-0 max-w-full items-center gap-3 rounded-lg px-3 py-2 cursor-pointer overflow-hidden"
               [class.command-result--active]="index === activeResultIndex()"
               [attr.data-command-result]="result.kind"
             >
@@ -486,14 +486,14 @@
               >
                 <mat-icon>{{ result.icon }}</mat-icon>
               </span>
-              <span class="min-w-0 flex-1">
+              <span class="min-w-0 flex-1 overflow-hidden">
                 <span class="block truncate text-body-sm-medium text-ink">{{ result.label }}</span>
                 <span class="block truncate text-caption text-steel">{{ result.context }}</span>
               </span>
-              <span class="command-result__kind text-micro text-stone">
+              <span class="command-result__kind text-micro text-stone shrink-0 whitespace-nowrap">
                 {{ commandKindLabel(result.kind) }}
               </span>
-              <mat-icon aria-hidden="true" class="command-result__arrow text-steel">
+              <mat-icon aria-hidden="true" class="command-result__arrow text-steel shrink-0">
                 arrow_forward
               </mat-icon>
             </a>
