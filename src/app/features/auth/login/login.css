@@ -93,6 +93,21 @@
 }
 
 /* ── Mascot + wordmark + chip ────────────────────────────────────────── */
+.brand-mascot-link {
+  display: block;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+.brand-mascot-link:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.06);
+}
+.brand-mascot-link:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-brand-green) 76%, white 24%);
+  outline-offset: 0.45rem;
+}
+
 .brand-mascot {
   animation: mascot-float 6.5s ease-in-out infinite;
   filter: drop-shadow(0 0 34px color-mix(in srgb, var(--color-brand-green) 55%, transparent))
@@ -188,5 +203,11 @@
   .brand-scene .net-node, .brand-scene .sparkle,
   .wire-cube, .wire-ico {
     animation: none;
+  }
+  .brand-mascot-link {
+    transition: none;
+  }
+  .brand-mascot-link:hover {
+    transform: none;
   }
 }

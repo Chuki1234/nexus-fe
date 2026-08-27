@@ -21,6 +21,8 @@ import type { PresenceStatus } from '../../../../../shared/dto/common';
 })
 export class ChatToolbar {
   readonly title = input.required<string>();
+  /** Cho phép bấm vào tiêu đề (tên người) để mở hồ sơ — chỉ bật ở DM. */
+  readonly titleClickable = input<boolean>(false);
   readonly subtitle = input<string | null>(null);
   readonly leadingIcon = input<string>('tag');
   readonly showAvatar = input<boolean>(false);
@@ -35,6 +37,7 @@ export class ChatToolbar {
   readonly showPins = input<boolean>(false);
   readonly pinsOpen = input<boolean>(false);
 
+  readonly titleClick = output<void>();
   readonly toggleDetails = output<void>();
   readonly startAudioCall = output<void>();
   readonly startVideoCall = output<void>();

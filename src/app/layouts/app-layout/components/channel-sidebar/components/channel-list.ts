@@ -1265,7 +1265,3 @@ export class ChannelList implements OnDestroy {
     this.chatSocket.moveVoiceMember(this.serverId(), member.userId, targetChannel.id);
   }
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> 0f04d7bb2c50cdc60813e897fbccfdff8de65522

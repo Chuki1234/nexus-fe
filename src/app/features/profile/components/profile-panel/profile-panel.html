@@ -48,10 +48,42 @@
       }
     </div>
 
-    <div>
-      <h3 class="text-heading-4 font-bold leading-tight text-ink">{{ name() }}</h3>
-      @if (profile(); as person) {
-        <p class="mt-0.5 text-body-sm text-steel">&commat;{{ person.username }}</p>
+    <!-- Tên trái · nút 3-chấm phải — cùng hàng, luôn cách xa cụm avatar + bong
+         bóng status nên không bị chèn dù có trạng thái. -->
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0">
+        <h3 class="text-heading-4 font-bold leading-tight">
+          @if (profile()) {
+            <!-- Tên bấm được: hover gạch dưới, click chép link hồ sơ vào clipboard. -->
+            <button
+              type="button"
+              (click)="copyProfileLink()"
+              title="Sao chép link hồ sơ"
+              class="block max-w-full cursor-pointer truncate text-left text-ink underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
+            >{{ name() }}</button>
+          } @else {
+            <span class="block truncate text-ink">{{ name() }}</span>
+          }
+        </h3>
+        @if (linkCopied()) {
+          <p role="status" class="mt-0.5 flex items-center gap-1 text-caption text-primary">
+            <mat-icon aria-hidden="true" class="size-4! text-[15px]!">check</mat-icon>
+            Đã sao chép link hồ sơ
+          </p>
+        } @else if (profile(); as person) {
+          <p class="mt-0.5 truncate text-body-sm text-steel">&commat;{{ person.username }}</p>
+        }
+      </div>
+
+      @if (canManage()) {
+        <button
+          type="button"
+          [matMenuTriggerFor]="profileMenu"
+          aria-label="Tùy chọn hồ sơ"
+          class="-mr-1 mt-0.5 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-steel transition-colors hover:bg-surface-soft hover:text-ink"
+        >
+          <mat-icon aria-hidden="true" class="text-[20px]!">more_vert</mat-icon>
+        </button>
       }
     </div>
 
@@ -186,3 +218,24 @@
     }
   </div>
 }
+
+<!-- Menu 3-chấm: trạng thái kết bạn (Kết bạn ↔ Xóa kết bạn) + Chặn/Bỏ chặn.
+     Overlay của Material nên đặt ở đâu trong template cũng được. -->
+<mat-menu #profileMenu="matMenu">
+  @if (isFriend()) {
+    <button mat-menu-item type="button" (click)="unfriend()">
+      <mat-icon>person_remove</mat-icon>
+      <span>Xóa kết bạn</span>
+    </button>
+  } @else {
+    <button mat-menu-item type="button" (click)="addFriend()">
+      <mat-icon>person_add</mat-icon>
+      <span>Kết bạn</span>
+    </button>
+  }
+
+  <button mat-menu-item type="button" (click)="toggleBlock()">
+    <mat-icon>{{ isBlocked() ? 'lock_open' : 'block' }}</mat-icon>
+    <span>{{ isBlocked() ? 'Bỏ chặn' : 'Chặn' }}</span>
+  </button>
+</mat-menu>

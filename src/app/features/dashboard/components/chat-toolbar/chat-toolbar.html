@@ -20,7 +20,18 @@
     </span>
   }
 
-  <h1 class="truncate text-body-md font-bold text-ink">{{ title() }}</h1>
+  @if (titleClickable()) {
+    <h1 class="truncate text-body-md font-bold">
+      <button
+        type="button"
+        (click)="titleClick.emit()"
+        title="Xem hồ sơ"
+        class="cursor-pointer text-ink underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
+      >{{ title() }}</button>
+    </h1>
+  } @else {
+    <h1 class="truncate text-body-md font-bold text-ink">{{ title() }}</h1>
+  }
 
   @if (subtitle(); as text) {
     <span aria-hidden="true" class="mx-3 h-6 w-px shrink-0 bg-hairline"></span>
