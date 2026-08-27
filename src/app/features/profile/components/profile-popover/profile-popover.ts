@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterLink } from '@angular/router';
 import { bannerColorFor, profileDisplayName, type PublicProfile } from '../../../../../shared';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import { OpenDm } from '../../open-dm';
+import { ProfileDialogService } from '../../profile-dialog.service';
 import { linkIconFor } from '../link-icon';
 
 /**
@@ -20,7 +20,7 @@ import { linkIconFor } from '../link-icon';
  */
 @Component({
   selector: 'app-profile-popover',
-  imports: [Avatar, MatIconModule, RouterLink],
+  imports: [Avatar, MatIconModule],
   providers: [OpenDm],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block w-80 overflow-hidden rounded-lg border border-hairline bg-surface shadow-modal' },
@@ -30,7 +30,25 @@ import { linkIconFor } from '../link-icon';
 export class ProfilePopover {
   readonly profile = input.required<PublicProfile>();
 
+  /**
+   * Báo cho nơi mở thẻ này biết cần đóng nó lại.
+   *
+   * Thẻ nổi được gắn bằng CDK overlay ở `ProfileTrigger`, không tự đóng được;
+   * khi bấm "Xem hồ sơ đầy đủ" mở cửa sổ hồ sơ, phải phát tín hiệu để overlay
+   * đóng — không thì thẻ nhỏ còn kẹt lại sau lớp phủ của dialog.
+   */
+  readonly close = output<void>();
+
+  private readonly profileDialog = inject(ProfileDialogService);
+
   protected readonly name = computed(() => profileDisplayName(this.profile()));
+
+  /** Mở hồ sơ đầy đủ dạng cửa sổ nổi (không điều hướng sang trang riêng). */
+  protected openFull(): void {
+    const person = this.profile();
+    this.profileDialog.open(person.username, person);
+    this.close.emit();
+  }
 
   protected readonly bannerColor = computed(() => {
     const person = this.profile();

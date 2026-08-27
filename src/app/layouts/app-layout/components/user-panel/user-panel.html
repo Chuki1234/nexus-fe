@@ -53,10 +53,12 @@
 }
 
 <div class="flex items-center justify-between w-full min-w-0">
-  <!-- Bấm avatar/tên → sang trang hồ sơ đầy đủ. Rê chuột vào → hiện thẻ hồ sơ nhỏ.
+  <!-- Bấm avatar/tên → mở hồ sơ đầy đủ dạng cửa sổ nổi (không rời khỏi khung chat).
+       Rê chuột vào → hiện thẻ hồ sơ nhỏ.
        [src]: avatar ở đáy là ảnh THẬT, khớp với ảnh vừa đổi trong cài đặt. -->
-  <a
-    [routerLink]="username() ? ['/u', username()] : null"
+  <button
+    type="button"
+    (click)="openFullProfile()"
     cdkOverlayOrigin
     #identityTrigger="cdkOverlayOrigin"
     class="user-panel__identity nexus-interactive-row"
@@ -76,7 +78,7 @@
       <span class="user-panel__name">{{ displayName() }}</span>
       <span class="user-panel__status">Trực tuyến</span>
     </span>
-  </a>
+  </button>
 
   <!-- Thẻ hồ sơ nhỏ, nổi đè lên khi hover. Trước đây chỗ này là menu chỉ có
        Xóa tài khoản / Đăng xuất — bấm vào avatar của chính mình mà chỉ được mời
@@ -89,13 +91,14 @@
   >
     <div (mouseenter)="openCard()" (mouseleave)="scheduleClose()">
       @if (store.profile(); as person) {
-        <app-profile-popover [profile]="person">
-          <a
-            [routerLink]="['/u', person.username]"
-            class="block w-full rounded-full bg-primary px-3 py-2 text-center text-button-md text-on-primary transition-colors hover:bg-primary-soft"
+        <app-profile-popover [profile]="person" (close)="popoverOpen.set(false)">
+          <button
+            type="button"
+            (click)="openFullProfile()"
+            class="block w-full cursor-pointer rounded-full bg-primary px-3 py-2 text-center text-button-md text-on-primary transition-colors hover:bg-primary-soft"
           >
             Xem hồ sơ đầy đủ
-          </a>
+          </button>
         </app-profile-popover>
       } @else {
         <!-- Hồ sơ tải sau khi thẻ đã mở. Khung xám giữ đúng khổ thẻ thật để lúc

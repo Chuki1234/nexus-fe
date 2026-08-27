@@ -4,8 +4,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterLink } from '@angular/router';
 import { ProfileService } from '../../../../core/profile/profile.service';
+import { ProfileDialogService } from '../../../../features/profile/profile-dialog.service';
 import { ProfilePopover } from '../../../../features/profile/components/profile-popover/profile-popover';
 import { ProfileStore } from '../../../../features/profile/profile-store';
 import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
@@ -16,9 +16,9 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
 /**
  * Khối người dùng ở đáy cột 2: avatar, tên, và các nút mic / tai nghe / cài đặt.
  *
- * Bấm vào avatar/tên điều hướng sang trang hồ sơ đầy đủ (`/u/:username`); rê chuột
- * vào thì hiện thẻ hồ sơ nhỏ (ProfilePopover của Dược). Đăng xuất / Xóa tài khoản
- * đã chuyển hẳn vào màn Cài đặt.
+ * Bấm vào avatar/tên mở hồ sơ đầy đủ dạng cửa sổ nổi (ProfileModal), không rời
+ * khỏi khung chat; rê chuột vào thì hiện thẻ hồ sơ nhỏ (ProfilePopover). Đăng
+ * xuất / Xóa tài khoản đã chuyển hẳn vào màn Cài đặt.
  */
 @Component({
   selector: 'app-user-panel',
@@ -29,7 +29,6 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
     MatTooltipModule,
     OverlayModule,
     ProfilePopover,
-    RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -41,6 +40,7 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
 export class UserPanel {
   private readonly profile = inject(ProfileService);
   private readonly settingsService = inject(UserSettingsService);
+  private readonly profileDialog = inject(ProfileDialogService);
   readonly voiceRoom = inject(VoiceRoomService);
   readonly mediaDevices = inject(MediaDeviceService);
   protected readonly store = inject(ProfileStore);
@@ -131,6 +131,17 @@ export class UserPanel {
     if (this.isVoiceConnected()) {
       void this.voiceRoom.toggleDeafen();
     }
+  }
+
+  /**
+   * Mở hồ sơ đầy đủ dạng cửa sổ nổi giữa màn hình thay vì điều hướng sang trang
+   * `/u/:username`. Đóng thẻ nhỏ đang hover để không còn kẹt sau lớp phủ dialog.
+   */
+  protected openFullProfile(): void {
+    const person = this.store.profile();
+    if (!person) return;
+    this.popoverOpen.set(false);
+    this.profileDialog.open(person.username, person);
   }
 
   protected openSettings(): void {
