@@ -45,6 +45,10 @@ export class ServerRolesTab implements OnInit {
   protected readonly showCreateRoleModal = signal<boolean>(false);
   protected readonly toastMessage = signal<string | null>(null);
 
+  protected readonly editRoleName = signal<string>('');
+  protected readonly editRoleColor = signal<string>('#38bdf8');
+  protected readonly isSaving = signal<boolean>(false);
+
   protected readonly colorPresets = [
     '#99aab5', '#1abc9c', '#2ecc71', '#3498db', '#9b59b6',
     '#e91e63', '#f1c40f', '#e67e22', '#e74c3c', '#34495e',
@@ -82,6 +86,11 @@ export class ServerRolesTab implements OnInit {
 
   protected openRoleEditor(id: string): void {
     this.selectedRoleId.set(id);
+    const role = this.settingsService.serverRoles().find((r) => r.id === id);
+    if (role) {
+      this.editRoleName.set(role.name);
+      this.editRoleColor.set(role.color);
+    }
     this.viewMode.set('edit');
   }
 
@@ -89,18 +98,70 @@ export class ServerRolesTab implements OnInit {
     this.viewMode.set('list');
   }
 
-  protected createRole(): void {
+  protected async createRole(): Promise<void> {
     const name = this.newRoleName.trim();
     if (name) {
-      this.settingsService.addServerRole(name, this.newRoleColor);
+      const createdId = await this.settingsService.addServerRole(name, this.newRoleColor);
       this.newRoleName = '';
       this.showCreateRoleModal.set(false);
       this.showToast(`Đã tạo vai trò "${name}" thành công.`);
+      if (createdId) {
+        this.openRoleEditor(createdId);
+      }
+    }
+  }
+
+  protected isSystemAdminRole(role?: ServerRoleItem): boolean {
+    if (!role) return false;
+    return (
+      role.id === 'role-admin' ||
+      role.name === 'Quản trị viên (Admin)' ||
+      role.name === 'Quản Trị Viên (Admin)' ||
+      role.name === 'Admin' ||
+      (Boolean(role.permissions?.administrator) && !role.isDefault)
+    );
+  }
+
+  protected async saveRole(): Promise<void> {
+    const role = this.selectedRole;
+    if (!role) return;
+
+    this.isSaving.set(true);
+    const name = this.editRoleName().trim() || role.name;
+    const color = this.editRoleColor() || role.color;
+
+    await this.settingsService.updateServerRole(role.id, {
+      name,
+      color,
+      permissions: this.isSystemAdminRole(role) ? undefined : role.permissions,
+    });
+
+    this.isSaving.set(false);
+    this.showToast(`Đã lưu vai trò "${name}" thành công!`);
+  }
+
+  protected isPreviewingThisRole(): boolean {
+    return this.settingsService.previewRoleId() === this.selectedRoleId();
+  }
+
+  protected togglePreviewRole(): void {
+    const currentPreview = this.settingsService.previewRoleId();
+    if (currentPreview === this.selectedRoleId()) {
+      this.settingsService.setPreviewRole(null);
+      this.showToast('Đã tắt chế độ xem trước vai trò.');
+    } else {
+      this.settingsService.setPreviewRole(this.selectedRoleId());
+      this.showToast(`Đang xem trước giao diện với vai trò "${this.selectedRole?.name}".`);
     }
   }
 
   protected deleteRole(id: string, event?: MouseEvent): void {
     if (event) event.stopPropagation();
+    const role = this.settingsService.serverRoles().find((r) => r.id === id);
+    if (this.isSystemAdminRole(role)) {
+      this.showToast('Không thể xóa vai trò Quản trị viên của máy chủ.');
+      return;
+    }
     this.settingsService.deleteServerRole(id);
     if (this.selectedRoleId() === id) {
       this.selectedRoleId.set('role-everyone');
@@ -117,6 +178,10 @@ export class ServerRolesTab implements OnInit {
 
   protected togglePermission(permKey: keyof ServerRoleItem['permissions']): void {
     if (this.selectedRole) {
+      if (this.isSystemAdminRole(this.selectedRole)) {
+        this.showToast('Không thể chỉnh sửa phân quyền của vai trò Quản trị viên.');
+        return;
+      }
       this.settingsService.toggleRolePermission(this.selectedRole.id, permKey);
     }
   }
