@@ -14,6 +14,8 @@
         [participant]="focusedSharer"
         [isScreenShare]="true"
         [isFocused]="true"
+        [isLocallyMuted]="voiceRoom.isLocalMuted(focusedSharer.identity)"
+        (actionsMenu)="onParticipantContextMenu($event, focusedSharer)"
         class="size-full"
       />
     </div>
@@ -87,7 +89,9 @@
           <app-participant-tile
             [participant]="item.participant"
             [isScreenShare]="item.type === 'screen_share'"
+            [isLocallyMuted]="voiceRoom.isLocalMuted(item.participant.identity)"
             (watchStream)="watchStream($event)"
+            (actionsMenu)="onParticipantContextMenu($event, item.participant)"
             (contextmenu)="onParticipantContextMenu($event, item.participant)"
           />
         </div>
@@ -140,26 +144,40 @@
 <!-- Stage Participant Context Menu (Chuột phải vào ô thành viên trên sân khấu) -->
 <mat-menu #stageMemberContextMenu="matMenu" class="nexus-context-menu nexus-member-menu">
   @if (selectedParticipant(); as participant) {
-    <!-- Member Header Card -->
-    <div class="px-3.5 py-2.5 border-b border-surface-border/40 flex items-center gap-2.5 select-none pointer-events-none">
-      <app-avatar [name]="participant.name" [src]="participant.avatarUrl || null" size="sm" ring="surface" />
-      <div class="flex flex-col min-w-0">
-        <span class="text-body-sm-bold text-ink truncate">{{ participant.name }}</span>
-        <span class="text-[11px] text-steel">
-          {{ participant.isLocal ? 'Chính bạn' : isOwner() ? 'Thành viên máy chủ' : 'Thành viên thoại' }}
-        </span>
-      </div>
-    </div>
+    <button
+      mat-menu-item
+      type="button"
+      class="context-menu-item"
+      [disabled]="!canOpenProfile(participant)"
+      (click)="openParticipantProfile(participant)"
+    >
+      <mat-icon class="context-menu-icon text-steel">person</mat-icon>
+      <span class="context-menu-label text-ink flex-1">Xem hồ sơ</span>
+    </button>
 
     @if (!participant.isLocal) {
-      <!-- Âm lượng người dùng (User Volume Slider 0% - 200%) -->
-      <div class="px-3.5 py-2 flex flex-col gap-1.5" (click)="$event.stopPropagation()">
-        <div class="flex items-center justify-between text-caption font-semibold">
-          <span class="text-steel text-[11px]">Âm lượng người dùng</span>
-          <span class="text-primary font-mono text-xs">{{ voiceRoom.getUserVolume(participant.identity) }}%</span>
+      <button
+        mat-menu-item
+        type="button"
+        class="context-menu-item"
+        [disabled]="openingDmIdentity() === participant.identity"
+        (click)="openParticipantMessage(participant)"
+      >
+        <mat-icon class="context-menu-icon text-steel">chat_bubble</mat-icon>
+        <span class="context-menu-label text-ink flex-1">
+          {{ openingDmIdentity() === participant.identity ? 'Đang mở...' : 'Nhắn tin' }}
+        </span>
+      </button>
+
+      <div class="context-menu-divider" role="separator"></div>
+
+      <div class="voice-stage-member-volume" (click)="$event.stopPropagation()">
+        <div class="voice-stage-member-volume__label">
+          <span>Âm lượng giọng nói</span>
+          <span>{{ voiceRoom.getUserVolume(participant.identity) }}%</span>
         </div>
-        <div class="flex items-center gap-2">
-          <mat-icon class="!size-4 !text-base text-steel">volume_down</mat-icon>
+        <div class="voice-stage-member-volume__control">
+          <mat-icon aria-hidden="true">volume_down</mat-icon>
           <input
             type="range"
             min="0"
@@ -167,45 +185,85 @@
             step="1"
             [value]="voiceRoom.getUserVolume(participant.identity)"
             (input)="onVolumeChange(participant.identity, $event)"
-            class="w-full h-1.5 bg-surface-feature rounded-lg appearance-none cursor-pointer accent-primary"
+            aria-label="Âm lượng giọng nói"
           />
-          <mat-icon class="!size-4 !text-base text-steel">volume_up</mat-icon>
+          <mat-icon aria-hidden="true">volume_up</mat-icon>
         </div>
       </div>
 
-      <!-- Tắt tiếng cục bộ (Local Mute) -->
-      <button mat-menu-item type="button" (click)="voiceRoom.toggleLocalMute(participant.identity)" class="context-menu-item">
-        <mat-icon class="context-menu-icon" [class.text-danger]="voiceRoom.isLocalMuted(participant.identity)" [class.text-steel]="!voiceRoom.isLocalMuted(participant.identity)">
-          {{ voiceRoom.isLocalMuted(participant.identity) ? 'volume_off' : 'volume_up' }}
+      <button mat-menu-item type="button" (click)="toggleParticipantMute(participant)" class="context-menu-item">
+        <mat-icon class="context-menu-icon" [class.text-primary]="isParticipantMutedForMe(participant)" [class.text-steel]="!isParticipantMutedForMe(participant)">
+          {{ isParticipantMutedForMe(participant) ? 'volume_off' : 'volume_up' }}
         </mat-icon>
-        <span class="context-menu-label text-ink flex-1">
-          {{ voiceRoom.isLocalMuted(participant.identity) ? 'Bật tiếng cho bạn' : 'Tắt tiếng cho bạn' }}
-        </span>
+        <span class="context-menu-label text-ink flex-1">Tắt tiếng</span>
+        <div class="context-menu-checkbox" [class.context-menu-checkbox--checked]="isParticipantMutedForMe(participant)">
+          @if (isParticipantMutedForMe(participant)) {
+            <mat-icon aria-hidden="true">check</mat-icon>
+          }
+        </div>
       </button>
 
-      <!-- DÀNH CHO CHỦ SERVER / ADMIN -->
-      @if (isOwner()) {
-        <div class="context-menu-divider" role="separator"></div>
+      <button mat-menu-item type="button" (click)="toggleSoundboardMute(participant)" class="context-menu-item">
+        <mat-icon class="context-menu-icon text-steel">music_off</mat-icon>
+        <span class="context-menu-label text-ink flex-1">Tắt soundboard</span>
+        <div class="context-menu-checkbox" [class.context-menu-checkbox--checked]="isSoundboardMuted(participant)">
+          @if (isSoundboardMuted(participant)) {
+            <mat-icon aria-hidden="true">check</mat-icon>
+          }
+        </div>
+      </button>
+    }
 
-        <!-- Chuyển sang kênh thoại khác (Submenu) -->
-        @let otherChannels = otherVoiceChannels();
+    @if ((participant.isLocal && otherVoiceChannels().length > 0) || (!participant.isLocal && isOwner())) {
+      <div class="context-menu-divider" role="separator"></div>
+
+      <button mat-menu-item type="button" [matMenuTriggerFor]="stageMoreOptionsSubmenu" class="context-menu-item">
+        <span class="context-menu-label text-ink flex-1">Tùy chọn khác</span>
+        <mat-icon class="context-submenu-chevron text-steel">chevron_right</mat-icon>
+      </button>
+    }
+  }
+</mat-menu>
+
+<!-- Submenu Tùy Chọn Khác Trên Stage -->
+<mat-menu #stageMoreOptionsSubmenu="matMenu" class="nexus-context-menu nexus-submenu">
+  @if (selectedParticipant(); as participant) {
+    @let otherChannels = otherVoiceChannels();
+    @if (participant.isLocal) {
+      @if (otherChannels.length > 0) {
+        @for (vc of otherChannels; track vc.id) {
+          <button mat-menu-item type="button" (click)="onMoveSelfToChannel(vc.id)" class="context-menu-item">
+            <mat-icon class="context-menu-icon text-primary">volume_up</mat-icon>
+            <span class="context-menu-label text-ink">{{ vc.name }}</span>
+          </button>
+        }
+      }
+    } @else {
+      @if (isOwner()) {
         @if (otherChannels.length > 0) {
-          <button mat-menu-item type="button" [matMenuTriggerFor]="stageMoveVoiceChannelSubmenu" class="context-menu-item">
-            <mat-icon class="context-menu-icon text-primary">move_to_inbox</mat-icon>
-            <span class="context-menu-label text-ink flex-1">Chuyển sang kênh thoại</span>
-            <mat-icon class="context-submenu-chevron text-steel">chevron_right</mat-icon>
+          <button mat-menu-item type="button" [matMenuTriggerFor]="stageMoveMemberChannelSubmenu" class="context-menu-item">
+            <mat-icon class="context-menu-icon text-steel">drive_file_move</mat-icon>
+            <span class="context-menu-label text-ink flex-1">Chuyển tới kênh thoại</span>
+            <mat-icon class="context-submenu-chevron">chevron_right</mat-icon>
           </button>
         }
 
-        <!-- Tắt mic trên máy chủ (Server Mute) -->
         <button mat-menu-item type="button" (click)="onToggleServerMute(participant.identity, participant.isMuted)" class="context-menu-item">
-          <mat-icon class="context-menu-icon text-warning">mic_off</mat-icon>
-          <span class="context-menu-label text-ink">
-            {{ participant.isMuted ? 'Bỏ tắt mic trên server' : 'Tắt mic trên server' }}
+          <mat-icon class="context-menu-icon text-steel">mic_off</mat-icon>
+          <span class="context-menu-label text-ink flex-1">
+            {{ participant.isMuted ? 'Bỏ tắt mic server' : 'Tắt mic server' }}
           </span>
         </button>
 
-        <!-- Ngắt kết nối / Đá khỏi phòng thoại -->
+        <button mat-menu-item type="button" (click)="onToggleServerDeafen(participant.identity, participant.isDeafened ?? false)" class="context-menu-item">
+          <mat-icon class="context-menu-icon text-steel">headset_off</mat-icon>
+          <span class="context-menu-label text-ink flex-1">
+            {{ participant.isDeafened ? 'Bỏ tắt tiếng server' : 'Tắt tiếng server' }}
+          </span>
+        </button>
+
+        <div class="context-menu-divider" role="separator"></div>
+
         <button mat-menu-item type="button" (click)="onKickMember(participant.identity)" class="context-menu-item context-menu-item--danger">
           <mat-icon class="context-menu-icon !text-danger">phone_disabled</mat-icon>
           <span class="context-menu-label font-semibold text-danger">Ngắt kết nối phòng thoại</span>
@@ -215,8 +273,7 @@
   }
 </mat-menu>
 
-<!-- Submenu Chuyển Kênh Thoại Trên Stage -->
-<mat-menu #stageMoveVoiceChannelSubmenu="matMenu" class="nexus-context-menu nexus-submenu">
+<mat-menu #stageMoveMemberChannelSubmenu="matMenu" class="nexus-context-menu nexus-submenu">
   @if (selectedParticipant(); as participant) {
     @for (vc of otherVoiceChannels(); track vc.id) {
       <button mat-menu-item type="button" (click)="onMoveMember(participant.identity, vc.id)" class="context-menu-item">

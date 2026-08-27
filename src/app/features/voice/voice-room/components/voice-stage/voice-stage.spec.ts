@@ -1,7 +1,12 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { ConversationsApiService } from '../../../../../core/api/conversations-api.service';
+import { ProfileService } from '../../../../../core/profile/profile.service';
+import { ServerVoiceStatesStore } from '../../../../../core/servers/server-voice-states.store';
 import { VoiceParticipantModel, VoiceRoomService } from '../../../services/voice-room.service';
+import { ProfileDialogService } from '../../../../profile/profile-dialog.service';
 import { VoiceStage } from './voice-stage';
 
 describe('VoiceStage', () => {
@@ -9,6 +14,7 @@ describe('VoiceStage', () => {
   let fixture: ComponentFixture<VoiceStage>;
   let mockParticipants: ReturnType<typeof signal<VoiceParticipantModel[]>>;
   let mockScreenSharer: ReturnType<typeof signal<VoiceParticipantModel | undefined>>;
+  let profileDialog: { open: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     mockParticipants = signal<VoiceParticipantModel[]>([
@@ -24,6 +30,7 @@ describe('VoiceStage', () => {
       },
     ]);
     mockScreenSharer = signal<VoiceParticipantModel | undefined>(undefined);
+    profileDialog = { open: vi.fn() };
 
     await TestBed.configureTestingModule({
       imports: [VoiceStage],
@@ -33,17 +40,51 @@ describe('VoiceStage', () => {
           useValue: {
             allParticipants: mockParticipants,
             screenShareParticipant: mockScreenSharer,
+            localParticipant: signal(mockParticipants()[0]),
+            currentServerId: signal('srv-1'),
+            currentChannelId: signal('voice-1'),
             isMicMuted: signal(false),
+            isDeafened: signal(false),
             isCameraOn: signal(false),
             isScreenSharing: signal(false),
+            isLocalMuted: () => false,
+            getUserVolume: () => 100,
             toggleMicrophone: () => {},
+            toggleDeafen: () => {},
+            toggleLocalMute: () => {},
             toggleCamera: () => {},
             toggleScreenShare: () => {},
+            switchScreenShare: () => {},
             leaveRoom: () => {},
+            setUserVolume: () => {},
+            joinRoom: () => {},
             switchAudioInput: () => {},
             switchVideoInput: () => {},
             switchAudioOutput: () => {},
           },
+        },
+        {
+          provide: ConversationsApiService,
+          useValue: { getOrCreateDm: vi.fn().mockResolvedValue({ id: 'dm-1' }) },
+        },
+        {
+          provide: ProfileService,
+          useValue: { current: signal({ username: 'minhtai' }) },
+        },
+        {
+          provide: ProfileDialogService,
+          useValue: profileDialog,
+        },
+        {
+          provide: ServerVoiceStatesStore,
+          useValue: {
+            getServerVoiceStates: () => [],
+            loadServerVoiceStates: () => Promise.resolve(),
+          },
+        },
+        {
+          provide: Router,
+          useValue: { navigate: vi.fn() },
         },
       ],
     }).compileComponents();
@@ -66,9 +107,11 @@ describe('VoiceStage', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Bạn đang ở trong phòng một mình');
 
-    const inviteBtn = el.querySelector('button') as HTMLButtonElement;
+    const inviteBtn = Array.from(el.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Mời vào phòng thoại'),
+    ) as HTMLButtonElement | undefined;
     expect(inviteBtn).toBeDefined();
-    inviteBtn.click();
+    inviteBtn?.click();
     expect(inviteEmitted).toBe(true);
   });
 
@@ -161,5 +204,11 @@ describe('VoiceStage', () => {
     component.onStreamMouseLeave();
     expect(component.areControlsVisible()).toBe(false);
     vi.useRealTimers();
+  });
+
+  it('mở dialog hồ sơ thay vì điều hướng sang trang hồ sơ', () => {
+    (component as any).openParticipantProfile(mockParticipants()[0]);
+
+    expect(profileDialog.open).toHaveBeenCalledWith('minhtai');
   });
 });

@@ -259,14 +259,14 @@
 }
 
 .context-menu-checkbox--checked {
-  border-color: #5865f2 !important;
-  background-color: #5865f2 !important;
+  border-color: var(--color-primary, #00ed64) !important;
+  background-color: var(--color-primary, #00ed64) !important;
 }
 
 .context-menu-checkbox-icon {
   width: 12px !important;
   height: 12px !important;
-  stroke: #ffffff !important;
+  stroke: var(--color-on-primary, #001e2b) !important;
   display: block !important;
   margin: auto !important;
 }

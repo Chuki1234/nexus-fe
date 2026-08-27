@@ -178,6 +178,10 @@ export class ChatSocketService {
     serverId: string;
     isMuted: boolean;
   }>();
+  private readonly voiceForceDeafenSubject = new Subject<{
+    serverId: string;
+    isDeafened: boolean;
+  }>();
 
   // Direct Call Signaling Subjects
   private readonly directCallIncomingSubject = new Subject<DirectCallDto>();
@@ -365,6 +369,10 @@ export class ChatSocketService {
     serverId: string;
     isMuted: boolean;
   }> = this.voiceForceMuteSubject.asObservable();
+  readonly voiceForceDeafen$: Observable<{
+    serverId: string;
+    isDeafened: boolean;
+  }> = this.voiceForceDeafenSubject.asObservable();
 
   constructor() {}
 
@@ -1123,6 +1131,9 @@ export class ChatSocketService {
     this.socket.on('voice:force-mute', (payload) => {
       this.voiceForceMuteSubject.next(payload);
     });
+    this.socket.on('voice:force-deafen', (payload) => {
+      this.voiceForceDeafenSubject.next(payload);
+    });
   }
 
   updateVoiceState(payload: LocalVoiceState): void {
@@ -1168,6 +1179,12 @@ export class ChatSocketService {
   serverMuteVoiceMember(serverId: string, targetUserId: string, isMuted: boolean): void {
     if (this.socket && this.socket.connected) {
       this.socket.emit('voice:server-mute-member', { serverId, targetUserId, isMuted });
+    }
+  }
+
+  serverDeafenVoiceMember(serverId: string, targetUserId: string, isDeafened: boolean): void {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('voice:server-deafen-member', { serverId, targetUserId, isDeafened });
     }
   }
 

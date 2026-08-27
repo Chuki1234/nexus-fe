@@ -28,8 +28,10 @@ export class ParticipantTile implements OnDestroy {
   readonly participant = input.required<VoiceParticipantModel>();
   readonly isScreenShare = input<boolean>(false);
   readonly isFocused = input<boolean>(false);
+  readonly isLocallyMuted = input<boolean>(false);
 
   readonly watchStream = output<string>();
+  readonly actionsMenu = output<MouseEvent | KeyboardEvent>();
 
   private readonly videoElement = viewChild<ElementRef<HTMLVideoElement>>('videoElement');
 
@@ -65,6 +67,12 @@ export class ParticipantTile implements OnDestroy {
       }
       this.currentAttachedTrack = null;
     }
+  }
+
+  protected openActionsMenu(event: MouseEvent | KeyboardEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.actionsMenu.emit(event);
   }
 
   ngOnDestroy(): void {

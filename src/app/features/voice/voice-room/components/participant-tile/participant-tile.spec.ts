@@ -70,6 +70,22 @@ describe('ParticipantTile', () => {
     expect(emittedIdentity).toBe('usr-1');
   });
 
+  it('phát sự kiện actionsMenu khi bấm nút 3 chấm', () => {
+    let emitted = false;
+    component.actionsMenu.subscribe(() => {
+      emitted = true;
+    });
+
+    const el = fixture.nativeElement as HTMLElement;
+    const menuButton = el.querySelector('.participant-tile__menu-button') as HTMLButtonElement;
+
+    expect(menuButton).toBeTruthy();
+    expect(menuButton.getAttribute('aria-label')).toBe('Mở tùy chọn của Minh Tài');
+
+    menuButton.click();
+    expect(emitted).toBe(true);
+  });
+
   it('ẩn nút xem stream và overlay khi ở chế độ isFocused', () => {
     fixture.componentRef.setInput('participant', {
       ...mockParticipant,
@@ -82,5 +98,15 @@ describe('ParticipantTile', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.watch-stream-overlay')).toBeNull();
     expect(el.querySelector('.participant-tile--focused')).toBeTruthy();
+  });
+
+  it('giới hạn chỉ báo trạng thái còn tối đa hai icon và phản ánh local mute', () => {
+    fixture.componentRef.setInput('isLocallyMuted', true);
+    fixture.detectChanges();
+
+    const statusIcons = fixture.nativeElement.querySelectorAll('.participant-tile__status mat-icon');
+    expect(statusIcons.length).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('volume_off');
+    expect(fixture.nativeElement.textContent).toContain('videocam_off');
   });
 });
