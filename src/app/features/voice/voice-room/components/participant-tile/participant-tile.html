@@ -47,7 +47,7 @@
       </div>
 
       <!-- Bottom Info Pill for Stream Tile in Grid -->
-      <div class="participant-tile__overlay pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between p-3">
+      <div class="participant-tile__overlay pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-center justify-between p-3">
         <div class="flex items-center gap-1.5 rounded-lg bg-canvas/80 px-2.5 py-1 backdrop-blur-xs">
           <mat-icon class="!size-4 !text-base text-primary">screen_share</mat-icon>
           <span class="max-w-[160px] truncate text-body-sm-medium text-ink font-semibold">
@@ -59,7 +59,43 @@
             </span>
           }
         </div>
+
+        <div class="pointer-events-auto flex items-center gap-1.5">
+          <div class="participant-tile__status">
+            @if (isLocallyMuted()) {
+              <mat-icon class="text-steel" matTooltip="Bạn đã tắt tiếng người này">volume_off</mat-icon>
+            } @else if (participant().isMuted) {
+              <mat-icon class="text-danger" matTooltip="Micro đang tắt">mic_off</mat-icon>
+            } @else if (participant().isDeafened) {
+              <mat-icon class="text-danger" matTooltip="Đang tắt tai nghe">headset_off</mat-icon>
+            }
+            @if (!participant().isCameraOn) {
+              <mat-icon class="text-steel" matTooltip="Camera đang tắt">videocam_off</mat-icon>
+            } @else if (participant().connectionQuality !== 'excellent') {
+              <mat-icon class="text-steel" [matTooltip]="'Tín hiệu: ' + participant().connectionQuality">signal_cellular_alt</mat-icon>
+            }
+          </div>
+          <button
+            type="button"
+            class="participant-tile__menu-button"
+            [attr.aria-label]="'Mở tùy chọn của ' + participant().name"
+            matTooltip="Tùy chọn"
+            (click)="openActionsMenu($event)"
+          >
+            <mat-icon aria-hidden="true">more_horiz</mat-icon>
+          </button>
+        </div>
       </div>
+    } @else {
+      <button
+        type="button"
+        class="participant-tile__menu-button participant-tile__menu-button--floating"
+        [attr.aria-label]="'Mở tùy chọn của ' + participant().name"
+        matTooltip="Tùy chọn"
+        (click)="openActionsMenu($event)"
+      >
+        <mat-icon aria-hidden="true">more_horiz</mat-icon>
+      </button>
     }
   } @else {
     <!-- ==================== PARTICIPANT TILE (CAMERA / AVATAR) ==================== -->
@@ -93,49 +129,31 @@
       </div>
 
       <!-- Status Icons -->
-      <div class="flex items-center gap-1.5 rounded-lg bg-canvas/80 px-2 py-1 backdrop-blur-xs">
-        @if (participant().isMuted) {
-          <mat-icon
-            class="!size-4 !text-base text-danger"
-            matTooltip="Đang tắt mic"
-            aria-label="Micro đang tắt"
-          >
-            mic_off
-          </mat-icon>
-        }
+      <div class="pointer-events-auto flex items-center gap-1.5">
+        <div class="participant-tile__status">
+          @if (isLocallyMuted()) {
+            <mat-icon class="text-steel" matTooltip="Bạn đã tắt tiếng người này">volume_off</mat-icon>
+          } @else if (participant().isMuted) {
+            <mat-icon class="text-danger" matTooltip="Micro đang tắt">mic_off</mat-icon>
+          } @else if (participant().isDeafened) {
+            <mat-icon class="text-danger" matTooltip="Đang tắt tai nghe">headset_off</mat-icon>
+          }
+          @if (!participant().isCameraOn) {
+            <mat-icon class="text-steel" matTooltip="Camera đang tắt">videocam_off</mat-icon>
+          } @else if (participant().connectionQuality !== 'excellent') {
+            <mat-icon class="text-steel" [matTooltip]="'Tín hiệu: ' + participant().connectionQuality">signal_cellular_alt</mat-icon>
+          }
+        </div>
 
-        @if (participant().isDeafened) {
-          <mat-icon
-            class="!size-4 !text-base text-danger"
-            matTooltip="Đang tắt tai nghe"
-            aria-label="Tai nghe đang tắt"
-          >
-            headset_off
-          </mat-icon>
-        }
-
-        @if (!participant().isCameraOn) {
-          <mat-icon
-            class="!size-4 !text-base text-steel"
-            matTooltip="Camera đang tắt"
-            aria-label="Camera đang tắt"
-          >
-            videocam_off
-          </mat-icon>
-        }
-
-        <!-- Connection Quality -->
-        <mat-icon
-          class="!size-4 !text-base"
-          [class.text-primary]="participant().connectionQuality === 'excellent'"
-          [class.text-amber-400]="participant().connectionQuality === 'good'"
-          [class.text-danger]="participant().connectionQuality === 'poor'"
-          [class.text-stone]="participant().connectionQuality === 'unknown'"
-          [matTooltip]="'Tín hiệu: ' + participant().connectionQuality"
-          aria-label="Chất lượng kết nối"
+        <button
+          type="button"
+          class="participant-tile__menu-button"
+          [attr.aria-label]="'Mở tùy chọn của ' + participant().name"
+          matTooltip="Tùy chọn"
+          (click)="openActionsMenu($event)"
         >
-          signal_cellular_alt
-        </mat-icon>
+          <mat-icon aria-hidden="true">more_horiz</mat-icon>
+        </button>
       </div>
     </div>
   }

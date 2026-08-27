@@ -33,6 +33,7 @@ export type VoiceConnectionStatus =
 export interface VoiceParticipantModel {
   identity: string;
   name: string;
+  username?: string | null;
   avatarUrl?: string | null;
   isLocal: boolean;
   isSpeaking: boolean;
@@ -161,6 +162,17 @@ export class VoiceRoomService implements OnDestroy {
                 this.broadcastVoiceState(this.currentChannelId());
               });
             }
+          }
+        }),
+      );
+    }
+
+    // 4. Lắng nghe lệnh ép tắt tiếng nghe trên máy chủ (Force Deafen)
+    if (this.chatSocket?.voiceForceDeafen$) {
+      this.socketSubs.add(
+        this.chatSocket.voiceForceDeafen$.subscribe((payload) => {
+          if (this.currentServerId() === payload.serverId) {
+            void this.setDeafenActive(payload.isDeafened);
           }
         }),
       );
@@ -301,6 +313,11 @@ export class VoiceRoomService implements OnDestroy {
     } catch (err) {
       console.warn('Lỗi khi đổi trạng thái microphone:', err);
     }
+  }
+
+  private async setDeafenActive(enabled: boolean): Promise<void> {
+    if (this.isDeafened() === enabled) return;
+    await this.toggleDeafen();
   }
 
   /**
