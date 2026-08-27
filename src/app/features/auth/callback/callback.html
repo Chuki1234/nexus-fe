@@ -6,22 +6,20 @@
     [attr.aria-label]="status()"
   >
     <div class="nexus-boot__content">
-      <div class="nexus-boot__mark" aria-hidden="true">
-        <span class="nexus-boot__orbits">
-          <span class="nexus-boot__orbit nexus-boot__orbit--one">
-            <span class="nexus-boot__node nexus-boot__node--one"></span>
-            <span class="nexus-boot__node nexus-boot__node--two"></span>
-          </span>
-          <span class="nexus-boot__orbit nexus-boot__orbit--two">
-            <span class="nexus-boot__node nexus-boot__node--three"></span>
-            <span class="nexus-boot__node nexus-boot__node--four"></span>
-          </span>
-        </span>
-        <span class="nexus-boot__monogram">N</span>
+      <div class="nexus-boot__brand-stage" aria-hidden="true">
+        <span class="nexus-boot__beam nexus-boot__beam--wide"></span>
+        <span class="nexus-boot__beam nexus-boot__beam--tight"></span>
+        <span class="nexus-boot__halo"></span>
+        <img
+          class="nexus-boot__brand-logo"
+          src="/assets/nexus-brand-transparent.png"
+          width="1983"
+          height="532"
+          alt=""
+        />
       </div>
 
       <div class="nexus-boot__copy">
-        <strong>NexusCord</strong>
         <span>{{ status() }}</span>
       </div>
 

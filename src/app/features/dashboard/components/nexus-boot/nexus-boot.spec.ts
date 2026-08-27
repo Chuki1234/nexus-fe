@@ -16,18 +16,20 @@ describe('NexusBoot', () => {
     await fixture.whenStable();
   });
 
-  it('dùng status semantics, Nexus Orbit và không dựng spinner hoặc ảnh nặng', () => {
+  it('dùng status semantics, brand product và không dựng spinner', () => {
     fixture.detectChanges();
 
     const boot = fixture.nativeElement.querySelector('[data-nexus-boot="angular"]');
+    const brandLogo = boot.querySelector('.nexus-boot__brand-logo') as HTMLImageElement;
+
     expect(component).toBeTruthy();
     expect(boot.getAttribute('role')).toBe('status');
     expect(boot.getAttribute('aria-live')).toBe('polite');
-    expect(boot.textContent).toContain('Đang nối không gian của bạn');
-    expect(boot.querySelectorAll('.nexus-boot__orbit')).toHaveLength(2);
-    expect(boot.querySelectorAll('.nexus-boot__node')).toHaveLength(4);
-    expect(boot.querySelectorAll('.nexus-boot__orbit > .nexus-boot__node')).toHaveLength(4);
-    expect(boot.querySelector('mat-spinner, img, svg')).toBeNull();
+    expect(boot.getAttribute('aria-label')).toBe('Nexus đang tải');
+    expect(boot.textContent).toContain('Đang mở không gian trò chuyện');
+    expect(brandLogo.getAttribute('src')).toBe('/assets/nexus-brand-transparent.png');
+    expect(boot.querySelectorAll('.nexus-boot__beam')).toHaveLength(2);
+    expect(boot.querySelector('mat-spinner, svg')).toBeNull();
   });
 
   it('nhận leaving state để chạy exit transition', () => {
