@@ -979,7 +979,16 @@ export class UserSettingsService {
 
   readonly currentServerData = computed<ServerSettingsData>(() => {
     const sId = this.currentServerId();
-    return this.serverDataMap()[sId] ?? this.serverDataMap()['itss'];
+    const realServer = this.serversStore?.servers()?.find((s) => s.id === sId);
+    const mock = this.serverDataMap()[sId] ?? this.serverDataMap()['itss'];
+    if (realServer) {
+      return {
+        ...mock,
+        name: realServer.name || mock.name,
+        iconUrl: realServer.iconUrl !== undefined ? realServer.iconUrl : (mock.iconUrl ?? null),
+      };
+    }
+    return mock;
   });
 
   readonly currentServerName = computed<string>(() => this.currentServerData().name);

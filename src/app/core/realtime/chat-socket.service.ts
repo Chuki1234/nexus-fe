@@ -149,6 +149,11 @@ export class ChatSocketService {
     serverId: string;
     capabilities: any;
   }>();
+  private readonly serverUpdatedSubject = new Subject<{
+    serverId: string;
+    name: string;
+    iconUrl: string | null;
+  }>();
   private readonly serverDeletedSubject = new Subject<{ serverId: string }>();
   private readonly serverMemberLeftSubject = new Subject<{ serverId: string; userId: string }>();
   private readonly serverMemberJoinedSubject = new Subject<{
@@ -289,6 +294,11 @@ export class ChatSocketService {
   }> = this.invitationUpdatedSubject.asObservable();
   readonly capabilitiesUpdated$: Observable<{ serverId: string; capabilities: any }> =
     this.capabilitiesUpdatedSubject.asObservable();
+  readonly serverUpdated$: Observable<{
+    serverId: string;
+    name: string;
+    iconUrl: string | null;
+  }> = this.serverUpdatedSubject.asObservable();
   readonly serverDeleted$: Observable<{ serverId: string }> =
     this.serverDeletedSubject.asObservable();
   readonly serverMemberLeft$: Observable<{ serverId: string; userId: string }> =
@@ -1065,6 +1075,10 @@ export class ChatSocketService {
 
     this.socket.on('server:capabilities-updated', (payload) => {
       this.capabilitiesUpdatedSubject.next(payload);
+    });
+
+    this.socket.on('server:updated', (payload) => {
+      this.serverUpdatedSubject.next(payload);
     });
 
     this.socket.on('server:deleted', (payload) => {

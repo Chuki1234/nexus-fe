@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserSettingsService } from '../../services/user-settings.service';
 import { ServersStore } from '../../../../core/servers/servers.store';
+import { ServersApiService } from '../../../../core/api/servers-api.service';
 
 @Component({
   selector: 'app-server-overview-tab',
@@ -16,6 +17,7 @@ import { ServersStore } from '../../../../core/servers/servers.store';
 export class ServerOverviewTab {
   protected readonly settingsService = inject(UserSettingsService);
   private readonly serversStore = inject(ServersStore);
+  private readonly serversApi = inject(ServersApiService);
 
   protected readonly serverData = this.settingsService.currentServerData;
   protected readonly serverName = computed(() => this.serverData().name);
@@ -37,6 +39,9 @@ export class ServerOverviewTab {
   });
 
   protected readonly savedNotice = signal<boolean>(false);
+  protected readonly isSaving = signal<boolean>(false);
+  protected readonly saveError = signal<string | null>(null);
+  private pendingIconFile = signal<File | null>(null);
 
   protected readonly bannerPresets = [
     { label: 'Deep Slate', gradient: 'linear-gradient(135deg, #374151 0%, #111827 100%)' },
@@ -86,28 +91,47 @@ export class ServerOverviewTab {
     const file = input.files[0];
     if (!file.type.startsWith('image/')) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      this.settingsService.updateCurrentServerOverview({ iconUrl: dataUrl });
-    };
-    reader.readAsDataURL(file);
+    // Lưu file gốc để upload khi save; hiện preview qua ObjectURL (không tốn bộ nhớ).
+    this.pendingIconFile.set(file);
+    const previewUrl = URL.createObjectURL(file);
+    this.settingsService.updateCurrentServerOverview({ iconUrl: previewUrl });
   }
 
   protected removeServerIcon(): void {
+    this.pendingIconFile.set(null);
     this.settingsService.updateCurrentServerOverview({ iconUrl: null });
   }
 
-  protected saveServerOverview(): void {
-    // Sync changes back to the central ServersStore so sidebar icon/name update immediately
+  protected async saveServerOverview(): Promise<void> {
     const sId = this.settingsService.currentServerId();
     const data = this.serverData();
-    this.serversStore.patchServer(sId, {
-      name: data.name,
-      iconUrl: data.iconUrl ?? null,
-    });
+    this.isSaving.set(true);
+    this.saveError.set(null);
 
-    this.savedNotice.set(true);
-    setTimeout(() => this.savedNotice.set(false), 2500);
+    try {
+      // 1. Upload icon trước (nếu người dùng chọn file mới)
+      const iconFile = this.pendingIconFile();
+      if (iconFile) {
+        const iconRes = await this.serversApi.uploadServerIcon(sId, iconFile);
+        this.serversStore.patchServer(sId, { iconUrl: iconRes.iconUrl });
+        // Cập nhật preview sang URL thật từ Storage (không còn ObjectURL tạm)
+        this.settingsService.updateCurrentServerOverview({ iconUrl: iconRes.iconUrl });
+        this.pendingIconFile.set(null);
+      }
+
+      // 2. Lưu tên (và các trường khác không phải file)
+      const res = await this.serversApi.updateServer(sId, {
+        name: data.name,
+      });
+
+      this.serversStore.patchServer(sId, { name: res.name });
+
+      this.savedNotice.set(true);
+      setTimeout(() => this.savedNotice.set(false), 2500);
+    } catch (err: any) {
+      this.saveError.set(err?.error?.message || err?.message || 'Không thể lưu hồ sơ máy chủ');
+    } finally {
+      this.isSaving.set(false);
+    }
   }
 }
