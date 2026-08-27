@@ -21,7 +21,7 @@
       <button
         mat-icon-button
         type="button"
-        class="nexus-icon-control !size-9 !rounded-lg"
+        class="nexus-icon-control !size-9 !rounded-full"
         matTooltip="Bắt đầu cuộc gọi thoại"
         (click)="startAudioCall.emit()"
       >
@@ -31,7 +31,7 @@
       <button
         mat-icon-button
         type="button"
-        class="nexus-icon-control !size-9 !rounded-lg"
+        class="nexus-icon-control !size-9 !rounded-full"
         matTooltip="Bắt đầu cuộc gọi video"
         (click)="startVideoCall.emit()"
       >
@@ -69,7 +69,7 @@
       <button
         mat-icon-button
         type="button"
-        class="nexus-icon-control !size-9 !rounded-lg"
+        class="nexus-icon-control !size-9 !rounded-full"
         [class.nexus-icon-control--active]="pinsOpen()"
         [attr.aria-expanded]="pinsOpen()"
         [attr.aria-label]="pinsOpen() ? 'Đóng tin nhắn đã ghim' : 'Mở tin nhắn đã ghim'"
@@ -84,7 +84,7 @@
       <button
         mat-icon-button
         type="button"
-        class="nexus-icon-control !size-9 !rounded-lg"
+        class="nexus-icon-control !size-9 !rounded-full"
         [class.nexus-icon-control--active]="detailsOpen()"
         [attr.aria-expanded]="detailsOpen()"
         [attr.aria-label]="detailsOpen() ? 'Ẩn ' + detailsLabel() : 'Hiện ' + detailsLabel()"

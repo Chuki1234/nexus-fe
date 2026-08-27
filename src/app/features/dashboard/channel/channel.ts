@@ -79,6 +79,8 @@ import {
 } from '../conversation/conversation';
 import { InlineMessageEditor } from '../components/inline-message-editor/inline-message-editor';
 import { MessageClockService } from '../../../core/utils/message-clock.service';
+import { NotificationService } from '../../../core/notification/notification.service';
+import { UserSettingsService } from '../../settings/services/user-settings.service';
 import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import { extractErrorMessage } from '../../../core/utils/error.util';
 import type { AttachmentResponseDto } from '../../../core/api/messages-api.service';
@@ -124,6 +126,8 @@ export class ChannelPage implements OnInit, AfterViewInit {
   protected readonly auth = inject(AuthService, { optional: true }) ?? inject(AuthService);
   protected readonly profileStore = inject(ProfileStore);
   readonly messageClock = inject(MessageClockService);
+  private readonly notificationService = inject(NotificationService, { optional: true });
+  private readonly userSettings = inject(UserSettingsService, { optional: true });
   private readonly presenceService =
     inject(PresenceService, { optional: true }) ?? inject(PresenceService);
   private readonly dialog = inject(MatDialog);
@@ -486,6 +490,11 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
     const replyToId = context?.kind === 'reply' ? context.messageId : undefined;
     this.composerContext.set(null);
+
+    // Âm thanh gửi tin (đồng bộ toggle "Tin nhắn" trong Cài đặt thông báo).
+    if (this.userSettings?.preferences().soundMessage) {
+      this.notificationService?.playMessageSound();
+    }
 
     await this.channelChat.sendMessage({
       content: payload.content,

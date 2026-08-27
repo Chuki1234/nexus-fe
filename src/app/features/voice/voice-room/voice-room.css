@@ -16,6 +16,35 @@
   animation: fadeIn 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.voice-join-btn {
+  background-color: var(--color-primary, #00ed64) !important;
+  color: var(--color-on-primary, #001e2b) !important;
+  border-radius: 9999px !important;
+  font-weight: 700 !important;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.voice-join-btn:hover {
+  background-color: var(--color-primary-soft, #00b545) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
+}
+
+:host-context(html[data-theme='light']) .voice-join-btn,
+:host-context(html[data-theme='warm-light']) .voice-join-btn,
+:host-context([data-theme='light']) .voice-join-btn,
+:host-context([data-theme='warm-light']) .voice-join-btn {
+  background-color: #006241 !important;
+  color: #ffffff !important;
+}
+
+:host-context(html[data-theme='light']) .voice-join-btn:hover,
+:host-context(html[data-theme='warm-light']) .voice-join-btn:hover,
+:host-context([data-theme='light']) .voice-join-btn:hover,
+:host-context([data-theme='warm-light']) .voice-join-btn:hover {
+  background-color: #00754a !important;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

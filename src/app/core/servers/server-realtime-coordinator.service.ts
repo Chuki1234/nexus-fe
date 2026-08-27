@@ -32,8 +32,12 @@ export class ServerRealtimeCoordinator implements OnDestroy {
       this.subs.add(
         this.chatSocket.channelsInvalidated$.subscribe(async ({ serverId }) => {
           try {
-            const channels: ChannelSummary[] = await this.serversApi.listChannels(serverId);
+            const [channels, structure] = await Promise.all([
+              this.serversApi.listChannels(serverId),
+              this.serversApi.getChannelStructure(serverId),
+            ]);
             this.serversStore.setChannels(serverId, channels);
+            this.serversStore.applyServerChannelStructure(serverId, structure);
 
             const activeServerId = this.serversStore.activeServerId();
             const activeChannelId = this.serversStore.activeChannelId();
@@ -47,7 +51,8 @@ export class ServerRealtimeCoordinator implements OnDestroy {
                   horizontalPosition: 'right',
                   verticalPosition: 'bottom',
                 });
-                const firstValidChannel = channels.find((c: ChannelSummary) => c.type === 'text') || channels[0];
+                const firstValidChannel =
+                  channels.find((c: ChannelSummary) => c.type === 'text') || channels[0];
                 if (firstValidChannel) {
                   await this.router.navigate(['/channels', serverId, firstValidChannel.id]);
                 } else {
@@ -58,6 +63,14 @@ export class ServerRealtimeCoordinator implements OnDestroy {
           } catch {
             // Lỗi network hoặc mất quyền server
           }
+        }),
+      );
+    }
+
+    if (this.chatSocket.channelStructureUpdated$) {
+      this.subs.add(
+        this.chatSocket.channelStructureUpdated$.subscribe(({ serverId, structure }) => {
+          this.serversStore.applyServerChannelStructure(serverId, structure);
         }),
       );
     }

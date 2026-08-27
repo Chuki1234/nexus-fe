@@ -78,7 +78,7 @@
               {{ item.channel.type === 'voice' ? 'volume_up' : (item.channel.type === 'forum' ? 'forum' : 'tag') }}
             </mat-icon>
 
-            <span matListItemTitle class="min-w-0 text-body-sm font-medium text-slate group-hover:text-ink transition-colors" [class.text-ink]="!link.isActive && item.channel.unread" [class.font-semibold]="link.isActive || item.channel.unread">
+            <span matListItemTitle class="min-w-0 text-body-sm font-medium text-slate group-hover:text-ink transition-colors" [class.text-ink]="!link.isActive && channelHasUnread(item.channel.id)" [class.font-semibold]="link.isActive || channelHasUnread(item.channel.id)">
               <app-overflow-marquee [text]="item.channel.name" />
             </span>
 
@@ -133,9 +133,9 @@
               </div>
 
               <!-- Unread Badge -->
-              @if (item.channel.mentionCount > 0) {
+              @if (channelMention(item.channel.id) > 0) {
                 <app-unread-badge
-                  [count]="item.channel.mentionCount"
+                  [count]="channelMention(item.channel.id)"
                   label="lượt nhắc tên chưa đọc"
                 />
               }
@@ -389,7 +389,7 @@
                       {{ channel.type === 'voice' ? 'volume_up' : (channel.type === 'forum' ? 'forum' : 'tag') }}
                     </mat-icon>
 
-                    <span matListItemTitle class="min-w-0 text-body-sm font-medium text-slate group-hover:text-ink transition-colors" [class.text-ink]="!link.isActive && channel.unread" [class.font-semibold]="link.isActive || channel.unread">
+                    <span matListItemTitle class="min-w-0 text-body-sm font-medium text-slate group-hover:text-ink transition-colors" [class.text-ink]="!link.isActive && channelHasUnread(channel.id)" [class.font-semibold]="link.isActive || channelHasUnread(channel.id)">
                       <app-overflow-marquee [text]="channel.name" />
                     </span>
 
@@ -444,9 +444,9 @@
                       </div>
 
                       <!-- Unread Badge -->
-                      @if (channel.mentionCount > 0) {
+                      @if (channelMention(channel.id) > 0) {
                         <app-unread-badge
-                          [count]="channel.mentionCount"
+                          [count]="channelMention(channel.id)"
                           label="lượt nhắc tên chưa đọc"
                         />
                       }

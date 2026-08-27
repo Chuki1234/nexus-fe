@@ -71,14 +71,21 @@
   font-size: var(--text-body-sm-medium);
   background: var(--nexus-surface-well);
   border: 1px solid transparent;
-  border-radius: 50%;
+  border-radius: 24px;
   cursor: pointer;
   user-select: none;
   transition:
-    border-radius 150ms cubic-bezier(0.4, 0, 0.2, 1),
-    background-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
-    color 150ms cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius 280ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 200ms ease,
+    color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.server-tile img,
+.server-tile .server-tile-img,
+.server-drag-preview-tile img {
+  border-radius: inherit;
+  transition: border-radius 280ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .server-tile mat-icon {
@@ -94,7 +101,7 @@
 .server-tile:not(:active):is(:hover, :focus-visible),
 .server-folder-toggle:not(:active):is(:hover, :focus-visible),
 .server-rail-action:not(:active):is(:hover, :focus-visible) {
-  border-radius: 16px !important;
+  border-radius: 16px;
   background: var(--nexus-surface-hover);
   color: var(--color-ink);
   box-shadow: var(--shadow-glow);
@@ -102,7 +109,7 @@
 
 /* Glowing border on hover for collapsed server group */
 .server-group-tile:not(:active):is(:hover, :focus-visible) {
-  border-radius: 16px !important;
+  border-radius: 16px;
   background: var(--nexus-surface-hover) !important;
   border-color: color-mix(in srgb, var(--color-primary, #00ed64) 80%, transparent) !important;
   box-shadow:
@@ -124,19 +131,20 @@
 }
 
 .server-tile[aria-current='page'] {
-  border-radius: 16px !important;
+  border-radius: 16px;
   background: var(--color-primary);
   color: var(--color-on-primary, #001e2b);
 }
 
 .server-tile[aria-current='page']:is(:hover, :focus-visible) {
+  border-radius: 16px;
   background: var(--color-primary);
   color: var(--color-on-primary, #001e2b);
 }
 
 /* Server Tile active link style */
 .server-tile--active {
-  border-radius: 16px !important;
+  border-radius: 16px;
   background: var(--color-primary);
   color: var(--color-on-primary, #001e2b);
 }

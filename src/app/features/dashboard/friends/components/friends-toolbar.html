@@ -11,6 +11,7 @@
 
   <!-- Bộ lọc Tabs cuộn ngang mượt mà trong dòng, ôm khít các nút chức năng -->
   <div
+    (wheel)="onSegmentedWheel($event)"
     class="friends-segmented flex items-center gap-1.5 rounded-full bg-surface-soft p-1 overflow-x-auto min-w-0 w-fit"
     role="group"
     aria-label="Chọn chế độ bạn bè"

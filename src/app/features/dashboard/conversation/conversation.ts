@@ -204,6 +204,7 @@ export interface StreamMessageViewModel {
 
 import { DirectCallCoordinatorService } from '../../../core/calls/direct-call-coordinator.service';
 import { UserSettingsService } from '../../settings/services/user-settings.service';
+import { NotificationService } from '../../../core/notification/notification.service';
 import { FriendsStore } from '../friends/services/friends-store';
 
 /**
@@ -249,6 +250,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
   private readonly userSettings = inject(UserSettingsService);
+  private readonly notificationService = inject(NotificationService, { optional: true });
   private readonly friendsStore = inject(FriendsStore);
   readonly activeChatStore = inject(ActiveChatStore);
   readonly messageClock = inject(MessageClockService);
@@ -1253,6 +1255,10 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     if (payload.editMessageId) {
       void this.activeChatStore.editMessage(payload.editMessageId, payload.content);
     } else {
+      // Âm thanh gửi tin (đồng bộ toggle "Tin nhắn" trong Cài đặt thông báo).
+      if (this.userSettings.preferences().soundMessage) {
+        this.notificationService?.playMessageSound();
+      }
       void this.activeChatStore.sendMessage({
         content: payload.content,
         files: payload.files,

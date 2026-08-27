@@ -1352,7 +1352,8 @@ export class UserSettingsService {
           document.documentElement.style.setProperty('--chat-font-size', `${fontSize}px`);
 
           // 4. Accent Color
-          if (prefs.themeAccent) {
+          const isLight = prefs.theme === 'warm-light';
+          if (prefs.themeAccent && prefs.themeAccent !== '#00ed64') {
             const hex = prefs.themeAccent;
             document.documentElement.style.setProperty('--color-primary', hex);
             document.documentElement.style.setProperty('--color-brand-green', hex);
@@ -1360,8 +1361,17 @@ export class UserSettingsService {
             document.documentElement.style.setProperty('--nexus-brand-green', hex);
             document.documentElement.style.setProperty('--color-doodle-tint', hex);
             document.documentElement.style.setProperty('--color-primary-soft', hex);
+          } else if (isLight) {
+            document.documentElement.style.setProperty('--color-primary', '#006241');
+            document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
+            document.documentElement.style.setProperty('--color-brand-green', '#006241');
+            document.documentElement.style.setProperty('--nexus-primary', '#006241');
+            document.documentElement.style.setProperty('--nexus-brand-green', '#006241');
+            document.documentElement.style.setProperty('--color-doodle-tint', '#006241');
+            document.documentElement.style.setProperty('--color-primary-soft', '#00754a');
           } else {
             document.documentElement.style.removeProperty('--color-primary');
+            document.documentElement.style.removeProperty('--color-on-primary');
             document.documentElement.style.removeProperty('--color-brand-green');
             document.documentElement.style.removeProperty('--nexus-primary');
             document.documentElement.style.removeProperty('--nexus-brand-green');

@@ -10,13 +10,41 @@
   z-index: 2;
   height: 56px !important;
   min-height: 56px !important;
+  display: flex !important;
+  align-items: center !important;
   border-bottom: 1px solid var(--nexus-border-subtle);
   background: var(--color-canvas);
 }
 
+.chat-toolbar button.nexus-icon-control,
+.chat-toolbar .nexus-icon-control {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  border-radius: var(--radius-full) !important;
+  line-height: 0 !important;
+  vertical-align: middle !important;
+  background: transparent !important;
+}
+
+.chat-toolbar .nexus-icon-control mat-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: auto !important;
+  line-height: 1 !important;
+  font-size: 20px !important;
+  width: 20px !important;
+  height: 20px !important;
+}
+
 .nexus-icon-control--active {
   color: var(--color-primary) !important;
-  background: color-mix(in srgb, var(--color-primary) 12%, transparent) !important;
+  background-color: color-mix(in srgb, var(--color-primary) 18%, transparent) !important;
+  box-shadow: none !important;
 }
 
 .chat-toolbar__identity-icon {

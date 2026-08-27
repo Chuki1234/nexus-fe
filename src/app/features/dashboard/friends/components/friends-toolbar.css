@@ -80,7 +80,7 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: var(--radius-lg) !important;
+  border-radius: var(--radius-full) !important;
   line-height: 0 !important;
   padding: 0 !important;
   /* override Material's default vertical-align that pushes icon down */
@@ -105,7 +105,6 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
   touch-action: pan-x;
 }
 

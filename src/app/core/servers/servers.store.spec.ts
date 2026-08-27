@@ -29,8 +29,22 @@ describe('ServersStore', () => {
         name: 'Gaming Server',
         iconUrl: null,
         channels: [
-          { id: 'c-1', name: 'general', type: 'text' as const, topic: null, unread: false, mentionCount: 0 },
-          { id: 'c-2', name: 'Voice 1', type: 'voice' as const, topic: null, unread: false, mentionCount: 0 },
+          {
+            id: 'c-1',
+            name: 'general',
+            type: 'text' as const,
+            topic: null,
+            unread: false,
+            mentionCount: 0,
+          },
+          {
+            id: 'c-2',
+            name: 'Voice 1',
+            type: 'voice' as const,
+            topic: null,
+            unread: false,
+            mentionCount: 0,
+          },
         ],
       },
     ];
@@ -59,7 +73,13 @@ describe('ServersStore', () => {
 
     // Cập nhật tên server
     store.upsertServerWithChannels(
-      { id: 'srv-2', name: 'Study Club VIP', iconUrl: 'https://example.com/icon.png', unread: true, mentionCount: 2 },
+      {
+        id: 'srv-2',
+        name: 'Study Club VIP',
+        iconUrl: 'https://example.com/icon.png',
+        unread: true,
+        mentionCount: 2,
+      },
       [{ id: 'c-3', name: 'tailieu', type: 'text', topic: null, unread: false, mentionCount: 0 }],
     );
 
@@ -73,7 +93,9 @@ describe('ServersStore', () => {
         id: 'srv-1',
         name: 'Server 1',
         iconUrl: null,
-        channels: [{ id: 'c-1', name: 'c1', type: 'text', topic: null, unread: false, mentionCount: 0 }],
+        channels: [
+          { id: 'c-1', name: 'c1', type: 'text', topic: null, unread: false, mentionCount: 0 },
+        ],
       },
     ]);
 
@@ -89,9 +111,7 @@ describe('ServersStore', () => {
   });
 
   it('addChannel, updateChannel và removeChannel quản lý kênh chuẩn xác', () => {
-    store.hydrateServers([
-      { id: 'srv-1', name: 'Server 1', iconUrl: null, channels: [] },
-    ]);
+    store.hydrateServers([{ id: 'srv-1', name: 'Server 1', iconUrl: null, channels: [] }]);
 
     store.addChannel('srv-1', {
       id: 'c-10',
@@ -125,9 +145,33 @@ describe('ServersStore', () => {
         name: 'Server 1',
         iconUrl: null,
         channels: [
-          { id: 'c-1', name: 'kênh-1', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-1' },
-          { id: 'c-2', name: 'kênh-2', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-1' },
-          { id: 'c-3', name: 'kênh-3', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-2' },
+          {
+            id: 'c-1',
+            name: 'kênh-1',
+            type: 'text',
+            topic: null,
+            unread: false,
+            mentionCount: 0,
+            categoryId: 'cat-1',
+          },
+          {
+            id: 'c-2',
+            name: 'kênh-2',
+            type: 'text',
+            topic: null,
+            unread: false,
+            mentionCount: 0,
+            categoryId: 'cat-1',
+          },
+          {
+            id: 'c-3',
+            name: 'kênh-3',
+            type: 'text',
+            topic: null,
+            unread: false,
+            mentionCount: 0,
+            categoryId: 'cat-2',
+          },
         ],
       },
     ]);
@@ -146,7 +190,9 @@ describe('ServersStore', () => {
     // 2. Chuyển kênh-3 từ cat-2 sang cat-1 ở vị trí 1
     store.moveChannel('srv-1', 'c-3', 'cat-1', 1);
     const updated2 = store.channelsOf('srv-1');
-    const newCat1Channels = updated2.filter((c) => (c.categoryId ?? store.channelCategories()[c.id]) === 'cat-1');
+    const newCat1Channels = updated2.filter(
+      (c) => (c.categoryId ?? store.channelCategories()[c.id]) === 'cat-1',
+    );
     expect(newCat1Channels.map((c) => c.id)).toEqual(['c-2', 'c-3', 'c-1']);
     expect(store.getChannelCategory('c-3')).toBe('cat-1');
   });
@@ -209,7 +255,10 @@ describe('ServersStore', () => {
       store.setActiveUser('user-test-1');
       expect(store.serverGroups()).toEqual([]);
 
-      localStorage.setItem('nexuscord_server_groups_user-test-1', JSON.stringify({ version: 999, invalid: true }));
+      localStorage.setItem(
+        'nexuscord_server_groups_user-test-1',
+        JSON.stringify({ version: 999, invalid: true }),
+      );
       store.setActiveUser('user-test-1');
       expect(store.serverGroups()).toEqual([]);
     });
@@ -237,9 +286,7 @@ describe('ServersStore', () => {
 
       // Chuyển sang user B
       store.setActiveUser('user-b');
-      store.hydrateServers([
-        { id: 'srv-1', name: 'Server 1', iconUrl: null, channels: [] },
-      ]);
+      store.hydrateServers([{ id: 'srv-1', name: 'Server 1', iconUrl: null, channels: [] }]);
       expect(store.serverGroups()).toEqual([]);
 
       // User A vẫn còn nguyên trong localStorage
@@ -404,11 +451,51 @@ describe('ServersStore', () => {
           name: 'Hierarchy Server',
           iconUrl: null,
           channels: [
-            { id: 'ch-a', name: 'channel-a', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
-            { id: 'ch-b', name: 'channel-b', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
-            { id: 'ch-c', name: 'channel-c', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-study' },
-            { id: 'ch-game-1', name: 'channel-game-1', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: 'cat-game' },
-            { id: 'ch-root-1', name: 'kênh-tự-do', type: 'text', topic: null, unread: false, mentionCount: 0, categoryId: null },
+            {
+              id: 'ch-a',
+              name: 'channel-a',
+              type: 'text',
+              topic: null,
+              unread: false,
+              mentionCount: 0,
+              categoryId: 'cat-study',
+            },
+            {
+              id: 'ch-b',
+              name: 'channel-b',
+              type: 'text',
+              topic: null,
+              unread: false,
+              mentionCount: 0,
+              categoryId: 'cat-study',
+            },
+            {
+              id: 'ch-c',
+              name: 'channel-c',
+              type: 'text',
+              topic: null,
+              unread: false,
+              mentionCount: 0,
+              categoryId: 'cat-study',
+            },
+            {
+              id: 'ch-game-1',
+              name: 'channel-game-1',
+              type: 'text',
+              topic: null,
+              unread: false,
+              mentionCount: 0,
+              categoryId: 'cat-game',
+            },
+            {
+              id: 'ch-root-1',
+              name: 'kênh-tự-do',
+              type: 'text',
+              topic: null,
+              unread: false,
+              mentionCount: 0,
+              categoryId: null,
+            },
           ],
         },
       ]);
@@ -424,7 +511,9 @@ describe('ServersStore', () => {
       const layout = store.getServerLayout('srv-hierarchy');
       expect(layout.categoryChannels['cat-study']).toEqual(['ch-c', 'ch-a', 'ch-b']);
 
-      const studyChannels = store.channelsOf('srv-hierarchy').filter((c) => c.categoryId === 'cat-study');
+      const studyChannels = store
+        .channelsOf('srv-hierarchy')
+        .filter((c) => c.categoryId === 'cat-study');
       expect(studyChannels.map((c) => c.id)).toEqual(['ch-c', 'ch-a', 'ch-b']);
     });
 
@@ -474,24 +563,22 @@ describe('ServersStore', () => {
       expect(rootChannelIds).toContain('ch-c');
     });
 
-    it('Persist và phân vùng theo activeUserId', () => {
+    it('không lưu layout theo user và áp dụng structure canonical từ backend cho tài khoản khác', () => {
       store.moveChannel('srv-hierarchy', 'ch-c', 'cat-study', 0);
 
       const storageKey = 'nexuscord_channel_layout_v1_user-channel-test';
-      const raw = localStorage.getItem(storageKey);
-      expect(raw).toBeTruthy();
-      const parsed = JSON.parse(raw!);
-      expect(parsed['srv-hierarchy'].categoryChannels['cat-study']).toEqual(['ch-c', 'ch-a', 'ch-b']);
+      expect(localStorage.getItem(storageKey)).toBeNull();
+      const canonical = store.channelStructureOf('srv-hierarchy');
 
-      // Chuyển sang user khác
+      // User khác không hydrate layout cá nhân mà nhận cùng structure từ backend/realtime.
       store.setActiveUser('user-other-account');
       expect(store.serverChannelLayouts()['srv-hierarchy']).toBeUndefined();
-
-      // Quay lại user cũ
-      store.setActiveUser('user-channel-test');
-      const rehydrated = store.getServerLayout('srv-hierarchy');
-      expect(rehydrated.categoryChannels['cat-study']).toEqual(['ch-c', 'ch-a', 'ch-b']);
+      store.applyServerChannelStructure('srv-hierarchy', canonical);
+      expect(store.getServerLayout('srv-hierarchy').categoryChannels['cat-study']).toEqual([
+        'ch-c',
+        'ch-a',
+        'ch-b',
+      ]);
     });
   });
 });
-

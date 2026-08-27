@@ -195,11 +195,18 @@ export class MessageComposer implements OnDestroy {
 
   /** Tên kênh hoặc người nhận, hiện trong placeholder. */
   readonly target = input.required<string>();
+  readonly customPlaceholder = input<string | null>(null);
   readonly disabled = input<boolean>(false);
   readonly slowmode = input<number>(0);
   readonly attachmentsDisabled = input<boolean>(false);
   readonly attachmentsDisabledReason = input<string>('Đính kèm tệp đã bị vô hiệu hóa');
   readonly context = input<MessageComposerContext | null>(null);
+
+  protected readonly placeholderText = computed(() => {
+    const custom = this.customPlaceholder();
+    if (custom) return custom;
+    return `Nhắn ${this.target()}`;
+  });
 
   /** Danh sách ứng viên Mention (@username, @everyone) */
   readonly mentionCandidates = input<MentionCandidate[]>([]);

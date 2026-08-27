@@ -448,6 +448,7 @@
       @if (channelChat.permissions().canSend) {
         <app-message-composer
           [target]="'#' + channel().name"
+          customPlaceholder="Nhắn tin"
           [slowmode]="channel().slowmode || 0"
           [context]="composerContext()"
           [attachmentsDisabled]="!channelChat.permissions().canAttach"
