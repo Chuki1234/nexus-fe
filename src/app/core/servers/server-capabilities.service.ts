@@ -5,6 +5,8 @@ import { environment } from '../../../environments/environment';
 import { CurrentServerCapabilities } from '../../../shared/dto/server-capabilities.dto';
 import { AuthService } from '../auth/auth.service';
 
+import { ChatSocketService } from '../realtime/chat-socket.service';
+
 export const DEFAULT_DENIED_CAPABILITIES: CurrentServerCapabilities = {
   isOwner: false,
   canInviteMembers: false,
@@ -17,6 +19,7 @@ export const DEFAULT_DENIED_CAPABILITIES: CurrentServerCapabilities = {
 export class ServerCapabilitiesService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly chatSocket = inject(ChatSocketService, { optional: true });
 
   /** Map lưu cache capabilities theo serverId */
   readonly capabilitiesMap = signal<Map<string, CurrentServerCapabilities>>(new Map());
@@ -39,6 +42,22 @@ export class ServerCapabilitiesService {
       } catch {
         // Bỏ qua lỗi context trong test mock
       }
+    });
+
+    if (this.chatSocket) {
+      this.chatSocket.capabilitiesUpdated$.subscribe((payload) => {
+        if (!payload?.serverId || !payload?.capabilities) return;
+        this.setCapabilities(payload.serverId, payload.capabilities);
+      });
+    }
+  }
+
+  setCapabilities(serverId: string, caps: CurrentServerCapabilities): void {
+    if (!serverId || !caps) return;
+    this.capabilitiesMap.update((map) => {
+      const next = new Map(map);
+      next.set(serverId, caps);
+      return next;
     });
   }
 
