@@ -500,53 +500,58 @@
                                     </button>
                                   </div>
                                 } @else {
-                                  <div
-                                    class="message-media-wrapper relative group/media inline-block max-w-full"
+                                  <app-sensitive-media-guard
+                                    [sensitive]="shouldBlurSensitiveMedia(att)"
+                                    [label]="att.filename"
                                   >
-                                    <img
-                                      [src]="att.signedUrl"
-                                      [alt]="att.filename"
-                                      class="message-media-img cursor-pointer"
-                                      (click)="
-                                        openLightbox(
-                                          att.signedUrl,
-                                          att.filename,
-                                          msg.id,
-                                          att.id,
-                                          $event
-                                        )
-                                      "
-                                      (error)="onAttachmentMediaError(att.id)"
-                                      loading="lazy"
-                                      tabindex="0"
-                                      (keydown.enter)="
-                                        openLightbox(
-                                          att.signedUrl,
-                                          att.filename,
-                                          msg.id,
-                                          att.id,
-                                          $event
-                                        )
-                                      "
-                                    />
-                                    <button
-                                      type="button"
-                                      class="message-media-download-btn opacity-0 group-hover/media:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 cursor-pointer shadow-md focus-visible:outline-2 focus-visible:outline-white"
-                                      (click)="
-                                        downloadAttachment(
-                                          msg.id,
-                                          att.id,
-                                          att.signedUrl,
-                                          att.filename,
-                                          $event
-                                        )
-                                      "
-                                      [matTooltip]="'Tải xuống ' + att.filename"
-                                      [attr.aria-label]="'Tải xuống ảnh ' + att.filename"
+                                    <div
+                                      class="message-media-wrapper relative group/media inline-block max-w-full"
                                     >
-                                      <mat-icon class="!size-4 !text-base">download</mat-icon>
-                                    </button>
-                                  </div>
+                                      <img
+                                        [src]="att.signedUrl"
+                                        [alt]="att.filename"
+                                        class="message-media-img cursor-pointer"
+                                        (click)="
+                                          openLightbox(
+                                            att.signedUrl,
+                                            att.filename,
+                                            msg.id,
+                                            att.id,
+                                            $event
+                                          )
+                                        "
+                                        (error)="onAttachmentMediaError(att.id)"
+                                        loading="lazy"
+                                        tabindex="0"
+                                        (keydown.enter)="
+                                          openLightbox(
+                                            att.signedUrl,
+                                            att.filename,
+                                            msg.id,
+                                            att.id,
+                                            $event
+                                          )
+                                        "
+                                      />
+                                      <button
+                                        type="button"
+                                        class="message-media-download-btn opacity-0 group-hover/media:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 cursor-pointer shadow-md focus-visible:outline-2 focus-visible:outline-white"
+                                        (click)="
+                                          downloadAttachment(
+                                            msg.id,
+                                            att.id,
+                                            att.signedUrl,
+                                            att.filename,
+                                            $event
+                                          )
+                                        "
+                                        [matTooltip]="'Tải xuống ' + att.filename"
+                                        [attr.aria-label]="'Tải xuống ảnh ' + att.filename"
+                                      >
+                                        <mat-icon class="!size-4 !text-base">download</mat-icon>
+                                      </button>
+                                    </div>
+                                  </app-sensitive-media-guard>
                                 }
                               }
                             </div>
@@ -611,62 +616,67 @@
                                   </button>
                                 </div>
                               } @else if (isVideoAttachment(att)) {
-                                <div
-                                  class="overflow-hidden rounded-xl border border-hairline bg-surface-soft max-w-lg"
+                                <app-sensitive-media-guard
+                                  [sensitive]="shouldBlurSensitiveMedia(att)"
+                                  [label]="att.filename"
                                 >
-                                  @if (isBrowserPlayableVideo(att)) {
-                                    <video
-                                      [src]="att.signedUrl"
-                                      class="block max-h-96 w-full bg-black object-contain"
-                                      controls
-                                      playsinline
-                                      preload="metadata"
-                                      (error)="onAttachmentMediaError(att.id)"
-                                      [attr.aria-label]="'Video ' + att.filename"
-                                    ></video>
-                                  } @else {
-                                    <div
-                                      class="flex min-h-28 items-center gap-3 bg-canvas px-4 py-5"
-                                    >
-                                      <mat-icon class="!size-8 !text-3xl text-primary"
+                                  <div
+                                    class="overflow-hidden rounded-xl border border-hairline bg-surface-soft max-w-lg"
+                                  >
+                                    @if (isBrowserPlayableVideo(att)) {
+                                      <video
+                                        [src]="att.signedUrl"
+                                        class="block max-h-96 w-full bg-black object-contain"
+                                        controls
+                                        playsinline
+                                        preload="metadata"
+                                        (error)="onAttachmentMediaError(att.id)"
+                                        [attr.aria-label]="'Video ' + att.filename"
+                                      ></video>
+                                    } @else {
+                                      <div
+                                        class="flex min-h-28 items-center gap-3 bg-canvas px-4 py-5"
+                                      >
+                                        <mat-icon class="!size-8 !text-3xl text-primary"
+                                          >movie</mat-icon
+                                        >
+                                        <p class="text-caption text-steel">
+                                          Trình duyệt không đảm bảo phát trực tiếp định dạng này.
+                                          Hãy tải video xuống để xem.
+                                        </p>
+                                      </div>
+                                    }
+                                    <div class="flex items-center gap-2 px-3 py-2">
+                                      <mat-icon class="!size-4 !text-base text-primary"
                                         >movie</mat-icon
                                       >
-                                      <p class="text-caption text-steel">
-                                        Trình duyệt không đảm bảo phát trực tiếp định dạng này. Hãy
-                                        tải video xuống để xem.
-                                      </p>
+                                      <span
+                                        class="min-w-0 flex-1 truncate text-caption font-medium text-ink"
+                                        >{{ att.filename }}</span
+                                      >
+                                      <span class="text-micro text-steel">{{
+                                        formatFileSize(att.sizeBytes)
+                                      }}</span>
+                                      <button
+                                        type="button"
+                                        class="nexus-icon-control !size-7"
+                                        (click)="
+                                          downloadAttachment(
+                                            msg.id,
+                                            att.id,
+                                            att.signedUrl,
+                                            att.filename,
+                                            $event
+                                          )
+                                        "
+                                        [matTooltip]="'Tải xuống ' + att.filename"
+                                        [attr.aria-label]="'Tải xuống video ' + att.filename"
+                                      >
+                                        <mat-icon class="!size-4 !text-base">download</mat-icon>
+                                      </button>
                                     </div>
-                                  }
-                                  <div class="flex items-center gap-2 px-3 py-2">
-                                    <mat-icon class="!size-4 !text-base text-primary"
-                                      >movie</mat-icon
-                                    >
-                                    <span
-                                      class="min-w-0 flex-1 truncate text-caption font-medium text-ink"
-                                      >{{ att.filename }}</span
-                                    >
-                                    <span class="text-micro text-steel">{{
-                                      formatFileSize(att.sizeBytes)
-                                    }}</span>
-                                    <button
-                                      type="button"
-                                      class="nexus-icon-control !size-7"
-                                      (click)="
-                                        downloadAttachment(
-                                          msg.id,
-                                          att.id,
-                                          att.signedUrl,
-                                          att.filename,
-                                          $event
-                                        )
-                                      "
-                                      [matTooltip]="'Tải xuống ' + att.filename"
-                                      [attr.aria-label]="'Tải xuống video ' + att.filename"
-                                    >
-                                      <mat-icon class="!size-4 !text-base">download</mat-icon>
-                                    </button>
                                   </div>
-                                </div>
+                                </app-sensitive-media-guard>
                               } @else if (isAudioAttachment(att)) {
                                 <div
                                   class="rounded-xl border border-hairline bg-surface-soft p-3 max-w-md w-full"
@@ -914,94 +924,42 @@
                                     </button>
                                   </div>
                                 } @else if (att.mimeType.startsWith('image/')) {
-                                  <div
-                                    class="message-media-wrapper relative group/media inline-block max-w-full"
+                                  <app-sensitive-media-guard
+                                    [sensitive]="shouldBlurSensitiveMedia(att)"
+                                    [label]="att.filename"
                                   >
-                                    <img
-                                      [src]="att.signedUrl"
-                                      [alt]="att.filename"
-                                      class="message-media-img cursor-pointer"
-                                      (click)="
-                                        openLightbox(
-                                          att.signedUrl,
-                                          att.filename,
-                                          msg.id,
-                                          att.id,
-                                          $event
-                                        )
-                                      "
-                                      (error)="onAttachmentMediaError(att.id)"
-                                      loading="lazy"
-                                      tabindex="0"
-                                      (keydown.enter)="
-                                        openLightbox(
-                                          att.signedUrl,
-                                          att.filename,
-                                          msg.id,
-                                          att.id,
-                                          $event
-                                        )
-                                      "
-                                    />
-                                    <button
-                                      type="button"
-                                      class="message-media-download-btn opacity-0 group-hover/media:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 cursor-pointer shadow-md focus-visible:outline-2 focus-visible:outline-white"
-                                      (click)="
-                                        downloadAttachment(
-                                          msg.id,
-                                          att.id,
-                                          att.signedUrl,
-                                          att.filename,
-                                          $event
-                                        )
-                                      "
-                                      [matTooltip]="'Tải xuống ' + att.filename"
-                                      [attr.aria-label]="'Tải xuống ảnh ' + att.filename"
+                                    <div
+                                      class="message-media-wrapper relative group/media inline-block max-w-full"
                                     >
-                                      <mat-icon class="!size-4 !text-base">download</mat-icon>
-                                    </button>
-                                  </div>
-                                } @else if (isVideoAttachment(att)) {
-                                  <div
-                                    class="overflow-hidden rounded-xl border border-hairline bg-surface-soft max-w-lg"
-                                  >
-                                    @if (isBrowserPlayableVideo(att)) {
-                                      <video
+                                      <img
                                         [src]="att.signedUrl"
-                                        class="block max-h-96 w-full bg-black object-contain"
-                                        controls
-                                        playsinline
-                                        preload="metadata"
+                                        [alt]="att.filename"
+                                        class="message-media-img cursor-pointer"
+                                        (click)="
+                                          openLightbox(
+                                            att.signedUrl,
+                                            att.filename,
+                                            msg.id,
+                                            att.id,
+                                            $event
+                                          )
+                                        "
                                         (error)="onAttachmentMediaError(att.id)"
-                                        [attr.aria-label]="'Video ' + att.filename"
-                                      ></video>
-                                    } @else {
-                                      <div
-                                        class="flex min-h-28 items-center gap-3 bg-canvas px-4 py-5"
-                                      >
-                                        <mat-icon class="!size-8 !text-3xl text-primary"
-                                          >movie</mat-icon
-                                        >
-                                        <p class="text-caption text-steel">
-                                          Trình duyệt không đảm bảo phát trực tiếp định dạng này.
-                                          Hãy tải video xuống để xem.
-                                        </p>
-                                      </div>
-                                    }
-                                    <div class="flex items-center gap-2 px-3 py-2">
-                                      <mat-icon class="!size-4 !text-base text-primary"
-                                        >movie</mat-icon
-                                      >
-                                      <span
-                                        class="min-w-0 flex-1 truncate text-caption font-medium text-ink"
-                                        >{{ att.filename }}</span
-                                      >
-                                      <span class="text-micro text-steel">{{
-                                        formatFileSize(att.sizeBytes)
-                                      }}</span>
+                                        loading="lazy"
+                                        tabindex="0"
+                                        (keydown.enter)="
+                                          openLightbox(
+                                            att.signedUrl,
+                                            att.filename,
+                                            msg.id,
+                                            att.id,
+                                            $event
+                                          )
+                                        "
+                                      />
                                       <button
                                         type="button"
-                                        class="nexus-icon-control !size-7"
+                                        class="message-media-download-btn opacity-0 group-hover/media:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 cursor-pointer shadow-md focus-visible:outline-2 focus-visible:outline-white"
                                         (click)="
                                           downloadAttachment(
                                             msg.id,
@@ -1012,12 +970,74 @@
                                           )
                                         "
                                         [matTooltip]="'Tải xuống ' + att.filename"
-                                        [attr.aria-label]="'Tải xuống video ' + att.filename"
+                                        [attr.aria-label]="'Tải xuống ảnh ' + att.filename"
                                       >
                                         <mat-icon class="!size-4 !text-base">download</mat-icon>
                                       </button>
                                     </div>
-                                  </div>
+                                  </app-sensitive-media-guard>
+                                } @else if (isVideoAttachment(att)) {
+                                  <app-sensitive-media-guard
+                                    [sensitive]="shouldBlurSensitiveMedia(att)"
+                                    [label]="att.filename"
+                                  >
+                                    <div
+                                      class="overflow-hidden rounded-xl border border-hairline bg-surface-soft max-w-lg"
+                                    >
+                                      @if (isBrowserPlayableVideo(att)) {
+                                        <video
+                                          [src]="att.signedUrl"
+                                          class="block max-h-96 w-full bg-black object-contain"
+                                          controls
+                                          playsinline
+                                          preload="metadata"
+                                          (error)="onAttachmentMediaError(att.id)"
+                                          [attr.aria-label]="'Video ' + att.filename"
+                                        ></video>
+                                      } @else {
+                                        <div
+                                          class="flex min-h-28 items-center gap-3 bg-canvas px-4 py-5"
+                                        >
+                                          <mat-icon class="!size-8 !text-3xl text-primary"
+                                            >movie</mat-icon
+                                          >
+                                          <p class="text-caption text-steel">
+                                            Trình duyệt không đảm bảo phát trực tiếp định dạng này.
+                                            Hãy tải video xuống để xem.
+                                          </p>
+                                        </div>
+                                      }
+                                      <div class="flex items-center gap-2 px-3 py-2">
+                                        <mat-icon class="!size-4 !text-base text-primary"
+                                          >movie</mat-icon
+                                        >
+                                        <span
+                                          class="min-w-0 flex-1 truncate text-caption font-medium text-ink"
+                                          >{{ att.filename }}</span
+                                        >
+                                        <span class="text-micro text-steel">{{
+                                          formatFileSize(att.sizeBytes)
+                                        }}</span>
+                                        <button
+                                          type="button"
+                                          class="nexus-icon-control !size-7"
+                                          (click)="
+                                            downloadAttachment(
+                                              msg.id,
+                                              att.id,
+                                              att.signedUrl,
+                                              att.filename,
+                                              $event
+                                            )
+                                          "
+                                          [matTooltip]="'Tải xuống ' + att.filename"
+                                          [attr.aria-label]="'Tải xuống video ' + att.filename"
+                                        >
+                                          <mat-icon class="!size-4 !text-base">download</mat-icon>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </app-sensitive-media-guard>
                                 } @else if (isAudioAttachment(att)) {
                                   <div
                                     class="rounded-xl border border-hairline bg-surface-soft p-3 max-w-md w-full"

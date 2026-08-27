@@ -31,14 +31,25 @@
   <div class="px-4 pb-4">
     <!-- Vòng khuyên 6px trùng màu mặt thẻ: ảnh bìa trông như bị khoét một lỗ
          tròn cho avatar lọt vào, thay vì avatar dán đè lên trên. -->
-    <div class="-mt-10 mb-2 inline-flex rounded-full bg-surface ring-6 ring-surface">
+    <div class="relative -mt-10 mb-2 inline-flex rounded-full bg-surface ring-6 ring-surface">
       <app-avatar
         class="rounded-full"
         [name]="name()"
         [src]="profile()?.avatarUrl ?? null"
+        [userId]="profile()?.id ?? null"
         size="xl"
         ring="surface"
       />
+
+      <!-- Trạng thái dạng "bong bóng thoại" toả ra từ avatar — đồng bộ với thẻ
+           hồ sơ nổi (ProfilePopover) và thẻ đầy đủ (ProfileCard), thay cho dòng
+           trạng thái phẳng cũ. -->
+      @if (status(); as statusMessage) {
+        <div class="status-cloud" role="note" [attr.aria-label]="'Trạng thái: ' + statusMessage">
+          <span class="status-tail-lg" aria-hidden="true"></span>
+          <span class="status-bubble">{{ statusMessage }}</span>
+        </div>
+      }
     </div>
 
     <!-- Tên và username liền một cụm rồi mới tới khoảng trắng, không giãn đều
@@ -48,13 +59,6 @@
 
       @if (profile(); as person) {
         <p class="text-caption leading-tight text-steel">&commat;{{ person.username }}</p>
-      }
-
-      @if (status(); as statusMessage) {
-        <p class="mt-1.5 flex items-start gap-1.5">
-          <mat-icon aria-hidden="true" class="size-4! shrink-0 text-[16px]! text-steel">chat_bubble</mat-icon>
-          <span class="min-w-0 text-caption text-charcoal">{{ statusMessage }}</span>
-        </p>
       }
     </div>
 

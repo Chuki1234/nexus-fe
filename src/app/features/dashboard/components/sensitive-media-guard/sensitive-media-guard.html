@@ -1,0 +1,31 @@
+@let hidden = sensitive() && !revealed();
+
+<div class="relative inline-block max-w-full overflow-hidden rounded-lg">
+  <!-- Media thật luôn nằm trong luồng; khi bị che thì làm mờ và khoá tương tác
+       cho tới khi người xem chủ động bấm "Hiện". Chỉ MỘT ng-content để nội dung
+       chiếu vào không bị nhân đôi khi bật/tắt lớp phủ. -->
+  <div
+    [class.blur-2xl]="hidden"
+    [class.pointer-events-none]="hidden"
+    [class.select-none]="hidden"
+  >
+    <ng-content />
+  </div>
+
+  @if (hidden) {
+    <button
+      type="button"
+      (click)="reveal()"
+      class="sensitive-scrim absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-2 px-4 text-center"
+    >
+      <mat-icon aria-hidden="true" class="text-steel">visibility_off</mat-icon>
+      <span class="text-caption font-semibold text-ink">Nội dung nhạy cảm</span>
+      @if (label(); as name) {
+        <span class="max-w-full truncate text-[11px] text-steel">{{ name }}</span>
+      }
+      <span class="mt-1 rounded-full border border-hairline-strong px-3 py-1 text-[11px] font-bold text-ink">
+        Bấm để hiện
+      </span>
+    </button>
+  }
+</div>
