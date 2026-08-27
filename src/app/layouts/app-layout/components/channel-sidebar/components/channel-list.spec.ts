@@ -498,6 +498,31 @@ describe('ChannelList', () => {
     expect(micOffIcon).toBeTruthy();
   });
 
+  it('hợp nhất Redis voice state với LiveKit để participant không biến mất khi vừa join', async () => {
+    const fixture = await mount('lofi', true);
+    const voiceStatesStore = TestBed.inject(ServerVoiceStatesStore);
+    const voiceRoom = TestBed.inject(VoiceRoomService);
+
+    voiceStatesStore.voiceStatesByServer.set({
+      lofi: [{
+        userId: 'mentor-id', channelId: 'phong-hop', serverId: 'lofi',
+        name: 'Anh Mentor', username: 'mentor', displayName: 'Anh Mentor', avatarUrl: null,
+        isMuted: false, isCameraOn: false, isScreenSharing: false,
+        joinedAt: '2026-08-26T10:00:00.000Z',
+      }],
+    });
+    voiceRoom.currentChannelId.set('phong-hop');
+    voiceRoom.localParticipant.set({
+      identity: 'local-id', name: 'Minh Tài', isLocal: true, isSpeaking: false,
+      isMuted: false, isCameraOn: false, isScreenSharing: false,
+      connectionQuality: 'excellent',
+    });
+    voiceRoom.remoteParticipants.set([]);
+
+    const members = fixture.componentInstance['getVoiceChannelMembers']('phong-hop');
+    expect(members.map((member) => member.userId)).toEqual(['mentor-id', 'local-id']);
+  });
+
   it('onWatchStream: điều hướng và kết nối vào kênh khi bấm Xem Stream', async () => {
     const fixture = await mount('lofi', true);
     const voiceStatesStore = TestBed.inject(ServerVoiceStatesStore);
@@ -890,6 +915,4 @@ describe('ChannelList', () => {
     });
   });
 });
-
-
 

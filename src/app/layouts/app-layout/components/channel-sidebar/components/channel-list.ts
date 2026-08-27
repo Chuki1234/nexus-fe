@@ -750,13 +750,34 @@ export class ChannelList implements OnDestroy {
     const localPart = isCurrentlyConnected ? this.voiceRoom.localParticipant() : null;
     const remotes = isCurrentlyConnected ? this.voiceRoom.remoteParticipants() : [];
 
+<<<<<<< HEAD
     if (isCurrentlyConnected && (localPart || remotes.length > 0)) {
       const liveList: VoiceChannelMemberViewModel[] = [];
+=======
+    // Redis là presence canonical cho sidebar; LiveKit bổ sung speaking/media realtime.
+    // Không thay thế toàn bộ snapshot vì participant event của LiveKit có thể đến trễ.
+    const members = new Map<string, VoiceChannelMemberViewModel>();
+    for (const s of states) {
+      members.set(s.userId, {
+        userId: s.userId,
+        name: s.displayName || s.name || s.username,
+        avatarUrl: s.avatarUrl,
+        isMuted: s.isMuted,
+        isCameraOn: s.isCameraOn,
+        isScreenSharing: s.isScreenSharing,
+        isSpeaking: false,
+        isLocal: false,
+      });
+    }
+
+    if (isCurrentlyConnected) {
+>>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2
       if (localPart) {
-        liveList.push({
+        const fromState = members.get(localPart.identity);
+        members.set(localPart.identity, {
           userId: localPart.identity,
           name: localPart.name,
-          avatarUrl: localPart.avatarUrl ?? null,
+          avatarUrl: localPart.avatarUrl ?? fromState?.avatarUrl ?? null,
           isMuted: localPart.isMuted,
           isDeafened: localPart.isDeafened,
           isCameraOn: localPart.isCameraOn,
@@ -766,10 +787,11 @@ export class ChannelList implements OnDestroy {
         });
       }
       for (const r of remotes) {
-        liveList.push({
+        const fromState = members.get(r.identity);
+        members.set(r.identity, {
           userId: r.identity,
           name: r.name,
-          avatarUrl: r.avatarUrl ?? null,
+          avatarUrl: r.avatarUrl ?? fromState?.avatarUrl ?? null,
           isMuted: r.isMuted,
           isDeafened: r.isDeafened,
           isCameraOn: r.isCameraOn,
@@ -778,9 +800,9 @@ export class ChannelList implements OnDestroy {
           isLocal: false,
         });
       }
-      return liveList;
     }
 
+<<<<<<< HEAD
     return states.map((s) => ({
       userId: s.userId,
       name: s.displayName || s.name || s.username,
@@ -792,6 +814,9 @@ export class ChannelList implements OnDestroy {
       isSpeaking: false,
       isLocal: false,
     }));
+=======
+    return [...members.values()];
+>>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2
   }
 
   protected onWatchStream(
@@ -1164,6 +1189,9 @@ export class ChannelList implements OnDestroy {
     this.chatSocket.moveVoiceMember(this.serverId(), member.userId, targetChannel.id);
   }
 }
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> 978b71daf3d42c64f26cafaaea3f219c965ca3f2
