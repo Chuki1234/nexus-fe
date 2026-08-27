@@ -417,7 +417,8 @@
   z-index: 50;
 }
 
-.composer-mention-palette {
+.composer-mention-palette,
+.composer-emoji-suggest-palette {
   background: var(--color-surface);
   border: 1px solid var(--nexus-border-subtle);
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);

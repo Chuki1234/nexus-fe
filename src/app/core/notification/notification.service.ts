@@ -472,7 +472,7 @@ export class NotificationService {
       try {
         new Notification(title, {
           body,
-          icon: '/favicon.ico',
+          icon: '/assets/nexus-mascot.png',
         });
       } catch {
         // ignore

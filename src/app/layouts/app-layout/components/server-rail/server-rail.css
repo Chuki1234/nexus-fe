@@ -205,7 +205,9 @@
   align-items: center;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 0.5rem 0.25rem;
+  /* Chừa đáy ~3.5rem để server CUỐI cuộn lên được, không bị thanh user-panel
+     (overlay ở đáy nav) che khuất. */
+  padding: 0.5rem 0.25rem 3.5rem;
   gap: 0.5rem;
 }
 

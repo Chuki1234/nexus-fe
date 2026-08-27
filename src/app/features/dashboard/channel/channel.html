@@ -332,6 +332,21 @@
                                   <span class="chat-channel-mention font-medium text-brand"
                                     >#{{ token.value }}</span
                                   >
+                                } @else if (token.type === 'spoiler') {
+                                  <span
+                                    class="inline-block rounded px-1.5 py-0.5 text-xs font-medium cursor-pointer transition-all select-none"
+                                    [class.bg-zinc-800]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
+                                    [class.text-transparent]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
+                                    [class.blur-[4px]]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
+                                    [class.bg-surface-feature]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
+                                    [class.text-ink]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
+                                    [class.border]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
+                                    [class.border-hairline]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
+                                    (click)="toggleSpoiler(token.key)"
+                                    [title]="showSpoilers === 'click' && !isSpoilerRevealed(token.key) ? 'Nhấp để xem spoiler' : ''"
+                                  >
+                                    {{ token.value }}
+                                  </span>
                                 }
                               }
                               @if (msg.editedAt) {
@@ -340,6 +355,22 @@
                                 >
                               }
                             </div>
+
+                            <!-- Rich Link Embed (nếu displayLinkPreviews bật) -->
+                            @if (displayLinkPreviews && getFirstLink(parseContent(msg.content, msg.id)); as linkTok) {
+                              <div class="mt-2.5 rounded-xl border border-hairline bg-surface-feature/40 p-3 max-w-sm flex items-start gap-2.5 shadow-xs">
+                                <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-hairline">
+                                  <mat-icon class="!size-4 !text-base">public</mat-icon>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                  <span class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider truncate">{{ getLinkDomain(linkTok.url || linkTok.value) }}</span>
+                                  <a [href]="linkTok.url || linkTok.value" target="_blank" rel="noopener noreferrer" class="text-caption font-semibold text-primary hover:underline line-clamp-1 block">
+                                    {{ linkTok.value }}
+                                  </a>
+                                  <span class="text-[11px] text-steel">Xem trước liên kết web</span>
+                                </div>
+                              </div>
+                            }
                           </div>
                         }
 
@@ -369,6 +400,27 @@
                                       >Tệp tạm thời không khả dụng</span
                                     >
                                   </div>
+                                </div>
+                              } @else if (!displayMediaInline && (isImage(att) || isVideo(att) || isAudio(att))) {
+                                <!-- Hiển thị tệp đính kèm dạng link khi tắt xem trước trực tiếp -->
+                                <div class="flex items-center gap-3 p-2.5 px-3 rounded-xl bg-surface-feature/70 border border-hairline hover:border-primary/40 transition-colors max-w-sm">
+                                  <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                    <mat-icon class="!size-4 !text-base">{{ isImage(att) ? 'image' : isVideo(att) ? 'movie' : 'audio_file' }}</mat-icon>
+                                  </div>
+                                  <div class="min-w-0 flex-1 truncate">
+                                    <a [href]="att.signedUrl" target="_blank" class="text-caption font-bold text-ink truncate hover:underline block" [title]="att.filename">
+                                      {{ att.filename }}
+                                    </a>
+                                    <span class="text-[11px] text-steel">{{ formatAttachmentSize(att.sizeBytes) }} • Nhấp để xem</span>
+                                  </div>
+                                  <a
+                                    [href]="att.signedUrl"
+                                    [download]="att.filename"
+                                    class="p-1 rounded-lg text-steel hover:text-ink cursor-pointer"
+                                    title="Tải xuống"
+                                  >
+                                    <mat-icon class="!size-4 !text-base">download</mat-icon>
+                                  </a>
                                 </div>
                               } @else if (isImage(att)) {
                                 <div
