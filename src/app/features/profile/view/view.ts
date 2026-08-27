@@ -9,7 +9,6 @@ import { formatApiError } from '../../../core/api/servers-api.service';
 import type { PublicProfile } from '../../../../shared';
 import { ProfileCard } from '../components/profile-card/profile-card';
 import { ProfileSearch } from '../components/profile-search/profile-search';
-import { ProfileWidgets } from '../components/profile-widgets/profile-widgets';
 import { ProfileDialogService } from '../profile-dialog.service';
 import { ProfileStore } from '../profile-store';
 
@@ -22,7 +21,7 @@ import { ProfileStore } from '../profile-store';
  */
 @Component({
   selector: 'app-profile-view',
-  imports: [ProfileCard, ProfileSearch, ProfileWidgets, MatIconModule, MatTooltipModule, RouterLink],
+  imports: [ProfileCard, ProfileSearch, MatIconModule, MatTooltipModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './view.html',
   styleUrl: './view.css',
@@ -51,25 +50,6 @@ export class ProfileViewPage {
     return fetched?.isSelf && own ? own : fetched;
   });
 
-  /**
-   * Lọc sẵn trò chơi theo từng widget.
-   *
-   * Lọc ở đây chứ không trong template: `@for` gọi hàm lọc là chạy lại mỗi vòng
-   * kiểm tra thay đổi, còn `computed` chỉ tính lại khi hồ sơ thật sự đổi.
-   */
-  private readonly games = computed(() => this.profile()?.games ?? []);
-  protected readonly rotatingGames = computed(() =>
-    this.games().filter((game) => game.kind === 'rotation'),
-  );
-  protected readonly favoriteGame = computed(
-    () => this.games().find((game) => game.kind === 'favorite') ?? null,
-  );
-  protected readonly likedGames = computed(() =>
-    this.games().filter((game) => game.kind === 'like'),
-  );
-  protected readonly wishlistGames = computed(() =>
-    this.games().filter((game) => game.kind === 'wishlist'),
-  );
   protected readonly loading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly copied = signal(false);

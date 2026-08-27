@@ -88,12 +88,13 @@
   <div class="mt-3">
     <ng-content>
       @if (person.isSelf) {
-        <a
-          [routerLink]="['/u', person.username]"
-          class="block w-full rounded-full bg-primary px-3 py-2 text-center text-button-md text-on-primary transition-colors hover:bg-primary-soft"
+        <button
+          type="button"
+          (click)="openFull()"
+          class="block w-full cursor-pointer rounded-full bg-primary px-3 py-2 text-center text-button-md text-on-primary transition-colors hover:bg-primary-soft"
         >
           Xem hồ sơ đầy đủ
-        </a>
+        </button>
       } @else {
         @if (dmError(); as message) {
           <p role="alert" class="mb-2 text-caption text-danger">{{ message }}</p>
@@ -107,12 +108,13 @@
           >
             {{ openingDm() ? 'Đang mở…' : 'Nhắn tin' }}
           </button>
-          <a
-            [routerLink]="['/u', person.username]"
-            class="rounded-full border border-hairline-strong px-3 py-2 text-center text-button-md text-ink transition-colors hover:border-primary hover:text-primary"
+          <button
+            type="button"
+            (click)="openFull()"
+            class="cursor-pointer rounded-full border border-hairline-strong px-3 py-2 text-center text-button-md text-ink transition-colors hover:border-primary hover:text-primary"
           >
             Hồ sơ
-          </a>
+          </button>
         </div>
       }
     </ng-content>

@@ -114,6 +114,9 @@ export class ProfileTrigger {
 
     const ref = this.overlayRef.attach(new ComponentPortal(ProfilePopover));
     ref.setInput('profile', profile);
+    // Bấm "Xem hồ sơ đầy đủ" trong thẻ nhỏ mở cửa sổ hồ sơ giữa màn hình — đóng
+    // thẻ nhỏ luôn, không thì nó kẹt lại sau lớp phủ của dialog.
+    ref.instance.close.subscribe(() => this.close());
 
     this.overlayRef.backdropClick().subscribe(() => this.close());
     this.overlayRef.keydownEvents().subscribe((event) => {
