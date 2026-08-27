@@ -16,6 +16,7 @@ import {
 } from 'livekit-client';
 import { VoiceApiService } from '../../../core/api/voice-api.service';
 import { ProfileService } from '../../../core/profile/profile.service';
+import { ProfileStore } from '../../profile/profile-store';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
 import { UserSettingsService } from '../../settings/services/user-settings.service';
 import { MediaDeviceService } from './media-device.service';
@@ -52,6 +53,7 @@ export interface VoiceParticipantModel {
 export class VoiceRoomService implements OnDestroy {
   private readonly voiceApi = inject(VoiceApiService);
   private readonly profile = inject(ProfileService);
+  private readonly profileStore = inject(ProfileStore);
   private readonly mediaDevices = inject(MediaDeviceService);
   private readonly chatSocket = inject(ChatSocketService);
   private readonly userSettings = inject(UserSettingsService);
@@ -433,7 +435,10 @@ export class VoiceRoomService implements OnDestroy {
     try {
       const displayName =
         this.profile.current()?.displayName ?? this.profile.current()?.username ?? 'Nexus Member';
-      const avatarUrl = this.profile.current()?.avatarUrl ?? null;
+      // Avatar lấy từ ProfileStore (nguồn UI đang hiển thị) — `ProfileService.current()`
+      // thường chưa có avatarUrl. Đảm bảo store đã tải trước khi đọc.
+      await this.profileStore.ensureLoaded();
+      const avatarUrl = this.profileStore.profile()?.avatarUrl ?? null;
 
       // 1. Xin token LiveKit từ backend NestJS (kèm avatar để nhét vào metadata,
       //    nhờ đó tile người tham gia hiện đúng ảnh thay vì chữ cái).
@@ -773,7 +778,9 @@ export class VoiceRoomService implements OnDestroy {
     this.localParticipant.set({
       identity: p.identity,
       name: p.name || 'Bạn',
-      avatarUrl: this.avatarFromMetadata(p.metadata),
+      // Tile của chính mình: lấy thẳng avatar từ ProfileStore (không phụ thuộc
+      // metadata token / BE), fallback về metadata nếu store chưa có.
+      avatarUrl: this.profileStore.profile()?.avatarUrl ?? this.avatarFromMetadata(p.metadata),
       isLocal: true,
       isSpeaking,
       isMuted: !p.isMicrophoneEnabled,
