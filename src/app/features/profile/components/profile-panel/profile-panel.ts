@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterLink } from '@angular/router';
 import { bannerColorFor, profileDisplayName } from '../../../../../shared';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import { ProfileLookup } from '../../profile-lookup';
+import { ProfileDialogService } from '../../profile-dialog.service';
 import { linkIconFor } from '../link-icon';
 
 /**
@@ -19,7 +19,7 @@ import { linkIconFor } from '../link-icon';
  */
 @Component({
   selector: 'app-profile-panel',
-  imports: [Avatar, MatIconModule, RouterLink],
+  imports: [Avatar, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   templateUrl: './profile-panel.html',
@@ -40,11 +40,18 @@ export class ProfilePanel {
   readonly fallbackStatus = input<string | null>(null);
 
   private readonly lookup = inject(ProfileLookup);
+  private readonly profileDialog = inject(ProfileDialogService);
 
   protected readonly profile = computed(() => {
     const key = this.username();
     return key ? this.lookup.profileFor(key)() : null;
   });
+
+  /** Mở hồ sơ đầy đủ dạng cửa sổ nổi thay vì điều hướng sang trang `/u/:username`. */
+  protected openFull(): void {
+    const person = this.profile();
+    if (person) this.profileDialog.open(person.username, person);
+  }
 
   /** Chỉ chờ khi thật sự có gì để chờ. */
   protected readonly loading = computed(() => {

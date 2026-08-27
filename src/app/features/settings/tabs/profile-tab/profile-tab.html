@@ -268,21 +268,23 @@
         <!-- Avatar & Profile Details Body -->
         <div class="px-4 pb-4 pt-0 relative">
           <!-- Avatar Overlap -->
-          <div class="flex items-end justify-between -mt-10 mb-2.5">
-            <div class="relative w-20 h-20 flex items-center justify-center rounded-full bg-surface p-1 shadow-card ring-4 ring-surface">
+          <div class="-mt-10 mb-2.5">
+            <div class="relative inline-flex w-20 h-20 items-center justify-center rounded-full bg-surface p-1 shadow-card ring-4 ring-surface">
               <app-avatar
                 [name]="settingsService.editDisplayName() || 'Nexus'"
                 [src]="settingsService.editAvatarUrl()"
                 size="xl"
               />
-              <span class="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-success border-2 border-surface flex items-center justify-center shadow-xs"></span>
-            </div>
+              <span class="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-success border-2 border-surface shadow-xs"></span>
 
-            @if (settingsService.editCustomStatus()) {
-              <div class="bg-surface-feature/90 backdrop-blur-md border border-hairline rounded-xl px-2.5 py-1 text-caption text-ink shadow-2xs max-w-[170px] truncate mb-1">
-                💬 {{ settingsService.editCustomStatus() }}
-              </div>
-            }
+              <!-- Trạng thái dạng bong bóng toả ra từ avatar — đồng bộ với trang /u. -->
+              @if (settingsService.editCustomStatus(); as status) {
+                <div class="status-cloud" role="note" [attr.aria-label]="'Trạng thái: ' + status">
+                  <span class="status-tail-lg" aria-hidden="true"></span>
+                  <span class="status-bubble">{{ status }}</span>
+                </div>
+              }
+            </div>
           </div>
 
           <!-- Card Content -->
@@ -322,19 +324,16 @@
               </div>
             }
 
-            @if (birthdateFormatted(); as bday) {
-              <div class="pt-2 border-t border-hairline flex items-center justify-between text-caption text-steel">
-                <span class="inline-flex items-center gap-1.5">
-                  <mat-icon class="!w-3.5 !h-3.5 !text-[15px]">cake</mat-icon>
-                  Ngày sinh
+            <!-- Ngày sinh / Thành viên — dạng chip, đồng bộ với trang /u. -->
+            <div class="pt-2 border-t border-hairline flex flex-wrap gap-1.5">
+              @if (birthdateFormatted(); as bday) {
+                <span class="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface-soft/40 px-2 py-1 text-caption text-slate">
+                  <mat-icon class="!w-3.5 !h-3.5 !text-[14px] text-steel">cake</mat-icon>{{ bday }}
                 </span>
-                <span class="font-bold text-ink">{{ bday }}</span>
-              </div>
-            }
-
-            <div class="pt-2 border-t border-hairline flex items-center justify-between text-caption text-steel">
-              <span>Thành viên từ</span>
-              <span class="font-bold text-ink">{{ memberSince() }}</span>
+              }
+              <span class="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface-soft/40 px-2 py-1 text-caption text-slate">
+                <mat-icon class="!w-3.5 !h-3.5 !text-[14px] text-steel">calendar_today</mat-icon>Tham gia {{ memberSince() }}
+              </span>
             </div>
           </div>
         </div>
