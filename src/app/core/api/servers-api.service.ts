@@ -548,6 +548,117 @@ export class ServersApiService {
       ),
     );
   }
+
+  /**
+   * Lấy danh sách vai trò máy chủ: GET /api/servers/:serverId/roles
+   */
+  async getServerRoles(serverId: string): Promise<any[]> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.get<any[]>(
+        `${environment.apiUrl}/servers/${serverId}/roles`,
+        { headers },
+      ),
+    );
+  }
+
+  /**
+   * Tạo vai trò mới: POST /api/servers/:serverId/roles
+   */
+  async createServerRole(
+    serverId: string,
+    dto: { name: string; color?: string; permissions?: any },
+  ): Promise<any> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.post<any>(
+        `${environment.apiUrl}/servers/${serverId}/roles`,
+        dto,
+        { headers },
+      ),
+    );
+  }
+
+  /**
+   * Cập nhật vai trò: PATCH /api/servers/:serverId/roles/:roleId
+   */
+  async updateServerRole(
+    serverId: string,
+    roleId: string,
+    dto: { name?: string; color?: string; permissions?: any; position?: number },
+  ): Promise<any> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.patch<any>(
+        `${environment.apiUrl}/servers/${serverId}/roles/${roleId}`,
+        dto,
+        { headers },
+      ),
+    );
+  }
+
+  /**
+   * Xóa vai trò: DELETE /api/servers/:serverId/roles/:roleId
+   */
+  async deleteServerRole(
+    serverId: string,
+    roleId: string,
+  ): Promise<{ success: boolean }> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.delete<{ success: boolean }>(
+        `${environment.apiUrl}/servers/${serverId}/roles/${roleId}`,
+        { headers },
+      ),
+    );
+  }
+
+  /**
+   * Gán vai trò cho thành viên: POST /api/servers/:serverId/members/:userId/roles/:roleId
+   */
+  async assignMemberRole(
+    serverId: string,
+    userId: string,
+    roleId: string,
+  ): Promise<{ success: boolean; capabilities?: CurrentServerCapabilities }> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.post<{ success: boolean; capabilities?: CurrentServerCapabilities }>(
+        `${environment.apiUrl}/servers/${serverId}/members/${userId}/roles/${roleId}`,
+        {},
+        { headers },
+      ),
+    );
+  }
+
+  /**
+   * Gỡ vai trò khỏi thành viên: DELETE /api/servers/:serverId/members/:userId/roles/:roleId
+   */
+  async removeMemberRole(
+    serverId: string,
+    userId: string,
+    roleId: string,
+  ): Promise<{ success: boolean; capabilities?: CurrentServerCapabilities }> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.delete<{ success: boolean; capabilities?: CurrentServerCapabilities }>(
+        `${environment.apiUrl}/servers/${serverId}/members/${userId}/roles/${roleId}`,
+        { headers },
+      ),
+    );
+  }
 }
 
 

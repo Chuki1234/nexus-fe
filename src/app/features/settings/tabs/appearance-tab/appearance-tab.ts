@@ -30,8 +30,6 @@ export class AppearanceTab {
     { label: 'Sunset Coral', hex: '#f97316' },
   ];
 
-  protected readonly zoomLevels = [80, 90, 100, 110, 125];
-
   protected setTheme(theme: AppPreferences['theme']): void {
     this.settingsService.updatePreference('theme', theme);
   }
@@ -54,10 +52,6 @@ export class AppearanceTab {
 
   protected setMessageSpacing(spacing: number): void {
     this.settingsService.updatePreference('messageSpacing', Number(spacing));
-  }
-
-  protected setZoomLevel(zoom: number): void {
-    this.settingsService.updatePreference('zoomLevel', Number(zoom));
   }
 
   protected toggleReducedMotion(checked: boolean): void {

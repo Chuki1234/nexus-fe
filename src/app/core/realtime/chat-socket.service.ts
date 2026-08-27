@@ -19,6 +19,7 @@ import type {
   VoiceStateUpdatePayload,
 } from '../../../shared/socket-events';
 import type { DirectCallDto } from '../../../shared/dto/direct-calls.dto';
+import type { ServerMemberDto } from '../../../shared/dto/server-members.dto';
 import { AuthService } from '../auth/auth.service';
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -132,6 +133,18 @@ export class ChatSocketService {
   }>();
   private readonly serverDeletedSubject = new Subject<{ serverId: string }>();
   private readonly serverMemberLeftSubject = new Subject<{ serverId: string; userId: string }>();
+  private readonly serverMemberJoinedSubject = new Subject<{
+    serverId: string;
+    userId: string;
+    role?: string;
+    member?: ServerMemberDto;
+  }>();
+  private readonly serverMemberRoleUpdatedSubject = new Subject<{
+    serverId: string;
+    userId: string;
+    roleId: string;
+    action: 'added' | 'removed';
+  }>();
   private readonly voiceStateUpdatedSubject = new Subject<VoiceStateUpdatePayload>();
   private readonly voiceServerStatesSyncSubject = new Subject<VoiceServerStatesSyncPayload>();
   private readonly voiceForceMoveSubject = new Subject<{
@@ -241,6 +254,18 @@ export class ChatSocketService {
     this.serverDeletedSubject.asObservable();
   readonly serverMemberLeft$: Observable<{ serverId: string; userId: string }> =
     this.serverMemberLeftSubject.asObservable();
+  readonly serverMemberJoined$: Observable<{
+    serverId: string;
+    userId: string;
+    role?: string;
+    member?: ServerMemberDto;
+  }> = this.serverMemberJoinedSubject.asObservable();
+  readonly serverMemberRoleUpdated$: Observable<{
+    serverId: string;
+    userId: string;
+    roleId: string;
+    action: 'added' | 'removed';
+  }> = this.serverMemberRoleUpdatedSubject.asObservable();
 
   private readonly conversationUpdatedSubject = new Subject<{
     conversationId: string;
@@ -983,6 +1008,14 @@ export class ChatSocketService {
 
     this.socket.on('server:member-left', (payload) => {
       this.serverMemberLeftSubject.next(payload);
+    });
+
+    this.socket.on('server:member-joined', (payload) => {
+      this.serverMemberJoinedSubject.next(payload);
+    });
+
+    this.socket.on('server:member-role-updated', (payload) => {
+      this.serverMemberRoleUpdatedSubject.next(payload);
     });
 
     // Direct Call Signaling

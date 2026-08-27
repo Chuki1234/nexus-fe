@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subscription } from 'rxjs';
 import { UserSettingsService, ServerMemberItem, ServerRoleItem } from '../../services/user-settings.service';
+import { ChatSocketService } from '../../../../core/realtime/chat-socket.service';
 
 @Component({
   selector: 'app-server-members-tab',
@@ -13,8 +15,10 @@ import { UserSettingsService, ServerMemberItem, ServerRoleItem } from '../../ser
   templateUrl: './server-members-tab.html',
   styleUrl: './server-members-tab.css',
 })
-export class ServerMembersTab {
+export class ServerMembersTab implements OnInit, OnDestroy {
   protected readonly settingsService = inject(UserSettingsService);
+  private readonly chatSocket = inject(ChatSocketService, { optional: true });
+  private memberJoinedSub?: Subscription;
 
   protected readonly memberSearchQuery = signal<string>('');
   protected readonly selectedRoleFilter = signal<string>('all');
@@ -159,5 +163,29 @@ export class ServerMembersTab {
   private showToast(msg: string): void {
     this.toastMessage.set(msg);
     setTimeout(() => this.toastMessage.set(null), 3000);
+  }
+
+  ngOnInit(): void {
+    const sId = this.settingsService.currentServerId();
+    if (sId) {
+      void this.settingsService.loadServerRoles(sId);
+      void this.settingsService.loadServerMembers(sId);
+      if (this.chatSocket) {
+        void this.chatSocket.joinServer(sId);
+      }
+    }
+
+    if (this.chatSocket) {
+      this.memberJoinedSub = this.chatSocket.serverMemberJoined$.subscribe((payload) => {
+        if (payload.serverId === this.settingsService.currentServerId()) {
+          const name = payload.member?.displayName || payload.member?.username || 'Thành viên mới';
+          this.showToast(`🎉 ${name} vừa gia nhập máy chủ!`);
+        }
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.memberJoinedSub?.unsubscribe();
   }
 }

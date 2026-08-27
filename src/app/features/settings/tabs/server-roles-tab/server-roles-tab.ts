@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -23,9 +23,16 @@ import { ServersStore } from '../../../../core/servers/servers.store';
   templateUrl: './server-roles-tab.html',
   styleUrl: './server-roles-tab.css',
 })
-export class ServerRolesTab {
+export class ServerRolesTab implements OnInit {
   protected readonly settingsService = inject(UserSettingsService);
   private readonly serversStore = inject(ServersStore);
+
+  ngOnInit(): void {
+    const sId = this.settingsService.currentServerId();
+    if (sId) {
+      void this.settingsService.loadServerRoles(sId);
+    }
+  }
 
   // View mode: 'list' (Danh sách giống Discord ảnh 3) hoặc 'edit' (Chi tiết chỉnh sửa quyền của vai trò)
   protected readonly viewMode = signal<'list' | 'edit'>('list');
@@ -116,18 +123,7 @@ export class ServerRolesTab {
 
   protected updateRoleColor(color: string): void {
     if (this.selectedRole) {
-      const sId = this.settingsService.currentServerId();
-      this.settingsService.serverDataMap.update((map) => {
-        const cur = map[sId];
-        if (!cur) return map;
-        return {
-          ...map,
-          [sId]: {
-            ...cur,
-            roles: cur.roles.map((r) => (r.id === this.selectedRole?.id ? { ...r, color } : r)),
-          },
-        };
-      });
+      this.settingsService.updateRoleColor(this.selectedRole.id, color);
     }
   }
 

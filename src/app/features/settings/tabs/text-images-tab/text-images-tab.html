@@ -68,17 +68,6 @@
           (change)="toggleSuggestStickers($event.checked)"
         />
       </div>
-
-      <div class="flex items-center justify-between gap-4 py-3">
-        <div>
-          <span class="block text-body-sm-medium font-semibold text-ink">Tô màu cú pháp khối mã (Code Syntax Highlighting)</span>
-          <span class="text-caption text-steel">Tự động highlight màu từ khóa cho các đoạn mã JavaScript, TypeScript, Python, C++, v.v.</span>
-        </div>
-        <mat-slide-toggle
-          [checked]="settingsService.preferences().codeHighlighting"
-          (change)="toggleCodeHighlighting($event.checked)"
-        />
-      </div>
     </div>
   </div>
 
