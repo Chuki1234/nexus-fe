@@ -1,4 +1,14 @@
-import { Injectable, OnDestroy, computed, effect, inject, signal, untracked } from '@angular/core';
+import {
+  Injectable,
+  OnDestroy,
+  PLATFORM_ID,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Subscription } from 'rxjs';
 import {
   ConnectionQuality,
@@ -18,6 +28,7 @@ import { VoiceApiService } from '../../../core/api/voice-api.service';
 import { ProfileService } from '../../../core/profile/profile.service';
 import { ProfileStore } from '../../profile/profile-store';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import { UserSettingsService } from '../../settings/services/user-settings.service';
 import { MediaDeviceService } from './media-device.service';
 
@@ -57,6 +68,11 @@ export class VoiceRoomService implements OnDestroy {
   private readonly mediaDevices = inject(MediaDeviceService);
   private readonly chatSocket = inject(ChatSocketService);
   private readonly userSettings = inject(UserSettingsService);
+  private readonly auth = inject(AuthService);
+  private readonly platformId = inject(PLATFORM_ID);
+
+  /** Khoá localStorage nhớ phòng thoại đang ở, để tự vào lại sau khi F5/đóng-mở tab. */
+  private static readonly ACTIVE_VOICE_KEY = 'nexus:activeVoice';
 
   private room: Room | null = null;
   private timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -125,6 +141,9 @@ export class VoiceRoomService implements OnDestroy {
   readonly isChatDrawerOpen = signal<boolean>(false);
 
   constructor() {
+    // 0. Sau khi F5/mở lại tab: tự vào lại phòng thoại đang dở (nếu có).
+    void this.restoreActiveSession();
+
     // 1. Lắng nghe lệnh ép chuyển kênh thoại (Force Move từ Chủ Server / Admin)
     if (this.chatSocket?.voiceForceMove$) {
       this.socketSubs.add(
@@ -493,6 +512,8 @@ export class VoiceRoomService implements OnDestroy {
       this.updateLocalParticipantState();
       this.syncRemoteParticipants();
       this.broadcastVoiceState(channelId);
+      // Nhớ phòng để F5/mở lại tab vẫn tự vào lại đúng phòng này.
+      this.persistActiveSession(serverId, channelId, channelName);
     } catch (err: unknown) {
       console.error('Lỗi khi tham gia phòng thoại LiveKit:', err);
       const error = err as Error;
@@ -506,6 +527,8 @@ export class VoiceRoomService implements OnDestroy {
    * Rời khỏi phòng thoại và tắt sạch mọi tracks (tắt đèn camera & mic).
    */
   async leaveRoom(): Promise<void> {
+    // Rời chủ động → quên phòng, để lần F5 sau KHÔNG tự vào lại nữa.
+    this.clearActiveSession();
     this.cleanup();
     this.connectionStatus.set('disconnected');
     setTimeout(() => {
@@ -513,6 +536,81 @@ export class VoiceRoomService implements OnDestroy {
         this.connectionStatus.set('idle');
       }
     }, 1500);
+  }
+
+  // ══ NHỚ & TỰ VÀO LẠI PHÒNG SAU KHI F5 ══════════════════════════════════════
+
+  private persistActiveSession(serverId: string, channelId: string, channelName: string): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      localStorage.setItem(
+        VoiceRoomService.ACTIVE_VOICE_KEY,
+        JSON.stringify({ serverId, channelId, channelName }),
+      );
+    } catch {
+      /* storage bị chặn — chỉ mất tính năng tự vào lại, không sao */
+    }
+  }
+
+  private clearActiveSession(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      localStorage.removeItem(VoiceRoomService.ACTIVE_VOICE_KEY);
+    } catch {
+      /* bỏ qua */
+    }
+  }
+
+  private readActiveSession(): {
+    serverId: string;
+    channelId: string;
+    channelName: string;
+  } | null {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    try {
+      const raw = localStorage.getItem(VoiceRoomService.ACTIVE_VOICE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as {
+        serverId?: string;
+        channelId?: string;
+        channelName?: string;
+      };
+      if (!parsed.serverId || !parsed.channelId) return null;
+      return {
+        serverId: parsed.serverId,
+        channelId: parsed.channelId,
+        channelName: parsed.channelName ?? '',
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Sau khi tải lại trang: nếu trước đó đang ở một phòng thoại thì tự vào lại
+   * ĐÚNG phòng đó. Chờ auth sẵn sàng trước (token cần Authorization), vào ở trạng
+   * thái TẮT MIC cho an toàn (không hot-mic bất ngờ sau reload). Vào lại lỗi thì
+   * quên phòng để lần F5 sau không kẹt trong vòng lặp lỗi.
+   */
+  private async restoreActiveSession(): Promise<void> {
+    const saved = this.readActiveSession();
+    if (!saved) return;
+
+    await this.auth.whenReady();
+    if (!this.auth.isAuthenticated()) {
+      this.clearActiveSession();
+      return;
+    }
+    if (this.isConnected() || this.connectionStatus() === 'connecting') return;
+
+    await this.joinRoom(saved.serverId, saved.channelId, saved.channelName, {
+      audio: false,
+      video: false,
+    });
+
+    if (this.connectionStatus() === 'error') {
+      this.clearActiveSession();
+    }
   }
 
   /**
