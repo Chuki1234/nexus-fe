@@ -835,6 +835,50 @@ app-dashboard-shell app-avatar .avatar-fallback[data-avatar-tone='rose'] {
   box-shadow: 0 0 0 1px color-mix(in srgb, #fb7185 36%, var(--nexus-border-subtle)) inset;
 }
 
+/* ── Avatar chữ cái trong THẺ HỒ SƠ (dialog / popover / panel / trang /u) ──
+   Ở các thẻ này avatar cỡ XL nằm trên ảnh bìa hoặc mặt thẻ. Đĩa tone mờ ~20%
+   của dashboard khiến chữ cái dự phòng trôi nổi không có đĩa (thấy rõ nhất trong
+   dialog & popover — chúng mở bằng CDK overlay NẰM NGOÀI app-dashboard-shell nên
+   không nhận bất kỳ rule tone nào ở trên). Nhắm theo selector component (không
+   kèm tiền tố dashboard) để phủ cả overlay, dùng đĩa MÀU ĐẶC bão hoà cho danh
+   tính hiện rõ như avatar có ảnh; chữ trắng trên các nền tối này đều ≥ 4.5:1. */
+:is(app-profile-modal, app-profile-card, app-profile-popover, app-profile-panel)
+  app-avatar
+  .avatar-fallback {
+  color: #fff;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.14) inset;
+}
+:is(app-profile-modal, app-profile-card, app-profile-popover, app-profile-panel)
+  app-avatar
+  .avatar-fallback[data-avatar-tone='emerald'] {
+  background: linear-gradient(150deg, #0a7d4f 0%, #06603c 100%);
+}
+:is(app-profile-modal, app-profile-card, app-profile-popover, app-profile-panel)
+  app-avatar
+  .avatar-fallback[data-avatar-tone='teal'] {
+  background: linear-gradient(150deg, #0e7490 0%, #0a5870 100%);
+}
+:is(app-profile-modal, app-profile-card, app-profile-popover, app-profile-panel)
+  app-avatar
+  .avatar-fallback[data-avatar-tone='slate'] {
+  background: linear-gradient(150deg, #3a495d 0%, #2c3546 100%);
+}
+:is(app-profile-modal, app-profile-card, app-profile-popover, app-profile-panel)
+  app-avatar
+  .avatar-fallback[data-avatar-tone='indigo'] {
+  background: linear-gradient(150deg, #4a41c4 0%, #3a32a6 100%);
+}
+:is(app-profile-modal, app-profile-card, app-profile-popover, app-profile-panel)
+  app-avatar
+  .avatar-fallback[data-avatar-tone='amber'] {
+  background: linear-gradient(150deg, #b45309 0%, #8a4008 100%);
+}
+:is(app-profile-modal, app-profile-card, app-profile-popover, app-profile-panel)
+  app-avatar
+  .avatar-fallback[data-avatar-tone='rose'] {
+  background: linear-gradient(150deg, #be123c 0%, #9a0f31 100%);
+}
+
 app-dashboard-shell
   :is(.nexus-nav-item, .friend-row, .context-member):hover
   app-avatar

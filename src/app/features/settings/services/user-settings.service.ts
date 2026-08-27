@@ -156,7 +156,8 @@ export interface ServerSettingsData {
 
 export interface ConnectedAccount {
   id: string;
-  platform: 'steam' | 'github' | 'spotify' | 'youtube' | 'twitch' | 'xbox' | 'playstation' | 'reddit';
+  platform:
+    'steam' | 'github' | 'spotify' | 'youtube' | 'twitch' | 'xbox' | 'playstation' | 'reddit';
   name: string;
   username: string;
   icon: string;
@@ -244,6 +245,7 @@ export interface AppPreferences {
 
   // Text & Images
   displayMediaInline: boolean;
+  blurSensitiveMedia: boolean;
   displayLinkPreviews: boolean;
   convertEmoticons: boolean;
   suggestStickers: boolean;
@@ -335,6 +337,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   voiceClipRecording: true,
 
   displayMediaInline: true,
+  blurSensitiveMedia: true,
   displayLinkPreviews: true,
   convertEmoticons: true,
   suggestStickers: true,
@@ -604,7 +607,7 @@ export class UserSettingsService {
       channelAccess: {
         'do-an': ['role-admin', 'role-mod', 'role-vip', 'role-everyone'],
         'tai-lieu': ['role-admin', 'role-mod', 'role-vip', 'role-everyone'],
-        'standup': ['role-admin', 'role-mod', 'role-vip', 'role-everyone'],
+        standup: ['role-admin', 'role-mod', 'role-vip', 'role-everyone'],
         'ban-quan-tri': ['role-admin', 'role-mod'],
         'vip-lounge': ['role-admin', 'role-vip'],
       },
@@ -926,7 +929,9 @@ export class UserSettingsService {
   readonly serverRoles = computed<ServerRoleItem[]>(() => this.currentServerData().roles);
   readonly serverMembers = computed<ServerMemberItem[]>(() => this.currentServerData().members);
   readonly joinRequests = computed<JoinRequestItem[]>(() => this.currentServerData().joinRequests);
-  readonly bannedServerMembers = computed<BannedUserItem[]>(() => this.currentServerData().bannedUsers || []);
+  readonly bannedServerMembers = computed<BannedUserItem[]>(
+    () => this.currentServerData().bannedUsers || [],
+  );
   readonly auditLogs = computed<AuditLogItem[]>(() => this.currentServerData().auditLogs);
 
   // Computed permissions for current user in current server
@@ -955,7 +960,13 @@ export class UserSettingsService {
     if (this.capabilitiesService) {
       const caps = this.capabilitiesService.capabilitiesMap().get(sId);
       if (caps) {
-        if (caps.isOwner || caps.canManageServer || caps.canManageRoles || caps.canManageChannels || caps.canInviteMembers) {
+        if (
+          caps.isOwner ||
+          caps.canManageServer ||
+          caps.canManageRoles ||
+          caps.canManageChannels ||
+          caps.canInviteMembers
+        ) {
           return true;
         }
         return false;
@@ -965,7 +976,8 @@ export class UserSettingsService {
     // 2. Kiểm tra serverDataMap
     const server = this.serverDataMap()[sId];
     if (server) {
-      if (this.currentMemberRole() === 'role-admin' || this.currentMemberRole() === 'role-mod') return true;
+      if (this.currentMemberRole() === 'role-admin' || this.currentMemberRole() === 'role-mod')
+        return true;
       const username = this.getEffectiveUsername();
       if (username) {
         const isAdmin = server.adminUsernames.some((u: string) => u.toLowerCase() === username);
@@ -1041,9 +1053,15 @@ export class UserSettingsService {
         if (caps.isOwner) return true;
         if (caps.canManageServer) return true;
         if (tab === 'server-roles' && caps.canManageRoles) return true;
-        if (tab === 'server-invites' && (caps.canInviteMembers || caps.canManageServer)) return true;
-        if (tab === 'server-members' && (caps.canManageServer || caps.canInviteMembers)) return true;
-        if ((tab === 'server-access' || tab === 'server-safety' || tab === 'server-audit-log') && caps.canManageServer) return true;
+        if (tab === 'server-invites' && (caps.canInviteMembers || caps.canManageServer))
+          return true;
+        if (tab === 'server-members' && (caps.canManageServer || caps.canInviteMembers))
+          return true;
+        if (
+          (tab === 'server-access' || tab === 'server-safety' || tab === 'server-audit-log') &&
+          caps.canManageServer
+        )
+          return true;
         return false;
       }
     }
@@ -1274,7 +1292,9 @@ export class UserSettingsService {
   ]);
 
   // Blocked users list: kết nối canonical data từ FriendsStore
-  readonly blockedUsers = computed<{ id: string; username: string; displayName: string; avatarUrl?: string | null }[]>(() => {
+  readonly blockedUsers = computed<
+    { id: string; username: string; displayName: string; avatarUrl?: string | null }[]
+  >(() => {
     const list = this.friendsStore?.blocked() || [];
     return list.map((u) => ({
       id: u.id,
@@ -1285,26 +1305,30 @@ export class UserSettingsService {
   });
 
   // Friend Notes map: Record<friendId, string>
-  readonly friendNotes = signal<Record<string, string>>((() => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const raw = localStorage.getItem('nexuscord-friend-notes');
-        if (raw) return JSON.parse(raw);
-      }
-    } catch {}
-    return {};
-  })());
+  readonly friendNotes = signal<Record<string, string>>(
+    (() => {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const raw = localStorage.getItem('nexuscord-friend-notes');
+          if (raw) return JSON.parse(raw);
+        }
+      } catch {}
+      return {};
+    })(),
+  );
 
   // Muted Friends list: string[] (user IDs)
-  readonly mutedFriends = signal<string[]>((() => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const raw = localStorage.getItem('nexuscord-muted-friends');
-        if (raw) return JSON.parse(raw);
-      }
-    } catch {}
-    return [];
-  })());
+  readonly mutedFriends = signal<string[]>(
+    (() => {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const raw = localStorage.getItem('nexuscord-muted-friends');
+          if (raw) return JSON.parse(raw);
+        }
+      } catch {}
+      return [];
+    })(),
+  );
 
   constructor() {
     effect(() => {
@@ -1324,7 +1348,9 @@ export class UserSettingsService {
         const currentServer = this.serverDataMap()[sId];
         if (currentServer?.adminUsernames.some((u: string) => u.toLowerCase() === uname)) {
           this.setCurrentMemberRole('role-admin');
-        } else if (currentServer?.moderatorUsernames.some((u: string) => u.toLowerCase() === uname)) {
+        } else if (
+          currentServer?.moderatorUsernames.some((u: string) => u.toLowerCase() === uname)
+        ) {
           this.setCurrentMemberRole('role-mod');
         } else {
           this.setCurrentMemberRole('role-everyone');
@@ -1345,7 +1371,10 @@ export class UserSettingsService {
           document.documentElement.setAttribute('data-theme', prefs.theme || 'nexus-dark');
 
           // 2. Message Density
-          document.documentElement.setAttribute('data-message-density', prefs.messageDensity || 'cozy');
+          document.documentElement.setAttribute(
+            'data-message-density',
+            prefs.messageDensity || 'cozy',
+          );
 
           // 3. Chat Font Size
           const fontSize = prefs.fontSize || 15;
@@ -1618,7 +1647,10 @@ export class UserSettingsService {
           ...current,
           roles: current.roles.map((r: ServerRoleItem) => {
             if (r.id !== roleId) return r;
-            const newAdminVal = permKey === 'administrator' ? !r.permissions.administrator : r.permissions.administrator;
+            const newAdminVal =
+              permKey === 'administrator'
+                ? !r.permissions.administrator
+                : r.permissions.administrator;
             const newPerms = {
               ...r.permissions,
               [permKey]: !r.permissions[permKey],
@@ -1712,7 +1744,16 @@ export class UserSettingsService {
       if (!current) return map;
       const targetMember = current.members.find((m: ServerMemberItem) => m.id === id);
       if (targetMember) {
-        setTimeout(() => this.addAuditLog('Kick thành viên khỏi máy chủ', `${targetMember.displayName} (@${targetMember.username})`, 'person_remove', sId), 0);
+        setTimeout(
+          () =>
+            this.addAuditLog(
+              'Kick thành viên khỏi máy chủ',
+              `${targetMember.displayName} (@${targetMember.username})`,
+              'person_remove',
+              sId,
+            ),
+          0,
+        );
       }
       return {
         ...map,
@@ -1731,7 +1772,16 @@ export class UserSettingsService {
       if (!current) return map;
       const member = current.members.find((m: ServerMemberItem) => m.id === id);
       if (!member || member.isOwner) return map;
-      setTimeout(() => this.addAuditLog('Cấm (Ban) thành viên', `${member.displayName} (@${member.username}) - ${reason || 'Vi phạm'}`, 'gavel', sId), 0);
+      setTimeout(
+        () =>
+          this.addAuditLog(
+            'Cấm (Ban) thành viên',
+            `${member.displayName} (@${member.username}) - ${reason || 'Vi phạm'}`,
+            'gavel',
+            sId,
+          ),
+        0,
+      );
       return {
         ...map,
         [sId]: {
@@ -1802,7 +1852,16 @@ export class UserSettingsService {
       const targetRole = current.roles.find((r: ServerRoleItem) => r.id === roleId);
       const willHave = targetMember ? !targetMember.roles.includes(roleId) : false;
       if (targetMember && targetRole) {
-        setTimeout(() => this.addAuditLog(willHave ? 'Gán vai trò thành viên' : 'Gỡ vai trò thành viên', `${targetRole.name} cho ${targetMember.displayName}`, 'admin_panel_settings', sId), 0);
+        setTimeout(
+          () =>
+            this.addAuditLog(
+              willHave ? 'Gán vai trò thành viên' : 'Gỡ vai trò thành viên',
+              `${targetRole.name} cho ${targetMember.displayName}`,
+              'admin_panel_settings',
+              sId,
+            ),
+          0,
+        );
       }
       const updatedMembers = current.members.map((m: ServerMemberItem) => {
         if (m.id !== memberId) return m;
@@ -1835,7 +1894,16 @@ export class UserSettingsService {
     roleName: string = 'Thành Viên',
   ): void {
     const sId = this.currentServerId();
-    setTimeout(() => this.addAuditLog('Tạo liên kết mời mới', `Mã: ${code.trim()} (#${channelName})`, 'person_add', sId), 0);
+    setTimeout(
+      () =>
+        this.addAuditLog(
+          'Tạo liên kết mời mới',
+          `Mã: ${code.trim()} (#${channelName})`,
+          'person_add',
+          sId,
+        ),
+      0,
+    );
     this.serverDataMap.update((map) => {
       const current = map[sId];
       if (!current) return map;
@@ -1963,8 +2031,6 @@ export class UserSettingsService {
     });
   }
 
-
-
   setChannelAllowedRoles(channelId: string, roleIds: string[]): void {
     const sId = this.currentServerId();
     this.serverDataMap.update((map) => {
@@ -2016,9 +2082,7 @@ export class UserSettingsService {
 
   toggleConnectedAccount(id: string): void {
     this.connectedAccounts.update((accounts) =>
-      accounts.map((acc) =>
-        acc.id === id ? { ...acc, showOnProfile: !acc.showOnProfile } : acc,
-      ),
+      accounts.map((acc) => (acc.id === id ? { ...acc, showOnProfile: !acc.showOnProfile } : acc)),
     );
   }
 
@@ -2046,17 +2110,13 @@ export class UserSettingsService {
 
   toggleGameOverlay(id: string): void {
     this.registeredGames.update((games) =>
-      games.map((g) =>
-        g.id === id ? { ...g, overlayEnabled: !g.overlayEnabled } : g,
-      ),
+      games.map((g) => (g.id === id ? { ...g, overlayEnabled: !g.overlayEnabled } : g)),
     );
   }
 
   toggleGameStatus(id: string): void {
     this.registeredGames.update((games) =>
-      games.map((g) =>
-        g.id === id ? { ...g, statusEnabled: !g.statusEnabled } : g,
-      ),
+      games.map((g) => (g.id === id ? { ...g, statusEnabled: !g.statusEnabled } : g)),
     );
   }
 

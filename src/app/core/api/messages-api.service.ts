@@ -21,6 +21,20 @@ export interface AttachmentResponseDto {
   height: number | null;
   signedUrl: string | null;
   isAvailable?: boolean;
+  isSensitive?: boolean;
+  sensitive?: boolean;
+  isNsfw?: boolean;
+  nsfw?: boolean;
+  adult?: boolean;
+  contentWarning?: string | null;
+  safetyLabels?: string[];
+  safetyFlags?: string[];
+  moderationLabels?: string[];
+  moderation?: {
+    flagged?: boolean;
+    labels?: string[];
+    categories?: Record<string, boolean>;
+  };
 }
 
 export interface ReactionSummaryDto {
@@ -516,9 +530,7 @@ export class MessagesApiService {
   /**
    * Ẩn tin nhắn chỉ riêng ở phía người dùng (Hide for Me).
    */
-  async hideMessage(
-    messageId: string,
-  ): Promise<{
+  async hideMessage(messageId: string): Promise<{
     id: string;
     hidden: boolean;
     scope: 'for_me';
@@ -542,9 +554,7 @@ export class MessagesApiService {
   /**
    * Thu hồi tin nhắn đối với tất cả mọi người trong cuộc trò chuyện (Recall for Everyone).
    */
-  async recallMessage(
-    messageId: string,
-  ): Promise<{
+  async recallMessage(messageId: string): Promise<{
     id: string;
     deleted: boolean;
     scope: 'everyone';
