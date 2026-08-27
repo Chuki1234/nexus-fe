@@ -1,47 +1,51 @@
-/* Trạng thái dạng "bong bóng thoại" toả ra từ avatar (kiểu Discord).
-   Neo tuyệt đối trong cụm avatar (relative), đặt HẲN ra ngoài mép avatar.
+/* "Đám mây suy nghĩ" toả ra từ avatar: bong bóng pill + 2 chấm tròn nhỏ dần làm
+   đuôi mây nối xuống avatar — gợi cảm giác ĐANG SUY NGHĨ. Giữ token teal Nexus.
 
-   Đây là thẻ ĐẦY ĐỦ (dialog / trang /u) — nơi người dùng vào để đọc TRỌN trạng
-   thái, nên bong bóng CHO XUỐNG DÒNG hiển thị full (khác popover/panel chỉ 1 dòng
-   rồi cắt "…"). Vẫn LUÔN nằm ngang (rộng hơn cao): neo theo đỉnh avatar, giới hạn
-   4 dòng để không tràn xuống đè tên bên dưới. Chỉ dùng token design system. */
+   Đây là thẻ ĐẦY ĐỦ (dialog / trang /u): bong bóng rộng hơn (tối đa 20rem) nên
+   phần lớn trạng thái hiện trọn trên 1 dòng; quá dài mới cắt "…". Vẫn 1 dòng
+   ngang, không xổ dọc. Chỉ dùng token design system. */
 .status-cloud {
   position: absolute;
-  left: calc(100% + 10px);
-  top: 2px;
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  /* Bốc LÊN từ ĐỈNH đầu (góc trên–phải avatar). */
+  left: calc(100% - 6px);
+  bottom: calc(100% - 8px);
   z-index: 3;
 }
 
-.status-cloud .status-tail-lg {
-  flex: none;
-  align-self: flex-start;
-  width: 12px;
-  height: 12px;
-  border-radius: 9999px;
-  background: var(--color-surface-soft);
-  box-shadow: 0 0 0 1px var(--color-hairline);
-  margin-top: 8px;
-}
-
 .status-cloud .status-bubble {
-  /* flex:none — không để flex co bong bóng về bề rộng tối thiểu (1 ký tự/dòng);
-     bong bóng rộng bằng nội dung, tối đa 17rem rồi mới xuống dòng. */
-  flex: none;
-  max-width: 17rem;
-  padding: 8px 14px;
-  border-radius: 14px;
+  position: relative;
+  display: block;
+  min-width: 0;
+  max-width: 20rem;
+  padding: 8px 15px;
+  border-radius: 9999px;
   background: var(--color-surface-soft);
   box-shadow: 0 0 0 1px var(--color-hairline);
   color: var(--color-charcoal);
   font-size: 14px;
-  line-height: 1.35;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-cloud .status-tail {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--color-surface-soft);
+  box-shadow: 0 0 0 1px var(--color-hairline);
+}
+
+.status-cloud .status-tail--md {
+  width: 11px;
+  height: 11px;
+  left: -9px;
+  bottom: -10px;
+}
+
+.status-cloud .status-tail--sm {
+  width: 8px;
+  height: 8px;
+  left: -15px;
+  bottom: -14px;
 }

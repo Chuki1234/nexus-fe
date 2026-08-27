@@ -68,8 +68,11 @@ import { InlineMessageEditor } from '../components/inline-message-editor/inline-
 import { MessageClockService } from '../../../core/utils/message-clock.service';
 import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import { parseMessageContent, type MessageContentToken } from './utils/message-content-parser';
+<<<<<<< HEAD
 import { SensitiveMediaGuard } from '../components/sensitive-media-guard/sensitive-media-guard';
 import { copyToClipboard, extractMessageCopyableContent } from '../../../core/utils/clipboard.util';
+=======
+>>>>>>> 7fee15d0bd245fe68600bac37eb7c94b3ef17260
 
 export interface ConversationHttpError {
   status?: number;
@@ -129,62 +132,6 @@ export function getMessagePresentationVariant(
   }
 
   return 'mixed';
-}
-
-type ModeratedAttachment = AttachmentResponseDto & {
-  moderation?: {
-    flagged?: boolean;
-    labels?: string[];
-    categories?: Record<string, boolean>;
-  };
-};
-
-const SENSITIVE_MEDIA_LABELS = new Set([
-  '18+',
-  'adult',
-  'explicit',
-  'gore',
-  'khiêu dâm',
-  'kích dục',
-  'nsfw',
-  'nudity',
-  'porn',
-  'pornography',
-  'sensitive',
-  'sex',
-  'sexual',
-  'violence',
-  'violent',
-]);
-
-function hasSensitiveLabel(value: string | null | undefined): boolean {
-  if (!value) return false;
-  const normalized = value.trim().toLowerCase();
-  return Array.from(SENSITIVE_MEDIA_LABELS).some((label) => normalized.includes(label));
-}
-
-export function isAttachmentFlaggedSensitive(att: AttachmentResponseDto): boolean {
-  const moderated = att as ModeratedAttachment;
-  if (att.isSensitive || att.sensitive || att.isNsfw || att.nsfw || att.adult) return true;
-  if (hasSensitiveLabel(att.contentWarning)) return true;
-
-  const labels = [
-    ...(att.safetyLabels ?? []),
-    ...(att.safetyFlags ?? []),
-    ...(att.moderationLabels ?? []),
-    ...(moderated.moderation?.labels ?? []),
-  ];
-  if (labels.some(hasSensitiveLabel)) return true;
-
-  const categories = moderated.moderation?.categories;
-  if (
-    categories &&
-    Object.entries(categories).some(([key, value]) => value && hasSensitiveLabel(key))
-  ) {
-    return true;
-  }
-
-  return moderated.moderation?.flagged === true;
 }
 
 export {
@@ -295,7 +242,6 @@ import { FriendsStore } from '../friends/services/friends-store';
     ProfileAvatar,
     ProfilePanel,
     RouterLink,
-    SensitiveMediaGuard,
   ],
   providers: [MessageClockService],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -1303,16 +1249,6 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     return (
       Boolean(att.mimeType?.startsWith('video/')) ||
       /\.(mp4|m4v|webm|ogv|mov|qt|mkv|avi|mpeg|mpg|3gp|wmv|flv)$/i.test(att.filename || '')
-    );
-  }
-
-  shouldBlurSensitiveMedia(att: AttachmentResponseDto): boolean {
-    const isVisualMedia =
-      Boolean(att.mimeType?.startsWith('image/')) || this.isVideoAttachment(att);
-    return (
-      isVisualMedia &&
-      this.userSettings.preferences().blurSensitiveMedia &&
-      isAttachmentFlaggedSensitive(att)
     );
   }
 

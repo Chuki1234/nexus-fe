@@ -18,10 +18,6 @@ export class TextImagesTab {
     this.settingsService.updatePreference('displayMediaInline', checked);
   }
 
-  protected toggleSensitiveMediaBlur(checked: boolean): void {
-    this.settingsService.updatePreference('blurSensitiveMedia', checked);
-  }
-
   protected toggleLinkPreviews(checked: boolean): void {
     this.settingsService.updatePreference('displayLinkPreviews', checked);
   }

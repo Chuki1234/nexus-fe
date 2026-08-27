@@ -245,7 +245,6 @@ export interface AppPreferences {
 
   // Text & Images
   displayMediaInline: boolean;
-  blurSensitiveMedia: boolean;
   displayLinkPreviews: boolean;
   convertEmoticons: boolean;
   suggestStickers: boolean;
@@ -337,7 +336,6 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   voiceClipRecording: true,
 
   displayMediaInline: true,
-  blurSensitiveMedia: true,
   displayLinkPreviews: true,
   convertEmoticons: true,
   suggestStickers: true,
