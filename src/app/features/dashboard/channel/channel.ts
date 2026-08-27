@@ -128,7 +128,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
   protected readonly profileStore = inject(ProfileStore);
   readonly messageClock = inject(MessageClockService);
   private readonly notificationService = inject(NotificationService, { optional: true });
-  private readonly userSettings = inject(UserSettingsService, { optional: true });
+  protected readonly userSettings = inject(UserSettingsService);
   private readonly presenceService =
     inject(PresenceService, { optional: true }) ?? inject(PresenceService);
   private readonly dialog = inject(MatDialog);
@@ -146,6 +146,57 @@ export class ChannelPage implements OnInit, AfterViewInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly breakpoints = inject(BreakpointObserver);
   private isDestroyed = false;
+
+  // ── PREFERENCES GETTERS & HELPERS ──
+  protected get showSpoilers(): 'click' | 'always' {
+    return this.userSettings?.preferences()?.showSpoilers ?? 'click';
+  }
+
+  protected get displayLinkPreviews(): boolean {
+    return this.userSettings?.preferences()?.displayLinkPreviews ?? true;
+  }
+
+  protected get displayMediaInline(): boolean {
+    return this.userSettings?.preferences()?.displayMediaInline ?? true;
+  }
+
+  private readonly revealedSpoilerKeys = signal<Set<string>>(new Set());
+
+  protected isSpoilerRevealed(key: string): boolean {
+    if (this.showSpoilers === 'always') return true;
+    return this.revealedSpoilerKeys().has(key);
+  }
+
+  protected toggleSpoiler(key: string): void {
+    const set = new Set(this.revealedSpoilerKeys());
+    if (set.has(key)) {
+      set.delete(key);
+    } else {
+      set.add(key);
+    }
+    this.revealedSpoilerKeys.set(set);
+  }
+
+  protected getFirstLink(tokens: MessageContentToken[] | undefined): MessageContentToken | null {
+    if (!tokens) return null;
+    return tokens.find((t) => t.type === 'link') || null;
+  }
+
+  protected getLinkDomain(url: string | undefined): string {
+    if (!url) return '';
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return url;
+    }
+  }
+
+  protected formatBytes(bytes?: number): string {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
 
   protected readonly isMobile = toSignal(
     this.breakpoints.observe(MOBILE_BREAKPOINT_QUERY).pipe(map((state) => state.matches)),

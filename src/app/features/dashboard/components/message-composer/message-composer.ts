@@ -4,6 +4,7 @@ import {
   computed,
   effect,
   ElementRef,
+  inject,
   input,
   OnDestroy,
   output,
@@ -22,6 +23,15 @@ import { ExternalMediaDto, GiphyMediaDto } from '../../../../../shared/dto/messa
 import { GiphyPickerComponent } from '../giphy-picker/giphy-picker.component';
 import { StipopPickerComponent } from '../stipop-picker/stipop-picker.component';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import { StipopApiService } from '../../../../core/api/stipop-api.service';
+import { UserSettingsService } from '../../../settings/services/user-settings.service';
+import {
+  convertEmoticonsToEmoji,
+  findEmojiSuggestions,
+  findCuratedStickerSuggestions,
+  EmojiSuggestionItem,
+  StickerSuggestionItem,
+} from './emoticon-utils';
 
 export type MessageComposerContextKind =
   'reply' | 'edit' | 'forward' | 'delete' | 'pin' | 'unpin' | 'copy';
@@ -590,6 +600,36 @@ export class MessageComposer implements OnDestroy {
     });
   });
 
+  protected readonly userSettings = inject(UserSettingsService);
+  private readonly stipopApi = inject(StipopApiService, { optional: true });
+
+  // Emoji / Sticker Autocomplete State (gõ vui, :vui, buon, game...)
+  readonly showEmojiSuggestPopup = signal<boolean>(false);
+  readonly emojiSuggestQuery = signal<string>('');
+  readonly emojiSuggestTriggerStart = signal<number>(-1);
+  readonly selectedEmojiSuggestIndex = signal<number>(0);
+  readonly suggestActiveTab = signal<'all' | 'emoji' | 'sticker'>('all');
+  readonly liveStickers = signal<ExternalMediaDto[]>([]);
+
+  readonly filteredEmojiSuggestions = computed(() => {
+    return findEmojiSuggestions(this.emojiSuggestQuery());
+  });
+
+  readonly filteredStickerSuggestions = computed(() => {
+    const query = this.emojiSuggestQuery();
+    const curated = findCuratedStickerSuggestions(query).map((c) => c.sticker);
+    const live = this.liveStickers();
+    const set = new Set<string>();
+    const result: ExternalMediaDto[] = [];
+    for (const item of [...curated, ...live]) {
+      if (!set.has(item.displayUrl)) {
+        set.add(item.displayUrl);
+        result.push(item);
+      }
+    }
+    return result.slice(0, 8);
+  });
+
   dragEnterCounter = 0;
 
   /** Safari/macOS có thể báo isComposing=false ở keydown rồi phát input cũ sau send. */
@@ -690,9 +730,19 @@ export class MessageComposer implements OnDestroy {
     ) {
       this.closeMentionPopup();
     }
+    if (
+      this.showEmojiSuggestPopup() &&
+      !target.closest('.composer-emoji-suggest-palette')
+    ) {
+      this.closeEmojiSuggestPopup();
+    }
   }
 
   onEscape(): void {
+    if (this.showEmojiSuggestPopup()) {
+      this.closeEmojiSuggestPopup();
+      return;
+    }
     if (this.showMentionPopup()) {
       this.closeMentionPopup();
       return;
@@ -812,7 +862,164 @@ export class MessageComposer implements OnDestroy {
     this.typing.emit();
   }
 
+  checkEmojiSuggestTrigger(): void {
+    if (!this.userSettings.preferences().suggestStickers) {
+      if (this.showEmojiSuggestPopup()) {
+        this.closeEmojiSuggestPopup();
+      }
+      return;
+    }
+
+    const textarea = this.textareaEl()?.nativeElement;
+    if (!textarea) return;
+    const caret = textarea.selectionStart ?? 0;
+    const fullText = textarea.value;
+    const textBeforeCaret = fullText.slice(0, caret);
+
+    let query: string | null = null;
+    let triggerPos = -1;
+
+    // 1. Trường hợp có gõ dấu : ở đầu từ khóa (ví dụ :vui, :buon, :game)
+    const colonMatch = textBeforeCaret.match(/(?:^|\s):([a-zA-Z0-9_\u00C0-\u1EF9]{1,16})$/);
+    if (colonMatch) {
+      query = colonMatch[1];
+      triggerPos = textBeforeCaret.length - (query.length + 1);
+    } else {
+      // 2. Không cần dấu hai chấm : (người dùng gõ trực tiếp như vui, buồn, game, cười, yêu, tim...)
+      const plainMatch = textBeforeCaret.match(/(?:^|\s)([a-zA-Z0-9_\u00C0-\u1EF9]{2,16})$/);
+      if (plainMatch) {
+        query = plainMatch[1];
+        triggerPos = textBeforeCaret.length - query.length;
+      }
+    }
+
+    if (query && triggerPos >= 0) {
+      const emojiMatches = findEmojiSuggestions(query);
+      const stickerMatches = findCuratedStickerSuggestions(query);
+
+      if (emojiMatches.length > 0 || stickerMatches.length > 0) {
+        this.emojiSuggestTriggerStart.set(triggerPos);
+        this.emojiSuggestQuery.set(query);
+        this.selectedEmojiSuggestIndex.set(0);
+        this.showEmojiSuggestPopup.set(true);
+        if (this.showMentionPopup()) {
+          this.closeMentionPopup();
+        }
+
+        // Tải thêm live stickers từ Stipop API
+        if (query.length >= 2 && this.stipopApi) {
+          const currentQ = query;
+          this.stipopApi.searchStickers(currentQ, 1, 10).subscribe({
+            next: (items) => {
+              if (Array.isArray(items) && this.emojiSuggestQuery() === currentQ) {
+                this.liveStickers.set(items);
+              }
+            },
+            error: () => {},
+          });
+        }
+        return;
+      }
+    }
+
+    if (this.showEmojiSuggestPopup()) {
+      this.closeEmojiSuggestPopup();
+    }
+  }
+
+  closeEmojiSuggestPopup(): void {
+    this.showEmojiSuggestPopup.set(false);
+    this.emojiSuggestQuery.set('');
+    this.emojiSuggestTriggerStart.set(-1);
+    this.selectedEmojiSuggestIndex.set(0);
+    this.suggestActiveTab.set('all');
+    this.liveStickers.set([]);
+  }
+
+  onSelectStickerFromSuggest(sticker: ExternalMediaDto): void {
+    const textarea = this.textareaEl()?.nativeElement;
+    const currentText = this.text();
+    const triggerPos = this.emojiSuggestTriggerStart();
+    const caret = textarea?.selectionStart ?? currentText.length;
+
+    if (triggerPos >= 0 && triggerPos <= currentText.length) {
+      const beforeTrigger = currentText.slice(0, triggerPos);
+      const afterQuery = currentText.slice(caret);
+      const newText = (beforeTrigger + afterQuery).trim();
+      this.text.set(newText);
+      if (textarea) {
+        textarea.value = newText;
+      }
+    }
+
+    this.closeEmojiSuggestPopup();
+    this.onStickerSelected(sticker);
+  }
+
+  selectEmojiSuggestion(item: EmojiSuggestionItem): void {
+    const textarea = this.textareaEl()?.nativeElement;
+    const currentText = this.text();
+    const triggerPos = this.emojiSuggestTriggerStart();
+    const caret = textarea?.selectionStart ?? currentText.length;
+
+    if (triggerPos >= 0 && triggerPos <= currentText.length) {
+      const beforeTrigger = currentText.slice(0, triggerPos);
+      const afterQuery = currentText.slice(caret);
+      const replacement = `${item.emoji} `;
+      const newText = beforeTrigger + replacement + afterQuery;
+      const newCaret = beforeTrigger.length + replacement.length;
+
+      this.text.set(newText);
+      if (textarea) {
+        textarea.value = newText;
+        textarea.setSelectionRange(newCaret, newCaret);
+        textarea.focus();
+      }
+    } else {
+      this.insertEmoji(item.emoji);
+    }
+
+    this.closeEmojiSuggestPopup();
+    this.adjustTextareaHeight();
+    this.typing.emit();
+  }
+
   onKeydown(event: KeyboardEvent): void {
+    // Intercept keyboard events khi Emoji Suggestion Popup đang mở
+    if (this.showEmojiSuggestPopup()) {
+      const suggestions = this.filteredEmojiSuggestions();
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (suggestions.length > 0) {
+          this.selectedEmojiSuggestIndex.update((i) => (i + 1) % suggestions.length);
+        }
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (suggestions.length > 0) {
+          this.selectedEmojiSuggestIndex.update((i) => (i - 1 + suggestions.length) % suggestions.length);
+        }
+        return;
+      }
+      if (event.key === 'Enter' || event.key === 'Tab') {
+        if (!event.shiftKey && !this.isCompositionEvent(event)) {
+          event.preventDefault();
+          if (suggestions.length > 0) {
+            const selected = suggestions[this.selectedEmojiSuggestIndex()] || suggestions[0];
+            this.selectEmojiSuggestion(selected);
+          } else {
+            this.closeEmojiSuggestPopup();
+          }
+          return;
+        }
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.closeEmojiSuggestPopup();
+        return;
+      }
+    }
     // Intercept keyboard events khi Mention Popup đang mở
     if (this.showMentionPopup()) {
       const candidates = this.filteredMentionCandidates();
@@ -867,10 +1074,27 @@ export class MessageComposer implements OnDestroy {
     if (value) {
       this.suppressedPostSubmitValue = null;
     }
-    this.text.set(value);
+
+    let processedValue = value;
+    if (this.userSettings.preferences().convertEmoticons) {
+      const converted = convertEmoticonsToEmoji(processedValue);
+      if (converted !== processedValue) {
+        processedValue = converted;
+        const textarea = this.textareaEl()?.nativeElement;
+        if (textarea) {
+          const caret = textarea.selectionStart ?? processedValue.length;
+          const diff = converted.length - value.length;
+          textarea.value = converted;
+          textarea.setSelectionRange(caret + diff, caret + diff);
+        }
+      }
+    }
+
+    this.text.set(processedValue);
     this.adjustTextareaHeight();
     this.checkMentionTrigger();
-    if (value.trim().length > 0) {
+    this.checkEmojiSuggestTrigger();
+    if (processedValue.trim().length > 0) {
       this.typing.emit();
     } else {
       this.stoppedTyping.emit();
@@ -880,6 +1104,7 @@ export class MessageComposer implements OnDestroy {
   onKeyup(event: KeyboardEvent): void {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Enter') {
       this.checkMentionTrigger();
+      this.checkEmojiSuggestTrigger();
     }
   }
 
@@ -1239,7 +1464,10 @@ export class MessageComposer implements OnDestroy {
     }
 
     const raw = this.text();
-    const trimmed = raw.trim();
+    let trimmed = raw.trim();
+    if (this.userSettings.preferences().convertEmoticons) {
+      trimmed = convertEmoticonsToEmoji(trimmed);
+    }
     const currentContext = this.context();
     const isEditMode = currentContext?.kind === 'edit';
 
@@ -1278,6 +1506,7 @@ export class MessageComposer implements OnDestroy {
     this.pendingFiles.set([]);
     this.fileErrorMessage.set(null);
     this.closeMentionPopup();
+    this.closeEmojiSuggestPopup();
     this.showEmojiPicker.set(false);
     this.showGiphyPicker.set(false);
     this.showStipopPicker.set(false);

@@ -302,6 +302,129 @@
   </div>
 
   <!-- Popovers đặt trực thuộc composer-shell để đảm bảo luôn nằm trọn vẹn trong khung chat, không bao giờ tràn sang sidebar -->
+  @if (showEmojiSuggestPopup()) {
+    <div
+      class="composer-picker-popover composer-mention-popover animate-in fade-in zoom-in-95 duration-150"
+      role="listbox"
+      id="composer-emoji-suggest-listbox"
+      aria-label="Danh sách gợi ý biểu tượng cảm xúc và nhãn dán"
+    >
+      <div
+        class="composer-emoji-suggest-palette rounded-2xl bg-surface border border-hairline shadow-glow overflow-hidden flex flex-col max-h-80 w-96"
+      >
+        <!-- Header có Tabs chuyển đổi Tất cả / Emoji / Sticker -->
+        <div
+          class="px-3 py-2 border-b border-hairline bg-surface-feature/40 flex items-center justify-between gap-2"
+        >
+          <div class="flex items-center gap-1">
+            <button
+              type="button"
+              class="px-2 py-0.5 rounded-md text-micro font-bold transition-colors cursor-pointer"
+              [class.bg-primary]="suggestActiveTab() === 'all'"
+              [class.text-white]="suggestActiveTab() === 'all'"
+              [class.text-steel]="suggestActiveTab() !== 'all'"
+              [class.hover:text-ink]="suggestActiveTab() !== 'all'"
+              (click)="suggestActiveTab.set('all')"
+            >
+              Tất cả
+            </button>
+            <button
+              type="button"
+              class="px-2 py-0.5 rounded-md text-micro font-bold transition-colors cursor-pointer flex items-center gap-1"
+              [class.bg-primary]="suggestActiveTab() === 'emoji'"
+              [class.text-white]="suggestActiveTab() === 'emoji'"
+              [class.text-steel]="suggestActiveTab() !== 'emoji'"
+              [class.hover:text-ink]="suggestActiveTab() !== 'emoji'"
+              (click)="suggestActiveTab.set('emoji')"
+            >
+              Emoji ({{ filteredEmojiSuggestions().length }})
+            </button>
+            @if (filteredStickerSuggestions().length > 0) {
+              <button
+                type="button"
+                class="px-2 py-0.5 rounded-md text-micro font-bold transition-colors cursor-pointer flex items-center gap-1"
+                [class.bg-primary]="suggestActiveTab() === 'sticker'"
+                [class.text-white]="suggestActiveTab() === 'sticker'"
+                [class.text-steel]="suggestActiveTab() !== 'sticker'"
+                [class.hover:text-ink]="suggestActiveTab() !== 'sticker'"
+                (click)="suggestActiveTab.set('sticker')"
+              >
+                Sticker ({{ filteredStickerSuggestions().length }})
+              </button>
+            }
+          </div>
+          <span class="text-[11px] text-stone font-mono shrink-0">Tab / Enter</span>
+        </div>
+
+        <!-- Thân danh sách gợi ý -->
+        <div
+          class="emoji-suggest-list overflow-y-auto nexus-scrollbar p-2 flex flex-col gap-2 max-h-64"
+          tabindex="-1"
+        >
+          <!-- KHU VỰC STICKER (nếu có và tab cho phép) -->
+          @if ((suggestActiveTab() === 'all' || suggestActiveTab() === 'sticker') && filteredStickerSuggestions().length > 0) {
+            <div class="flex flex-col gap-1.5 pb-1 border-b border-hairline/60">
+              <span class="text-micro font-bold text-steel uppercase tracking-wider px-1">Nhãn dán (Sticker)</span>
+              <div class="grid grid-cols-4 gap-1.5 p-1 bg-surface-soft/60 rounded-xl">
+                @for (stk of filteredStickerSuggestions(); track stk.externalId) {
+                  <button
+                    type="button"
+                    class="group flex flex-col items-center justify-center p-1.5 rounded-lg bg-surface hover:bg-surface-feature border border-transparent hover:border-primary/40 hover:scale-105 transition-all cursor-pointer shadow-xs"
+                    (mousedown)="$event.preventDefault(); onSelectStickerFromSuggest(stk)"
+                    [title]="stk.title || 'Gửi nhãn dán'"
+                  >
+                    <img
+                      [src]="stk.previewUrl || stk.displayUrl"
+                      [alt]="stk.title"
+                      class="size-12 object-contain select-none"
+                      loading="lazy"
+                    />
+                    <span class="text-[10px] text-steel group-hover:text-primary truncate max-w-[4rem] mt-0.5 block">
+                      {{ stk.title }}
+                    </span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- KHU VỰC EMOJI (nếu tab cho phép) -->
+          @if (suggestActiveTab() === 'all' || suggestActiveTab() === 'emoji') {
+            @if (filteredEmojiSuggestions().length === 0 && filteredStickerSuggestions().length === 0) {
+              <div class="py-6 text-center text-body-sm text-steel flex flex-col items-center gap-1.5">
+                <mat-icon class="!size-5 !text-xl text-stone">sentiment_neutral</mat-icon>
+                <span>Không tìm thấy biểu tượng phù hợp</span>
+              </div>
+            } @else if (filteredEmojiSuggestions().length > 0) {
+              <div class="flex flex-col gap-0.5">
+                @if (filteredStickerSuggestions().length > 0 && suggestActiveTab() === 'all') {
+                  <span class="text-micro font-bold text-steel uppercase tracking-wider px-1 pt-1">Biểu tượng cảm xúc (Emoji)</span>
+                }
+                @for (item of filteredEmojiSuggestions(); track item.keyword + item.emoji; let i = $index) {
+                  <button
+                    type="button"
+                    role="option"
+                    [attr.aria-selected]="selectedEmojiSuggestIndex() === i"
+                    class="flex items-center justify-between px-3 py-1.5 rounded-xl text-left cursor-pointer transition-colors text-ink select-none hover:bg-surface-feature"
+                    [class.bg-surface-feature]="selectedEmojiSuggestIndex() === i"
+                    (mouseenter)="selectedEmojiSuggestIndex.set(i)"
+                    (mousedown)="$event.preventDefault(); selectEmojiSuggestion(item)"
+                  >
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-2xl leading-none select-none">{{ item.emoji }}</span>
+                      <span class="text-caption font-bold text-ink">:{{ item.keyword }}</span>
+                    </div>
+                    <span class="text-micro text-steel truncate max-w-[10rem]">{{ item.label }}</span>
+                  </button>
+                }
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  }
+
   @if (showMentionPopup()) {
     <div
       class="composer-picker-popover composer-mention-popover animate-in fade-in zoom-in-95 duration-150"
