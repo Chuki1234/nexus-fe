@@ -12,5 +12,5 @@ export const environment: AppEnvironment = {
   supabaseKey: 'sb_publishable_HueUJF-kVoMvvjfAFup-Ng_AJUV3J7l',
   apiUrl: 'http://localhost:3000/api',
   apiBaseUrl: 'http://localhost:3000',
-  giphyApiKey: 'dFN1Y9NfwQjba0QxOCuZXTYWr2aPnE1I',
+  giphyApiKey: '',
 };
