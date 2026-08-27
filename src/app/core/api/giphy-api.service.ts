@@ -14,7 +14,7 @@ export class GiphyApiService {
   /**
    * Kiểm tra khả năng gọi GIPHY API (thông qua Backend Proxy).
    */
-  hasApiKey(): boolean {
+  isConfigured(): boolean {
     return Boolean(environment.apiUrl);
   }
 

@@ -3,7 +3,6 @@ export interface AppEnvironment {
   supabaseKey: string;
   apiUrl: string;
   apiBaseUrl: string;
-  giphyApiKey: string;
 }
 
 export const environment: AppEnvironment = {
@@ -12,5 +11,4 @@ export const environment: AppEnvironment = {
   /** nexus-be. Đăng ký đi qua backend; đăng nhập vẫn gọi thẳng Supabase. */
   apiUrl: 'http://localhost:3000/api',
   apiBaseUrl: 'http://localhost:3000',
-  giphyApiKey: '',
 };
