@@ -1,7 +1,76 @@
-<div class="inline-message-editor rounded-xl bg-surface-soft border border-hairline p-2.5 transition-colors focus-within:border-primary/50 shadow-inner">
+<div
+  class="inline-message-editor rounded-xl bg-surface-soft border border-hairline p-2.5 transition-colors focus-within:border-primary/50 shadow-inner"
+>
   <label [for]="'edit-textarea-' + messageId()" class="sr-only">
     Chỉnh sửa nội dung tin nhắn
   </label>
+
+  <!-- Mini Markdown Formatting Toolbar -->
+  <div
+    class="inline-editor-toolbar flex items-center gap-1 mb-1.5 pb-1 border-b border-hairline/30 text-xs text-steel"
+  >
+    <button
+      type="button"
+      (click)="applyFormat('bold')"
+      [disabled]="saving()"
+      class="px-1.5 py-0.5 rounded hover:bg-surface-feature hover:text-ink font-bold transition-colors cursor-pointer"
+      matTooltip="In đậm (Ctrl+B)"
+      aria-label="In đậm"
+    >
+      B
+    </button>
+    <button
+      type="button"
+      (click)="applyFormat('italic')"
+      [disabled]="saving()"
+      class="px-1.5 py-0.5 rounded hover:bg-surface-feature hover:text-ink italic transition-colors cursor-pointer"
+      matTooltip="In nghiêng (Ctrl+I)"
+      aria-label="In nghiêng"
+    >
+      I
+    </button>
+    <button
+      type="button"
+      (click)="applyFormat('strike')"
+      [disabled]="saving()"
+      class="px-1.5 py-0.5 rounded hover:bg-surface-feature hover:text-ink line-through transition-colors cursor-pointer"
+      matTooltip="Gạch ngang (Ctrl+Shift+X)"
+      aria-label="Gạch ngang"
+    >
+      S
+    </button>
+    <span class="w-px h-3 bg-hairline/40 mx-0.5" aria-hidden="true"></span>
+    <button
+      type="button"
+      (click)="applyFormat('inline-code')"
+      [disabled]="saving()"
+      class="px-1.5 py-0.5 rounded hover:bg-surface-feature hover:text-ink font-mono text-[11px] transition-colors cursor-pointer"
+      matTooltip="Mã nội dòng (Ctrl+E)"
+      aria-label="Mã nội dòng"
+    >
+      &lt;/&gt;
+    </button>
+    <button
+      type="button"
+      (click)="applyFormat('quote')"
+      [disabled]="saving()"
+      class="px-1.5 py-0.5 rounded hover:bg-surface-feature hover:text-ink transition-colors cursor-pointer"
+      matTooltip="Trích dẫn"
+      aria-label="Trích dẫn"
+    >
+      &gt;
+    </button>
+    <button
+      type="button"
+      (click)="applyFormat('link')"
+      [disabled]="saving()"
+      class="px-1.5 py-0.5 rounded hover:bg-surface-feature hover:text-ink transition-colors cursor-pointer"
+      matTooltip="Chèn liên kết (Ctrl+K)"
+      aria-label="Chèn liên kết"
+    >
+      Link
+    </button>
+  </div>
 
   <textarea
     #editorTextarea
@@ -9,36 +78,119 @@
     [value]="draft()"
     (input)="onInput($event)"
     (keydown)="onKeydown($event)"
+    (paste)="onPaste($event)"
     [disabled]="saving()"
     rows="1"
     placeholder="Nhập nội dung tin nhắn..."
     class="inline-editor-textarea w-full resize-none bg-transparent text-body-sm text-ink placeholder:text-steel focus:outline-none leading-relaxed"
   ></textarea>
 
+  <input
+    #editorFileInput
+    type="file"
+    multiple
+    accept="image/*,audio/mpeg,audio/mp3,video/*,.pdf,.txt,.zip,.docx"
+    class="hidden"
+    (change)="onFileSelected($event)"
+  />
+
+  @if (pendingFiles().length > 0) {
+    <div class="inline-editor-files" aria-label="Tệp mới sẽ được thêm vào tin nhắn">
+      @for (item of pendingFiles(); track item.id) {
+        <div class="inline-editor-file">
+          @if (item.isImage && item.previewUrl) {
+            <img [src]="item.previewUrl" [alt]="item.file.name" />
+          } @else {
+            <span class="inline-editor-file__icon" aria-hidden="true">
+              <mat-icon>attach_file</mat-icon>
+            </span>
+          }
+          <span class="inline-editor-file__name" [title]="item.file.name">{{
+            item.file.name
+          }}</span>
+          <button
+            type="button"
+            class="inline-editor-file__remove"
+            [disabled]="saving()"
+            (click)="removeFile(item.id)"
+            [attr.aria-label]="'Bỏ tệp ' + item.file.name"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
   <!-- Thông báo lỗi hoặc hết hạn -->
   @if (expired()) {
-    <div class="inline-editor-expired mt-1.5 flex items-center gap-1.5 text-xs text-amber-400 font-medium" role="alert">
+    <div
+      class="inline-editor-expired mt-1.5 flex items-center gap-1.5 text-xs text-amber-400 font-medium"
+      role="alert"
+    >
       <mat-icon class="!size-4 !text-base">timer_off</mat-icon>
       <span>Đã hết thời gian chỉnh sửa 5 phút.</span>
     </div>
   } @else if (errorMessage(); as err) {
-    <div class="inline-editor-error mt-1.5 flex items-center gap-1.5 text-xs text-danger font-medium" role="alert">
+    <div
+      class="inline-editor-error mt-1.5 flex items-center gap-1.5 text-xs text-danger font-medium"
+      role="alert"
+    >
+      <mat-icon class="!size-4 !text-base">error_outline</mat-icon>
+      <span>{{ err }}</span>
+    </div>
+  } @else if (fileError(); as err) {
+    <div
+      class="inline-editor-error mt-1.5 flex items-center gap-1.5 text-xs text-danger font-medium"
+      role="alert"
+    >
       <mat-icon class="!size-4 !text-base">error_outline</mat-icon>
       <span>{{ err }}</span>
     </div>
   }
 
   <!-- Footer điều khiển & hướng dẫn phím tắt -->
-  <div class="inline-editor-footer mt-2 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-hairline/40 text-[11px] text-steel">
+  <div
+    class="inline-editor-footer mt-2 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-hairline/40 text-[11px] text-steel"
+  >
     <div class="inline-editor-hints hidden sm:flex items-center gap-1">
-      <span>Nhấn <kbd class="px-1.5 py-0.5 rounded bg-surface border border-hairline font-mono text-[10px] text-ink">Enter</kbd> để lưu</span>
+      <span
+        >Nhấn
+        <kbd
+          class="px-1.5 py-0.5 rounded bg-surface border border-hairline font-mono text-[10px] text-ink"
+          >Enter</kbd
+        >
+        để lưu</span
+      >
       <span>•</span>
-      <span><kbd class="px-1.5 py-0.5 rounded bg-surface border border-hairline font-mono text-[10px] text-ink">Shift + Enter</kbd> xuống dòng</span>
+      <span
+        ><kbd
+          class="px-1.5 py-0.5 rounded bg-surface border border-hairline font-mono text-[10px] text-ink"
+          >Shift + Enter</kbd
+        >
+        xuống dòng</span
+      >
       <span>•</span>
-      <span><kbd class="px-1.5 py-0.5 rounded bg-surface border border-hairline font-mono text-[10px] text-ink">Escape</kbd> để hủy</span>
+      <span
+        ><kbd
+          class="px-1.5 py-0.5 rounded bg-surface border border-hairline font-mono text-[10px] text-ink"
+          >Escape</kbd
+        >
+        để hủy</span
+      >
     </div>
 
     <div class="inline-editor-actions flex items-center gap-2 ml-auto">
+      <button
+        type="button"
+        (click)="openFileDialog()"
+        [disabled]="saving() || expired()"
+        class="inline-editor-attach-btn"
+        matTooltip="Thêm ảnh hoặc tệp"
+        aria-label="Thêm ảnh hoặc tệp vào tin nhắn"
+      >
+        <mat-icon>attach_file</mat-icon>
+      </button>
       <button
         type="button"
         (click)="cancel.emit()"

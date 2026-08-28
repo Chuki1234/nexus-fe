@@ -77,7 +77,8 @@ export interface SendMessageDto {
 }
 
 export interface EditMessageDto {
-  content: string;
+  content?: string;
+  files?: File[];
 }
 
 export interface ForwardMessageDto {
@@ -506,6 +507,16 @@ export class MessagesApiService {
    */
   async editMessage(messageId: string, dto: EditMessageDto): Promise<MessageResponseDto> {
     const headers = await this.getAuthHeaders();
+    if (dto.files && dto.files.length > 0) {
+      const formData = new FormData();
+      formData.append('content', dto.content || '');
+      dto.files.forEach((file) => formData.append('files', file));
+      return firstValueFrom(
+        this.http
+          .patch<MessageResponseDto>(`${this.baseUrl}/messages/${messageId}`, formData, { headers })
+          .pipe(timeout(120000)),
+      );
+    }
     return firstValueFrom(
       this.http
         .patch<MessageResponseDto>(`${this.baseUrl}/messages/${messageId}`, dto, { headers })

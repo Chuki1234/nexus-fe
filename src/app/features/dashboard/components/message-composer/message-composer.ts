@@ -26,6 +26,16 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import { StipopApiService } from '../../../../core/api/stipop-api.service';
 import { UserSettingsService } from '../../../settings/services/user-settings.service';
 import {
+  extractClipboardMessage,
+  insertTextAtSelection,
+} from '../../../../core/utils/message-clipboard.util';
+import {
+  applyMarkdownFormat,
+  handleMarkdownHotkeys,
+  type MarkdownFormatType,
+} from '../../../../core/utils/markdown-editing.util';
+import { deleteMentionTokenAtomically } from '../../../../core/utils/mention-token-edit.util';
+import {
   convertEmoticonsToEmoji,
   findEmojiSuggestions,
   findCuratedStickerSuggestions,
@@ -576,10 +586,33 @@ export class MessageComposer implements OnDestroy {
   readonly showEmojiPicker = signal<boolean>(false);
   readonly showGiphyPicker = signal<boolean>(false);
   readonly showStipopPicker = signal<boolean>(false);
+  readonly showFormatToolbar = signal<boolean>(false);
   readonly cooldownRemaining = signal<number>(0);
   private cooldownInterval: any = null;
   readonly activeEmojiCategoryIndex = signal<number>(0);
   readonly fileErrorMessage = signal<string | null>(null);
+
+  toggleFormatToolbar(): void {
+    this.showFormatToolbar.update((v) => !v);
+  }
+
+  applyFormat(format: MarkdownFormatType): void {
+    const textarea = this.textareaEl()?.nativeElement;
+    if (!textarea) return;
+    const res = applyMarkdownFormat(
+      textarea.value,
+      textarea.selectionStart,
+      textarea.selectionEnd,
+      format,
+    );
+    textarea.value = res.value;
+    this.onInput(res.value);
+    queueMicrotask(() => {
+      textarea.setSelectionRange(res.selectionStart, res.selectionEnd);
+      textarea.focus();
+      this.adjustTextareaHeight();
+    });
+  }
 
   // Mention State
   readonly showMentionPopup = signal<boolean>(false);
@@ -730,10 +763,7 @@ export class MessageComposer implements OnDestroy {
     ) {
       this.closeMentionPopup();
     }
-    if (
-      this.showEmojiSuggestPopup() &&
-      !target.closest('.composer-emoji-suggest-palette')
-    ) {
+    if (this.showEmojiSuggestPopup() && !target.closest('.composer-emoji-suggest-palette')) {
       this.closeEmojiSuggestPopup();
     }
   }
@@ -998,7 +1028,9 @@ export class MessageComposer implements OnDestroy {
       if (event.key === 'ArrowUp') {
         event.preventDefault();
         if (suggestions.length > 0) {
-          this.selectedEmojiSuggestIndex.update((i) => (i - 1 + suggestions.length) % suggestions.length);
+          this.selectedEmojiSuggestIndex.update(
+            (i) => (i - 1 + suggestions.length) % suggestions.length,
+          );
         }
         return;
       }
@@ -1056,11 +1088,54 @@ export class MessageComposer implements OnDestroy {
       }
     }
 
+    if (
+      (event.key === 'Backspace' || event.key === 'Delete') &&
+      this.deleteMentionAtCaret(event.key)
+    ) {
+      event.preventDefault();
+      return;
+    }
+
+    // Bắt phím tắt soạn thảo Markdown: Ctrl/Cmd + B, I, K, E, Shift+X
+    const textarea = this.textareaEl()?.nativeElement;
+    if (
+      textarea &&
+      handleMarkdownHotkeys(event, textarea, (res) => {
+        textarea.value = res.value;
+        this.onInput(res.value);
+        queueMicrotask(() => {
+          textarea.setSelectionRange(res.selectionStart, res.selectionEnd);
+          textarea.focus();
+          this.adjustTextareaHeight();
+        });
+      })
+    ) {
+      return;
+    }
+
     if (event.key === 'Enter' && !event.shiftKey) {
       if (this.isCompositionEvent(event)) return;
       event.preventDefault();
       this.submit();
     }
+  }
+
+  private deleteMentionAtCaret(key: 'Backspace' | 'Delete'): boolean {
+    const textarea = this.textareaEl()?.nativeElement;
+    if (!textarea) return false;
+    const result = deleteMentionTokenAtomically(
+      textarea.value,
+      textarea.selectionStart ?? 0,
+      textarea.selectionEnd ?? textarea.selectionStart ?? 0,
+      key,
+    );
+    if (!result) return false;
+
+    textarea.value = result.value;
+    this.onInput(result.value);
+    textarea.setSelectionRange(result.caret, result.caret);
+    this.closeMentionPopup();
+    return true;
   }
 
   onInput(value: string): void {
@@ -1186,26 +1261,46 @@ export class MessageComposer implements OnDestroy {
     }
   }
 
-  onPaste(event: ClipboardEvent): void {
+  async onPaste(event: ClipboardEvent): Promise<void> {
     if (this.disabled() || this.context()?.kind === 'edit') return;
 
-    const items = event.clipboardData?.items;
-    if (!items) return;
+    const clipboard = event.clipboardData;
+    if (!clipboard) return;
 
-    const filesToPaste: File[] = [];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.kind === 'file') {
-        const file = item.getAsFile();
-        if (file) {
-          filesToPaste.push(file);
-        }
-      }
+    const containsFile =
+      clipboard.files.length > 0 ||
+      Array.from(clipboard.items || []).some((item) => item.kind === 'file');
+    const containsRichHtml = (clipboard.getData('text/html') || '').trim().length > 0;
+    const rawPlain = clipboard.getData('text/plain') || '';
+    const containsExternalTokens = /<@&?\d+>|<#\d+>|<t:\d+>/.test(rawPlain);
+
+    if (!containsFile && !containsRichHtml && !containsExternalTokens) return;
+
+    // Chặn native paste để không làm mất phần text khi clipboard đồng thời có file.
+    event.preventDefault();
+    const textarea = this.textareaEl()?.nativeElement;
+    const current = textarea?.value ?? this.text();
+    const start = textarea?.selectionStart ?? current.length;
+    const end = textarea?.selectionEnd ?? start;
+    const payload = await extractClipboardMessage(clipboard);
+
+    if (payload.text) {
+      const inserted = insertTextAtSelection(current, payload.text, start, end);
+      if (textarea) textarea.value = inserted.value;
+      this.onInput(inserted.value);
+      queueMicrotask(() => {
+        textarea?.setSelectionRange(inserted.caret, inserted.caret);
+        this.adjustTextareaHeight();
+      });
     }
 
-    if (filesToPaste.length > 0) {
-      event.preventDefault();
-      this.addFiles(filesToPaste);
+    if (payload.files.length > 0) {
+      this.addFiles(payload.files);
+    }
+    if (payload.failedResourceCount > 0) {
+      this.fileErrorMessage.set(
+        `${payload.failedResourceCount} tệp trong nội dung sao chép bị nguồn bên ngoài chặn tải (CORS/bảo mật). Hãy tải tệp xuống rồi đính kèm trực tiếp.`,
+      );
     }
   }
 

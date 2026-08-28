@@ -4,6 +4,8 @@ export interface ServerSummary {
   id: string;
   name: string;
   iconUrl: string | null;
+  /** Kênh chữ chính nơi hiển thị tin nhắn tham gia/rời máy chủ. */
+  systemChannelId?: string | null;
   unread: boolean;
   mentionCount: number;
 }

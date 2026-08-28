@@ -170,6 +170,7 @@ export class ServersStore {
       id: string;
       name: string;
       iconUrl?: string | null;
+      systemChannelId?: string | null;
       unread?: boolean;
       mentionCount?: number;
       channels?: ChannelSummary[];
@@ -180,6 +181,7 @@ export class ServersStore {
       id: s.id,
       name: s.name,
       iconUrl: s.iconUrl ?? null,
+      systemChannelId: s.systemChannelId ?? null,
       unread: s.unread ?? false,
       mentionCount: s.mentionCount ?? 0,
     }));

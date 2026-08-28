@@ -603,7 +603,11 @@ export class ActiveChatStore implements OnDestroy {
   /**
    * Chỉnh sửa tin nhắn với Optimistic Update và Snapshot Rollback khi lỗi
    */
-  async editMessage(messageId: string, newContent: string): Promise<MessageResponseDto> {
+  async editMessage(
+    messageId: string,
+    newContent: string,
+    files: File[] = [],
+  ): Promise<MessageResponseDto> {
     const convId = this._conversationId();
     const generation = this.currentGeneration;
 
@@ -622,6 +626,7 @@ export class ActiveChatStore implements OnDestroy {
     try {
       const updated = await this.messagesApi.editMessage(messageId, {
         content: newContent,
+        ...(files.length > 0 ? { files } : {}),
       });
 
       if (this._conversationId() === convId && this.currentGeneration === generation) {

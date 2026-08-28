@@ -1,0 +1,124 @@
+<div class="message-body text-body-sm text-charcoal leading-relaxed break-words whitespace-pre-wrap">
+  @for (token of tokens(); track token.key) {
+    <ng-container *ngTemplateOutlet="renderToken; context: { $implicit: token }"></ng-container>
+  }
+  @if (editedAt()) {
+    <span class="text-micro text-stone ml-1.5 select-none font-normal">(đã chỉnh sửa)</span>
+  }
+</div>
+
+<!-- Template đệ quy render từng Token an toàn -->
+<ng-template #renderToken let-tok>
+  @switch (tok.type) {
+    @case ('text') {
+      <span>{{ tok.value }}</span>
+    }
+    @case ('bold') {
+      <strong class="font-bold text-ink">
+        @if (tok.children?.length) {
+          @for (child of tok.children; track child.key) {
+            <ng-container *ngTemplateOutlet="renderToken; context: { $implicit: child }"></ng-container>
+          }
+        } @else {
+          {{ tok.value }}
+        }
+      </strong>
+    }
+    @case ('italic') {
+      <em class="italic">
+        @if (tok.children?.length) {
+          @for (child of tok.children; track child.key) {
+            <ng-container *ngTemplateOutlet="renderToken; context: { $implicit: child }"></ng-container>
+          }
+        } @else {
+          {{ tok.value }}
+        }
+      </em>
+    }
+    @case ('strike') {
+      <s class="line-through text-slate">
+        @if (tok.children?.length) {
+          @for (child of tok.children; track child.key) {
+            <ng-container *ngTemplateOutlet="renderToken; context: { $implicit: child }"></ng-container>
+          }
+        } @else {
+          {{ tok.value }}
+        }
+      </s>
+    }
+    @case ('inline-code') {
+      <code class="px-1.5 py-0.5 rounded bg-surface-feature/80 border border-hairline font-mono text-[0.88em] text-primary select-all">{{ tok.value }}</code>
+    }
+    @case ('code-block') {
+      <pre class="my-2 p-3 rounded-xl bg-surface-feature border border-hairline font-mono text-xs overflow-x-auto text-ink shadow-2xs"><code [attr.data-lang]="tok.language">{{ tok.value }}</code></pre>
+    }
+    @case ('quote') {
+      <blockquote class="my-1.5 pl-3 border-l-3 border-primary/50 text-slate italic bg-surface-feature/20 rounded-r py-1">
+        @if (tok.children?.length) {
+          @for (child of tok.children; track child.key) {
+            <ng-container *ngTemplateOutlet="renderToken; context: { $implicit: child }"></ng-container>
+          }
+        } @else {
+          {{ tok.value }}
+        }
+      </blockquote>
+    }
+    @case ('link') {
+      <a
+        [href]="tok.url || tok.value"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="chat-link text-primary underline hover:text-primary-soft break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
+      >{{ tok.value }}</a>
+    }
+    @case ('md-link') {
+      <a
+        [href]="tok.url"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="chat-link text-primary underline hover:text-primary-soft break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
+      >{{ tok.value }}</a>
+    }
+    @case ('image') {
+      <div class="message-inline-image my-2 max-w-md rounded-xl overflow-hidden border border-hairline bg-canvas">
+        <img
+          [src]="tok.url"
+          [alt]="tok.value || 'Ảnh đính kèm'"
+          class="max-h-72 w-auto object-contain rounded-xl"
+          loading="lazy"
+        />
+      </div>
+    }
+    @case ('mention') {
+      <span
+        class="inline-flex items-baseline px-1.5 py-0.5 rounded font-medium text-xs transition-colors cursor-pointer select-none bg-primary/15 text-primary hover:bg-primary/25"
+        [title]="tok.isEveryone ? 'Nhắc tới tất cả mọi người' : 'Người dùng: @' + tok.value"
+      >@{{ tok.value }}</span>
+    }
+    @case ('channel') {
+      <span class="chat-channel-mention font-medium text-brand">#{{ tok.value }}</span>
+    }
+    @case ('spoiler') {
+      <span
+        class="inline-block rounded px-1.5 py-0.5 text-xs font-medium cursor-pointer transition-all select-none"
+        [class.bg-zinc-800]="showSpoilers() === 'click' && !isSpoilerRevealed(tok.key)"
+        [class.text-transparent]="showSpoilers() === 'click' && !isSpoilerRevealed(tok.key)"
+        [class.blur-[4px]]="showSpoilers() === 'click' && !isSpoilerRevealed(tok.key)"
+        [class.bg-surface-feature]="showSpoilers() === 'always' || isSpoilerRevealed(tok.key)"
+        [class.text-ink]="showSpoilers() === 'always' || isSpoilerRevealed(tok.key)"
+        [class.border]="showSpoilers() === 'always' || isSpoilerRevealed(tok.key)"
+        [class.border-hairline]="showSpoilers() === 'always' || isSpoilerRevealed(tok.key)"
+        (click)="toggleSpoiler(tok.key)"
+        [title]="showSpoilers() === 'click' && !isSpoilerRevealed(tok.key) ? 'Nhấp để xem spoiler' : ''"
+      >
+        @if (tok.children?.length) {
+          @for (child of tok.children; track child.key) {
+            <ng-container *ngTemplateOutlet="renderToken; context: { $implicit: child }"></ng-container>
+          }
+        } @else {
+          {{ tok.value }}
+        }
+      </span>
+    }
+  }
+</ng-template>

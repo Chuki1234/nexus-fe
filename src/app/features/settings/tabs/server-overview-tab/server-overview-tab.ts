@@ -42,9 +42,10 @@ export class ServerOverviewTab {
   protected readonly systemChannel = computed(() => this.serverData().systemChannelId);
   protected readonly sendWelcomeMessage = computed(() => this.serverData().sendWelcomeMessage);
 
+  // Chỉ kênh CHỮ mới được chọn làm kênh hệ thống (tin nhắn tham gia/rời).
   protected readonly availableChannels = computed(() => {
     const sId = this.settingsService.currentServerId();
-    return this.serversStore.channelsOf(sId);
+    return this.serversStore.channelsOf(sId).filter((c) => c.type === 'text');
   });
 
   protected readonly savedNotice = signal<boolean>(false);
@@ -142,12 +143,16 @@ export class ServerOverviewTab {
         this.pendingIconPreview.set(null);
       }
 
-      // 2. Lưu tên (và các trường khác không phải file)
+      // 2. Lưu tên + kênh hệ thống (và các trường khác không phải file)
       const res = await this.serversApi.updateServer(sId, {
         name: data.name,
+        systemChannelId: data.systemChannelId || undefined,
       });
 
-      this.serversStore.patchServer(sId, { name: res.name });
+      this.serversStore.patchServer(sId, {
+        name: res.name,
+        systemChannelId: res.systemChannelId,
+      });
 
       this.savedNotice.set(true);
       setTimeout(() => this.savedNotice.set(false), 2500);

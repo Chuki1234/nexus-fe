@@ -1,6 +1,6 @@
 import { DatePipe, isPlatformBrowser } from '@angular/common';
 import { ToastService } from '../../../core/toast/toast.service';
-import { copyToClipboard, extractMessageCopyableContent } from '../../../core/utils/clipboard.util';
+import { copyMessageToClipboard } from '../../../core/utils/clipboard.util';
 import {
   afterNextRender,
   AfterViewInit,
@@ -78,7 +78,10 @@ import {
   parseTimestamp,
   type MessagePresentationVariant,
 } from '../conversation/conversation';
-import { InlineMessageEditor } from '../components/inline-message-editor/inline-message-editor';
+import {
+  InlineMessageEditor,
+  type InlineMessageEditPayload,
+} from '../components/inline-message-editor/inline-message-editor';
 import { MessageClockService } from '../../../core/utils/message-clock.service';
 import { NotificationService } from '../../../core/notification/notification.service';
 import { UserSettingsService } from '../../settings/services/user-settings.service';
@@ -87,6 +90,7 @@ import { extractErrorMessage } from '../../../core/utils/error.util';
 import type { AttachmentResponseDto } from '../../../core/api/messages-api.service';
 
 import { ProfileStore } from '../../profile/profile-store';
+import { MessageContentComponent } from '../components/message-content/message-content.component';
 
 /** Kênh trong server — `/channels/:serverId/:channelId`. */
 @Component({
@@ -107,6 +111,7 @@ import { ProfileStore } from '../../profile/profile-store';
     MatTooltipModule,
     MessageActions,
     MessageComposer,
+    MessageContentComponent,
     PinnedMessagesList,
     ProfileTrigger,
     VoiceRoom,
@@ -659,11 +664,20 @@ export class ChannelPage implements OnInit, AfterViewInit {
     this.editingError.set(null);
   }
 
-  protected async saveInlineEdit(messageId: string, newContent: string): Promise<void> {
+  protected async saveInlineEdit(
+    messageId: string,
+    edit: string | InlineMessageEditPayload,
+  ): Promise<void> {
+    const content = typeof edit === 'string' ? edit : edit.content;
+    const files = typeof edit === 'string' ? [] : edit.files;
     try {
       this.editingSaving.set(true);
       this.editingError.set(null);
-      await this.channelChat.editMessage(messageId, newContent);
+      if (files.length > 0) {
+        await this.channelChat.editMessage(messageId, content, files);
+      } else {
+        await this.channelChat.editMessage(messageId, content);
+      }
       this.editingMessageId.set(null);
     } catch (err: unknown) {
       this.editingError.set(extractErrorMessage(err, 'Lỗi khi chỉnh sửa tin nhắn.'));
@@ -713,15 +727,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
   private async copyMessageContent(messageId: string): Promise<void> {
     const msg = this.messages().find((m) => m.id === messageId);
     if (!msg) return;
-    const text = extractMessageCopyableContent(msg);
-    if (!text) {
-      this.toast.show({
-        message: 'Tin nhắn này không có nội dung để sao chép.',
-        type: 'info',
-      });
-      return;
-    }
-    const ok = await copyToClipboard(text);
+    const ok = await copyMessageToClipboard(msg);
     if (ok) {
       this.toast.show({ message: 'Đã sao chép nội dung tin nhắn.', type: 'success' });
     } else {

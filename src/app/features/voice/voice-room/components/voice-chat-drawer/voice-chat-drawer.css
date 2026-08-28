@@ -103,18 +103,42 @@ button mat-icon,
 
 .message-row {
   position: relative;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow-x: hidden;
+  /*
+   * Không đặt overflow-x: hidden ở từng message. Khi trục Y đang là visible,
+   * trình duyệt sẽ tính nó thành auto và biến mỗi message thành một vùng cuộn
+   * riêng. Timeline bên ngoài mới là scroll container duy nhất.
+   */
+  overflow: visible;
   word-break: break-word;
   overflow-wrap: anywhere;
   transition: background-color var(--motion-fast, 0.15s) var(--ease-nexus-out, ease);
 }
 
+.voice-message-content,
+.voice-message-list {
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
 .message-body {
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
   max-width: 100%;
+}
+
+.message-body > span,
+.message-body .chat-link,
+.message-body .chat-channel-mention {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .message-attachments,

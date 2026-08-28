@@ -496,17 +496,23 @@ export class ServersApiService {
    */
   async updateServer(
     serverId: string,
-    dto: { name?: string; iconUrl?: string | null },
-  ): Promise<{ id: string; name: string; iconUrl: string | null }> {
+    dto: { name?: string; iconUrl?: string | null; systemChannelId?: string },
+  ): Promise<{
+    id: string;
+    name: string;
+    iconUrl: string | null;
+    systemChannelId: string | null;
+  }> {
     const token = this.auth.accessToken();
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
 
     return firstValueFrom(
-      this.http.patch<{ id: string; name: string; iconUrl: string | null }>(
-        `${environment.apiUrl}/servers/${serverId}`,
-        dto,
-        { headers },
-      ),
+      this.http.patch<{
+        id: string;
+        name: string;
+        iconUrl: string | null;
+        systemChannelId: string | null;
+      }>(`${environment.apiUrl}/servers/${serverId}`, dto, { headers }),
     );
   }
 

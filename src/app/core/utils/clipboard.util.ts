@@ -55,15 +55,99 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   return false;
 }
 
+export interface CopyableMessage {
+  content?: string | null;
+  externalMedia?: {
+    url?: string | null;
+    embedUrl?: string | null;
+    title?: string | null;
+    mediaType?: string | null;
+  } | null;
+  attachments?: Array<{
+    filename?: string | null;
+    url?: string | null;
+    signedUrl?: string | null;
+  }> | null;
+  deletedAt?: string | null;
+}
+
+function escapeClipboardHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Ghi cả text/plain và text/html để NexusCord có thể paste lại nguyên nội dung
+ * cùng attachment. Trình duyệt không cho JavaScript đặt File tùy ý vào clipboard,
+ * vì vậy HTML mang link signed URL; đầu paste sẽ tải link đó thành File thật.
+ */
+export async function copyMessageToClipboard(msg: CopyableMessage): Promise<boolean> {
+  if (msg.deletedAt) return false;
+
+  const content = msg.content?.trim() || '';
+  const mediaUrl = msg.externalMedia?.url || msg.externalMedia?.embedUrl || '';
+  const attachments = (msg.attachments || [])
+    .map((attachment) => ({
+      filename: attachment.filename?.trim() || 'attachment',
+      url: attachment.signedUrl || attachment.url || '',
+    }))
+    .filter((attachment) => !!attachment.url);
+  const plainParts = [content, mediaUrl, ...attachments.map((attachment) => attachment.url)].filter(
+    Boolean,
+  );
+  const plainText = plainParts.join('\n');
+  if (!plainText) return false;
+
+  const richClipboardAvailable =
+    typeof navigator !== 'undefined' &&
+    typeof navigator.clipboard?.write === 'function' &&
+    typeof ClipboardItem !== 'undefined';
+  if (richClipboardAvailable) {
+    const htmlParts: string[] = [];
+    if (content) {
+      htmlParts.push(`<div>${escapeClipboardHtml(content).replace(/\n/g, '<br>')}</div>`);
+    }
+    if (mediaUrl) {
+      htmlParts.push(
+        `<div><a href="${escapeClipboardHtml(mediaUrl)}">${escapeClipboardHtml(
+          msg.externalMedia?.title || mediaUrl,
+        )}</a></div>`,
+      );
+    }
+    attachments.forEach((attachment) => {
+      htmlParts.push(
+        `<div><a href="${escapeClipboardHtml(attachment.url)}" download="${escapeClipboardHtml(
+          attachment.filename,
+        )}" data-filename="${escapeClipboardHtml(attachment.filename)}">${escapeClipboardHtml(
+          attachment.filename,
+        )}</a></div>`,
+      );
+    });
+
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/plain': new Blob([plainText], { type: 'text/plain' }),
+          'text/html': new Blob([htmlParts.join('')], { type: 'text/html' }),
+        }),
+      ]);
+      return true;
+    } catch {
+      // Quyền ClipboardItem có thể bị chặn; fallback về plain text phía dưới.
+    }
+  }
+
+  return copyToClipboard(plainText);
+}
+
 /**
  * Trích xuất nội dung sao chép từ bất kỳ loại tin nhắn nào (text, sticker, gif, file đính kèm, ảnh).
  */
-export function extractMessageCopyableContent(msg: {
-  content?: string | null;
-  externalMedia?: { url?: string | null; embedUrl?: string | null; title?: string | null; mediaType?: string | null } | null;
-  attachments?: Array<{ filename?: string | null; url?: string | null; signedUrl?: string | null }> | null;
-  deletedAt?: string | null;
-}): string {
+export function extractMessageCopyableContent(msg: CopyableMessage): string {
   if (msg.deletedAt) {
     return '';
   }

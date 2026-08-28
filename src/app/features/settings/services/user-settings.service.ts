@@ -1126,10 +1126,17 @@ export class UserSettingsService {
     const realServer = this.serversStore?.servers()?.find((s) => s.id === sId);
     const mock = this.serverDataMap()[sId] ?? this.serverDataMap()['itss'];
     if (realServer) {
+      // Kênh hệ thống: ưu tiên giá trị đã lưu; nếu chưa đặt thì mặc định kênh chữ đầu tiên.
+      const textChannels = (this.serversStore?.channelsOf(sId) ?? []).filter(
+        (c) => c.type === 'text',
+      );
+      const systemChannelId =
+        realServer.systemChannelId ?? textChannels[0]?.id ?? mock.systemChannelId;
       return {
         ...mock,
         name: realServer.name || mock.name,
         iconUrl: realServer.iconUrl !== undefined ? realServer.iconUrl : (mock.iconUrl ?? null),
+        systemChannelId,
       };
     }
     return mock;

@@ -536,7 +536,11 @@ export class ChannelChatStore implements OnDestroy {
   /**
    * Chỉnh sửa tin nhắn với Optimistic Update và Snapshot Rollback khi lỗi
    */
-  async editMessage(messageId: string, content: string): Promise<MessageResponseDto> {
+  async editMessage(
+    messageId: string,
+    content: string,
+    files: File[] = [],
+  ): Promise<MessageResponseDto> {
     const chanId = this._channelId();
     const generation = this.currentGeneration;
 
@@ -553,7 +557,10 @@ export class ChannelChatStore implements OnDestroy {
     );
 
     try {
-      const updated = await this.messagesApi.editMessage(messageId, { content });
+      const updated = await this.messagesApi.editMessage(messageId, {
+        content,
+        ...(files.length > 0 ? { files } : {}),
+      });
 
       if (this._channelId() === chanId && this.currentGeneration === generation) {
         this.upsertPersistedMessage(updated);

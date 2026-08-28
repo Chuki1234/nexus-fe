@@ -436,56 +436,12 @@
                                 }
                               </header>
                             }
-                            <div
-                              class="message-body text-body-sm text-charcoal break-words whitespace-pre-wrap leading-relaxed"
-                            >
-                              @for (token of item.contentTokens; track token.key) {
-                                @if (token.type === 'link') {
-                                  <a
-                                    [href]="token.url"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="nexus-chat-link text-primary underline hover:text-primary-hover break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
-                                    (click)="$event.stopPropagation()"
-                                    >{{ token.value }}</a
-                                  >
-                                } @else if (token.type === 'mention') {
-                                  <span
-                                    class="inline-flex items-baseline px-1.5 py-0.5 rounded font-medium text-xs transition-colors cursor-pointer select-none bg-primary/15 text-primary hover:bg-primary/25"
-                                    [title]="
-                                      token.isEveryone
-                                        ? 'Nhắc tới tất cả mọi người'
-                                        : 'Người dùng: @' + token.value
-                                    "
-                                    >@{{ token.value }}</span
-                                  >
-                                } @else if (token.type === 'spoiler') {
-                                  <span
-                                    class="inline-block rounded px-1.5 py-0.5 text-xs font-medium cursor-pointer transition-all select-none"
-                                    [class.bg-zinc-800]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
-                                    [class.text-transparent]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
-                                    [class.blur-[4px]]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
-                                    [class.bg-surface-feature]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                    [class.text-ink]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                    [class.border]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                    [class.border-hairline]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                    (click)="toggleSpoiler(token.key)"
-                                    [title]="showSpoilers === 'click' && !isSpoilerRevealed(token.key) ? 'Nhấp để xem spoiler' : ''"
-                                  >
-                                    {{ token.value }}
-                                  </span>
-                                } @else {
-                                  <span>{{ token.value }}</span>
-                                }
-                              }
-                              @if (item.isGrouped && msg.editedAt) {
-                                <span
-                                  class="message-edited-badge text-[11px] text-steel ml-1"
-                                  title="Đã chỉnh sửa"
-                                  >(đã chỉnh sửa)</span
-                                >
-                              }
-                            </div>
+                            <app-message-content
+                              [content]="msg.content"
+                              [messageId]="msg.id"
+                              [showSpoilers]="showSpoilers"
+                              [editedAt]="item.isGrouped ? msg.editedAt : null"
+                            />
 
                             <!-- Rich Link Embed (nếu displayLinkPreviews bật) -->
                             @if (displayLinkPreviews && getFirstLink(item.contentTokens); as linkTok) {
@@ -897,56 +853,12 @@
                                   />
                                 </div>
                               } @else {
-                                <div
-                                  class="message-body text-body-sm text-charcoal break-words whitespace-pre-wrap leading-relaxed"
-                                >
-                                  @for (token of item.contentTokens; track token.key) {
-                                    @if (token.type === 'link') {
-                                      <a
-                                        [href]="token.url"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="nexus-chat-link text-primary underline hover:text-primary-hover break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
-                                        (click)="$event.stopPropagation()"
-                                        >{{ token.value }}</a
-                                      >
-                                    } @else if (token.type === 'mention') {
-                                      <span
-                                        class="inline-flex items-baseline px-1.5 py-0.5 rounded font-medium text-xs transition-colors cursor-pointer select-none bg-primary/15 text-primary hover:bg-primary/25"
-                                        [title]="
-                                          token.isEveryone
-                                            ? 'Nhắc tới tất cả mọi người'
-                                            : 'Người dùng: @' + token.value
-                                        "
-                                        >@{{ token.value }}</span
-                                      >
-                                    } @else if (token.type === 'spoiler') {
-                                      <span
-                                        class="inline-block rounded px-1.5 py-0.5 text-xs font-medium cursor-pointer transition-all select-none"
-                                        [class.bg-zinc-800]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
-                                        [class.text-transparent]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
-                                        [class.blur-[4px]]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
-                                        [class.bg-surface-feature]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                        [class.text-ink]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                        [class.border]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                        [class.border-hairline]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                        (click)="toggleSpoiler(token.key)"
-                                        [title]="showSpoilers === 'click' && !isSpoilerRevealed(token.key) ? 'Nhấp để xem spoiler' : ''"
-                                      >
-                                        {{ token.value }}
-                                      </span>
-                                    } @else {
-                                      <span>{{ token.value }}</span>
-                                    }
-                                  }
-                                  @if (item.isGrouped && msg.editedAt) {
-                                    <span
-                                      class="message-edited-badge text-[11px] text-steel ml-1"
-                                      title="Đã chỉnh sửa"
-                                      >(đã chỉnh sửa)</span
-                                    >
-                                  }
-                                </div>
+                                <app-message-content
+                                  [content]="msg.content"
+                                  [messageId]="msg.id"
+                                  [showSpoilers]="showSpoilers"
+                                  [editedAt]="item.isGrouped ? msg.editedAt : null"
+                                />
 
                                 <!-- Rich Link Embed (nếu displayLinkPreviews bật) -->
                                 @if (displayLinkPreviews && getFirstLink(item.contentTokens); as linkTok) {

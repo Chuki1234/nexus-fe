@@ -253,6 +253,29 @@ describe('MessageComposer', () => {
     expect(host.sentPayloads).toHaveLength(0);
   });
 
+  it('paste clipboard có cả text và ảnh giữ text đồng thời tạo attachment preview', async () => {
+    const fixture = await mount();
+    const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+    const image = new File(['image'], 'clipboard.png', { type: 'image/png' });
+    const clipboard = {
+      files: [image],
+      items: [{ kind: 'file', getAsFile: () => image }],
+      getData: (type: string) => (type === 'text/plain' ? 'Chú thích từ clipboard' : ''),
+    } as unknown as DataTransfer;
+    const preventDefault = vi.fn();
+
+    await composer.onPaste({
+      clipboardData: clipboard,
+      preventDefault,
+    } as unknown as ClipboardEvent);
+    fixture.detectChanges();
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(composer.text()).toBe('Chú thích từ clipboard');
+    expect(composer.pendingFiles()).toHaveLength(1);
+    expect(composer.pendingFiles()[0].file).toBe(image);
+  });
+
   it('khi chuyển sang context edit: revoke toàn bộ pending files, xoá khay và chặn thêm file', async () => {
     const fixture = await mount();
     const host = fixture.componentInstance;
@@ -580,6 +603,22 @@ describe('MessageComposer', () => {
         expect(composer.text()).toBe('@alex_dev ');
         // Đảm bảo không gửi tin nhắn ngay lập tức khi nhấn Enter để chọn mention
         expect(host.sentPayloads).toHaveLength(0);
+      });
+
+      it('Backspace sau mention đã chọn xoá nguyên tag và khoảng trắng tự sinh', async () => {
+        const fixture = await mount();
+        const composer = fixture.debugElement.children[0].componentInstance as MessageComposer;
+        const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+        textarea.value = '@everyone ';
+        textarea.setSelectionRange(10, 10);
+        composer.onInput('@everyone ');
+
+        composer.onKeydown(new KeyboardEvent('keydown', { key: 'Backspace', cancelable: true }));
+        fixture.detectChanges();
+
+        expect(composer.text()).toBe('');
+        expect(textarea.value).toBe('');
+        expect(textarea.selectionStart).toBe(0);
       });
 
       it('nhấn Escape khi đang mở mention popup chỉ đóng popup mà không hủy composer context', async () => {
