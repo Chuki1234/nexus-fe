@@ -24,6 +24,7 @@ import { Avatar } from '../../shared/ui/avatar/avatar';
 
 // User Tabs
 import { AccountTab } from './tabs/account-tab/account-tab';
+import { AccountsTab } from './tabs/accounts-tab/accounts-tab';
 import { ProfileTab } from './tabs/profile-tab/profile-tab';
 import { PrivacyTab } from './tabs/privacy-tab/privacy-tab';
 import { AppearanceTab } from './tabs/appearance-tab/appearance-tab';
@@ -48,6 +49,7 @@ import { ServerSafetyTab } from './tabs/server-safety-tab/server-safety-tab';
 import { ServerAuditLogTab } from './tabs/server-audit-log-tab/server-audit-log-tab';
 import { ColorStudioModal } from './components/color-studio-modal/color-studio-modal';
 import { ProfileStore } from '../profile/profile-store';
+import { ManageAccountsModal } from '../profile/modals/manage-accounts-modal/manage-accounts-modal';
 import { ProfileGamesService } from '../profile/profile-games.service';
 import { GAME_KIND_LABELS, GAME_TAG_MAX, GAME_TITLE_MAX } from '../../../shared';
 
@@ -73,6 +75,7 @@ export interface NavCategory {
     MatButtonModule,
     Avatar,
     AccountTab,
+    AccountsTab,
     ProfileTab,
     PrivacyTab,
     AppearanceTab,
@@ -150,6 +153,7 @@ export class SettingsModal {
       title: 'CÀI ĐẶT NGƯỜI DÙNG',
       items: [
         { id: 'account', label: 'Tài Khoản', icon: 'person' },
+        { id: 'accounts', label: 'Chuyển Tài Khoản', icon: 'swap_horiz' },
         { id: 'profile', label: 'Hồ Sơ', icon: 'badge' },
         { id: 'connections', label: 'Ứng Dụng Đã Kết Nối', icon: 'link' },
         { id: 'notifications', label: 'Các Thông Báo', icon: 'notifications' },
@@ -348,6 +352,14 @@ export class SettingsModal {
         this.settingsService.close();
         void this.router.navigate(['/channels/@me']);
       }
+    });
+  }
+
+  protected openManageAccountsModal(): void {
+    this.dialog.open(ManageAccountsModal, {
+      width: '480px',
+      maxWidth: '95vw',
+      panelClass: 'nexus-dialog-panel',
     });
   }
 

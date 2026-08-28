@@ -1,0 +1,85 @@
+<div class="accounts-tab-root space-y-6">
+  <!-- Section Heading -->
+  <div>
+    <h2 class="settings-section-heading" id="multi-accounts-heading">Quản Lý & Chuyển Tài Khoản</h2>
+    <p class="text-caption text-steel mt-1 m-0">
+      Chuyển tài khoản, đăng nhập, đăng xuất dễ dàng trên thiết bị này.
+    </p>
+  </div>
+
+  <!-- Accounts List Group -->
+  <div class="settings-row-group space-y-3" aria-labelledby="multi-accounts-heading">
+    @for (acc of accountSwitch.savedAccounts(); track acc.userId) {
+      <div
+        class="flex items-center justify-between p-4 rounded-xl bg-surface-feature/70 border border-hairline/50 hover:bg-surface-feature transition-all group cursor-pointer"
+        (click)="onSwitchAccount(acc)"
+      >
+        <div class="flex items-center gap-3.5 min-w-0 flex-1">
+          <app-avatar
+            [name]="acc.displayName || acc.username"
+            [src]="acc.avatarUrl || null"
+            size="md"
+            ring="surface"
+          />
+          <div class="min-w-0 flex-1">
+            <span class="block text-body-md font-bold text-ink truncate">
+              {{ acc.displayName || acc.username }}
+            </span>
+            <span
+              class="block text-caption font-medium truncate"
+              [class.text-primary]="isCurrentAccount(acc)"
+              [class.text-steel]="!isCurrentAccount(acc)"
+            >
+              @if (isCurrentAccount(acc)) {
+                ● Tài khoản hiện tại
+              } @else {
+                &commat;{{ acc.username }}
+              }
+            </span>
+          </div>
+        </div>
+
+        <!-- Action / Options -->
+        <div class="flex items-center gap-2" (click)="$event.stopPropagation()">
+          @if (isCurrentAccount(acc)) {
+            <span class="px-3 py-1 rounded-full text-micro-uppercase font-semibold bg-primary/20 text-primary border border-primary/30">
+              Đang chọn
+            </span>
+          } @else {
+            <button
+              mat-icon-button
+              type="button"
+              [matMenuTriggerFor]="accountMenu"
+              class="text-steel hover:text-ink size-8"
+              aria-label="Tùy chọn tài khoản"
+            >
+              <mat-icon class="!size-5 !text-xl">more_horiz</mat-icon>
+            </button>
+            <mat-menu #accountMenu="matMenu" class="nexus-context-menu">
+              <button mat-menu-item (click)="onSwitchAccount(acc)">
+                <mat-icon class="text-primary">swap_horiz</mat-icon>
+                <span>Chuyển sang tài khoản này</span>
+              </button>
+              <button mat-menu-item (click)="onRemoveAccount(acc)" class="!text-danger">
+                <mat-icon class="!text-danger">delete</mat-icon>
+                <span>Xóa khỏi thiết bị</span>
+              </button>
+            </mat-menu>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Add Account Button -->
+  <div class="pt-4 border-t border-hairline/60">
+    <button
+      type="button"
+      (click)="openAddAccountDialog()"
+      class="w-full py-3 px-4 rounded-xl bg-surface-feature hover:bg-surface-feature/80 text-ink font-semibold text-body-md transition-colors flex items-center justify-center gap-2 cursor-pointer border border-hairline"
+    >
+      <mat-icon class="!size-5 !text-xl text-primary">add_circle</mat-icon>
+      Thêm tài khoản
+    </button>
+  </div>
+</div>
