@@ -177,7 +177,7 @@ Test case dự kiến:
 ---
 
 ## Phase 4: Embed SERVER (invite + introduction) + nút hành động
-Status: PENDING
+Status: DONE
 
 Mục tiêu (gắn với 1+ trong 3 tiêu chí UI/UX - Feature - Data):
 - **Feature**: mở rộng `chat-link-embed` xử lý `server-invite` (dùng
@@ -203,18 +203,22 @@ Test case dự kiến:
   thấy card server + nút.
 
 ### Kết quả Phase 4
-- Ngày hoàn thành:
-- Commit: frontend `<sha ngắn>` · backend `<n/a>`
-- Kết quả test: unit `<x/y>` · E2E Playwright `<x/y>`
+- Ngày hoàn thành: 2026-08-29
+- Commit: frontend `<điền sau khi push>` · backend `n/a`
+- Kết quả test: unit `chat-link-embed 7/7 · servers-api 15/15 · conversation 65/65` · E2E Playwright `hoãn` (xem ghi chú)
 - Đánh giá theo 3 tiêu chí:
-  - [ ] **UI/UX** — card server đồng bộ, Material, loading/error
-  - [ ] **Feature** — invite + introduction đúng hành vi, nút điều hướng đúng
-  - [ ] **Data** — endpoint preview trả field an toàn, xử lý invite hết hạn
+  - [x] **UI/UX** — card máy chủ (icon/tên/số thành viên) đồng bộ token; nút `mat-flat-button` +
+    `mat-icon`: "Tham gia" (invite) / "Xem server" (introduction); skeleton khi tải; invite hết hạn/hết
+    lượt → chặn nút + hiện lý do
+  - [x] **Feature** — invite `/invite/:code` → `getInvitePreview` + nút Tham gia; introduction
+    `/channels/:serverId` → `getServerPreview` + nút Xem server; cache dedupe tĩnh (nhiều tin cùng link
+    chỉ 1 request); lỗi/không tồn tại → ẩn card, link inline còn nguyên
+  - [x] **Data** — `getServerPreview` gọi endpoint public, KHÔNG gắn Authorization header; mọi data qua NestJS
 - Migration DB: chưa cần
-- Vấn đề phát sinh / ghi chú:
-- PR:
-
----
+- Vấn đề phát sinh / ghi chú: browser/E2E verify VẪN hoãn (như Phase 3) do WIP chưa commit của người khác
+  (`user-panel.ts/.html` + `account-switch.service.ts` + `features/profile/modals/`) làm full app build fail.
+  Không đụng các file đó; unit test (graph-scoped) đã phủ đủ cả 3 loại link.
+- PR: FE Chuki1234/nexus-fe#37
 
 ## Nhật ký duyệt & hoàn thành (bảng tóm tắt nhanh — chi tiết xem mục "Kết quả Phase N" ở trên)
 | Phase | Duyệt lúc | Hoàn thành lúc | Test pass | Commit |
@@ -222,7 +226,7 @@ Test case dự kiến:
 | 1 | 2026-08-28 | 2026-08-28 | unit 19/19 | fe a2511af · be c4bbe52 |
 | 2 | 2026-08-28 | 2026-08-28 | unit 6/6 | be 0fd93b6 |
 | 3 | 2026-08-29 | 2026-08-29 | unit 19+4+65 | fe 3f95a36 |
-| 4 | | | | |
+| 4 | 2026-08-29 | 2026-08-29 | unit 7+15+65 | fe (điền sau) |
 
 ---
 

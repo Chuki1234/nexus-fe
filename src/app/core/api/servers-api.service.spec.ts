@@ -253,4 +253,24 @@ describe('ServersApiService', () => {
       expect(formatApiError(error)).toContain('RPC create_server_with_template');
     });
   });
+
+  describe('getServerPreview', () => {
+    it('gọi GET /api/servers/:id/preview (public — KHÔNG gắn Authorization header)', async () => {
+      const preview = {
+        serverId: 's-1',
+        name: 'Nexus HQ',
+        iconUrl: null,
+        bannerUrl: null,
+        memberCount: 3,
+      };
+      const promise = service.getServerPreview('s-1');
+
+      const req = httpTesting.expectOne(`${environment.apiUrl}/servers/s-1/preview`);
+      expect(req.request.method).toBe('GET');
+      expect(req.request.headers.has('Authorization')).toBe(false);
+
+      req.flush(preview);
+      expect(await promise).toEqual(preview);
+    });
+  });
 });

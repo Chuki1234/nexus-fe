@@ -1,5 +1,5 @@
 @if (profileUsername()) {
-  @if (loading()) {
+  @if (profileLoading()) {
     <!-- Skeleton khi đang tra hồ sơ: giữ đúng khung để không nhảy layout -->
     <div
       class="mt-2 max-w-sm animate-pulse overflow-hidden rounded-2xl border border-hairline bg-canvas-soft/90"
@@ -36,4 +36,62 @@
   }
   <!-- profile() null sau khi tải xong = không có hồ sơ / không có quyền xem →
        không vẽ card, link inline trong tin nhắn vẫn còn. -->
+} @else if (serverTarget()) {
+  @if (serverLoading()) {
+    <!-- Skeleton card máy chủ -->
+    <div
+      class="mt-2 flex max-w-sm animate-pulse items-center gap-3 rounded-2xl border border-hairline bg-canvas-soft/90 p-3.5"
+      aria-hidden="true"
+    >
+      <div class="size-12 shrink-0 rounded-xl bg-surface-feature"></div>
+      <div class="min-w-0 flex-1 space-y-2">
+        <div class="h-3 w-1/3 rounded bg-surface-feature"></div>
+        <div class="h-4 w-2/3 rounded bg-surface-feature"></div>
+      </div>
+    </div>
+  } @else if (serverCard(); as s) {
+    <div class="mt-2 max-w-sm rounded-2xl border border-hairline bg-canvas-soft/90 p-3.5 shadow-modal">
+      <div class="flex items-center gap-3">
+        @if (s.iconUrl) {
+          <img
+            [src]="s.iconUrl"
+            [alt]="s.name"
+            decoding="async"
+            class="size-12 shrink-0 rounded-xl border border-hairline object-cover"
+          />
+        } @else {
+          <div
+            class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-hairline bg-primary/10 text-primary"
+          >
+            <mat-icon>groups</mat-icon>
+          </div>
+        }
+        <div class="min-w-0 flex-1">
+          <span class="block text-micro-uppercase font-bold uppercase tracking-wider text-stone">
+            {{ s.subtitle }}
+          </span>
+          <span class="block truncate text-body-md font-semibold text-ink">{{ s.name }}</span>
+          <span class="block text-caption text-steel">{{ s.memberCount }} thành viên</span>
+        </div>
+      </div>
+
+      @if (s.invalid) {
+        <p class="mt-2.5 text-caption text-steel">{{ s.invalidReason }}</p>
+        <button mat-stroked-button class="nexus-embed-action mt-1" disabled>
+          <mat-icon>block</mat-icon>
+          Không khả dụng
+        </button>
+      } @else {
+        <a
+          mat-flat-button
+          [routerLink]="s.actionLink"
+          class="nexus-embed-action mt-3"
+        >
+          <mat-icon>{{ s.actionIcon }}</mat-icon>
+          {{ s.actionLabel }}
+        </a>
+      }
+    </div>
+  }
+  <!-- serverCard() null = không lấy được (không tồn tại / lỗi) → không vẽ card. -->
 }
