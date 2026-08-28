@@ -1,5 +1,6 @@
 import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import { ConversationsApiService } from '../../core/api/conversations-api.service';
 
 /**
@@ -20,6 +21,7 @@ import { ConversationsApiService } from '../../core/api/conversations-api.servic
 export class OpenDm {
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog, { optional: true });
   private isDestroyed = false;
 
   /** Đang chờ backend trả id cuộc trò chuyện. */
@@ -43,6 +45,7 @@ export class OpenDm {
     try {
       const conversation = await this.conversationsApi.getOrCreateDm(userId);
       if (this.isDestroyed) return;
+      this.dialog?.closeAll();
       await this.router.navigate(['/channels/@me', conversation.id]);
     } catch (err: unknown) {
       if (!this.isDestroyed) {

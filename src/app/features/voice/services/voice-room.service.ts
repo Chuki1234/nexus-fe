@@ -100,7 +100,7 @@ export class VoiceRoomService implements OnDestroy {
   readonly localParticipant = signal<VoiceParticipantModel | null>(null);
   readonly remoteParticipants = signal<VoiceParticipantModel[]>([]);
 
-  /** Quản lý âm lượng cục bộ từng thành viên (0% - 200%) và tắt tiếng cục bộ (Local Mute) */
+  /** Quản lý âm lượng cục bộ từng thành viên (0% - 100%) và tắt tiếng cục bộ (Local Mute) */
   readonly localUserVolumes = signal<Record<string, number>>({});
   readonly localUserMutes = signal<Record<string, boolean>>({});
 
@@ -342,10 +342,10 @@ export class VoiceRoomService implements OnDestroy {
   }
 
   /**
-   * Điều chỉnh âm lượng cục bộ của một thành viên (0% - 200%).
+   * Điều chỉnh âm lượng cục bộ của một thành viên (0% - 100%).
    */
   setUserVolume(userIdOrIdentity: string, volumePercent: number): void {
-    const clamped = Math.max(0, Math.min(200, Math.round(volumePercent)));
+    const clamped = Math.max(0, Math.min(100, Math.round(volumePercent)));
     this.localUserVolumes.update((map) => ({ ...map, [userIdOrIdentity]: clamped }));
     this.applyLocalAudioVolume(userIdOrIdentity);
   }
