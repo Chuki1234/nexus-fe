@@ -16,6 +16,7 @@ import { ServersApiService } from '../../../../core/api/servers-api.service';
 import { ChannelSummary } from '../../../../core/servers/server.models';
 import { ServersStore } from '../../../../core/servers/servers.store';
 import { extractErrorMessage } from '../../../../core/utils/error.util';
+import { ToastService } from '../../../../core/toast/toast.service';
 
 export interface ChannelSettingsModalData {
   channel: ChannelSummary;
@@ -56,6 +57,7 @@ export class ChannelSettingsModal {
   readonly dialogRef = inject(MatDialogRef<ChannelSettingsModal>);
   private readonly serversApi = inject(ServersApiService, { optional: true });
   private readonly serversStore = inject(ServersStore, { optional: true });
+  private readonly toast = inject(ToastService);
 
   readonly activeTab = signal<ChannelSettingsTab>('overview');
 
@@ -225,17 +227,17 @@ export class ChannelSettingsModal {
       }
 
       this.saveNotice.set('Đã lưu thay đổi cài đặt kênh!');
+      this.toast.show({ message: 'Đã lưu thay đổi cài đặt kênh thành công.', type: 'success' });
       setTimeout(() => {
         this.saveNotice.set(null);
       }, 2500);
     } catch (err: any) {
-      if (err?.status === 409) {
-        this.saveNotice.set(null);
-        this.errorMessage.set('Tên kênh đã tồn tại trong máy chủ này.');
-      } else {
-        this.saveNotice.set(null);
-        this.errorMessage.set(extractErrorMessage(err, 'Lỗi lưu thay đổi kênh.'));
-      }
+      const msg = err?.status === 409
+        ? 'Tên kênh đã tồn tại trong máy chủ này.'
+        : extractErrorMessage(err, 'Lỗi lưu thay đổi kênh.');
+      this.saveNotice.set(null);
+      this.errorMessage.set(msg);
+      this.toast.show({ message: msg, type: 'error' });
     } finally {
       this.isSaving.set(false);
     }
@@ -246,7 +248,7 @@ export class ChannelSettingsModal {
     const textChannels = serverChannels.filter((c) => c.type === 'text' || !c.type);
 
     if (textChannels.length <= 1 && (this.data.channel.type === 'text' || !this.data.channel.type) && serverChannels.length > 0) {
-      alert('Không thể xóa kênh chữ cuối cùng trong máy chủ.');
+      this.toast.show({ message: 'Không thể xóa kênh chữ cuối cùng trong máy chủ.', type: 'warning' });
       return;
     }
 
@@ -255,15 +257,18 @@ export class ChannelSettingsModal {
     }
 
     this.isDeleting.set(true);
-    this.serversStore?.removeChannel(this.data.serverId, this.data.channel.id);
 
     try {
       if (this.serversApi) {
         await this.serversApi.deleteChannel(this.data.serverId, this.data.channel.id);
       }
+      this.serversStore?.removeChannel(this.data.serverId, this.data.channel.id);
+      this.toast.show({ message: `Đã xóa kênh #${this.data.channel.name}.`, type: 'success' });
       this.dialogRef.close({ deleted: true, channelId: this.data.channel.id });
     } catch (err: any) {
-      alert(extractErrorMessage(err, 'Không thể xóa kênh.'));
+      const msg = extractErrorMessage(err, 'Không thể xóa kênh.');
+      this.errorMessage.set(msg);
+      this.toast.show({ message: msg, type: 'error' });
     } finally {
       this.isDeleting.set(false);
     }
