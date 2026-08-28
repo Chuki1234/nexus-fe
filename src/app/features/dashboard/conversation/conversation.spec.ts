@@ -2157,6 +2157,52 @@ describe('ConversationPage', () => {
     });
 
     describe('Inline Message Editing & 5-Minute Window', () => {
+      it('render inline editor cho tin nhắn DM chỉ có text', async () => {
+        messagesSignal.set([
+          {
+            id: 'dm-text-own',
+            channelId: null,
+            conversationId: 'conv-123',
+            authorId: 'my-user-id',
+            author: {
+              id: 'my-user-id',
+              username: 'me',
+              displayName: 'Minh Tài',
+              avatarUrl: null,
+            },
+            type: 'default',
+            content: 'Tin nhắn DM text thuần',
+            replyToId: null,
+            clientNonce: 'nonce-dm-text-own',
+            editedAt: null,
+            deletedAt: null,
+            isForwarded: false,
+            externalMedia: null,
+            createdAt: new Date().toISOString(),
+            status: 'persisted',
+          },
+        ]);
+
+        const harness = await mount('conv-123');
+        await harness.fixture.whenStable();
+        harness.fixture.detectChanges();
+
+        harness.component.onMessageAction({
+          kind: 'edit',
+          icon: 'edit_note',
+          label: 'Chỉnh sửa tin nhắn',
+          description: 'Tin nhắn DM text thuần',
+          messageId: 'dm-text-own',
+        });
+        harness.fixture.detectChanges();
+
+        const row = harness.routeNativeElement!.querySelector(
+          '[data-message-id="dm-text-own"]',
+        ) as HTMLElement | null;
+        expect(row?.querySelector('app-inline-message-editor')).toBeTruthy();
+        expect(row?.querySelector('.message-body')).toBeNull();
+      });
+
       it('chọn Edit từ MessageActions: mở inline editor với editingMessageId và không đụng tới composer', async () => {
         const harness = await mount('conv-123');
         await harness.fixture.whenStable();

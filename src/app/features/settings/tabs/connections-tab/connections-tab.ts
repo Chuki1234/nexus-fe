@@ -10,6 +10,7 @@ import {
   type PlatformCategory,
 } from '../../../profile/connected-apps';
 import { linkIconFor } from '../../../profile/components/link-icon';
+import { PlatformLogo } from '../../../profile/components/platform-logo/platform-logo';
 import { ProfileStore } from '../../../profile/profile-store';
 
 /** Một ô trong thước đo hạn mức liên kết. */
@@ -45,7 +46,7 @@ const CATEGORY_ORDER: PlatformCategory[] = ['social', 'gaming', 'creative'];
  */
 @Component({
   selector: 'app-connections-tab',
-  imports: [MatIconModule],
+  imports: [MatIconModule, PlatformLogo],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './connections-tab.html',
   styleUrl: './connections-tab.css',

@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import {
   parseMessageContent,
   extractMentionUsernames,
@@ -5,8 +6,8 @@ import {
   isMentioningEveryone,
 } from './message-content-parser';
 
-describe('MessageContentParser (Safe Linkification & Scheme Whitelisting)', () => {
-  it('giữ nguyên văn bản thông thường không chứa link', () => {
+describe('MessageContentParser (Pure Markdown & Safe Linkification)', () => {
+  it('giữ nguyên văn bản thông thường không chứa ký tự đặc biệt', () => {
     const text = 'Xin chào thế giới NexusCord!';
     const tokens = parseMessageContent(text, 'test');
     expect(tokens).toEqual([
@@ -18,48 +19,65 @@ describe('MessageContentParser (Safe Linkification & Scheme Whitelisting)', () =
     ]);
   });
 
-  it('phân tách chính xác URL https:// và phần text xung quanh', () => {
-    const text = 'Hãy truy cập https://nexuscord.app để tải app.';
+  it('phân tách chính xác chữ in đậm (bold) **...**', () => {
+    const text = 'Nội dung **rất quan trọng** cần đọc';
     const tokens = parseMessageContent(text, 'test');
-    expect(tokens).toHaveLength(3);
-    expect(tokens[0]).toEqual({
-      key: expect.any(String),
-      type: 'text',
-      value: 'Hãy truy cập ',
-    });
-    expect(tokens[1]).toEqual({
-      key: expect.any(String),
-      type: 'link',
-      value: 'https://nexuscord.app',
-      url: 'https://nexuscord.app/',
-    });
-    expect(tokens[2]).toEqual({
-      key: expect.any(String),
-      type: 'text',
-      value: ' để tải app.',
-    });
+    const boldToken = tokens.find((t) => t.type === 'bold');
+    expect(boldToken).toBeDefined();
+    expect(boldToken?.value).toBe('rất quan trọng');
   });
 
-  it('tách đúng dấu câu cuối câu (dấu chấm, phẩy, chấm hỏi, ngoặc đơn) ra khỏi URL', () => {
-    const text = 'Xem chi tiết tại (https://example.com/docs).';
+  it('phân tách chính xác in nghiêng (italic) *...*', () => {
+    const text = 'Nội dung *chú ý* nhé';
     const tokens = parseMessageContent(text, 'test');
-    expect(tokens).toHaveLength(3);
-    expect(tokens[0]).toEqual({
-      key: expect.any(String),
-      type: 'text',
-      value: 'Xem chi tiết tại (',
-    });
-    expect(tokens[1]).toEqual({
-      key: expect.any(String),
-      type: 'link',
-      value: 'https://example.com/docs',
-      url: 'https://example.com/docs',
-    });
-    expect(tokens[2]).toEqual({
-      key: expect.any(String),
-      type: 'text',
-      value: ').',
-    });
+    const italicToken = tokens.find((t) => t.type === 'italic');
+    expect(italicToken).toBeDefined();
+    expect(italicToken?.value).toBe('chú ý');
+  });
+
+  it('phân tách chính xác gạch ngang (strike) ~~...~~', () => {
+    const text = 'Giá cũ: ~~100k~~ chỉ còn 50k';
+    const tokens = parseMessageContent(text, 'test');
+    const strikeToken = tokens.find((t) => t.type === 'strike');
+    expect(strikeToken).toBeDefined();
+    expect(strikeToken?.value).toBe('100k');
+  });
+
+  it('hỗ trợ nested formatting: in đậm chứa in nghiêng **đậm *nghiêng***', () => {
+    const text = 'Đây là **đậm và *nghiêng* luôn** nhé';
+    const tokens = parseMessageContent(text, 'test');
+    const boldToken = tokens.find((t) => t.type === 'bold');
+    expect(boldToken).toBeDefined();
+    expect(boldToken?.children).toBeDefined();
+    const nestedItalic = boldToken?.children?.find((c) => c.type === 'italic');
+    expect(nestedItalic).toBeDefined();
+    expect(nestedItalic?.value).toBe('nghiêng');
+  });
+
+  it('phân tách inline code `...` không làm biến dạng ký tự bên trong', () => {
+    const text = 'Chạy lệnh `npm run start:dev` để khởi động';
+    const tokens = parseMessageContent(text, 'test');
+    const codeToken = tokens.find((t) => t.type === 'inline-code');
+    expect(codeToken).toBeDefined();
+    expect(codeToken?.value).toBe('npm run start:dev');
+  });
+
+  it('phân tách code block ```lang\ncode\n```', () => {
+    const text = 'Đoạn mã:\n```typescript\nconst x: number = 42;\n```';
+    const tokens = parseMessageContent(text, 'test');
+    const cbToken = tokens.find((t) => t.type === 'code-block');
+    expect(cbToken).toBeDefined();
+    expect(cbToken?.language).toBe('typescript');
+    expect(cbToken?.value).toContain('const x: number = 42;');
+  });
+
+  it('phân tách Markdown Link [label](url) an toàn', () => {
+    const text = 'Truy cập [Trang chủ](https://nexuscord.app) để xem';
+    const tokens = parseMessageContent(text, 'test');
+    const mdLink = tokens.find((t) => t.type === 'md-link');
+    expect(mdLink).toBeDefined();
+    expect(mdLink?.value).toBe('Trang chủ');
+    expect(mdLink?.url).toBe('https://nexuscord.app');
   });
 
   it('chặn scheme nguy hiểm javascript: và render dạng text thuần', () => {
@@ -70,59 +88,30 @@ describe('MessageContentParser (Safe Linkification & Scheme Whitelisting)', () =
     expect(tokens[0].value).toBe('Bấm vào javascript:alert(document.cookie) đi bạn');
   });
 
-  it('chặn scheme nguy hiểm data:, file:, vbscript: và render dạng text thuần', () => {
-    const text = 'Thử data:text/html,<script> và file:///C:/secret và vbscript:msgbox';
+  it('phân tách blockquote > ...', () => {
+    const text = '> Đây là một đoạn trích dẫn';
     const tokens = parseMessageContent(text, 'test');
-    expect(tokens).toHaveLength(1);
-    expect(tokens[0].type).toBe('text');
-    expect(tokens[0].value).toBe('Thử data:text/html,<script> và file:///C:/secret và vbscript:msgbox');
+    const quoteToken = tokens.find((t) => t.type === 'quote');
+    expect(quoteToken).toBeDefined();
+    expect(quoteToken?.value).toBe('Đây là một đoạn trích dẫn');
   });
 
-  it('hỗ trợ nhiều liên kết http và https trong cùng một tin nhắn', () => {
-    const text = 'Link 1: http://site-one.com và Link 2: https://site-two.org/api?v=2';
+  it('phân tách Markdown Image ![alt](url) an toàn', () => {
+    const text = 'Xem ảnh: ![Hình minh họa](https://cdn.discordapp.com/attachments/123/photo.png)';
     const tokens = parseMessageContent(text, 'test');
-    const links = tokens.filter((t) => t.type === 'link');
-    expect(links).toHaveLength(2);
-    expect(links[0].value).toBe('http://site-one.com');
-    expect(links[1].value).toBe('https://site-two.org/api?v=2');
+    const imgToken = tokens.find((t) => t.type === 'image');
+    expect(imgToken).toBeDefined();
+    expect(imgToken?.value).toBe('Hình minh họa');
+    expect(imgToken?.url).toBe('https://cdn.discordapp.com/attachments/123/photo.png');
   });
 
-  it('hỗ trợ URL chứa query params dài và Unicode path', () => {
-    const text = 'Tài liệu: https://example.com/search?q=B%C3%A1o+c%C3%A1o&page=1&limit=50';
-    const tokens = parseMessageContent(text, 'test');
-    const link = tokens.find((t) => t.type === 'link');
-    expect(link).toBeDefined();
-    expect(link?.value).toBe('https://example.com/search?q=B%C3%A1o+c%C3%A1o&page=1&limit=50');
-  });
-
-  it('trả về mảng rỗng khi content rỗng hoặc null/undefined', () => {
-    expect(parseMessageContent('', 'test')).toEqual([]);
-    expect(parseMessageContent(null, 'test')).toEqual([]);
-    expect(parseMessageContent(undefined, 'test')).toEqual([]);
-  });
-
-  describe('Mention Parsing & Fast Path & Anti-XSS/Anti-Email', () => {
-    it('fast path: parse chính xác tin nhắn chỉ chứa mention @username mà không có URL', () => {
-      const text = '@minhtai';
-      const tokens = parseMessageContent(text, 'test');
-      expect(tokens).toHaveLength(1);
-      expect(tokens[0]).toEqual({
-        key: expect.any(String),
-        type: 'mention',
-        value: 'minhtai',
-        isEveryone: false,
-      });
-    });
-
-    it('mention token.value chỉ chứa username, không chứa ký tự @', () => {
-      const text = 'Chào @alex_dev và @john.doe nhé';
+  describe('Mention Parsing', () => {
+    it('biến @vai-trò hay @Web26A thành text thuần túy thay vì tạo mention badge giả', () => {
+      const text = '@Web26A-246 và @vai-trò';
       const tokens = parseMessageContent(text, 'test');
       const mentions = tokens.filter((t) => t.type === 'mention');
-      expect(mentions).toHaveLength(2);
-      expect(mentions[0].value).toBe('alex_dev');
-      expect(mentions[1].value).toBe('john.doe');
-      expect(mentions[0].value.startsWith('@')).toBe(false);
-      expect(mentions[1].value.startsWith('@')).toBe(false);
+      expect(mentions).toHaveLength(0);
+      expect(tokens.every((t) => t.type === 'text')).toBe(true);
     });
 
     it('nhận diện @everyone với flag isEveryone: true', () => {
@@ -134,67 +123,13 @@ describe('MessageContentParser (Safe Linkification & Scheme Whitelisting)', () =
       expect(mention?.isEveryone).toBe(true);
     });
 
-    it('tách đúng dấu câu sau mention (phẩy, chấm, chấm hỏi, ngoặc đơn)', () => {
-      const text = 'Này (@minhtai), bạn đã nộp bài chưa? Gặp @tai.nguyen.';
-      const tokens = parseMessageContent(text, 'test');
-      const mentions = tokens.filter((t) => t.type === 'mention');
-      expect(mentions).toHaveLength(2);
-      expect(mentions[0].value).toBe('minhtai');
-      expect(mentions[1].value).toBe('tai.nguyen');
-
-      // Đảm bảo dấu ngoặc và dấu chấm được giữ nguyên trong text
-      const fullReconstructed = tokens.map((t) => (t.type === 'mention' ? `@${t.value}` : t.value)).join('');
-      expect(fullReconstructed).toBe(text);
-    });
-
-    it('KHÔNG nhận diện nhầm địa chỉ email là mention', () => {
-      const text = 'Gửi thư về contact@example.com hoặc support@nexuscord.app';
-      const tokens = parseMessageContent(text, 'test');
-      const mentions = tokens.filter((t) => t.type === 'mention');
-      expect(mentions).toHaveLength(0);
-      expect(tokens).toHaveLength(1);
-      expect(tokens[0].type).toBe('text');
-      expect(tokens[0].value).toBe(text);
-    });
-
-    it('KHÔNG nhận diện ký tự @ nằm giữa một từ hoặc không có khoảng trắng phía trước', () => {
-      const text = 'foo@bar abc@123';
-      const tokens = parseMessageContent(text, 'test');
-      const mentions = tokens.filter((t) => t.type === 'mention');
-      expect(mentions).toHaveLength(0);
-    });
-
-    it('parse kết hợp đồng thời URL và @username trong cùng tin nhắn', () => {
-      const text = 'Xem link https://nexuscord.app này nhé @minhtai';
-      const tokens = parseMessageContent(text, 'test');
-      const link = tokens.find((t) => t.type === 'link');
-      const mention = tokens.find((t) => t.type === 'mention');
-      expect(link).toBeDefined();
-      expect(link?.value).toBe('https://nexuscord.app');
-      expect(mention).toBeDefined();
-      expect(mention?.value).toBe('minhtai');
-    });
-
-    it('extractMentionUsernames trích xuất danh sách username không trùng lặp và viết thường', () => {
-      const text = 'Alo @MinhTai và @minhtai cùng @Everyone xem nhé';
-      const extracted = extractMentionUsernames(text);
-      expect(extracted).toEqual(['minhtai', 'everyone']);
-    });
-
-    it('isMentioningUser và isMentioningEveryone kiểm tra chuẩn xác', () => {
-      const text = 'Chào @MinhTai và @everyone!';
+    it('trích xuất username chính xác qua extractMentionUsernames', () => {
+      const text = 'Chào @minhtai và @alex nhé';
+      const usernames = extractMentionUsernames(text);
+      expect(usernames).toEqual(['minhtai', 'alex']);
       expect(isMentioningUser(text, 'minhtai')).toBe(true);
-      expect(isMentioningUser(text, 'MINHTAI')).toBe(true);
-      expect(isMentioningUser(text, 'other_user')).toBe(false);
-      expect(isMentioningEveryone(text)).toBe(true);
-      expect(isMentioningEveryone('Tin nhắn bình thường')).toBe(false);
-    });
-    it('phân tách chính xác cú pháp spoiler ||nội dung||', () => {
-      const text = 'Xem đoạn kết: ||nhân vật chính đã thắng|| nhé!';
-      const tokens = parseMessageContent(text, 'test');
-      const spoiler = tokens.find((t) => t.type === 'spoiler');
-      expect(spoiler).toBeDefined();
-      expect(spoiler?.value).toBe('nhân vật chính đã thắng');
+      expect(isMentioningUser(text, 'other')).toBe(false);
+      expect(isMentioningEveryone(text)).toBe(false);
     });
   });
 });

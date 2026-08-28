@@ -190,6 +190,7 @@
                     <li
                       class="message-row"
                       [id]="'msg-' + msg.id"
+                      [attr.data-message-id]="msg.id"
                       [class.message-row--compact]="isCompact(idx)"
                       [class.message-row--highlighted]="highlightedMessageId() === msg.id"
                       [class.message-row--sending]="msg.status === 'sending'"
@@ -242,13 +243,51 @@
                     <article class="message-card">
                       <!-- Reply context header -->
                       @if (msg.replyToId) {
-                        <div
-                          class="message-reply mb-1 cursor-pointer"
-                          (click)="jumpToMessage(msg.replyToId)"
-                        >
-                          <mat-icon class="!size-3.5 !text-sm text-steel">reply</mat-icon>
-                          <span class="text-micro text-steel">Đang trả lời một tin nhắn</span>
-                        </div>
+                        @if (findReplyMessage(msg.replyToId); as replyMsg) {
+                          <div
+                            class="message-reply cursor-pointer"
+                            role="button"
+                            tabindex="0"
+                            (click)="jumpToMessage(msg.replyToId)"
+                            title="Đi tới tin nhắn gốc"
+                            aria-label="Đi tới tin nhắn gốc của {{
+                              replyMsg.author?.displayName ||
+                                replyMsg.author?.username ||
+                                'Người dùng'
+                            }}"
+                          >
+                            <mat-icon class="message-reply__icon" aria-hidden="true">reply</mat-icon>
+                            <span class="message-reply__avatar" aria-hidden="true">
+                              {{
+                                (
+                                  replyMsg.author?.displayName ||
+                                  replyMsg.author?.username ||
+                                  'U'
+                                ).slice(0, 1)
+                              }}
+                            </span>
+                            <strong class="message-reply__author">{{
+                              replyMsg.author?.displayName ||
+                                replyMsg.author?.username ||
+                                'Người dùng'
+                            }}</strong>
+                            <span class="message-reply__snippet truncate">{{
+                              getReplySnippet(replyMsg)
+                            }}</span>
+                          </div>
+                        } @else {
+                          <div
+                            class="message-reply cursor-pointer"
+                            role="button"
+                            tabindex="0"
+                            (click)="jumpToMessage(msg.replyToId)"
+                            title="Đi tới tin nhắn gốc"
+                            aria-label="Đi tới tin nhắn gốc"
+                          >
+                            <mat-icon class="message-reply__icon" aria-hidden="true">reply</mat-icon>
+                            <span class="text-xs text-steel">Đã trả lời một tin nhắn</span>
+                          </div>
+                        }
                       }
 
                       <div
@@ -296,59 +335,13 @@
                           </div>
                         } @else if (msg.content && msg.content.trim().length > 0) {
                           <div class="message-text-surface">
-                            <!-- Normal Parsed Content -->
-                            <div
-                              class="message-body text-body-sm text-charcoal leading-relaxed break-words whitespace-pre-wrap"
-                            >
-                              @for (token of parseContent(msg.content, msg.id); track $index) {
-                                @if (token.type === 'text') {
-                                  <span>{{ token.value }}</span>
-                                } @else if (token.type === 'link') {
-                                  <a
-                                    [href]="token.url || token.value"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="chat-link text-primary underline hover:text-primary-soft break-all font-medium focus-visible:outline-2 focus-visible:outline-primary transition-colors cursor-pointer"
-                                  >
-                                    {{ token.value }}
-                                  </a>
-                                } @else if (token.type === 'mention') {
-                                  <span
-                                    class="inline-flex items-baseline px-1.5 py-0.5 rounded font-medium text-xs transition-colors cursor-pointer select-none bg-primary/15 text-primary hover:bg-primary/25"
-                                    [title]="
-                                      token.isEveryone
-                                        ? 'Nhắc tới tất cả mọi người'
-                                        : 'Người dùng: @' + token.value
-                                    "
-                                    >@{{ token.value }}</span
-                                  >
-                                } @else if (token.type === 'channel') {
-                                  <span class="chat-channel-mention font-medium text-brand"
-                                    >#{{ token.value }}</span
-                                  >
-                                } @else if (token.type === 'spoiler') {
-                                  <span
-                                    class="inline-block rounded px-1.5 py-0.5 text-xs font-medium cursor-pointer transition-all select-none"
-                                    [class.bg-zinc-800]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
-                                    [class.text-transparent]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
-                                    [class.blur-[4px]]="showSpoilers === 'click' && !isSpoilerRevealed(token.key)"
-                                    [class.bg-surface-feature]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                    [class.text-ink]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                    [class.border]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                    [class.border-hairline]="showSpoilers === 'always' || isSpoilerRevealed(token.key)"
-                                    (click)="toggleSpoiler(token.key)"
-                                    [title]="showSpoilers === 'click' && !isSpoilerRevealed(token.key) ? 'Nhấp để xem spoiler' : ''"
-                                  >
-                                    {{ token.value }}
-                                  </span>
-                                }
-                              }
-                              @if (msg.editedAt) {
-                                <span class="text-micro text-stone ml-1.5 select-none"
-                                  >(đã chỉnh sửa)</span
-                                >
-                              }
-                            </div>
+                            <!-- Pure Markdown & Token Content -->
+                            <app-message-content
+                              [content]="msg.content"
+                              [messageId]="msg.id"
+                              [showSpoilers]="showSpoilers"
+                              [editedAt]="msg.editedAt"
+                            />
 
                             <!-- Rich Link Embed (nếu displayLinkPreviews bật) -->
                             @if (displayLinkPreviews && getFirstLink(parseContent(msg.content, msg.id)); as linkTok) {
@@ -826,6 +819,7 @@
       <app-context-panel
         title="Tin nhắn đã ghim"
         [open]="pinsOpen()"
+        [showClose]="false"
         (closed)="pinsOpen.set(false)"
       >
         <section class="p-3" aria-label="Danh sách tin nhắn đã ghim">

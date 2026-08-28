@@ -330,7 +330,7 @@
                     [style.backgroundColor]="tint(platform.color)"
                     [style.color]="platform.color"
                   >
-                    <mat-icon class="!size-4 !text-[16px]">{{ platform.icon }}</mat-icon>
+                    <app-platform-logo class="size-4" [platform]="platform" />
                   </span>
                   <label for="connect-handle" class="text-body-sm-medium font-bold text-ink">
                     Tên tài khoản {{ platform.name }} của bạn

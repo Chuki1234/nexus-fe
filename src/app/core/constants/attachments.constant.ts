@@ -42,6 +42,12 @@ export const ATTACHMENT_LIMITS = {
     'text/plain',
     'application/zip',
     'application/x-zip-compressed',
+    'application/x-7z-compressed',
+    'application/x-tar',
+    'application/gzip',
+    'application/vnd.rar',
+    'application/x-rar-compressed',
+    'application/x-rar',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ] as const,
 };

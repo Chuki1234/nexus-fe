@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import {
   CANONICAL_SERVER_TEMPLATES,
@@ -104,28 +103,26 @@ describe('ServerRail', () => {
     return fixture;
   };
 
-  it('nút Command mô tả phạm vi điều hướng mà không giả là tìm nội dung chat', async () => {
-    const fixture = await mount();
-    const search = fixture.nativeElement.querySelector(
-      '[data-action="global-search"]',
-    ) as HTMLButtonElement;
+  const openSearch = async (fixture: ComponentFixture<ServerRail>) => {
+    fixture.componentInstance['openCommandCenter']();
+    fixture.detectChanges();
+    await fixture.whenStable();
+  };
 
-    expect(search.getAttribute('aria-label')).toContain('tin nhắn trực tiếp');
-    expect(search.getAttribute('aria-label')).toContain('kênh');
-    expect(search.getAttribute('aria-label')).toContain('máy chủ');
-    expect(search.getAttribute('aria-label')).not.toContain('nội dung');
-    expect(search.getAttribute('aria-keyshortcuts')).toContain('Control+K');
-    expect(search.classList.contains('nexus-icon-control')).toBe(true);
+  it('mở Command Center điều hướng toàn Nexus thành công', async () => {
+    const fixture = await mount();
+    await openSearch(fixture);
+
+    const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
+    const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
+    expect(dialog).toBeTruthy();
+    expect(dialog.textContent).toContain('Nexus Command');
+    (dialog.querySelector('button[aria-label="Đóng tìm kiếm"]') as HTMLButtonElement)?.click();
   });
 
   it('lọc nhanh kết quả theo từ khóa trong Command Center', async () => {
     const fixture = await mount(true);
-    const search = fixture.nativeElement.querySelector(
-      '[data-action="global-search"]',
-    ) as HTMLButtonElement;
-    search.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
+    await openSearch(fixture);
 
     const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
     const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
@@ -152,12 +149,7 @@ describe('ServerRail', () => {
 
   it('hiện empty state khi không có server, kênh hay DM', async () => {
     const fixture = await mount();
-    const search = fixture.nativeElement.querySelector(
-      '[data-action="global-search"]',
-    ) as HTMLButtonElement;
-    search.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
+    await openSearch(fixture);
 
     const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
     const dialog = documentBody.querySelector('.command-center') as HTMLElement;
@@ -348,12 +340,7 @@ describe('ServerRail', () => {
   describe('Quick Switcher theo tiền tố (*, @, #, !)', () => {
     it('lọc đúng MÁY CHỦ khi gõ tiền tố * hoặc * kèm từ khóa', async () => {
       const fixture = await mount(true);
-      const search = fixture.nativeElement.querySelector(
-        '[data-action="global-search"]',
-      ) as HTMLButtonElement;
-      search.click();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await openSearch(fixture);
 
       const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
       const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
@@ -380,12 +367,7 @@ describe('ServerRail', () => {
 
     it('lọc đúng TIN NHẮN RIÊNG khi gõ tiền tố @ hoặc @ kèm từ khóa', async () => {
       const fixture = await mount(true);
-      const search = fixture.nativeElement.querySelector(
-        '[data-action="global-search"]',
-      ) as HTMLButtonElement;
-      search.click();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await openSearch(fixture);
 
       const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
       const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
@@ -414,12 +396,7 @@ describe('ServerRail', () => {
 
     it('lọc đúng KÊNH CHỮ khi gõ tiền tố # mà không lẫn kênh thoại', async () => {
       const fixture = await mount(true);
-      const search = fixture.nativeElement.querySelector(
-        '[data-action="global-search"]',
-      ) as HTMLButtonElement;
-      search.click();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await openSearch(fixture);
 
       const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
       const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
@@ -440,12 +417,7 @@ describe('ServerRail', () => {
 
     it('lọc đúng KÊNH THOẠI khi gõ tiền tố ! mà không lẫn kênh chữ', async () => {
       const fixture = await mount(true);
-      const search = fixture.nativeElement.querySelector(
-        '[data-action="global-search"]',
-      ) as HTMLButtonElement;
-      search.click();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await openSearch(fixture);
 
       const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
       const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
@@ -467,12 +439,7 @@ describe('ServerRail', () => {
 
     it('prefix có hoặc không có khoảng trắng cho cùng kết quả', async () => {
       const fixture = await mount(true);
-      const search = fixture.nativeElement.querySelector(
-        '[data-action="global-search"]',
-      ) as HTMLButtonElement;
-      search.click();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await openSearch(fixture);
 
       const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
       const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
@@ -496,12 +463,7 @@ describe('ServerRail', () => {
 
     it('tìm không dấu tiếng Việt vẫn match từ khóa có dấu', async () => {
       const fixture = await mount(true);
-      const search = fixture.nativeElement.querySelector(
-        '[data-action="global-search"]',
-      ) as HTMLButtonElement;
-      search.click();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await openSearch(fixture);
 
       const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
       const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
@@ -520,12 +482,7 @@ describe('ServerRail', () => {
 
     it('bấm chip tiền tố cập nhật input, scope và active chip', async () => {
       const fixture = await mount(true);
-      const search = fixture.nativeElement.querySelector(
-        '[data-action="global-search"]',
-      ) as HTMLButtonElement;
-      search.click();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await openSearch(fixture);
 
       const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
       const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
@@ -559,13 +516,7 @@ describe('ServerRail', () => {
       const router = TestBed.inject(Router);
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-      const search = fixture.nativeElement.querySelector(
-        '[data-action="global-search"]',
-      ) as HTMLButtonElement;
-
-      search.click();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await openSearch(fixture);
 
       const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
       const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
@@ -599,12 +550,7 @@ describe('ServerRail', () => {
 
     it('hiển thị empty state phù hợp theo từng scope', async () => {
       const fixture = await mount(true);
-      const search = fixture.nativeElement.querySelector(
-        '[data-action="global-search"]',
-      ) as HTMLButtonElement;
-      search.click();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await openSearch(fixture);
 
       const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
       const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;
@@ -622,12 +568,7 @@ describe('ServerRail', () => {
 
     it('đảm bảo đầy đủ thuộc tính Accessibility combobox/listbox/option', async () => {
       const fixture = await mount(true);
-      const search = fixture.nativeElement.querySelector(
-        '[data-action="global-search"]',
-      ) as HTMLButtonElement;
-      search.click();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await openSearch(fixture);
 
       const documentBody = fixture.nativeElement.ownerDocument.body as HTMLElement;
       const dialog = documentBody.querySelector('.nexus-add-server-dialog') as HTMLElement;

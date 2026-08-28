@@ -22,7 +22,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import type { ChannelSummary } from '../../../../../core/servers/server.models';
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ToastService } from '../../../../../core/toast/toast.service';
-import { copyToClipboard, extractMessageCopyableContent } from '../../../../../core/utils/clipboard.util';
+import { copyMessageToClipboard } from '../../../../../core/utils/clipboard.util';
 import {
   ChannelChatStore,
   type ChannelChatUiMessage,
@@ -47,7 +47,10 @@ import {
   type MessageContentToken,
 } from '../../../../dashboard/conversation/utils/message-content-parser';
 import { formatMessageTimestamp } from '../../../../../core/utils/date-format.util';
-import { InlineMessageEditor } from '../../../../dashboard/components/inline-message-editor/inline-message-editor';
+import {
+  InlineMessageEditor,
+  type InlineMessageEditPayload,
+} from '../../../../dashboard/components/inline-message-editor/inline-message-editor';
 import { MessageClockService } from '../../../../../core/utils/message-clock.service';
 import { canEditMessage } from '../../../../../../shared/dto/messages.dto';
 import { ProfileStore } from '../../../../profile/profile-store';
@@ -57,6 +60,8 @@ import {
   ServersApiService,
   type ServerMemberDto,
 } from '../../../../../core/api/servers-api.service';
+
+import { MessageContentComponent } from '../../../../dashboard/components/message-content/message-content.component';
 
 @Component({
   selector: 'app-voice-chat-drawer',
@@ -70,6 +75,7 @@ import {
     MatTooltipModule,
     MessageActions,
     MessageComposer,
+    MessageContentComponent,
     PinnedMessagesList,
     ForwardMessageModal,
     GiphyMessageEmbedComponent,
@@ -139,8 +145,7 @@ export class VoiceChatDrawer implements OnInit {
 
   private readonly processedMessageIds = new Set<string>();
 
-  readonly messageListContainer =
-    viewChild<ElementRef<HTMLDivElement>>('messageListContainer');
+  readonly messageListContainer = viewChild<ElementRef<HTMLDivElement>>('messageListContainer');
   readonly messageContent = viewChild<ElementRef<HTMLDivElement>>('messageContent');
 
   readonly scrollController = new ChatScrollController({
@@ -329,11 +334,20 @@ export class VoiceChatDrawer implements OnInit {
     this.editingError.set(null);
   }
 
-  protected async saveInlineEdit(messageId: string, newContent: string): Promise<void> {
+  protected async saveInlineEdit(
+    messageId: string,
+    edit: string | InlineMessageEditPayload,
+  ): Promise<void> {
+    const content = typeof edit === 'string' ? edit : edit.content;
+    const files = typeof edit === 'string' ? [] : edit.files;
     try {
       this.editingSaving.set(true);
       this.editingError.set(null);
-      await this.channelChat.editMessage(messageId, newContent);
+      if (files.length > 0) {
+        await this.channelChat.editMessage(messageId, content, files);
+      } else {
+        await this.channelChat.editMessage(messageId, content);
+      }
       this.editingMessageId.set(null);
     } catch (err: unknown) {
       this.editingError.set(extractErrorMessage(err, 'Lỗi khi chỉnh sửa tin nhắn.'));
@@ -380,15 +394,7 @@ export class VoiceChatDrawer implements OnInit {
   private async copyMessageContent(messageId: string): Promise<void> {
     const msg = this.channelChat.allMessages().find((m) => m.id === messageId);
     if (!msg) return;
-    const text = extractMessageCopyableContent(msg);
-    if (!text) {
-      this.toast.show({
-        message: 'Tin nhắn này không có nội dung để sao chép.',
-        type: 'info',
-      });
-      return;
-    }
-    const ok = await copyToClipboard(text);
+    const ok = await copyMessageToClipboard(msg);
     if (ok) {
       this.toast.show({ message: 'Đã sao chép nội dung tin nhắn.', type: 'success' });
     } else {

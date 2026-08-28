@@ -80,6 +80,15 @@ describe('normalizeHandle', () => {
 });
 
 describe('platformForLink', () => {
+  it('mọi nền tảng dùng SVG local để không bị CSP chặn', () => {
+    const urls = APP_PLATFORMS.map((item) => item.logoUrl);
+
+    expect(new Set(urls).size).toBe(APP_PLATFORMS.length);
+    for (const item of APP_PLATFORMS) {
+      expect(item.logoUrl).toMatch(/^\/assets\/platform-logos\/[a-z0-9-]+\.svg$/);
+    }
+  });
+
   it('nhận ra link thuộc nền tảng nào', () => {
     expect(platformForLink({ label: 'GitHub', url: 'https://github.com/a' })?.id).toBe('github');
     expect(platformForLink({ label: 'Steam', url: 'https://steamcommunity.com/id/a' })?.id).toBe(

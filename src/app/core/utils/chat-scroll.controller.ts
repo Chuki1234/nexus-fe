@@ -119,9 +119,39 @@ export class ChatScrollController {
       this.showScrollDownButton.set(false);
       this.onPillChange?.(false, 0);
 
-      // Kích hoạt settling observer để theo dõi ảnh/media tải chậm sau initial render
+      // Ghim lại đáy qua vài animation frame kế tiếp: layout của list (reply,
+      // embed, reaction, avatar, font...) thường giãn chiều cao SAU paint đầu tiên
+      // nên một lần scroll duy nhất hay dừng ở lưng chừng.
+      this.pinAcrossFrames(targetKey, generation, 5);
+
+      // Settling observer bám đáy cho tới khi chiều cao ổn định hoặc media tải xong
       this.setupSettlingObserver(targetKey, generation);
     });
+  }
+
+  /**
+   * Ghim đáy liên tục qua `frames` khung hình kế tiếp để bắt các lần giãn layout
+   * muộn (nội dung render bất đồng bộ). Dừng ngay khi người dùng cuộn lên hoặc
+   * đổi target/generation.
+   */
+  private pinAcrossFrames(targetKey: string, generation: number, frames: number): void {
+    if (!this.isBrowser || typeof requestAnimationFrame === 'undefined') return;
+    let remaining = frames;
+    const step = () => {
+      if (
+        this.isDestroyed ||
+        this.currentTargetKey !== targetKey ||
+        this.currentGeneration !== generation ||
+        this.userScrolledUp
+      ) {
+        return;
+      }
+      const el = this.getContainer();
+      if (el) this.setScrollTop(el, el.scrollHeight);
+      remaining--;
+      if (remaining > 0) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   /**
@@ -277,14 +307,6 @@ export class ChatScrollController {
     const container = this.getContainer();
     if (!container) return;
 
-    const images = Array.from(container.querySelectorAll('img'));
-    const pendingImages = images.filter((img) => !img.complete);
-
-    // Blocker 1: Nếu không có ảnh pending, dọn observer ngay lập tức và thoát
-    if (pendingImages.length === 0) {
-      return;
-    }
-
     const session: SettlingSession = {
       targetKey,
       generation,
@@ -310,36 +332,66 @@ export class ChatScrollController {
       }
     };
 
-    // Quan sát content wrapper thay vì scroll container có viewport cố định
+    // Ghim đáy nếu vẫn đúng target và người dùng chưa cuộn lên; ngược lại dừng hẳn.
+    const pinToBottom = (): void => {
+      if (
+        session.isDisconnected ||
+        this.isDestroyed ||
+        this.currentTargetKey !== targetKey ||
+        this.currentGeneration !== generation ||
+        this.userScrolledUp
+      ) {
+        disconnectSession();
+        return;
+      }
+      const el = this.getContainer();
+      if (el) this.setScrollTop(el, el.scrollHeight);
+    };
+
+    const pendingImages = Array.from(container.querySelectorAll('img')).filter(
+      (img) => !img.complete,
+    );
+
+    // Hard cap: không bao giờ giữ observer quá MAX_MS.
+    const MAX_MS = 3000;
+    const hardTimer = setTimeout(disconnectSession, MAX_MS);
+    session.cleanups.push(() => clearTimeout(hardTimer));
+
+    // Idle teardown CHỈ dùng cho nội dung không-ảnh (text/reply/embed reflow):
+    // khi chiều cao ngừng đổi trong IDLE_MS thì coi là đã ổn định và dừng.
+    // Có ảnh thì teardown theo tiến độ tải ảnh (bên dưới), không dùng idle để
+    // tránh dừng sớm khi ảnh tải > IDLE_MS.
+    const IDLE_MS = 400;
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    const armIdle = (): void => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(disconnectSession, IDLE_MS);
+    };
+    session.cleanups.push(() => {
+      if (idleTimer) clearTimeout(idleTimer);
+    });
+
+    // Quan sát content wrapper thay vì scroll container có viewport cố định.
+    // KHÔNG thoát sớm khi không có ảnh: nội dung vẫn có thể giãn chiều cao sau
+    // paint đầu tiên (đây chính là nguyên nhân chat dừng ở lưng chừng).
     const targetElement =
       this.getContentWrapper?.() ||
       (container.firstElementChild as HTMLElement) ||
       container;
 
     const observer = new ResizeObserver(() => {
-      // Callback observer của generation cũ không được disconnect session của generation mới
-      if (
-        session.isDisconnected ||
-        this.isDestroyed ||
-        this.currentTargetKey !== targetKey ||
-        this.currentGeneration !== generation
-      ) {
-        disconnectSession();
-        return;
-      }
-      if (this.userScrolledUp) {
-        disconnectSession();
-        return;
-      }
-      const el = this.getContainer();
-      if (el) {
-        this.setScrollTop(el, el.scrollHeight);
-      }
+      pinToBottom();
+      if (!session.isDisconnected && pendingImages.length === 0) armIdle();
     });
-
     session.observer = observer;
     observer.observe(targetElement);
 
+    if (pendingImages.length === 0) {
+      armIdle();
+      return;
+    }
+
+    // Có ảnh: bám đáy khi từng ảnh settle, dừng hẳn khi ảnh cuối cùng xong.
     let remaining = pendingImages.length;
     for (const img of pendingImages) {
       let isSettled = false;
@@ -359,9 +411,7 @@ export class ChatScrollController {
         remaining--;
         if (!this.userScrolledUp) {
           const el = this.getContainer();
-          if (el) {
-            this.setScrollTop(el, el.scrollHeight);
-          }
+          if (el) this.setScrollTop(el, el.scrollHeight);
         }
         if (remaining <= 0) {
           disconnectSession();

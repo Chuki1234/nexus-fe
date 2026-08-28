@@ -64,13 +64,20 @@ import { LightboxGalleryService } from '../../../shared/ui/lightbox-gallery/ligh
 import type { LightboxMediaItem } from '../../../shared/ui/lightbox-gallery/lightbox-gallery.types';
 import { extractErrorMessage } from '../../../core/utils/error.util';
 import { GiphyMessageEmbedComponent } from '../components/giphy-message-embed/giphy-message-embed.component';
-import { InlineMessageEditor } from '../components/inline-message-editor/inline-message-editor';
+import {
+  InlineMessageEditor,
+  type InlineMessageEditPayload,
+} from '../components/inline-message-editor/inline-message-editor';
 import { MessageClockService } from '../../../core/utils/message-clock.service';
 import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import { parseMessageContent, type MessageContentToken } from './utils/message-content-parser';
 import { resolveInternalLink } from './utils/internal-link';
 import { ChatLinkEmbed } from './components/chat-link-embed/chat-link-embed';
-import { copyToClipboard, extractMessageCopyableContent } from '../../../core/utils/clipboard.util';
+import {
+  copyMessageToClipboard,
+  copyToClipboard,
+  extractMessageCopyableContent,
+} from '../../../core/utils/clipboard.util';
 
 export interface ConversationHttpError {
   status?: number;
@@ -211,6 +218,8 @@ import { NotificationService } from '../../../core/notification/notification.ser
 import { FriendsStore } from '../friends/services/friends-store';
 import { ProfileDialogService } from '../../profile/profile-dialog.service';
 
+import { MessageContentComponent } from '../components/message-content/message-content.component';
+
 /**
  * Trang chi tiết cuộc trò chuyện Direct Message — `/channels/@me/:conversationId`.
  *
@@ -238,6 +247,7 @@ import { ProfileDialogService } from '../../profile/profile-dialog.service';
     MatTooltipModule,
     MessageActions,
     MessageComposer,
+    MessageContentComponent,
     PinnedMessagesList,
     ProfileAvatar,
     ProfilePanel,
@@ -387,9 +397,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   );
 
   /** Người bên kia đã là bạn bè accepted chưa (để hiện nút "Kết bạn"). */
-  protected readonly peerIsFriend = computed(
-    () => this.conversationDetails()?.isFriend ?? false,
-  );
+  protected readonly peerIsFriend = computed(() => this.conversationDetails()?.isFriend ?? false);
 
   /** Đã gửi lời mời kết bạn cho người này và đang chờ họ duyệt. */
   protected readonly friendRequestSent = computed(() => {
@@ -502,8 +510,11 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected openPins(): void {
-    this.profilePanelOpen.set(false);
-    this.pinsOpen.set(true);
+    const next = !this.pinsOpen();
+    if (next) {
+      this.profilePanelOpen.set(false);
+    }
+    this.pinsOpen.set(next);
   }
 
   protected readonly recipientStatus = computed(() => {
@@ -1475,11 +1486,17 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     this.editingError.set(null);
   }
 
-  async saveInlineEdit(messageId: string, newContent: string): Promise<void> {
+  async saveInlineEdit(messageId: string, edit: string | InlineMessageEditPayload): Promise<void> {
+    const content = typeof edit === 'string' ? edit : edit.content;
+    const files = typeof edit === 'string' ? [] : edit.files;
     try {
       this.editingSaving.set(true);
       this.editingError.set(null);
-      await this.activeChatStore.editMessage(messageId, newContent);
+      if (files.length > 0) {
+        await this.activeChatStore.editMessage(messageId, content, files);
+      } else {
+        await this.activeChatStore.editMessage(messageId, content);
+      }
       this.editingMessageId.set(null);
     } catch (err: unknown) {
       this.editingError.set(extractErrorMessage(err, 'Lỗi khi chỉnh sửa tin nhắn.'));
@@ -1519,12 +1536,7 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   private async copyMessageContent(messageId: string): Promise<void> {
     const msg = this.messages().find((m) => m.id === messageId);
     if (!msg) return;
-    const text = extractMessageCopyableContent(msg);
-    if (!text) {
-      this.showToast('Tin nhắn này không có nội dung để sao chép.');
-      return;
-    }
-    const ok = await copyToClipboard(text);
+    const ok = await copyMessageToClipboard(msg);
     if (ok) {
       this.showToast('Đã sao chép nội dung tin nhắn.');
     } else {

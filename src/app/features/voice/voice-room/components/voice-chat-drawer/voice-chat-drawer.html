@@ -95,7 +95,7 @@
     </div>
   } @else {
     <!-- Message Content Wrapper -->
-    <div #messageContent class="flex flex-col gap-4 min-w-0 max-w-full overflow-x-hidden">
+    <div #messageContent class="voice-message-content flex flex-col gap-4 min-w-0 max-w-full">
       <!-- Intro Hero -->
       <div
         class="intro-card flex flex-col items-start gap-3 rounded-2xl bg-surface-feature/40 p-4 border border-hairline/40"
@@ -116,10 +116,10 @@
       </div>
 
       <!-- Messages List -->
-      <div class="flex flex-col gap-2.5 min-w-0 max-w-full overflow-x-hidden">
+      <div class="voice-message-list flex flex-col gap-2.5 min-w-0 max-w-full">
         @for (msg of channelChat.allMessages(); track msg.id || msg.clientNonce) {
           <div
-            class="message-row group relative flex items-start gap-2.5 rounded-xl p-2 transition-colors min-w-0 max-w-full overflow-x-hidden"
+            class="message-row group relative flex items-start gap-2.5 rounded-xl p-2 transition-colors min-w-0 max-w-full"
             [attr.data-message-id]="msg.id"
             [class.message-row--highlighted]="highlightedMessageId() === msg.id"
           >
@@ -163,6 +163,7 @@
                   <app-inline-message-editor
                     [messageId]="msg.id"
                     [initialContent]="msg.content || ''"
+                    [existingAttachmentCount]="msg.attachments?.length || 0"
                     [createdAt]="msg.createdAt"
                     [saving]="editingSaving()"
                     [errorMessage]="editingError()"
@@ -172,44 +173,11 @@
                   />
                 </div>
               } @else if (msg.content) {
-                <div
-                  class="message-body text-body-sm text-charcoal leading-relaxed break-words whitespace-pre-wrap select-text"
-                >
-                  @for (
-                    token of parseContent(msg.content, msg.id || msg.clientNonce || '0');
-                    track $index
-                  ) {
-                    @if (token.type === 'text') {
-                      <span>{{ token.value }}</span>
-                    } @else if (token.type === 'link') {
-                      <a
-                        [href]="token.url || token.value"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="chat-link text-primary underline"
-                      >
-                        {{ token.value }}
-                      </a>
-                    } @else if (token.type === 'mention') {
-                      <span
-                        class="inline-flex items-baseline px-1.5 py-0.5 rounded font-medium text-xs transition-colors cursor-pointer select-none bg-primary/15 text-primary hover:bg-primary/25"
-                        [title]="
-                          token.isEveryone
-                            ? 'Nhắc tới tất cả mọi người'
-                            : 'Người dùng: @' + token.value
-                        "
-                        >@{{ token.value }}</span
-                      >
-                    } @else if (token.type === 'channel') {
-                      <span class="chat-channel-mention font-medium text-primary"
-                        >#{{ token.value }}</span
-                      >
-                    }
-                  }
-                  @if (msg.editedAt) {
-                    <span class="text-micro text-stone ml-1.5 select-none">(đã chỉnh sửa)</span>
-                  }
-                </div>
+                <app-message-content
+                  [content]="msg.content"
+                  [messageId]="msg.id || msg.clientNonce || '0'"
+                  [editedAt]="msg.editedAt"
+                />
               }
 
               <!-- Attachments Slot -->

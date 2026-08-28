@@ -385,17 +385,18 @@ export class VoiceRoomService implements OnDestroy {
 
   private applyLocalAudioVolume(userIdOrIdentity: string): void {
     if (typeof document === 'undefined') return;
+    const isDeaf = this.isDeafened();
     const isMuted = this.isLocalMuted(userIdOrIdentity);
     const volume = this.getUserVolume(userIdOrIdentity);
-    const effectiveVolume = isMuted ? 0 : Math.min(1, volume / 100);
+    const effectiveVolume = (isMuted || isDeaf) ? 0 : Math.min(1, volume / 100);
 
-    const audioEl = document.querySelector<HTMLAudioElement>(
+    const audioEls = document.querySelectorAll<HTMLAudioElement>(
       `[data-voice-participant-audio="${userIdOrIdentity}"]`,
     );
-    if (audioEl) {
+    audioEls.forEach((audioEl) => {
       audioEl.volume = effectiveVolume;
-      audioEl.muted = this.isDeafened();
-    }
+      audioEl.muted = isDeaf || isMuted;
+    });
   }
 
   private muteAllRemoteAudio(): void {
@@ -403,6 +404,7 @@ export class VoiceRoomService implements OnDestroy {
     const audioEls = document.querySelectorAll<HTMLAudioElement>('[data-voice-participant-audio]');
     audioEls.forEach((el) => {
       el.muted = true;
+      el.volume = 0;
     });
   }
 
@@ -414,6 +416,8 @@ export class VoiceRoomService implements OnDestroy {
       const identity = el.getAttribute('data-voice-participant-audio');
       if (identity) {
         this.applyLocalAudioVolume(identity);
+      } else {
+        el.volume = 1;
       }
     });
   }
@@ -498,7 +502,7 @@ export class VoiceRoomService implements OnDestroy {
         },
       });
 
-      this.setupRoomListeners(this.room);
+      this.setupRoomEventListeners(this.room);
 
       // 3. Kết nối WebRTC tới LiveKit Server
       await this.room.connect(tokenRes.serverUrl, tokenRes.participantToken);
@@ -676,31 +680,33 @@ export class VoiceRoomService implements OnDestroy {
 
     try {
       if (nextDeafened) {
-        // 1. Mute toàn bộ remote audio
+        // 1. Cập nhật trạng thái deafened trước để chặn ngay các audio track mới
+        this.isDeafened.set(true);
+
+        // 2. Mute toàn bộ remote audio
         this.muteAllRemoteAudio();
 
-        // 2. Tắt luôn micro của local user
+        // 3. Tắt luôn micro của local user
         if (this.room.localParticipant.isMicrophoneEnabled) {
           await this.room.localParticipant.setMicrophoneEnabled(false);
           this.stopLocalFastVad();
         }
         this.wasMutedBeforeTest = true;
-
-        this.isDeafened.set(true);
       } else {
-        // 1. Bật lại toàn bộ remote audio
+        // 1. Mở lại trạng thái deafened
+        this.isDeafened.set(false);
+
+        // 2. Bật lại toàn bộ remote audio
         this.unmuteAllRemoteAudio();
         void this.room.startAudio().catch(() => {});
 
-        // 2. Bật lại micro của local user
+        // 3. Bật lại micro của local user
         await this.room.localParticipant.setMicrophoneEnabled(true);
         const micPub = this.room.localParticipant.getTrackPublication(Track.Source.Microphone);
         if (micPub?.audioTrack?.mediaStreamTrack) {
           this.startLocalFastVad(micPub.audioTrack.mediaStreamTrack);
         }
         this.wasMutedBeforeTest = false;
-
-        this.isDeafened.set(false);
       }
 
       this.updateLocalParticipantState();
@@ -716,9 +722,10 @@ export class VoiceRoomService implements OnDestroy {
    */
   async toggleCamera(): Promise<void> {
     if (!this.room) return;
-    const isCamOn = this.isCameraOn();
+    const nextState = !this.isCameraOn();
+
     try {
-      await this.room.localParticipant.setCameraEnabled(!isCamOn);
+      await this.room.localParticipant.setCameraEnabled(nextState);
       this.updateLocalParticipantState();
       this.broadcastVoiceState(this.currentChannelId());
     } catch (err) {
@@ -727,16 +734,14 @@ export class VoiceRoomService implements OnDestroy {
   }
 
   /**
-   * Bật / Tắt Chia sẻ màn hình (Screen Share).
+   * Bật / Tắt Screen Sharing của local user.
    */
   async toggleScreenShare(): Promise<void> {
     if (!this.room) return;
-    const isSharing = this.isScreenSharing();
+    const nextState = !this.isScreenSharing();
+
     try {
-      await this.room.localParticipant.setScreenShareEnabled(!isSharing, {
-        audio: true,
-        selfBrowserSurface: 'include',
-      });
+      await this.room.localParticipant.setScreenShareEnabled(nextState);
       this.updateLocalParticipantState();
       this.broadcastVoiceState(this.currentChannelId());
     } catch (err) {
@@ -745,24 +750,18 @@ export class VoiceRoomService implements OnDestroy {
   }
 
   /**
-   * Đổi cửa sổ / màn hình đang chia sẻ (Screen Share Source).
+   * Chuyển đổi màn hình chia sẻ (Screen Switch) ngay trong lúc đang chia sẻ màn hình.
    */
   async switchScreenShare(): Promise<void> {
-    if (!this.room) return;
+    if (!this.room || !this.isScreenSharing()) return;
+
     try {
-      if (this.isScreenSharing()) {
-        await this.room.localParticipant.setScreenShareEnabled(false);
-      }
-      await this.room.localParticipant.setScreenShareEnabled(true, {
-        audio: true,
-        selfBrowserSurface: 'include',
-      });
+      await this.room.localParticipant.setScreenShareEnabled(false);
+      await this.room.localParticipant.setScreenShareEnabled(true);
       this.updateLocalParticipantState();
       this.broadcastVoiceState(this.currentChannelId());
     } catch (err) {
-      console.warn('Lỗi khi đổi màn hình chia sẻ:', err);
-      this.updateLocalParticipantState();
-      this.broadcastVoiceState(this.currentChannelId());
+      console.warn('Lỗi khi switch màn hình chia sẻ:', err);
     }
   }
 
@@ -800,12 +799,17 @@ export class VoiceRoomService implements OnDestroy {
     }
   }
 
-  private setupRoomListeners(room: Room): void {
+  /**
+   * Lắng nghe toàn bộ sự kiện từ LiveKit Room (Event-Driven Architecture).
+   */
+  private setupRoomEventListeners(room: Room): void {
     room
       .on(RoomEvent.Connected, () => {
         this.connectionStatus.set('connected');
+        this.startDurationTimer();
         this.updateLocalParticipantState();
         this.syncRemoteParticipants();
+        this.broadcastVoiceState(this.currentChannelId());
       })
       .on(RoomEvent.Reconnecting, () => {
         this.connectionStatus.set('reconnecting');
@@ -822,7 +826,11 @@ export class VoiceRoomService implements OnDestroy {
       .on(RoomEvent.ParticipantConnected, () => {
         this.syncRemoteParticipants();
       })
-      .on(RoomEvent.ParticipantDisconnected, () => {
+      .on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
+        const serverId = this.currentServerId();
+        if (serverId && participant?.identity) {
+          this.voiceStatesStore.removeVoiceMember(serverId, participant.identity);
+        }
         this.syncRemoteParticipants();
       })
       .on(RoomEvent.LocalTrackPublished, (pub: LocalTrackPublication) => {
@@ -846,11 +854,22 @@ export class VoiceRoomService implements OnDestroy {
             const attachedEl = track.attach();
             attachedEl.setAttribute('data-voice-participant-audio', participant.identity);
             attachedEl.className = 'hidden pointer-events-none fixed -left-[9999px]';
+
+            const isDeaf = this.isDeafened();
+            const isMuted = this.isLocalMuted(participant.identity);
+            if (isDeaf || isMuted) {
+              attachedEl.muted = true;
+              attachedEl.volume = 0;
+            }
+
             if (typeof document !== 'undefined' && document.body) {
               document.body.appendChild(attachedEl);
             }
             this.applyLocalAudioVolume(participant.identity);
-            void room.startAudio().catch(() => {});
+
+            if (!isDeaf) {
+              void room.startAudio().catch(() => {});
+            }
           }
           this.syncRemoteParticipants();
         },
@@ -947,6 +966,20 @@ export class VoiceRoomService implements OnDestroy {
     });
 
     this.remoteParticipants.set(list);
+    this.syncWithVoiceStatesStore();
+  }
+
+  /**
+   * Đồng bộ danh sách active user IDs sang ServerVoiceStatesStore để sidebar lập tức cập nhật
+   */
+  private syncWithVoiceStatesStore(): void {
+    const serverId = this.currentServerId();
+    const channelId = this.currentChannelId();
+    if (!serverId || !channelId) return;
+
+    const all = this.allParticipants();
+    const activeIds = all.map((p) => p.identity).filter(Boolean);
+    this.voiceStatesStore.syncActiveChannelParticipants(serverId, channelId, activeIds);
   }
 
   /**

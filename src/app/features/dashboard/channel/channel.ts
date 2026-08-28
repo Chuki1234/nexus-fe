@@ -1,6 +1,6 @@
 import { DatePipe, isPlatformBrowser } from '@angular/common';
 import { ToastService } from '../../../core/toast/toast.service';
-import { copyToClipboard, extractMessageCopyableContent } from '../../../core/utils/clipboard.util';
+import { copyMessageToClipboard } from '../../../core/utils/clipboard.util';
 import {
   afterNextRender,
   AfterViewInit,
@@ -78,7 +78,10 @@ import {
   parseTimestamp,
   type MessagePresentationVariant,
 } from '../conversation/conversation';
-import { InlineMessageEditor } from '../components/inline-message-editor/inline-message-editor';
+import {
+  InlineMessageEditor,
+  type InlineMessageEditPayload,
+} from '../components/inline-message-editor/inline-message-editor';
 import { MessageClockService } from '../../../core/utils/message-clock.service';
 import { NotificationService } from '../../../core/notification/notification.service';
 import { UserSettingsService } from '../../settings/services/user-settings.service';
@@ -87,6 +90,7 @@ import { extractErrorMessage } from '../../../core/utils/error.util';
 import type { AttachmentResponseDto } from '../../../core/api/messages-api.service';
 
 import { ProfileStore } from '../../profile/profile-store';
+import { MessageContentComponent } from '../components/message-content/message-content.component';
 
 /** Kênh trong server — `/channels/:serverId/:channelId`. */
 @Component({
@@ -107,6 +111,7 @@ import { ProfileStore } from '../../profile/profile-store';
     MatTooltipModule,
     MessageActions,
     MessageComposer,
+    MessageContentComponent,
     PinnedMessagesList,
     ProfileTrigger,
     VoiceRoom,
@@ -574,7 +579,9 @@ export class ChannelPage implements OnInit, AfterViewInit {
       return;
     }
 
-    const replyToId = context?.kind === 'reply' ? context.messageId : undefined;
+    const replyToId =
+      payload.replyToId ||
+      (context?.kind === 'reply' ? (context.replyToId || context.messageId) : undefined);
     this.composerContext.set(null);
 
     // Âm thanh gửi tin (đồng bộ toggle "Tin nhắn" trong Cài đặt thông báo).
@@ -659,11 +666,20 @@ export class ChannelPage implements OnInit, AfterViewInit {
     this.editingError.set(null);
   }
 
-  protected async saveInlineEdit(messageId: string, newContent: string): Promise<void> {
+  protected async saveInlineEdit(
+    messageId: string,
+    edit: string | InlineMessageEditPayload,
+  ): Promise<void> {
+    const content = typeof edit === 'string' ? edit : edit.content;
+    const files = typeof edit === 'string' ? [] : edit.files;
     try {
       this.editingSaving.set(true);
       this.editingError.set(null);
-      await this.channelChat.editMessage(messageId, newContent);
+      if (files.length > 0) {
+        await this.channelChat.editMessage(messageId, content, files);
+      } else {
+        await this.channelChat.editMessage(messageId, content);
+      }
       this.editingMessageId.set(null);
     } catch (err: unknown) {
       this.editingError.set(extractErrorMessage(err, 'Lỗi khi chỉnh sửa tin nhắn.'));
@@ -713,15 +729,7 @@ export class ChannelPage implements OnInit, AfterViewInit {
   private async copyMessageContent(messageId: string): Promise<void> {
     const msg = this.messages().find((m) => m.id === messageId);
     if (!msg) return;
-    const text = extractMessageCopyableContent(msg);
-    if (!text) {
-      this.toast.show({
-        message: 'Tin nhắn này không có nội dung để sao chép.',
-        type: 'info',
-      });
-      return;
-    }
-    const ok = await copyToClipboard(text);
+    const ok = await copyMessageToClipboard(msg);
     if (ok) {
       this.toast.show({ message: 'Đã sao chép nội dung tin nhắn.', type: 'success' });
     } else {
@@ -763,11 +771,14 @@ export class ChannelPage implements OnInit, AfterViewInit {
     }
   }
 
-  /** Mở panel danh sách tin đã ghim. */
+  /** Mở/đóng panel danh sách tin đã ghim. */
   protected openPins(): void {
-    this.searchOpen.set(false);
-    this.detailsOpen.set(false);
-    this.pinsOpen.set(true);
+    const next = !this.pinsOpen();
+    if (next) {
+      this.searchOpen.set(false);
+      this.detailsOpen.set(false);
+    }
+    this.pinsOpen.set(next);
   }
 
   protected async unpinFromPanel(message: MessageResponseDto): Promise<void> {
@@ -825,6 +836,42 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
   protected onCancel(clientNonce: string): void {
     this.channelChat.cancelOptimisticMessage(clientNonce);
+  }
+
+  findReplyMessage(replyToId: string | null): ChannelChatUiMessage | undefined {
+    if (!replyToId) return undefined;
+    return this.messages().find((m) => m.id === replyToId);
+  }
+
+  getReplySnippet(msg: ChannelChatUiMessage): string {
+    if (msg.deletedAt) {
+      return 'Tin nhắn đã bị xóa';
+    }
+    if (msg.content && msg.content.trim().length > 0) {
+      return msg.content;
+    }
+    if (msg.externalMedia) {
+      const type = msg.externalMedia.mediaType || (msg.externalMedia as { type?: string }).type;
+      const title = (msg.externalMedia as { title?: string }).title;
+      if (type === 'sticker' || msg.externalMedia.provider === 'stipop') {
+        return title ? `[Nhãn dán] ${title}` : '[Nhãn dán]';
+      }
+      return title ? `[GIF] ${title}` : '[GIF]';
+    }
+    if (msg.attachments && msg.attachments.length > 0) {
+      const first = msg.attachments[0];
+      const isImg =
+        first.mimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(first.filename);
+      const isVid =
+        first.mimeType?.startsWith('video/') || /\.(mp4|webm|mov|mkv)$/i.test(first.filename);
+      const isAud =
+        first.mimeType?.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)$/i.test(first.filename);
+      if (isImg) return '[Hình ảnh]';
+      if (isVid) return '[Video]';
+      if (isAud) return '[Âm thanh]';
+      return `[Tệp đính kèm] ${first.filename}`;
+    }
+    return 'Tin nhắn';
   }
 
   protected openSettings(): void {
@@ -914,14 +961,29 @@ export class ChannelPage implements OnInit, AfterViewInit {
     });
   }
 
+  private highlightTimeout: ReturnType<typeof setTimeout> | null = null;
+
   protected jumpToMessage(messageId: string): void {
-    const el = document.getElementById(`msg-${messageId}`);
+    if (!messageId) return;
+    const el =
+      document.getElementById(`msg-${messageId}`) ||
+      document.querySelector(`[data-message-id="${messageId}"]`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       this.highlightedMessageId.set(messageId);
-      setTimeout(() => {
-        this.highlightedMessageId.set(null);
+      if (this.highlightTimeout) {
+        clearTimeout(this.highlightTimeout);
+      }
+      this.highlightTimeout = setTimeout(() => {
+        if (this.highlightedMessageId() === messageId) {
+          this.highlightedMessageId.set(null);
+        }
       }, 2000);
+    } else {
+      this.toast.show({
+        message: 'Tin nhắn gốc chưa được tải trong lịch sử hiển thị.',
+        type: 'info',
+      });
     }
   }
 

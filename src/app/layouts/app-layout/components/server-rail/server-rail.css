@@ -53,12 +53,13 @@
 /* ::ng-deep vì app-unread-badge là child component — emulated encapsulation
    không cho parent style xuyên vào nếu không dùng ::ng-deep */
 ::ng-deep .server-tile-unread-badge .unread-badge {
-  min-width: 16px;
-  height: 16px;
-  padding: 0 3px;
-  font-size: 9px;
-  letter-spacing: 0;
-  box-shadow: 0 0 0 2px var(--color-surface, #002634);
+  min-width: 16px !important;
+  height: 16px !important;
+  padding: 0 3px !important;
+  font-size: 9px !important;
+  letter-spacing: 0 !important;
+  line-height: 16px !important;
+  box-shadow: 0 0 0 2px var(--color-surface, #002634) !important;
 }
 
 /* Voice activity badge on server tiles */

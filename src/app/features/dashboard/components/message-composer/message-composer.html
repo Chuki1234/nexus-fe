@@ -151,6 +151,78 @@
     </div>
   }
 
+  <!-- Thanh công cụ định dạng Markdown nhanh -->
+  @if (showFormatToolbar()) {
+    <div
+      class="composer-format-bar mb-1.5 flex flex-wrap items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface-feature/80 border border-nexus-border-subtle shadow-2xs text-xs animate-fade-in"
+    >
+      <button
+        type="button"
+        class="format-btn px-2 py-0.5 rounded hover:bg-surface hover:text-primary font-bold text-ink transition-colors cursor-pointer"
+        (click)="applyFormat('bold')"
+        matTooltip="In đậm (Ctrl+B)"
+        aria-label="In đậm"
+      >
+        B
+      </button>
+      <button
+        type="button"
+        class="format-btn px-2 py-0.5 rounded hover:bg-surface hover:text-primary italic text-ink transition-colors cursor-pointer"
+        (click)="applyFormat('italic')"
+        matTooltip="In nghiêng (Ctrl+I)"
+        aria-label="In nghiêng"
+      >
+        I
+      </button>
+      <button
+        type="button"
+        class="format-btn px-2 py-0.5 rounded hover:bg-surface hover:text-primary line-through text-ink transition-colors cursor-pointer"
+        (click)="applyFormat('strike')"
+        matTooltip="Gạch ngang (Ctrl+Shift+X)"
+        aria-label="Gạch ngang"
+      >
+        S
+      </button>
+      <span class="w-px h-3.5 bg-nexus-border-subtle mx-0.5" aria-hidden="true"></span>
+      <button
+        type="button"
+        class="format-btn px-2 py-0.5 rounded hover:bg-surface hover:text-primary font-mono text-ink transition-colors cursor-pointer"
+        (click)="applyFormat('inline-code')"
+        matTooltip="Mã nội dòng (Ctrl+E)"
+        aria-label="Mã nội dòng"
+      >
+        &lt;/&gt;
+      </button>
+      <button
+        type="button"
+        class="format-btn px-2 py-0.5 rounded hover:bg-surface hover:text-primary text-ink transition-colors cursor-pointer"
+        (click)="applyFormat('code-block')"
+        matTooltip="Khối mã nguồn"
+        aria-label="Khối mã nguồn"
+      >
+        Khối mã
+      </button>
+      <button
+        type="button"
+        class="format-btn px-2 py-0.5 rounded hover:bg-surface hover:text-primary text-ink transition-colors cursor-pointer"
+        (click)="applyFormat('quote')"
+        matTooltip="Trích dẫn"
+        aria-label="Trích dẫn"
+      >
+        &gt; Trích dẫn
+      </button>
+      <button
+        type="button"
+        class="format-btn px-2 py-0.5 rounded hover:bg-surface hover:text-primary text-ink transition-colors cursor-pointer"
+        (click)="applyFormat('link')"
+        matTooltip="Chèn liên kết (Ctrl+K)"
+        aria-label="Chèn liên kết"
+      >
+        Link
+      </button>
+    </div>
+  }
+
   <div class="composer-core flex items-center gap-1.5 rounded-lg bg-canvas px-2.5 py-1.5">
     <!-- Nút đính kèm file -->
     <input
@@ -205,6 +277,20 @@
       (paste)="onPaste($event)"
       class="composer-textarea min-w-0 flex-1 bg-transparent py-0 text-body-sm text-ink placeholder:text-steel focus:outline-none disabled:cursor-not-allowed resize-none leading-[22px]"
     ></textarea>
+
+    <!-- Nút Định dạng Markdown (Aa) -->
+    <button
+      type="button"
+      [disabled]="disabled()"
+      (click)="toggleFormatToolbar()"
+      class="composer-action composer-media-action format-toggle-btn !size-8 !rounded-lg"
+      [class.active]="showFormatToolbar()"
+      matTooltip="Định dạng văn bản (Ctrl+B, Ctrl+I...)"
+      aria-label="Định dạng văn bản"
+    >
+      <span class="font-bold text-[13px] leading-none select-none">Aa</span>
+      <span class="sr-only">Định dạng văn bản</span>
+    </button>
 
     <!-- Nút Mention (@) -->
     <button

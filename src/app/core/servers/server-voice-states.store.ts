@@ -45,6 +45,38 @@ export class ServerVoiceStatesStore {
   }
 
   /**
+   * Đồng bộ tức thời danh sách user đang online trong kênh voice từ WebRTC/LiveKit
+   */
+  syncActiveChannelParticipants(serverId: string, channelId: string, activeUserIds: string[]): void {
+    if (!serverId || !channelId) return;
+    const activeSet = new Set(activeUserIds);
+    this.voiceStatesByServer.update((prev) => {
+      const currentList = prev[serverId] || [];
+      const filtered = currentList.filter(
+        (m) => m.channelId !== channelId || activeSet.has(m.userId),
+      );
+      return {
+        ...prev,
+        [serverId]: filtered,
+      };
+    });
+  }
+
+  /**
+   * Xóa một thành viên khỏi voice state của server khi họ ngắt kết nối WebRTC
+   */
+  removeVoiceMember(serverId: string, userId: string): void {
+    if (!serverId || !userId) return;
+    this.voiceStatesByServer.update((prev) => {
+      const currentList = prev[serverId] || [];
+      return {
+        ...prev,
+        [serverId]: currentList.filter((m) => m.userId !== userId),
+      };
+    });
+  }
+
+  /**
    * Yêu cầu backend gửi snapshot voice states của server
    */
   async loadServerVoiceStates(serverId: string): Promise<void> {

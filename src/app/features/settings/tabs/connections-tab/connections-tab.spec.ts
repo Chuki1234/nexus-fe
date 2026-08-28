@@ -43,6 +43,8 @@ describe('ConnectionsTab', () => {
     expect(root.textContent).toContain('Đề xuất cho bạn');
     expect(root.textContent).toContain('Zalo');
     expect(root.querySelectorAll('button').length).toBeGreaterThan(10);
+    expect(root.querySelector('img[src="/assets/platform-logos/zalo.svg"]')).not.toBeNull();
+    expect(root.querySelector('img[src="/assets/platform-logos/facebook.svg"]')).not.toBeNull();
   });
 
   it('dựng được khi hồ sơ có sẵn liên kết nền tảng VÀ liên kết tự do', () => {
@@ -69,6 +71,7 @@ describe('ConnectionsTab', () => {
     expect(root.textContent).toContain('Đang gắn trên hồ sơ (2)');
     expect(root.textContent).toContain('chỗ còn trống');
     expect(root.textContent).toContain('Tự thêm');
+    expect(root.querySelector('img[src="/assets/platform-logos/youtube.svg"]')).not.toBeNull();
   });
 
   it('dựng được khi hồ sơ CHƯA tải xong (profile null)', () => {

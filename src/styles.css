@@ -657,24 +657,26 @@ html[data-theme='light'] .nexus-add-server-dialog .mat-mdc-dialog-surface {
 }
 
 .nexus-add-server-dialog .add-server-template-card {
-  min-height: 3rem;
+  position: relative;
+  min-height: 3.5rem;
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-lg);
   background: var(--color-surface-soft);
-  padding: 0.75rem 1rem;
+  padding: 0.875rem 1rem;
   box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent) inset;
   transition:
     background-color var(--motion-fast) var(--ease-nexus-out),
     border-color var(--motion-fast) var(--ease-nexus-out),
     box-shadow var(--motion-base) var(--ease-nexus-out),
-    transform var(--motion-base) var(--ease-nexus-out);
+    transform var(--motion-fast) var(--ease-nexus-out);
 }
 
 .nexus-add-server-dialog .add-server-template-card:is(:hover, :focus-visible) {
-  background: var(--color-surface-feature);
-  border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+  background: color-mix(in srgb, var(--color-surface-feature) 80%, var(--nexus-surface-hover));
+  border-color: color-mix(in srgb, var(--color-primary) 75%, transparent);
   box-shadow:
     0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent) inset,
+    0 4px 14px rgba(0, 237, 100, 0.12),
     var(--shadow-sm);
   transform: translateY(-1px);
 }
@@ -919,11 +921,17 @@ app-dashboard-shell
   border-radius: var(--radius-lg);
   color: var(--color-slate);
   box-shadow: none;
+  overflow: visible !important;
   transition:
     color var(--motion-fast) var(--ease-nexus-out),
     border-color var(--motion-fast) var(--ease-nexus-out),
     background-color var(--motion-fast) var(--ease-nexus-out),
     box-shadow var(--motion-base) var(--ease-nexus-out);
+}
+
+.nexus-nav-item.mat-mdc-list-item .mdc-list-item__start,
+.nexus-nav-item.mat-mdc-list-item .mdc-list-item__content {
+  overflow: visible !important;
 }
 
 .nexus-nav-item.mat-mdc-list-item .mat-mdc-list-item-active-indicator {

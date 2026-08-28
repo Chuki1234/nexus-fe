@@ -22,6 +22,17 @@
   <button
     mat-icon-button
     type="button"
+    class="message-action--pin"
+    [class.message-action--pinned]="pinned()"
+    [matTooltip]="pinned() ? 'Bỏ ghim tin nhắn' : 'Ghim tin nhắn'"
+    [attr.aria-label]="pinned() ? 'Bỏ ghim tin nhắn' : 'Ghim tin nhắn'"
+    (click)="requestTogglePin()"
+  >
+    <mat-icon aria-hidden="true">push_pin</mat-icon>
+  </button>
+  <button
+    mat-icon-button
+    type="button"
     class="message-action--more"
     [matMenuTriggerFor]="moreMenu"
     matTooltip="Thêm thao tác"

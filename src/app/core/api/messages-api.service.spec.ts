@@ -108,6 +108,22 @@ describe('MessagesApiService', () => {
     expect(res.content).toBe('edited');
   });
 
+  it('dùng multipart khi chỉnh sửa tin nhắn kèm tệp mới', async () => {
+    httpMock.patch.mockReturnValue(of({ id: '101', content: 'edited with file' }));
+    const file = new File(['image'], 'clipboard.png', { type: 'image/png' });
+
+    await service.editMessage('101', { content: 'edited with file', files: [file] });
+
+    const body = httpMock.patch.mock.calls[0][1] as FormData;
+    expect(httpMock.patch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/messages/101',
+      expect.any(FormData),
+      expect.objectContaining({ headers: expect.any(HttpHeaders) }),
+    );
+    expect(body.get('content')).toBe('edited with file');
+    expect(body.getAll('files')).toEqual([file]);
+  });
+
   it('gọi DELETE /api/messages/:id để xoá tin nhắn', async () => {
     httpMock.delete.mockReturnValue(of({ id: '101', deleted: true }));
 

@@ -22,8 +22,17 @@ export const CATEGORY_LABELS: Record<PlatformCategory, string> = {
 export interface AppPlatform {
   id: string;
   name: string;
-  /** Ligature material-icons. Không vẽ lại logo thương hiệu (bản quyền nhãn hiệu). */
+  /** Ligature Material Icons chỉ dùng làm fallback nếu logo CDN không tải được. */
   icon: string;
+  /**
+   * Logo SVG chính thức lấy từ WorldVectorLogo và lưu cùng frontend.
+   *
+   * Lưu local để tuân thủ `img-src 'self'` trong CSP và không biến trạng thái
+   * của CDN thành trạng thái của giao diện Nexus.
+   */
+  logoUrl: string;
+  /** Bộ lọc chỉ dùng cho logo đen cần đổi sang trắng để đọc được trên nền tối. */
+  logoFilter?: string;
   /**
    * Màu thương hiệu ở phiên bản ĐỌC ĐƯỢC TRÊN NỀN TỐI, không phải mã gốc.
    *
@@ -66,6 +75,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'facebook',
     name: 'Facebook',
     icon: 'groups',
+    logoUrl: '/assets/platform-logos/facebook.svg',
     color: '#4599ff',
     category: 'social',
     recommended: true,
@@ -76,6 +86,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'zalo',
     name: 'Zalo',
     icon: 'chat_bubble',
+    logoUrl: '/assets/platform-logos/zalo.svg',
     color: '#4a9eff',
     category: 'social',
     recommended: true,
@@ -86,6 +97,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'instagram',
     name: 'Instagram',
     icon: 'photo_camera',
+    logoUrl: '/assets/platform-logos/instagram.svg',
     color: '#f06bb8',
     category: 'social',
     recommended: true,
@@ -96,6 +108,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'tiktok',
     name: 'TikTok',
     icon: 'movie_filter',
+    logoUrl: '/assets/platform-logos/tiktok.svg',
     color: '#ff4d6d',
     category: 'social',
     recommended: true,
@@ -106,6 +119,8 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'x',
     name: 'X',
     icon: 'chat',
+    logoUrl: '/assets/platform-logos/x.svg',
+    logoFilter: 'brightness(0) invert(1)',
     color: '#e7e9ea',
     category: 'social',
     urlPrefix: 'https://x.com/',
@@ -115,6 +130,8 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'threads',
     name: 'Threads',
     icon: 'alternate_email',
+    logoUrl: '/assets/platform-logos/threads.svg',
+    logoFilter: 'brightness(0) invert(1)',
     color: '#c1ccd3',
     category: 'social',
     urlPrefix: 'https://www.threads.net/@',
@@ -124,6 +141,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'telegram',
     name: 'Telegram',
     icon: 'send',
+    logoUrl: '/assets/platform-logos/telegram.svg',
     color: '#4fb3e8',
     category: 'social',
     urlPrefix: 'https://t.me/',
@@ -133,6 +151,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'discord',
     name: 'Discord',
     icon: 'forum',
+    logoUrl: '/assets/platform-logos/discord.svg',
     color: '#8b9cff',
     category: 'social',
     urlPrefix: 'https://discord.com/users/',
@@ -143,6 +162,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'reddit',
     name: 'Reddit',
     icon: 'campaign',
+    logoUrl: '/assets/platform-logos/reddit.svg',
     color: '#ff5722',
     category: 'social',
     urlPrefix: 'https://www.reddit.com/user/',
@@ -152,6 +172,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'linkedin',
     name: 'LinkedIn',
     icon: 'work',
+    logoUrl: '/assets/platform-logos/linkedin.svg',
     color: '#70b5f9',
     category: 'social',
     urlPrefix: 'https://www.linkedin.com/in/',
@@ -163,6 +184,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'steam',
     name: 'Steam',
     icon: 'sports_esports',
+    logoUrl: '/assets/platform-logos/steam.svg',
     color: '#66c0f4',
     category: 'gaming',
     urlPrefix: 'https://steamcommunity.com/id/',
@@ -172,6 +194,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'riot',
     name: 'Riot Games',
     icon: 'videogame_asset',
+    logoUrl: '/assets/platform-logos/riot-games.svg',
     color: '#ff5c5c',
     category: 'gaming',
     urlPrefix: 'https://op.gg/summoners/vn/',
@@ -182,6 +205,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'twitch',
     name: 'Twitch',
     icon: 'live_tv',
+    logoUrl: '/assets/platform-logos/twitch.svg',
     color: '#a970ff',
     category: 'gaming',
     urlPrefix: 'https://www.twitch.tv/',
@@ -191,6 +215,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'xbox',
     name: 'Xbox',
     icon: 'smart_toy',
+    logoUrl: '/assets/platform-logos/xbox.svg',
     color: '#7bd45a',
     category: 'gaming',
     urlPrefix: 'https://account.xbox.com/profile?gamertag=',
@@ -200,6 +225,8 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'playstation',
     name: 'PlayStation',
     icon: 'gamepad',
+    logoUrl: '/assets/platform-logos/playstation.svg',
+    logoFilter: 'brightness(0) invert(1)',
     color: '#7aa7ff',
     category: 'gaming',
     urlPrefix: 'https://psnprofiles.com/',
@@ -212,6 +239,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'youtube',
     name: 'YouTube',
     icon: 'smart_display',
+    logoUrl: '/assets/platform-logos/youtube.svg',
     color: '#ff4d4d',
     category: 'creative',
     recommended: true,
@@ -222,6 +250,8 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'github',
     name: 'GitHub',
     icon: 'code',
+    logoUrl: '/assets/platform-logos/github.svg',
+    logoFilter: 'brightness(0) invert(1)',
     color: '#ffffff',
     category: 'creative',
     recommended: true,
@@ -232,6 +262,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'gitlab',
     name: 'GitLab',
     icon: 'account_tree',
+    logoUrl: '/assets/platform-logos/gitlab.svg',
     color: '#ff9a6b',
     category: 'creative',
     urlPrefix: 'https://gitlab.com/',
@@ -241,6 +272,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'spotify',
     name: 'Spotify',
     icon: 'library_music',
+    logoUrl: '/assets/platform-logos/spotify.svg',
     color: '#1ed760',
     category: 'creative',
     urlPrefix: 'https://open.spotify.com/user/',
@@ -250,6 +282,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'soundcloud',
     name: 'SoundCloud',
     icon: 'graphic_eq',
+    logoUrl: '/assets/platform-logos/soundcloud.svg',
     color: '#ff8a4c',
     category: 'creative',
     urlPrefix: 'https://soundcloud.com/',
@@ -259,6 +292,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'behance',
     name: 'Behance',
     icon: 'palette',
+    logoUrl: '/assets/platform-logos/behance.svg',
     color: '#7f9cff',
     category: 'creative',
     urlPrefix: 'https://www.behance.net/',
@@ -268,6 +302,7 @@ export const APP_PLATFORMS: readonly AppPlatform[] = [
     id: 'dribbble',
     name: 'Dribbble',
     icon: 'brush',
+    logoUrl: '/assets/platform-logos/dribbble.svg',
     color: '#f77fb4',
     category: 'creative',
     urlPrefix: 'https://dribbble.com/',

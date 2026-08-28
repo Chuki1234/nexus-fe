@@ -647,17 +647,17 @@
         </button>
       </div>
     } @else if (addServerStep() === 'template-list') {
-      <div class="flex max-h-[60vh] flex-col gap-2 overflow-y-auto pr-1 nexus-scrollbar">
+      <div class="flex max-h-[60vh] flex-col gap-2.5 overflow-y-auto px-1.5 pt-1.5 pb-2 -mx-1.5 nexus-scrollbar">
         <!-- Mẫu riêng custom -->
         <button
           type="button"
-          class="add-server-template-card flex items-center justify-between text-left"
+          class="add-server-template-card group flex items-center justify-between text-left"
           [attr.data-template-id]="customTemplate().id"
           (click)="chooseTemplate(customTemplate())"
         >
           <div class="flex items-center gap-3">
             <span
-              class="flex size-10 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+              class="flex size-10 items-center justify-center rounded-full bg-surface-feature text-primary-soft transition-transform duration-200 group-hover:scale-105 group-hover:bg-primary/20"
             >
               <mat-icon aria-hidden="true">{{ customTemplate().icon }}</mat-icon>
             </span>
@@ -666,22 +666,22 @@
               <span class="block text-caption text-steel">{{ customTemplate().description }}</span>
             </div>
           </div>
-          <mat-icon class="text-steel" aria-hidden="true">chevron_right</mat-icon>
+          <mat-icon class="text-steel transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary-soft" aria-hidden="true">chevron_right</mat-icon>
         </button>
 
         <!-- Section Mẫu có sẵn -->
-        <app-section-label text="BẮT ĐẦU TỪ MẪU" class="mt-3 mb-1" />
+        <app-section-label text="BẮT ĐẦU TỪ MẪU" class="mt-4 mb-1 px-0.5" />
 
         @for (tpl of presetTemplates(); track tpl.id) {
           <button
             type="button"
-            class="add-server-template-card flex items-center justify-between text-left"
+            class="add-server-template-card group flex items-center justify-between text-left"
             [attr.data-template-id]="tpl.id"
             (click)="chooseTemplate(tpl)"
           >
             <div class="flex items-center gap-3">
               <span
-                class="flex size-10 items-center justify-center rounded-full bg-surface-feature text-primary-soft"
+                class="flex size-10 items-center justify-center rounded-full bg-surface-feature text-primary-soft transition-transform duration-200 group-hover:scale-105 group-hover:bg-primary/20"
               >
                 <mat-icon aria-hidden="true">{{ tpl.icon }}</mat-icon>
               </span>
@@ -690,17 +690,17 @@
                 <span class="block text-caption text-steel">{{ tpl.description }}</span>
               </div>
             </div>
-            <mat-icon class="text-steel" aria-hidden="true">chevron_right</mat-icon>
+            <mat-icon class="text-steel transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary-soft" aria-hidden="true">chevron_right</mat-icon>
           </button>
         }
 
         <!-- Tham gia máy chủ link -->
-        <div class="mt-3 rounded-xl border border-hairline bg-surface-soft p-3 text-center">
+        <div class="mt-4 rounded-xl border border-hairline bg-surface-soft p-3.5 text-center">
           <p class="text-caption text-slate">Bạn đã nhận được lời mời rồi?</p>
           <button
             mat-button
             type="button"
-            class="mt-1 !text-primary-soft"
+            class="mt-1 !text-primary-soft font-semibold hover:!underline"
             (click)="setAddServerStep('join')"
           >
             Tham gia máy chủ

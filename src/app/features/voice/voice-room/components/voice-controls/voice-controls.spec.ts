@@ -9,9 +9,11 @@ describe('VoiceControls', () => {
   let fixture: ComponentFixture<VoiceControls>;
   let mockVoiceRoom: {
     isMicMuted: ReturnType<typeof signal>;
+    isDeafened: ReturnType<typeof signal>;
     isCameraOn: ReturnType<typeof signal>;
     isScreenSharing: ReturnType<typeof signal>;
     toggleMicrophone: ReturnType<typeof vi.fn>;
+    toggleDeafen: ReturnType<typeof vi.fn>;
     toggleCamera: ReturnType<typeof vi.fn>;
     toggleScreenShare: ReturnType<typeof vi.fn>;
     switchScreenShare: ReturnType<typeof vi.fn>;
@@ -24,9 +26,11 @@ describe('VoiceControls', () => {
   beforeEach(async () => {
     mockVoiceRoom = {
       isMicMuted: signal(false),
+      isDeafened: signal(false),
       isCameraOn: signal(false),
       isScreenSharing: signal(false),
       toggleMicrophone: vi.fn(),
+      toggleDeafen: vi.fn(),
       toggleCamera: vi.fn(),
       toggleScreenShare: vi.fn(),
       switchScreenShare: vi.fn(),

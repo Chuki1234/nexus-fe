@@ -85,6 +85,8 @@ export class NotificationService {
       if (message.conversationId) {
         // Đang mở đúng hội thoại này thì không toast (đang đọc).
         if (this.activeChatStore.conversationId() === message.conversationId) return;
+        // DM 1-1: authorId là người bạn. Đã tắt thông báo ⇒ không popup, kể cả @mention.
+        if (authorId && this.settings.isFriendMuted(authorId)) return;
         const myUsername = this.auth.user()?.user_metadata?.['username'] || '';
         const isMention = !!myUsername && content.includes(`@${myUsername}`);
         this.show({

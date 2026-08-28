@@ -19,15 +19,36 @@ describe('MessageActions', () => {
     return fixture;
   };
 
-  it('có toolbar đủ reaction, reply và more với nhãn truy cập', async () => {
+  it('có toolbar đủ reaction, reply, pin và more với nhãn truy cập', async () => {
     const fixture = await mount();
     const toolbar = fixture.nativeElement.querySelector('[role="toolbar"]') as HTMLElement;
 
     expect(toolbar.getAttribute('aria-label')).toContain('Minh Tài');
-    expect(toolbar.querySelectorAll('button')).toHaveLength(3);
+    expect(toolbar.querySelectorAll('button')).toHaveLength(4);
     expect(toolbar.querySelector('button[aria-label="Thêm cảm xúc"]')).toBeTruthy();
     expect(toolbar.querySelector('button[aria-label="Trả lời"]')).toBeTruthy();
+    expect(toolbar.querySelector('.message-action--pin')).toBeTruthy();
     expect(toolbar.querySelector('button[aria-label="Thêm thao tác"]')).toBeTruthy();
+  });
+
+  it('bấm nút ghim nhanh trên toolbar phát ra sự kiện pin hoặc unpin', async () => {
+    const fixture = await mount();
+    const contexts: MessageComposerContext[] = [];
+    fixture.componentInstance.action.subscribe((context) => contexts.push(context));
+
+    const pinBtn = fixture.nativeElement.querySelector('.message-action--pin') as HTMLButtonElement;
+    pinBtn.click();
+    fixture.detectChanges();
+
+    expect(contexts.at(-1)?.kind).toBe('pin');
+
+    // Khi tin nhắn đã ghim: bấm nút ghim nhanh phát ra unpin
+    fixture.componentRef.setInput('pinned', true);
+    fixture.detectChanges();
+    pinBtn.click();
+    fixture.detectChanges();
+
+    expect(contexts.at(-1)?.kind).toBe('unpin');
   });
 
   it('chọn reaction phát ra sự kiện output reaction', async () => {

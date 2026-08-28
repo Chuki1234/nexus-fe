@@ -205,6 +205,43 @@ describe('VoiceChatDrawer', () => {
     expect(wrapper?.textContent).toContain('Xin chào trong kênh thoại!');
   });
 
+  it('không biến từng tin nhắn dài thành scroll container riêng', () => {
+    mockMessagesSignal.set([
+      {
+        id: 'msg-long-emoji',
+        conversationId: null,
+        channelId: 'vc-1',
+        authorId: 'user-2',
+        author: { id: 'user-2', username: 'bob', displayName: 'Bob', avatarUrl: null },
+        type: 'default',
+        content: '🥰'.repeat(120),
+        replyToId: null,
+        clientNonce: 'nonce-long-emoji',
+        editedAt: null,
+        deletedAt: null,
+        isForwarded: false,
+        externalMedia: null,
+        createdAt: new Date().toISOString(),
+        status: 'persisted',
+      },
+    ]);
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const timeline = root.querySelector('[data-message-id="msg-long-emoji"]')?.parentElement
+      ?.parentElement?.parentElement;
+    const messageContent = root.querySelector('.voice-message-content');
+    const messageList = root.querySelector('.voice-message-list');
+    const messageRow = root.querySelector('.message-row');
+    const messageBody = root.querySelector('.message-body');
+
+    expect(timeline?.classList.contains('overflow-y-auto')).toBe(true);
+    expect(messageContent?.classList.contains('overflow-x-hidden')).toBe(false);
+    expect(messageList?.classList.contains('overflow-x-hidden')).toBe(false);
+    expect(messageRow?.classList.contains('overflow-x-hidden')).toBe(false);
+    expect(messageBody?.textContent).toContain('🥰');
+  });
+
   it('gửi tin nhắn qua ChannelChatStore.sendMessage từ composer', async () => {
     fixture.detectChanges();
 
