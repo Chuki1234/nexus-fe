@@ -16,6 +16,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
+import { ProfileDialogService } from '../../../profile/profile-dialog.service';
 import { PRESENCE_LABEL } from '../../../../../shared/dto/common';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import { FriendsStore, type FriendListPerson } from '../services/friends-store';
@@ -51,6 +52,7 @@ import { extractErrorMessage } from '../../../../core/utils/error.util';
 })
 export class FriendRow {
   private readonly router = inject(Router);
+  private readonly profileDialog = inject(ProfileDialogService);
   private readonly conversationsApi = inject(ConversationsApiService);
   private readonly presenceService = inject(PresenceService);
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
@@ -172,7 +174,7 @@ export class FriendRow {
   onViewProfile(): void {
     const target = this.person().username || this.person().name || this.person().id;
     if (target) {
-      void this.router.navigate(['/u', target]);
+      this.profileDialog.open(target);
     }
   }
 

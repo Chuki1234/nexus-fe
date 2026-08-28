@@ -2,7 +2,7 @@
   #dashboardShell
   class="dashboard-shell h-full w-full"
   [class.dashboard-shell--dragging]="layoutService.isDraggingNav() || layoutService.isDraggingMember()"
-  [attr.data-theme]="theme()"
+  [attr.data-theme]="activeTheme()"
   [style.--navigation-pane-width.px]="layoutService.navWidth()"
   [style.--member-pane-width.px]="layoutService.memberWidth()"
   [style.--server-rail-width.px]="serverRailWidth"

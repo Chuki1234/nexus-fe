@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { toObservable, toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { ProfilesApiService } from '../../../../core/api/profiles-api.service';
+import { ProfileDialogService } from '../../profile-dialog.service';
 import type { ProfileSummary } from '../../../../../shared';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import { SearchField } from '../../../../shared/ui/search-field/search-field';
@@ -26,7 +26,7 @@ const MIN_QUERY_LENGTH = 2;
 })
 export class ProfileSearch {
   private readonly api = inject(ProfilesApiService);
-  private readonly router = inject(Router);
+  private readonly profileDialog = inject(ProfileDialogService);
 
   protected readonly query = signal('');
   protected readonly results = signal<ProfileSummary[]>([]);
@@ -60,7 +60,7 @@ export class ProfileSearch {
     this.query.set('');
     this.results.set([]);
     this.searched.set(false);
-    void this.router.navigate(['/u', username]);
+    this.profileDialog.open(username);
   }
 
   protected nameOf(person: ProfileSummary): string {

@@ -152,7 +152,9 @@ export class ProfileCard {
    * `AppLayout` được mount.
    */
   protected editProfile(): void {
+    // Thẻ hồ sơ nay LUÔN mở trong dialog (trên nền AppLayout) sau khi trang
+    // `/u/:username` bị bỏ, nên chỉ cần mở Cài đặt — không phải điều hướng về
+    // `/channels/@me` nữa (điều hướng sẽ đóng dialog và nhảy trang không cần thiết).
     this.userSettings.openUserSettings('profile');
-    void this.router.navigateByUrl('/channels/@me');
   }
 }

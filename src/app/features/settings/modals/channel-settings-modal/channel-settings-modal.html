@@ -146,52 +146,6 @@
               </p>
             </div>
           }
-
-          <!-- Độ Hiển Thị Nội Dung -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-micro-uppercase font-bold tracking-wider text-steel">
-              ĐỘ HIỂN THỊ NỘI DUNG
-            </label>
-            <div class="flex flex-col gap-2.5 mt-1">
-              <!-- Option 1: Mặc định -->
-              <label
-                class="flex items-start gap-3 rounded-xl border border-hairline/80 bg-surface-soft/60 p-3 cursor-pointer hover:bg-surface-feature/30 transition-colors"
-                [class.!border-primary]="contentVisibility() === 'default'"
-              >
-                <input
-                  type="radio"
-                  name="contentVisibility"
-                  value="default"
-                  [(ngModel)]="contentVisibility"
-                  class="mt-1 accent-primary"
-                />
-                <div>
-                  <strong class="block text-body-sm font-semibold text-ink">Mặc định</strong>
-                  <span class="block text-caption text-steel">Nội dung kênh luôn hiển thị cho mọi người.</span>
-                </div>
-              </label>
-
-              <!-- Option 2: Kênh giới hạn độ tuổi -->
-              <label
-                class="flex items-start gap-3 rounded-xl border border-hairline/80 bg-surface-soft/60 p-3 cursor-pointer hover:bg-surface-feature/30 transition-colors"
-                [class.!border-primary]="contentVisibility() === 'age_restricted'"
-              >
-                <input
-                  type="radio"
-                  name="contentVisibility"
-                  value="age_restricted"
-                  [(ngModel)]="contentVisibility"
-                  class="mt-1 accent-primary"
-                />
-                <div>
-                  <strong class="block text-body-sm font-semibold text-ink">Kênh giới hạn độ tuổi</strong>
-                  <span class="block text-caption text-steel">
-                    Yêu cầu thành viên phải đủ từ 18 tuổi trở lên để tham gia kênh này.
-                  </span>
-                </div>
-              </label>
-            </div>
-          </div>
         </div>
       }
 

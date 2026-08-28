@@ -43,8 +43,9 @@
 /* Unread & Mention Badges on Server Tiles & DM Tile chuẩn phong cách Discord */
 .server-tile-unread-badge {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: calc(50% - 24px);
+  right: calc(50% - 24px);
+  transform: translate(20%, -20%);
   z-index: 20;
   pointer-events: none;
 }
@@ -64,8 +65,9 @@
 /* Voice activity badge on server tiles */
 .server-voice-badge {
   position: absolute;
-  bottom: -2px;
-  right: -2px;
+  bottom: calc(50% - 24px);
+  right: calc(50% - 24px);
+  transform: translate(20%, 20%);
   display: inline-flex;
   align-items: center;
   justify-content: center;

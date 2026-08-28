@@ -92,6 +92,14 @@
 
             <!-- Action buttons & unread meta -->
             <div matListItemMeta class="channel-actions-wrapper flex items-center gap-1 shrink-0" (pointerdown)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
+              @if (userSettings.isChannelMuted(item.channel.id, serverId())) {
+                <mat-icon
+                  class="!size-3.5 !text-sm text-steel/60 shrink-0 group-hover:text-steel"
+                  matTooltip="Kênh đã tắt âm"
+                >
+                  notifications_off
+                </mat-icon>
+              }
               @if (channelUnreadCount(item.channel.id) > 0) {
                 <app-unread-badge
                   class="pointer-events-none shrink-0"
@@ -428,6 +436,14 @@
 
                     <!-- Action buttons & unread meta -->
                     <div matListItemMeta class="channel-actions-wrapper flex items-center gap-1 shrink-0" (pointerdown)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
+                      @if (userSettings.isChannelMuted(channel.id, serverId())) {
+                        <mat-icon
+                          class="!size-3.5 !text-sm text-steel/60 shrink-0 group-hover:text-steel"
+                          matTooltip="Kênh đã tắt âm"
+                        >
+                          notifications_off
+                        </mat-icon>
+                      }
                       @if (channelUnreadCount(channel.id) > 0) {
                         <app-unread-badge
                           class="pointer-events-none shrink-0"

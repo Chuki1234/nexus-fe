@@ -163,6 +163,9 @@ export class ColorStudioModal {
 
   protected applyArtisanPalette(palette: ArtisanPalette): void {
     this.setAccent(palette.accent);
+    if (palette.theme) {
+      this.settingsService.updatePreference('theme', palette.theme);
+    }
   }
 
   // ─── Tương tác 2D Color Studio ───

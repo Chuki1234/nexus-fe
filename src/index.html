@@ -20,9 +20,37 @@
     <link rel="icon" type="image/png" href="/assets/nexus-mascot.png" />
     <script>
       try {
-        const nexusTheme = localStorage.getItem('nexuscord-theme');
-        if (nexusTheme === 'light' || nexusTheme === 'dark') {
-          document.documentElement.setAttribute('data-theme', nexusTheme);
+        const raw = localStorage.getItem('nexus_user_preferences_v2');
+        let theme = 'nexus-dark';
+        let accent = null;
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (p.theme) theme = p.theme;
+          if (p.themeAccent) accent = p.themeAccent;
+        } else {
+          const legacy = localStorage.getItem('nexuscord-theme');
+          if (legacy === 'light' || legacy === 'warm-light') theme = 'warm-light';
+          else if (legacy === 'midnight-dark') theme = 'midnight-dark';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        if (accent && accent !== '#00ed64') {
+          document.documentElement.style.setProperty('--color-primary', accent);
+          document.documentElement.style.setProperty('--color-brand-green', accent);
+          document.documentElement.style.setProperty('--nexus-primary', accent);
+          document.documentElement.style.setProperty('--nexus-brand-green', accent);
+          document.documentElement.style.setProperty('--color-doodle-tint', accent);
+          document.documentElement.style.setProperty('--color-primary-soft', accent);
+          if (theme === 'warm-light') {
+            document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
+          }
+        } else if (theme === 'warm-light') {
+          document.documentElement.style.setProperty('--color-primary', '#006241');
+          document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
+          document.documentElement.style.setProperty('--color-brand-green', '#006241');
+          document.documentElement.style.setProperty('--nexus-primary', '#006241');
+          document.documentElement.style.setProperty('--nexus-brand-green', '#006241');
+          document.documentElement.style.setProperty('--color-doodle-tint', '#006241');
+          document.documentElement.style.setProperty('--color-primary-soft', '#00754a');
         }
       } catch {
         // Storage có thể bị chặn; CSS mặc định dark vẫn là fallback hợp lệ.

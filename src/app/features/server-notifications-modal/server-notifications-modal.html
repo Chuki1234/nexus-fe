@@ -4,12 +4,17 @@
 >
   <!-- Modal Container (Ảnh 1 Chuẩn 100%) -->
   <div
-    class="relative w-full max-w-[460px] max-h-[90vh] bg-surface rounded-3xl border border-hairline shadow-modal flex flex-col overflow-hidden animate-scale-in text-ink ring-1 ring-white/10"
+    class="relative w-full max-w-[540px] max-h-[90vh] bg-surface rounded-3xl border border-hairline shadow-modal flex flex-col overflow-hidden animate-scale-in text-ink ring-1 ring-white/10"
     (click)="$event.stopPropagation()"
   >
     <!-- Modal Header (Ảnh 1) -->
     <div class="h-14 border-b border-hairline bg-surface px-6 flex items-center justify-between shrink-0 select-none">
-      <h2 class="text-body-lg font-black text-ink tracking-tight">Cài đặt thông báo</h2>
+      <div class="flex items-center gap-2 min-w-0">
+        <mat-icon class="text-primary !w-5 !h-5 !text-[20px]">notifications</mat-icon>
+        <h2 class="text-body-lg font-black text-ink tracking-tight truncate">
+          Cài đặt thông báo — {{ serverName() }}
+        </h2>
+      </div>
       <button
         type="button"
         (click)="onClose()"
@@ -156,6 +161,132 @@
           [checked]="currentSettings().mobilePushNotifications"
           (change)="updateSetting('mobilePushNotifications', $event.checked)"
         />
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════
+           8. GHI ĐÈ THÔNG BÁO THEO KÊNH (NOTIFICATION OVERRIDES - CHUẨN DISCORD)
+           ═══════════════════════════════════════════════════════════════════ -->
+      <div class="space-y-3.5 pt-4 border-t border-hairline/60">
+        <div>
+          <span class="block text-micro-uppercase font-extrabold uppercase tracking-wider text-stone">
+            GHI ĐÈ THÔNG BÁO THEO KÊNH (NOTIFICATION OVERRIDES)
+          </span>
+          <p class="text-caption text-steel leading-snug mt-0.5">
+            Tắt âm hoặc tùy chỉnh thông báo cho từng kênh cụ thể. Kênh bị tắt âm sẽ không phát ra âm thanh hay hiện thông báo tin nhắn.
+          </p>
+        </div>
+
+        <!-- Channel Search Input -->
+        <div class="relative">
+          <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 !w-4 !h-4 !text-[16px] text-steel pointer-events-none">
+            search
+          </mat-icon>
+          <input
+            type="text"
+            [ngModel]="channelSearch()"
+            (ngModelChange)="channelSearch.set($event)"
+            placeholder="Tìm kiếm kênh trong máy chủ..."
+            class="w-full bg-canvas border border-hairline-strong rounded-xl pl-9 pr-8 py-2 text-caption text-ink placeholder:text-muted focus:outline-none focus:border-primary transition-colors shadow-2xs font-medium"
+          />
+          @if (channelSearch()) {
+            <button
+              type="button"
+              (click)="channelSearch.set('')"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-steel hover:text-ink cursor-pointer"
+            >
+              <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
+            </button>
+          }
+        </div>
+
+        <!-- Channels Overrides List -->
+        <div class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+          @for (ch of filteredChannels(); track ch.id) {
+            @let chSettings = settingsService.getChannelNotificationSettings(ch.id);
+            @let isMuted = settingsService.isChannelMuted(ch.id);
+
+            <div
+              class="p-3 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              [class.bg-danger-surface/30]="isMuted"
+              [class.border-danger/30]="isMuted"
+              [class.bg-canvas/60]="!isMuted"
+              [class.border-hairline]="!isMuted"
+            >
+              <!-- Channel Info -->
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div
+                  class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                  [class.bg-danger/15]="isMuted"
+                  [class.text-danger]="isMuted"
+                  [class.bg-surface-feature]="!isMuted"
+                  [class.text-steel]="!isMuted"
+                >
+                  <mat-icon class="!w-4 !h-4 !text-[16px]">
+                    {{ isMuted ? 'notifications_off' : (ch.type === 'voice' ? 'volume_up' : 'tag') }}
+                  </mat-icon>
+                </div>
+
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span
+                      class="text-body-sm font-bold truncate leading-tight"
+                      [class.text-ink]="!isMuted"
+                      [class.text-danger]="isMuted"
+                    >
+                      {{ ch.name }}
+                    </span>
+                    @if (isMuted) {
+                      <span class="px-1.5 py-0.2 text-[10px] font-extrabold uppercase rounded bg-danger/20 text-danger border border-danger/30 shrink-0">
+                        Đã tắt âm
+                      </span>
+                    }
+                  </div>
+                  <span class="text-[11px] text-steel font-medium">
+                    {{ ch.type === 'voice' ? 'Kênh thoại' : 'Kênh văn bản' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Channel Controls (Mute Button + Level Selector) -->
+              <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <!-- Mute Toggle Button -->
+                <button
+                  type="button"
+                  (click)="toggleChannelMute(ch.id)"
+                  class="px-2.5 py-1.5 rounded-xl border text-caption font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  [class.bg-danger-surface]="isMuted"
+                  [class.border-danger/50]="isMuted"
+                  [class.text-danger]="isMuted"
+                  [class.bg-surface]="!isMuted"
+                  [class.border-hairline]="!isMuted"
+                  [class.text-steel]="!isMuted"
+                  [class.hover:text-ink]="!isMuted"
+                  [attr.aria-label]="isMuted ? 'Bật lại âm thanh kênh' : 'Tắt âm kênh'"
+                >
+                  <mat-icon class="!w-4 !h-4 !text-[16px]">{{ isMuted ? 'volume_off' : 'notifications' }}</mat-icon>
+                  <span>{{ isMuted ? 'Bật âm' : 'Tắt âm' }}</span>
+                </button>
+
+                <!-- Notification Level Dropdown -->
+                <select
+                  [ngModel]="chSettings.notificationLevel"
+                  (ngModelChange)="setChannelLevel(ch.id, $event)"
+                  class="bg-surface border border-hairline rounded-xl px-2.5 py-1.5 text-[12px] font-bold text-ink focus:outline-none focus:border-primary transition-colors cursor-pointer shadow-2xs"
+                >
+                  <option value="default">Mặc định</option>
+                  <option value="all">Tất cả tin nhắn</option>
+                  <option value="mentions">Chỉ @mentions</option>
+                  <option value="nothing">Không có gì</option>
+                </select>
+              </div>
+            </div>
+          }
+          @if (filteredChannels().length === 0) {
+            <div class="p-6 text-center text-caption text-steel bg-canvas/40 rounded-2xl border border-hairline">
+              Không tìm thấy kênh nào trong máy chủ.
+            </div>
+          }
+        </div>
       </div>
     </div>
 
