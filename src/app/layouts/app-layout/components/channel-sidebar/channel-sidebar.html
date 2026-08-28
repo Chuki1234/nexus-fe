@@ -199,3 +199,10 @@
     <app-conversation-list [query]="conversationQuery()" />
   }
 </nav>
+
+@if (showNotificationsModal() && serverId(); as sId) {
+  <app-server-notifications-modal
+    [serverId]="sId"
+    (close)="showNotificationsModal.set(false)"
+  />
+}

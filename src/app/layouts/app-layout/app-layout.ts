@@ -24,6 +24,7 @@ import { ChatSocketService } from '../../core/realtime/chat-socket.service';
 import { ServerRealtimeCoordinator } from '../../core/servers/server-realtime-coordinator.service';
 import { NotificationStore } from '../../core/notification/notification-store';
 import { ThemeService } from '../../core/theme/theme.service';
+import { UserSettingsService } from '../../features/settings/services/user-settings.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { SettingsModal } from '../../features/settings/settings-modal';
 import { ChannelSidebar } from './components/channel-sidebar/channel-sidebar';
@@ -86,7 +87,9 @@ export class AppLayout implements OnInit, AfterViewInit, OnDestroy {
   private readonly directCallCoordinator = inject(DirectCallCoordinatorService);
   private readonly activityTracker = inject(UserActivityTrackerService);
   protected readonly layoutService = inject(DashboardLayoutService);
+  private readonly settingsService = inject(UserSettingsService);
   protected readonly theme = inject(ThemeService).mode;
+  protected readonly activeTheme = computed(() => this.settingsService.preferences().theme || 'nexus-dark');
   protected readonly toastService = inject(ToastService);
 
   protected readonly navMinWidth = NAV_MIN_WIDTH;
