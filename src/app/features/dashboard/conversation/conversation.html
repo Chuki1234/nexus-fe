@@ -436,32 +436,47 @@
                                 }
                               </header>
                             }
-                            <app-message-content
-                              [content]="msg.content"
-                              [messageId]="msg.id"
-                              [showSpoilers]="showSpoilers"
-                              [editedAt]="item.isGrouped ? msg.editedAt : null"
-                            />
+                            @if (editingMessageId() === msg.id) {
+                              <div class="mt-1 mb-1">
+                                <app-inline-message-editor
+                                  [messageId]="msg.id"
+                                  [initialContent]="msg.content || ''"
+                                  [createdAt]="msg.createdAt"
+                                  [saving]="editingSaving()"
+                                  [errorMessage]="editingError()"
+                                  [expired]="!canEdit(msg)"
+                                  (save)="saveInlineEdit(msg.id, $event)"
+                                  (cancel)="cancelInlineEdit()"
+                                />
+                              </div>
+                            } @else {
+                              <app-message-content
+                                [content]="msg.content"
+                                [messageId]="msg.id"
+                                [showSpoilers]="showSpoilers"
+                                [editedAt]="item.isGrouped ? msg.editedAt : null"
+                              />
 
-                            <!-- Rich Link Embed (nếu displayLinkPreviews bật) -->
-                            @if (displayLinkPreviews && getFirstLink(item.contentTokens); as linkTok) {
-                              @if (isInternalLink(linkTok.url || linkTok.value)) {
-                                <!-- Link nội bộ Nexus → card snapshot -->
-                                <app-chat-link-embed [url]="linkTok.url || linkTok.value" />
-                              } @else {
-                                <!-- Link ngoài → giữ nguyên placeholder cũ -->
-                                <div class="mt-2.5 rounded-xl border border-hairline bg-surface-feature/40 p-3 max-w-sm flex items-start gap-2.5 shadow-xs">
-                                  <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-hairline">
-                                    <mat-icon class="!size-4 !text-base">public</mat-icon>
+                              <!-- Rich Link Embed (nếu displayLinkPreviews bật) -->
+                              @if (displayLinkPreviews && getFirstLink(item.contentTokens); as linkTok) {
+                                @if (isInternalLink(linkTok.url || linkTok.value)) {
+                                  <!-- Link nội bộ Nexus → card snapshot -->
+                                  <app-chat-link-embed [url]="linkTok.url || linkTok.value" />
+                                } @else {
+                                  <!-- Link ngoài → giữ nguyên placeholder cũ -->
+                                  <div class="mt-2.5 rounded-xl border border-hairline bg-surface-feature/40 p-3 max-w-sm flex items-start gap-2.5 shadow-xs">
+                                    <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-hairline">
+                                      <mat-icon class="!size-4 !text-base">public</mat-icon>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                      <span class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider truncate">{{ getLinkDomain(linkTok.url || linkTok.value) }}</span>
+                                      <a [href]="linkTok.url || linkTok.value" target="_blank" rel="noopener noreferrer" class="text-caption font-semibold text-primary hover:underline line-clamp-1 block">
+                                        {{ linkTok.value }}
+                                      </a>
+                                      <span class="text-[11px] text-steel">Xem trước liên kết web</span>
+                                    </div>
                                   </div>
-                                  <div class="min-w-0 flex-1">
-                                    <span class="block text-micro-uppercase font-bold text-stone uppercase tracking-wider truncate">{{ getLinkDomain(linkTok.url || linkTok.value) }}</span>
-                                    <a [href]="linkTok.url || linkTok.value" target="_blank" rel="noopener noreferrer" class="text-caption font-semibold text-primary hover:underline line-clamp-1 block">
-                                      {{ linkTok.value }}
-                                    </a>
-                                    <span class="text-[11px] text-steel">Xem trước liên kết web</span>
-                                  </div>
-                                </div>
+                                }
                               }
                             }
                           </div>
