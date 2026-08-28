@@ -1760,7 +1760,7 @@ export class UserSettingsService {
   }
 
   private initServerMembersRealtime(): void {
-    if (!this.chatSocket) return;
+    if (!this.chatSocket?.serverMemberJoined$) return;
 
     this.chatSocket.serverMemberJoined$.subscribe((payload) => {
       const { serverId, member } = payload;

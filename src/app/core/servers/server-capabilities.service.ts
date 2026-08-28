@@ -46,7 +46,7 @@ export class ServerCapabilitiesService {
       }
     });
 
-    if (this.chatSocket) {
+    if (this.chatSocket?.capabilitiesUpdated$) {
       this.chatSocket.capabilitiesUpdated$.subscribe((payload) => {
         if (!payload?.serverId || !payload?.capabilities) return;
         this.setCapabilities(payload.serverId, payload.capabilities);

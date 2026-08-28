@@ -1,9 +1,11 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
 import { VoiceApiService } from '../../../core/api/voice-api.service';
 import { ProfileService } from '../../../core/profile/profile.service';
+import { ServerVoiceStatesStore } from '../../../core/servers/server-voice-states.store';
 import { MediaDeviceService } from './media-device.service';
 import { VoiceRoomService } from './voice-room.service';
 
@@ -56,6 +58,17 @@ describe('VoiceRoomService', () => {
     const mockChatSocket = {
       updateVoiceState: vi.fn(),
       getServerVoiceStates: vi.fn().mockResolvedValue({ serverId: 'srv-1', states: [] }),
+      capabilitiesUpdated$: of(),
+      voiceServerStatesSync$: of(),
+      voiceStateUpdated$: of(),
+    };
+
+    const mockServerVoiceStatesStore = {
+      getServerVoiceStates: vi.fn().mockReturnValue([]),
+      getChannelVoiceMembers: vi.fn().mockReturnValue([]),
+      syncActiveChannelParticipants: vi.fn(),
+      removeVoiceMember: vi.fn(),
+      loadServerVoiceStates: vi.fn().mockResolvedValue(undefined),
     };
 
     TestBed.configureTestingModule({
@@ -65,6 +78,7 @@ describe('VoiceRoomService', () => {
         { provide: MediaDeviceService, useValue: mockMediaDevice },
         { provide: ProfileService, useValue: mockProfile },
         { provide: ChatSocketService, useValue: mockChatSocket },
+        { provide: ServerVoiceStatesStore, useValue: mockServerVoiceStatesStore },
       ],
     });
 

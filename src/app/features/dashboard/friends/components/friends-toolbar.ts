@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { UnreadBadge } from '../../../../shared/ui/unread-badge/unread-badge';
 import type { ThemeMode } from '../../../../core/theme/theme.service';
 
 export type FriendsTab = 'online' | 'all' | 'pending' | 'blocked' | 'add';
@@ -21,7 +22,7 @@ const TABS: { id: FriendsTab; label: string }[] = [
  */
 @Component({
   selector: 'app-friends-toolbar',
-  imports: [MatButtonModule, MatIconModule, MatToolbarModule, MatTooltipModule],
+  imports: [MatButtonModule, MatIconModule, MatToolbarModule, MatTooltipModule, UnreadBadge],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   styleUrl: './friends-toolbar.css',
