@@ -49,6 +49,8 @@ describe('ServerCapabilitiesService', () => {
       canManageServer: true,
       canManageChannels: true,
       canManageRoles: true,
+      canKickMembers: true,
+      canBanMembers: true,
     };
 
     const promise = service.load('srv-1');
@@ -70,6 +72,8 @@ describe('ServerCapabilitiesService', () => {
       canManageServer: false,
       canManageChannels: false,
       canManageRoles: false,
+      canKickMembers: false,
+      canBanMembers: false,
     };
 
     const p1 = service.load('srv-1');
@@ -91,6 +95,8 @@ describe('ServerCapabilitiesService', () => {
       canManageServer: false,
       canManageChannels: false,
       canManageRoles: false,
+      canKickMembers: false,
+      canBanMembers: false,
     };
     const updatedCaps: CurrentServerCapabilities = {
       ...initialCaps,
@@ -118,6 +124,8 @@ describe('ServerCapabilitiesService', () => {
       canManageServer: true,
       canManageChannels: true,
       canManageRoles: true,
+      canKickMembers: true,
+      canBanMembers: true,
     };
 
     const p = service.load('srv-1');
