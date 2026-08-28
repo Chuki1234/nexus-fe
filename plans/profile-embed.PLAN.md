@@ -124,7 +124,7 @@ Test case dự kiến:
 ---
 
 ## Phase 3: Embed USER profile + ghép vào khung chat
-Status: PENDING
+Status: APPROVED
 
 Mục tiêu (gắn với 1+ trong 3 tiêu chí UI/UX - Feature - Data):
 - **UI/UX**: dán link `origin/u/:username` → hiện card snapshot dùng lại
