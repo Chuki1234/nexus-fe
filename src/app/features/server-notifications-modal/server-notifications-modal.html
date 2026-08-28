@@ -152,16 +152,6 @@
         />
       </div>
 
-      <!-- 7. Thông báo nhắc nhở trên di động -->
-      <div class="flex items-center justify-between gap-4 py-2">
-        <div>
-          <span class="block text-body-sm font-extrabold text-ink">Thông báo nhắc nhở trên di động</span>
-        </div>
-        <mat-slide-toggle
-          [checked]="currentSettings().mobilePushNotifications"
-          (change)="updateSetting('mobilePushNotifications', $event.checked)"
-        />
-      </div>
 
       <!-- ═══════════════════════════════════════════════════════════════════
            8. GHI ĐÈ THÔNG BÁO THEO KÊNH (NOTIFICATION OVERRIDES - CHUẨN DISCORD)

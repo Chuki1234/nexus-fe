@@ -133,6 +133,13 @@ export interface ChannelNotificationSettings {
   mutedUntil?: number | null;
 }
 
+export interface ServerPrivacySettings {
+  allowDirectMessages: boolean;
+  allowMessageRequests: boolean;
+  shareActivityStatus: boolean;
+  filterSensitiveContent: boolean;
+}
+
 export interface ServerAccessSettings {
   joinMode: 'invite-only' | 'apply' | 'discoverable';
   ageRestricted: boolean;
@@ -961,6 +968,78 @@ export class UserSettingsService {
 
   private readonly CHANNEL_NOTIF_STORAGE_KEY = 'nexuscord_channel_notifications_v1';
   private readonly SERVER_NOTIF_STORAGE_KEY = 'nexuscord_server_notifications_v1';
+  private readonly SERVER_PRIVACY_STORAGE_KEY = 'nexuscord_server_privacy_v1';
+
+  private loadPersistedServerPrivacy(): Record<string, ServerPrivacySettings> {
+    const defaults: Record<string, ServerPrivacySettings> = {};
+    if (typeof localStorage === 'undefined') return defaults;
+    try {
+      const raw = localStorage.getItem(this.SERVER_PRIVACY_STORAGE_KEY);
+      return raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
+    } catch {
+      return defaults;
+    }
+  }
+
+  readonly serverPrivacySettingsMap = signal<Record<string, ServerPrivacySettings>>(
+    this.loadPersistedServerPrivacy(),
+  );
+
+  getServerPrivacySettings(serverId: string): ServerPrivacySettings {
+    return (
+      this.serverPrivacySettingsMap()[serverId] ?? {
+        allowDirectMessages: true,
+        allowMessageRequests: true,
+        shareActivityStatus: true,
+        filterSensitiveContent: true,
+      }
+    );
+  }
+
+  updateServerPrivacySetting<K extends keyof ServerPrivacySettings>(
+    serverId: string,
+    key: K,
+    value: ServerPrivacySettings[K],
+  ): void {
+    this.serverPrivacySettingsMap.update((map) => {
+      const current = map[serverId] ?? {
+        allowDirectMessages: true,
+        allowMessageRequests: true,
+        shareActivityStatus: true,
+        filterSensitiveContent: true,
+      };
+      const next = {
+        ...map,
+        [serverId]: {
+          ...current,
+          [key]: value,
+        },
+      };
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem(this.SERVER_PRIVACY_STORAGE_KEY, JSON.stringify(next));
+        } catch { /* ignore */ }
+      }
+      return next;
+    });
+  }
+
+  applyPrivacyToAllServers(serverId: string): void {
+    const current = this.getServerPrivacySettings(serverId);
+    const servers = this.serversStore?.servers() || [];
+    this.serverPrivacySettingsMap.update((map) => {
+      const next = { ...map };
+      for (const s of servers) {
+        next[s.id] = { ...current };
+      }
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem(this.SERVER_PRIVACY_STORAGE_KEY, JSON.stringify(next));
+        } catch { /* ignore */ }
+      }
+      return next;
+    });
+  }
 
   private loadPersistedChannelNotifications(): Record<string, ChannelNotificationSettings> {
     if (typeof localStorage === 'undefined') return {};
@@ -1066,6 +1145,55 @@ export class UserSettingsService {
       }
       return next;
     });
+  }
+
+  private readonly HIDE_MUTED_CHANNELS_STORAGE_KEY = 'nexuscord_hide_muted_channels_v1';
+
+  private loadPersistedHideMutedChannels(): Record<string, boolean> {
+    if (typeof localStorage === 'undefined') return {};
+    try {
+      const raw = localStorage.getItem(this.HIDE_MUTED_CHANNELS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  readonly hideMutedChannelsMap = signal<Record<string, boolean>>(
+    this.loadPersistedHideMutedChannels(),
+  );
+
+  isHideMutedChannels(serverId: string): boolean {
+    return !!this.hideMutedChannelsMap()[serverId];
+  }
+
+  setHideMutedChannels(serverId: string, hide: boolean): void {
+    this.hideMutedChannelsMap.update((map) => {
+      const next = { ...map, [serverId]: hide };
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem(this.HIDE_MUTED_CHANNELS_STORAGE_KEY, JSON.stringify(next));
+        } catch { /* ignore */ }
+      }
+      return next;
+    });
+  }
+
+  toggleHideMutedChannels(serverId: string): boolean {
+    const nextVal = !this.isHideMutedChannels(serverId);
+    this.setHideMutedChannels(serverId, nextVal);
+    return nextVal;
+  }
+
+  isChannelExplicitlyMuted(channelId: string): boolean {
+    const channelSettings = this.channelNotificationSettingsMap()[channelId];
+    if (channelSettings?.isMuted) {
+      if (channelSettings.mutedUntil && channelSettings.mutedUntil < Date.now()) {
+        return false;
+      }
+      return true;
+    }
+    return false;
   }
 
   isChannelMuted(channelId: string, serverId?: string): boolean {
@@ -2779,33 +2907,35 @@ export class UserSettingsService {
     document.documentElement.setAttribute('data-theme', resolvedTheme);
 
     const isLight = resolvedTheme === 'warm-light';
-    if (accent && accent !== '#00ed64') {
-      const hex = accent;
-      document.documentElement.style.setProperty('--color-primary', hex);
-      document.documentElement.style.setProperty('--color-brand-green', hex);
-      document.documentElement.style.setProperty('--nexus-primary', hex);
-      document.documentElement.style.setProperty('--nexus-brand-green', hex);
-      document.documentElement.style.setProperty('--color-doodle-tint', hex);
-      document.documentElement.style.setProperty('--color-primary-soft', hex);
-      if (isLight) {
-        document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
-      }
-    } else if (isLight) {
-      document.documentElement.style.setProperty('--color-primary', '#006241');
-      document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
-      document.documentElement.style.setProperty('--color-brand-green', '#006241');
-      document.documentElement.style.setProperty('--nexus-primary', '#006241');
-      document.documentElement.style.setProperty('--nexus-brand-green', '#006241');
-      document.documentElement.style.setProperty('--color-doodle-tint', '#006241');
-      document.documentElement.style.setProperty('--color-primary-soft', '#00754a');
+    const effectiveAccent = accent || (isLight ? '#006241' : '#00ed64');
+
+    // 1. Primary & Brand Variables
+    document.documentElement.style.setProperty('--color-primary', effectiveAccent, 'important');
+    document.documentElement.style.setProperty('--color-brand-green', effectiveAccent, 'important');
+    document.documentElement.style.setProperty('--nexus-primary', effectiveAccent, 'important');
+    document.documentElement.style.setProperty('--nexus-brand-green', effectiveAccent, 'important');
+    document.documentElement.style.setProperty('--color-doodle-tint', effectiveAccent, 'important');
+    document.documentElement.style.setProperty('--color-primary-soft', effectiveAccent, 'important');
+    document.documentElement.style.setProperty('--color-primary-pressed', effectiveAccent, 'important');
+
+    // 2. Derive surface-feature dynamically so active pills/cards match the accent
+    const surfaceFeature = isLight
+      ? `color-mix(in srgb, ${effectiveAccent} 14%, #ffffff)`
+      : `color-mix(in srgb, ${effectiveAccent} 16%, #002634)`;
+    document.documentElement.style.setProperty('--color-surface-feature', surfaceFeature, 'important');
+
+    if (isLight) {
+      document.documentElement.style.setProperty('--color-on-primary', '#ffffff', 'important');
     } else {
-      document.documentElement.style.removeProperty('--color-primary');
       document.documentElement.style.removeProperty('--color-on-primary');
-      document.documentElement.style.removeProperty('--color-brand-green');
-      document.documentElement.style.removeProperty('--nexus-primary');
-      document.documentElement.style.removeProperty('--nexus-brand-green');
-      document.documentElement.style.removeProperty('--color-doodle-tint');
-      document.documentElement.style.removeProperty('--color-primary-soft');
+    }
+
+    if (typeof document.body !== 'undefined') {
+      document.body.style.setProperty('--color-primary', effectiveAccent, 'important');
+      document.body.style.setProperty('--color-brand-green', effectiveAccent, 'important');
+      document.body.style.setProperty('--nexus-primary', effectiveAccent, 'important');
+      document.body.style.setProperty('--nexus-brand-green', effectiveAccent, 'important');
+      document.body.style.setProperty('--color-surface-feature', surfaceFeature, 'important');
     }
   }
 

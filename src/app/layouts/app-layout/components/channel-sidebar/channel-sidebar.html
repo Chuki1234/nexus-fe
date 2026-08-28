@@ -206,3 +206,10 @@
     (close)="showNotificationsModal.set(false)"
   />
 }
+
+@if (showPrivacyModal() && serverId(); as sId) {
+  <app-server-privacy-modal
+    [serverId]="sId"
+    (close)="showPrivacyModal.set(false)"
+  />
+}

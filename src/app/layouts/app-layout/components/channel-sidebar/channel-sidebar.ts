@@ -31,6 +31,7 @@ import { DeleteServerDialog } from './components/delete-server-dialog/delete-ser
 import { InviteChannelDialog } from './components/invite-channel-dialog/invite-channel-dialog';
 import { LeaveServerDialog } from './components/leave-server-dialog/leave-server-dialog';
 import { ServerNotificationsModal } from '../../../../features/server-notifications-modal/server-notifications-modal';
+import { ServerPrivacyModal } from '../../../../features/server-privacy-modal/server-privacy-modal';
 
 /**
  * Cột 2 — Cái vỏ: tiêu đề trên, khối người dùng dưới,
@@ -47,6 +48,7 @@ import { ServerNotificationsModal } from '../../../../features/server-notificati
     ChannelList,
     ConversationList,
     ServerNotificationsModal,
+    ServerPrivacyModal,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface' },
@@ -66,8 +68,12 @@ export class ChannelSidebar {
 
   protected readonly conversationQuery = signal('');
   protected readonly isMenuOpen = signal(false);
-  protected readonly hideMutedChannels = signal(false);
+  protected readonly hideMutedChannels = computed(() => {
+    const sId = this.serverId();
+    return sId ? this.settingsService.isHideMutedChannels(sId) : false;
+  });
   protected readonly showNotificationsModal = signal(false);
+  protected readonly showPrivacyModal = signal(false);
 
   protected openCommandCenter(): void {
     this.commandCenterService.open();
@@ -180,7 +186,10 @@ export class ChannelSidebar {
   protected toggleHideMutedChannels(event?: Event): void {
     event?.stopPropagation();
     event?.preventDefault();
-    this.hideMutedChannels.update((v) => !v);
+    const sId = this.serverId();
+    if (sId) {
+      this.settingsService.toggleHideMutedChannels(sId);
+    }
   }
 
   protected onInviteServer(event?: Event): void {
@@ -237,7 +246,7 @@ export class ChannelSidebar {
         this.showNotificationsModal.set(true);
         break;
       case 'privacy':
-        this.openServerSettings('server-safety');
+        this.showPrivacyModal.set(true);
         break;
       default:
         console.info(`Lựa chọn menu máy chủ: ${option}`);

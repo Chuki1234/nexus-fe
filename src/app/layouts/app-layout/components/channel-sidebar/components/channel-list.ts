@@ -585,6 +585,11 @@ export class ChannelList implements OnDestroy {
     const srvId = this.serverId();
     if (!srvId) return [];
 
+    // Đọc các signal phản ứng để tính toán lại ngay khi trạng thái tắt âm hoặc toggle ẩn thay đổi
+    const hideMuted = this.userSettings.isHideMutedChannels(srvId);
+    this.userSettings.hideMutedChannelsMap();
+    this.userSettings.channelNotificationSettingsMap();
+
     const layout = this.serversStore.getServerLayout(srvId);
     const channels = this.serversStore.channelsOf(srvId);
     const channelMap = new Map(channels.map((c) => [c.id, c]));
@@ -597,6 +602,10 @@ export class ChannelList implements OnDestroy {
       if (item.kind === 'channel') {
         const ch = channelMap.get(item.id);
         if (ch) {
+          const isMuted = this.userSettings.isChannelExplicitlyMuted(ch.id);
+          if (hideMuted && isMuted) {
+            continue;
+          }
           result.push({
             kind: 'channel',
             channel: ch,
@@ -607,11 +616,22 @@ export class ChannelList implements OnDestroy {
         if (cat) {
           const childIds = layout.categoryChannels[item.id] ?? [];
           const childChannels: ChannelSummary[] = [];
+          const isCategoryMuted = this.userSettings.isChannelExplicitlyMuted(cat.id);
+
           for (const chId of childIds) {
             const ch = channelMap.get(chId);
             if (ch) {
+              const isChannelMuted = this.userSettings.isChannelExplicitlyMuted(ch.id) || isCategoryMuted;
+              if (hideMuted && isChannelMuted) {
+                continue;
+              }
               childChannels.push(ch);
             }
+          }
+
+          // Khi bật ẩn kênh đã tắt thông báo: nếu category có kênh nhưng toàn bộ đều bị tắt âm, ẩn luôn category
+          if (hideMuted && childChannels.length === 0 && childIds.length > 0) {
+            continue;
           }
 
           const isCollapsed = this.isGroupCollapsed(cat.id);

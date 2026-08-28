@@ -244,9 +244,7 @@
    ========================================================================== */
 
 html[data-theme='light'],
-html[data-theme='warm-light'],
-[data-theme='warm-light'],
-[data-theme='light'] {
+html[data-theme='warm-light'] {
   color-scheme: light;
 
   --color-primary: #006241;
@@ -2109,7 +2107,7 @@ body {
   --chat-font-size: 15px;
 }
 
-[data-theme='midnight-dark'] {
+html[data-theme='midnight-dark'] {
   --color-canvas: #07090e;
   --color-canvas-dark: #05060a;
   --color-surface: #0e1017;
@@ -2122,7 +2120,7 @@ body {
   --color-on-primary: #07090e;
 }
 
-[data-theme='warm-light'] {
+html[data-theme='warm-light'] {
   --color-canvas: #f4f1ea;
   --color-canvas-dark: #ece7dc;
   --color-surface: #ffffff;
@@ -2139,6 +2137,10 @@ body {
   --color-stone: #94a3b8;
   --color-muted: #cbd5e1;
   --color-on-primary: #ffffff;
+}
+
+input[type='range'].custom-range-slider {
+  accent-color: var(--color-primary);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

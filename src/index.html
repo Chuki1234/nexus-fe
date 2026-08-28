@@ -33,24 +33,24 @@
           else if (legacy === 'midnight-dark') theme = 'midnight-dark';
         }
         document.documentElement.setAttribute('data-theme', theme);
-        if (accent && accent !== '#00ed64') {
-          document.documentElement.style.setProperty('--color-primary', accent);
-          document.documentElement.style.setProperty('--color-brand-green', accent);
-          document.documentElement.style.setProperty('--nexus-primary', accent);
-          document.documentElement.style.setProperty('--nexus-brand-green', accent);
-          document.documentElement.style.setProperty('--color-doodle-tint', accent);
-          document.documentElement.style.setProperty('--color-primary-soft', accent);
-          if (theme === 'warm-light') {
-            document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
-          }
-        } else if (theme === 'warm-light') {
-          document.documentElement.style.setProperty('--color-primary', '#006241');
-          document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
-          document.documentElement.style.setProperty('--color-brand-green', '#006241');
-          document.documentElement.style.setProperty('--nexus-primary', '#006241');
-          document.documentElement.style.setProperty('--nexus-brand-green', '#006241');
-          document.documentElement.style.setProperty('--color-doodle-tint', '#006241');
-          document.documentElement.style.setProperty('--color-primary-soft', '#00754a');
+        const isLight = theme === 'warm-light';
+        const effectiveAccent = accent || (isLight ? '#006241' : '#00ed64');
+
+        document.documentElement.style.setProperty('--color-primary', effectiveAccent, 'important');
+        document.documentElement.style.setProperty('--color-brand-green', effectiveAccent, 'important');
+        document.documentElement.style.setProperty('--nexus-primary', effectiveAccent, 'important');
+        document.documentElement.style.setProperty('--nexus-brand-green', effectiveAccent, 'important');
+        document.documentElement.style.setProperty('--color-doodle-tint', effectiveAccent, 'important');
+        document.documentElement.style.setProperty('--color-primary-soft', effectiveAccent, 'important');
+        document.documentElement.style.setProperty('--color-primary-pressed', effectiveAccent, 'important');
+
+        const surfaceFeature = isLight
+          ? `color-mix(in srgb, ${effectiveAccent} 14%, #ffffff)`
+          : `color-mix(in srgb, ${effectiveAccent} 16%, #002634)`;
+        document.documentElement.style.setProperty('--color-surface-feature', surfaceFeature, 'important');
+
+        if (isLight) {
+          document.documentElement.style.setProperty('--color-on-primary', '#ffffff', 'important');
         }
       } catch {
         // Storage có thể bị chặn; CSS mặc định dark vẫn là fallback hợp lệ.

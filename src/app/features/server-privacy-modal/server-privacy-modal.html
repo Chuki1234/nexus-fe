@@ -1,0 +1,176 @@
+<!-- ═════════════════════════════════════════════════════════════════════════
+     SERVER PRIVACY SETTINGS MODAL (CÀI ĐẶT BẢO MẬT MÁY CHỦ - CHUẨN DISCORD)
+     ═════════════════════════════════════════════════════════════════════════ -->
+<div
+  class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/65 backdrop-blur-md p-3 sm:p-5 animate-fade-in"
+  (click)="onClose()"
+>
+  <!-- Modal Container -->
+  <div
+    class="relative w-full max-w-[520px] max-h-[90vh] bg-surface rounded-3xl border border-hairline shadow-modal flex flex-col overflow-hidden animate-scale-in text-ink ring-1 ring-white/10"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Modal Header -->
+    <div class="h-14 border-b border-hairline bg-surface px-6 flex items-center justify-between shrink-0 select-none">
+      <div class="flex items-center gap-2 min-w-0">
+        <mat-icon class="text-primary !w-5 !h-5 !text-[20px]">security</mat-icon>
+        <h2 class="text-body-lg font-black text-ink tracking-tight truncate">
+          Cài đặt bảo mật — {{ serverName() }}
+        </h2>
+      </div>
+      <button
+        type="button"
+        (click)="onClose()"
+        class="w-8 h-8 rounded-xl text-steel hover:text-ink hover:bg-surface-feature flex items-center justify-center transition-colors cursor-pointer"
+        aria-label="Đóng cài đặt bảo mật"
+      >
+        <mat-icon class="!w-4 !h-4 !text-[18px]">close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Modal Body (Scrollable) -->
+    <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1 text-ink">
+      <!-- Description Banner -->
+      <div class="p-3.5 rounded-2xl bg-canvas/80 border border-hairline flex items-start gap-3">
+        <mat-icon class="text-primary !w-5 !h-5 !text-[20px] shrink-0 mt-0.5">shield</mat-icon>
+        <p class="text-caption text-steel leading-relaxed">
+          Tùy chỉnh quyền riêng tư và mức độ an toàn của bạn đối với các thành viên khác trong máy chủ 
+          <span class="font-bold text-ink">{{ serverName() }}</span>.
+        </p>
+      </div>
+
+      <!-- 1. TIN NHẮN TRỰC TIẾP (DIRECT MESSAGES) -->
+      <div class="space-y-2">
+        <span class="block text-micro-uppercase font-extrabold uppercase tracking-wider text-stone">
+          TIN NHẮN TRỰC TIẾP (DIRECT MESSAGES)
+        </span>
+        <div class="p-4 rounded-2xl bg-canvas/60 border border-hairline flex items-start justify-between gap-4 transition-colors hover:border-hairline-strong">
+          <div class="space-y-1 min-w-0">
+            <span class="block text-body-sm font-extrabold text-ink">
+              Cho phép gửi tin nhắn trực tiếp từ các thành viên trong máy chủ này
+            </span>
+            <p class="text-caption text-steel leading-snug">
+              Cài đặt này áp dụng khi bạn tham gia máy chủ. Nó không hạn chế tin nhắn từ những người đã có trong danh sách bạn bè của bạn.
+            </p>
+          </div>
+          <mat-slide-toggle
+            [checked]="currentSettings().allowDirectMessages"
+            (change)="updateSetting('allowDirectMessages', $event.checked)"
+            aria-label="Cho phép tin nhắn trực tiếp từ thành viên máy chủ"
+            class="shrink-0 mt-0.5"
+          />
+        </div>
+      </div>
+
+      <!-- 2. YÊU CẦU TIN NHẮN (MESSAGE REQUESTS) -->
+      <div class="space-y-2">
+        <span class="block text-micro-uppercase font-extrabold uppercase tracking-wider text-stone">
+          YÊU CẦU TIN NHẮN (MESSAGE REQUESTS)
+        </span>
+        <div class="p-4 rounded-2xl bg-canvas/60 border border-hairline flex items-start justify-between gap-4 transition-colors hover:border-hairline-strong">
+          <div class="space-y-1 min-w-0">
+            <span class="block text-body-sm font-extrabold text-ink">
+              Nhận yêu cầu tin nhắn từ các thành viên mà bạn có thể không biết
+            </span>
+            <p class="text-caption text-steel leading-snug">
+              Tin nhắn từ thành viên không phải bạn bè sẽ xuất hiện trong hộp thư chờ duyệt để bạn kiểm tra trước khi nhận thông báo.
+            </p>
+          </div>
+          <mat-slide-toggle
+            [checked]="currentSettings().allowMessageRequests"
+            (change)="updateSetting('allowMessageRequests', $event.checked)"
+            aria-label="Nhận yêu cầu tin nhắn"
+            class="shrink-0 mt-0.5"
+          />
+        </div>
+      </div>
+
+      <!-- 3. TRẠNG THÁI HOẠT ĐỘNG (ACTIVITY STATUS) -->
+      <div class="space-y-2">
+        <span class="block text-micro-uppercase font-extrabold uppercase tracking-wider text-stone">
+          HOẠT ĐỘNG TRONG MÁY CHỦ (ACTIVITY STATUS)
+        </span>
+        <div class="p-4 rounded-2xl bg-canvas/60 border border-hairline flex items-start justify-between gap-4 transition-colors hover:border-hairline-strong">
+          <div class="space-y-1 min-w-0">
+            <span class="block text-body-sm font-extrabold text-ink">
+              Chia sẻ trạng thái hoạt động của bạn trong máy chủ này
+            </span>
+            <p class="text-caption text-steel leading-snug">
+              Cho phép các thành viên khác nhìn thấy hoạt động của bạn (trò chơi đang chơi, ứng dụng tương thích) trong danh sách thành viên.
+            </p>
+          </div>
+          <mat-slide-toggle
+            [checked]="currentSettings().shareActivityStatus"
+            (change)="updateSetting('shareActivityStatus', $event.checked)"
+            aria-label="Chia sẻ trạng thái hoạt động"
+            class="shrink-0 mt-0.5"
+          />
+        </div>
+      </div>
+
+      <!-- 4. LỌC NỘI DUNG NHẠY CẢM (SENSITIVE CONTENT) -->
+      <div class="space-y-2">
+        <span class="block text-micro-uppercase font-extrabold uppercase tracking-wider text-stone">
+          NỘI DUNG VÀ TỆP TIN ĐÍNH KÈM
+        </span>
+        <div class="p-4 rounded-2xl bg-canvas/60 border border-hairline flex items-start justify-between gap-4 transition-colors hover:border-hairline-strong">
+          <div class="space-y-1 min-w-0">
+            <span class="block text-body-sm font-extrabold text-ink">
+              Lọc nội dung nhạy cảm và hình ảnh không an toàn
+            </span>
+            <p class="text-caption text-steel leading-snug">
+              Tự động làm mờ và cảnh báo trước đối với các hình ảnh hoặc tập tin media có thể chứa nội dung không an toàn từ các thành viên.
+            </p>
+          </div>
+          <mat-slide-toggle
+            [checked]="currentSettings().filterSensitiveContent"
+            (change)="updateSetting('filterSensitiveContent', $event.checked)"
+            aria-label="Lọc nội dung nhạy cảm"
+            class="shrink-0 mt-0.5"
+          />
+        </div>
+      </div>
+
+      <!-- 5. ÁP DỤNG ĐỒNG BỘ CHO TẤT CẢ MÁY CHỦ -->
+      <div class="pt-2">
+        <div class="p-4 rounded-2xl bg-surface-feature/40 border border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="min-w-0">
+            <span class="block text-body-sm font-bold text-ink">
+              Áp dụng cài đặt này cho tất cả máy chủ?
+            </span>
+            <p class="text-caption text-steel leading-snug mt-0.5">
+              Đồng bộ hóa tùy chọn bảo mật này đến tất cả máy chủ bạn đang tham gia.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="applyToAllServers()"
+            class="px-3.5 py-2 rounded-xl bg-surface border border-hairline hover:border-primary/60 text-ink text-caption font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0 self-start sm:self-auto"
+          >
+            <mat-icon class="!w-4 !h-4 !text-[16px] text-primary">sync</mat-icon>
+            <span>Áp dụng tất cả</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Feedback Toast -->
+      @if (toastMessage()) {
+        <div class="p-3 rounded-xl bg-primary/15 border border-primary/40 text-primary text-caption font-bold flex items-center gap-2 animate-fade-in">
+          <mat-icon class="!w-4 !h-4 !text-[16px]">check_circle</mat-icon>
+          <span>{{ toastMessage() }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="p-4 bg-surface border-t border-hairline/80">
+      <button
+        type="button"
+        (click)="onClose()"
+        class="w-full py-2.5 px-4 rounded-xl bg-[#5865f2] hover:bg-[#4752c4] active:bg-[#3c45a5] text-white font-black text-body-sm shadow-glow transition-all cursor-pointer text-center"
+      >
+        Xong
+      </button>
+    </div>
+  </div>
+</div>
