@@ -68,6 +68,8 @@ import { InlineMessageEditor } from '../components/inline-message-editor/inline-
 import { MessageClockService } from '../../../core/utils/message-clock.service';
 import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import { parseMessageContent, type MessageContentToken } from './utils/message-content-parser';
+import { resolveInternalLink } from './utils/internal-link';
+import { ChatLinkEmbed } from './components/chat-link-embed/chat-link-embed';
 import { copyToClipboard, extractMessageCopyableContent } from '../../../core/utils/clipboard.util';
 
 export interface ConversationHttpError {
@@ -221,6 +223,7 @@ import { ProfileDialogService } from '../../profile/profile-dialog.service';
   standalone: true,
   imports: [
     Avatar,
+    ChatLinkEmbed,
     ChatToolbar,
     ContextPanel,
     DashboardState,
@@ -306,6 +309,15 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     } catch {
       return url;
     }
+  }
+
+  /**
+   * Link có phải URL NỘI BỘ Nexus không (hồ sơ / mời / giới thiệu server)?
+   * Dùng để chọn: internal → card embed `<app-chat-link-embed>`; external →
+   * giữ nguyên card placeholder cũ.
+   */
+  protected isInternalLink(url: string | undefined): boolean {
+    return !!url && resolveInternalLink(url) !== null;
   }
 
   protected formatBytes(bytes?: number): string {
