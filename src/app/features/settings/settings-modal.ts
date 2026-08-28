@@ -21,6 +21,7 @@ import { CUSTOM_LINK_COLOR, tint } from '../profile/connected-apps';
 import { LINK_LABEL_MAX } from '../../../shared';
 import { UserSettingsService, SettingsTab } from './services/user-settings.service';
 import { Avatar } from '../../shared/ui/avatar/avatar';
+import { PlatformLogo } from '../profile/components/platform-logo/platform-logo';
 
 // User Tabs
 import { AccountTab } from './tabs/account-tab/account-tab';
@@ -74,6 +75,7 @@ export interface NavCategory {
     MatIconModule,
     MatButtonModule,
     Avatar,
+    PlatformLogo,
     AccountTab,
     AccountsTab,
     ProfileTab,

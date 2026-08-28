@@ -68,9 +68,11 @@
               [style.backgroundColor]="tint(row.platform?.color ?? customColor)"
               [style.color]="row.platform?.color ?? customColor"
             >
-              <mat-icon class="size-4.5! text-[18px]!">
-                {{ row.platform?.icon ?? iconFor(row.url) }}
-              </mat-icon>
+              @if (row.platform; as platform) {
+                <app-platform-logo class="size-4.5" [platform]="platform" />
+              } @else {
+                <mat-icon class="size-4.5! text-[18px]!">{{ iconFor(row.url) }}</mat-icon>
+              }
             </span>
 
             <span class="min-w-0 flex-1">
@@ -152,7 +154,7 @@
                     [style.backgroundColor]="tint(platform.color)"
                     [style.color]="platform.color"
                   >
-                    <mat-icon class="size-4! text-[16px]!">{{ platform.icon }}</mat-icon>
+                    <app-platform-logo class="size-4" [platform]="platform" />
                   </span>
                   <span class="min-w-0 flex-1 truncate text-body-sm-medium text-ink">
                     {{ platform.name }}
