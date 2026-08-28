@@ -11,7 +11,8 @@
     "serve:ssr:nexus-fe": "node dist/nexus-fe/server/server.mjs",
     "check:shared": "node scripts/check-shared.mjs",
     "config:local": "node scripts/generate-local-env.mjs",
-    "start:local": "node scripts/generate-local-env.mjs && ng serve --configuration=local"
+    "start:local": "node scripts/generate-local-env.mjs && ng serve --configuration=local",
+    "e2e": "playwright test"
   },
   "private": true,
   "packageManager": "npm@11.5.1",
@@ -42,6 +43,7 @@
     "@angular/build": "^21.2.14",
     "@angular/cli": "^21.2.14",
     "@angular/compiler-cli": "^21.2.0",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/express": "^5.0.1",
     "@types/node": "^20.17.19",

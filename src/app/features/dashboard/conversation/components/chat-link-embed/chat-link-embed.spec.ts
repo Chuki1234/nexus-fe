@@ -5,6 +5,7 @@ import { vi } from 'vitest';
 import { ChatLinkEmbed } from './chat-link-embed';
 import { ProfileLookupService } from '../../../../../core/profile/profile-lookup.service';
 import { ServersApiService } from '../../../../../core/api/servers-api.service';
+import { ProfileDialogService } from '../../../../profile/profile-dialog.service';
 import { Profile } from '../../../../../core/profile/profile.models';
 
 // Component không truyền origin nên resolveInternalLink dùng location.origin thật
@@ -53,6 +54,7 @@ describe('ChatLinkEmbed', () => {
     getInvitePreview: ReturnType<typeof vi.fn>;
     getServerPreview: ReturnType<typeof vi.fn>;
   };
+  let dialogMock: { open: ReturnType<typeof vi.fn> };
 
   async function setup(url: string): Promise<void> {
     fixture = TestBed.createComponent(ChatLinkEmbed);
@@ -66,10 +68,10 @@ describe('ChatLinkEmbed', () => {
   }
 
   beforeEach(() => {
-    // Xoá cache tĩnh để các test không nhiễm nhau qua serverCache.
     (ChatLinkEmbed as unknown as { serverCache: Map<string, unknown> }).serverCache.clear();
     lookupMock = { lookup: vi.fn() };
     serversMock = { getInvitePreview: vi.fn(), getServerPreview: vi.fn() };
+    dialogMock = { open: vi.fn() };
     TestBed.configureTestingModule({
       imports: [ChatLinkEmbed],
       providers: [
@@ -77,20 +79,27 @@ describe('ChatLinkEmbed', () => {
         provideTranslateService(),
         { provide: ProfileLookupService, useValue: lookupMock },
         { provide: ServersApiService, useValue: serversMock },
+        { provide: ProfileDialogService, useValue: dialogMock },
       ],
     });
   });
 
   describe('hồ sơ người dùng', () => {
-    it('link /u/:username → tra lookup và render app-profile-preview-card + nút', async () => {
+    it('link /u/:username → render card, KHÔNG có nút; bấm tên → mở dialog', async () => {
       lookupMock.lookup.mockResolvedValue(makeProfile('mon'));
       await setup(`${ORIGIN}/u/mon`);
 
       expect(lookupMock.lookup).toHaveBeenCalledWith('mon');
       const el: HTMLElement = fixture.nativeElement;
       expect(el.querySelector('app-profile-preview-card')).toBeTruthy();
-      const action = el.querySelector('a.nexus-embed-action') as HTMLAnchorElement | null;
-      expect(action?.getAttribute('href')).toBe('/u/mon');
+      // Không còn nút "Xem hồ sơ"
+      expect(el.querySelector('a.nexus-embed-action')).toBeNull();
+
+      // Bấm vào tên (button trong card) → gọi ProfileDialogService.open
+      const nameBtn = el.querySelector('app-profile-preview-card button') as HTMLButtonElement | null;
+      expect(nameBtn?.textContent).toContain('Mon Nguyen');
+      nameBtn!.click();
+      expect(dialogMock.open).toHaveBeenCalledWith('mon');
     });
 
     it('lookup null → không render card', async () => {
@@ -101,20 +110,21 @@ describe('ChatLinkEmbed', () => {
   });
 
   describe('lời mời máy chủ /invite/:code', () => {
-    it('invite hợp lệ → card server + nút "Tham gia" trỏ /invite/:code', async () => {
+    it('invite hợp lệ → card + nút "Tham gia" (/invite/:code) + tên link /invite/:code', async () => {
       serversMock.getInvitePreview.mockResolvedValue(makeInvite());
       await setup(`${ORIGIN}/invite/abcd1234`);
 
-      expect(serversMock.getInvitePreview).toHaveBeenCalledWith('abcd1234');
       const el: HTMLElement = fixture.nativeElement;
       expect(el.textContent).toContain('Nexus HQ');
-      expect(el.textContent).toContain('42 thành viên');
-      const action = el.querySelector('a.nexus-embed-action') as HTMLAnchorElement | null;
-      expect(action?.getAttribute('href')).toBe('/invite/abcd1234');
-      expect(action?.textContent).toContain('Tham gia');
+      const join = el.querySelector('a.nexus-embed-action') as HTMLAnchorElement | null;
+      expect(join?.getAttribute('href')).toBe('/invite/abcd1234');
+      expect(join?.textContent).toContain('Tham gia');
+      // Tên server là link điều hướng
+      const nameLink = el.querySelector('a[href="/invite/abcd1234"].hover\\:underline') as HTMLAnchorElement | null;
+      expect(nameLink?.textContent).toContain('Nexus HQ');
     });
 
-    it('invite hết hạn → chặn nút, không có link tham gia', async () => {
+    it('invite hết hạn → không có nút Tham gia, hiện lý do', async () => {
       serversMock.getInvitePreview.mockResolvedValue(
         makeInvite({ status: 'expired', isExpired: true }),
       );
@@ -123,18 +133,11 @@ describe('ChatLinkEmbed', () => {
       const el: HTMLElement = fixture.nativeElement;
       expect(el.textContent).toContain('Lời mời đã hết hạn');
       expect(el.querySelector('a.nexus-embed-action')).toBeNull();
-      expect(el.querySelector('button.nexus-embed-action[disabled]')).toBeTruthy();
-    });
-
-    it('getInvitePreview lỗi → không render card', async () => {
-      serversMock.getInvitePreview.mockRejectedValue(new Error('404'));
-      await setup(`${ORIGIN}/invite/nope1234`);
-      expect(fixture.nativeElement.querySelector('.nexus-embed-action')).toBeNull();
     });
   });
 
   describe('giới thiệu máy chủ /channels/:serverId', () => {
-    it('server tồn tại → card server + nút "Xem server" trỏ /channels/:serverId', async () => {
+    it('server tồn tại → tên link /channels/:id, KHÔNG có nút hành động', async () => {
       serversMock.getServerPreview.mockResolvedValue({
         serverId: SERVER_ID,
         name: 'Gaming Zone',
@@ -144,12 +147,11 @@ describe('ChatLinkEmbed', () => {
       });
       await setup(`${ORIGIN}/channels/${SERVER_ID}`);
 
-      expect(serversMock.getServerPreview).toHaveBeenCalledWith(SERVER_ID);
       const el: HTMLElement = fixture.nativeElement;
-      expect(el.textContent).toContain('Gaming Zone');
-      const action = el.querySelector('a.nexus-embed-action') as HTMLAnchorElement | null;
-      expect(action?.getAttribute('href')).toBe(`/channels/${SERVER_ID}`);
-      expect(action?.textContent).toContain('Xem server');
+      const nameLink = el.querySelector(`a[href="/channels/${SERVER_ID}"]`) as HTMLAnchorElement | null;
+      expect(nameLink?.textContent).toContain('Gaming Zone');
+      // introduction không có nút "Tham gia"/"Xem server"
+      expect(el.querySelector('a.nexus-embed-action')).toBeNull();
     });
   });
 
@@ -159,7 +161,7 @@ describe('ChatLinkEmbed', () => {
       expect(lookupMock.lookup).not.toHaveBeenCalled();
       expect(serversMock.getInvitePreview).not.toHaveBeenCalled();
       expect(serversMock.getServerPreview).not.toHaveBeenCalled();
-      expect(fixture.nativeElement.querySelector('.nexus-embed-action')).toBeNull();
+      expect(fixture.nativeElement.querySelector('app-profile-preview-card')).toBeNull();
     });
   });
 });

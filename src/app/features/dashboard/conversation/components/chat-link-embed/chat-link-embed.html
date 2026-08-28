@@ -12,8 +12,11 @@
       </div>
     </div>
   } @else if (profile(); as p) {
+    <!-- Bấm vào TÊN trong card → mở dialog preview hồ sơ (nameInteractive) -->
     <div class="mt-2 max-w-sm">
       <app-profile-preview-card
+        [nameInteractive]="true"
+        (nameClick)="openProfileDialog()"
         [displayName]="p.displayName || p.username"
         [username]="p.username"
         [avatarUrl]="p.avatarUrl"
@@ -24,14 +27,6 @@
         [bio]="p.bio"
         [links]="p.links"
       />
-      <a
-        mat-stroked-button
-        [routerLink]="['/u', p.username]"
-        class="nexus-embed-action mt-2"
-      >
-        <mat-icon>person</mat-icon>
-        Xem hồ sơ
-      </a>
     </div>
   }
   <!-- profile() null sau khi tải xong = không có hồ sơ / không có quyền xem →
@@ -70,25 +65,27 @@
           <span class="block text-micro-uppercase font-bold uppercase tracking-wider text-stone">
             {{ s.subtitle }}
           </span>
-          <span class="block truncate text-body-md font-semibold text-ink">{{ s.name }}</span>
+          <!-- Bấm vào TÊN server → điều hướng -->
+          <a
+            [routerLink]="s.nameLink"
+            class="block truncate text-body-md font-semibold text-ink hover:underline focus-visible:underline focus-visible:outline-none"
+          >
+            {{ s.name }}
+          </a>
           <span class="block text-caption text-steel">{{ s.memberCount }} thành viên</span>
         </div>
       </div>
 
       @if (s.invalid) {
         <p class="mt-2.5 text-caption text-steel">{{ s.invalidReason }}</p>
-        <button mat-stroked-button class="nexus-embed-action mt-1" disabled>
-          <mat-icon>block</mat-icon>
-          Không khả dụng
-        </button>
-      } @else {
+      } @else if (s.showJoin) {
         <a
           mat-flat-button
-          [routerLink]="s.actionLink"
+          [routerLink]="s.joinLink"
           class="nexus-embed-action mt-3"
         >
-          <mat-icon>{{ s.actionIcon }}</mat-icon>
-          {{ s.actionLabel }}
+          <mat-icon>login</mat-icon>
+          Tham gia
         </a>
       }
     </div>

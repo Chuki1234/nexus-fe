@@ -14,6 +14,7 @@ import { ProfileLookupService } from '../../../../../core/profile/profile-lookup
 import { Profile } from '../../../../../core/profile/profile.models';
 import { ProfilePreviewCardComponent } from '../../../../../shared/ui/profile-card/profile-preview-card.component';
 import { ServersApiService } from '../../../../../core/api/servers-api.service';
+import { ProfileDialogService } from '../../../../profile/profile-dialog.service';
 import { resolveInternalLink, type InternalLinkTarget } from '../../utils/internal-link';
 
 /** View-model đã chuẩn hoá cho card máy chủ (dùng chung cho invite & introduction). */
@@ -23,11 +24,12 @@ export interface ServerCardVm {
   memberCount: number;
   /** Nhãn dòng phụ: "Lời mời máy chủ" | "Máy chủ". */
   subtitle: string;
-  /** routerLink của nút hành động. */
-  actionLink: readonly [string, string];
-  actionLabel: string;
-  actionIcon: string;
-  /** Lời mời hết hạn/hết lượt → chặn nút, hiện lý do. */
+  /** routerLink khi bấm vào TÊN server (điều hướng). */
+  nameLink: readonly [string, string];
+  /** Chỉ card lời mời hợp lệ mới có nút "Tham gia" riêng. */
+  showJoin: boolean;
+  joinLink: readonly [string, string];
+  /** Lời mời hết hạn/hết lượt → không cho tham gia, hiện lý do. */
   invalid: boolean;
   invalidReason: string | null;
 }
@@ -59,6 +61,7 @@ export interface ServerCardVm {
 export class ChatLinkEmbed {
   private readonly lookup = inject(ProfileLookupService);
   private readonly serversApi = inject(ServersApiService);
+  private readonly profileDialog = inject(ProfileDialogService);
 
   /**
    * Cache dedupe cho card máy chủ (dùng chung mọi instance) — nhiều tin cùng
@@ -130,6 +133,14 @@ export class ChatLinkEmbed {
     });
   }
 
+  /** Bấm vào tên hồ sơ → mở dialog preview (giống nơi khác trong chat). */
+  protected openProfileDialog(): void {
+    const username = this.profileUsername();
+    if (username) {
+      this.profileDialog.open(username);
+    }
+  }
+
   /** Khoá cache hiện tại của nhánh server — để bỏ kết quả trễ khi URL đã đổi. */
   private serverCardKey(): string | null {
     const t = this.serverTarget();
@@ -155,9 +166,9 @@ export class ChatLinkEmbed {
                 iconUrl: p.serverIconUrl,
                 memberCount: p.memberCount,
                 subtitle: 'Lời mời máy chủ',
-                actionLink: ['/invite', p.code] as const,
-                actionLabel: 'Tham gia',
-                actionIcon: 'login',
+                nameLink: ['/invite', p.code] as const,
+                showJoin: !invalid,
+                joinLink: ['/invite', p.code] as const,
                 invalid,
                 invalidReason: p.isExpired
                   ? 'Lời mời đã hết hạn'
@@ -175,9 +186,9 @@ export class ChatLinkEmbed {
                 iconUrl: p.iconUrl,
                 memberCount: p.memberCount,
                 subtitle: 'Máy chủ',
-                actionLink: ['/channels', p.serverId] as const,
-                actionLabel: 'Xem server',
-                actionIcon: 'arrow_forward',
+                nameLink: ['/channels', p.serverId] as const,
+                showJoin: false,
+                joinLink: ['/channels', p.serverId] as const,
                 invalid: false,
                 invalidReason: null,
               } satisfies ServerCardVm;
