@@ -155,7 +155,7 @@ Test case dự kiến:
 
 ### Kết quả Phase 3
 - Ngày hoàn thành: 2026-08-29
-- Commit: frontend `<điền sau khi push>` · backend `n/a`
+- Commit: frontend `3f95a36` · backend `n/a`
 - Kết quả test: unit `internal-link 19/19 · chat-link-embed 4/4 · conversation 65/65 (compile+render OK)` ·
   E2E Playwright `hoãn` (xem ghi chú)
 - Đánh giá theo 3 tiêu chí:
@@ -221,7 +221,7 @@ Test case dự kiến:
 | --- | --- | --- | --- | --- |
 | 1 | 2026-08-28 | 2026-08-28 | unit 19/19 | fe a2511af · be c4bbe52 |
 | 2 | 2026-08-28 | 2026-08-28 | unit 6/6 | be 0fd93b6 |
-| 3 | 2026-08-29 | 2026-08-29 | unit 19+4+65 | fe (điền sau) |
+| 3 | 2026-08-29 | 2026-08-29 | unit 19+4+65 | fe 3f95a36 |
 | 4 | | | | |
 
 ---
