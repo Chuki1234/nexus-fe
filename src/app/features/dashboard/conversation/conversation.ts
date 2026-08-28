@@ -71,7 +71,13 @@ import {
 import { MessageClockService } from '../../../core/utils/message-clock.service';
 import { canEditMessage } from '../../../../shared/dto/messages.dto';
 import { parseMessageContent, type MessageContentToken } from './utils/message-content-parser';
-import { copyMessageToClipboard } from '../../../core/utils/clipboard.util';
+import { resolveInternalLink } from './utils/internal-link';
+import { ChatLinkEmbed } from './components/chat-link-embed/chat-link-embed';
+import {
+  copyMessageToClipboard,
+  copyToClipboard,
+  extractMessageCopyableContent,
+} from '../../../core/utils/clipboard.util';
 
 export interface ConversationHttpError {
   status?: number;
@@ -226,6 +232,7 @@ import { MessageContentComponent } from '../components/message-content/message-c
   standalone: true,
   imports: [
     Avatar,
+    ChatLinkEmbed,
     ChatToolbar,
     ContextPanel,
     DashboardState,
@@ -312,6 +319,15 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
     } catch {
       return url;
     }
+  }
+
+  /**
+   * Link có phải URL NỘI BỘ Nexus không (hồ sơ / mời / giới thiệu server)?
+   * Dùng để chọn: internal → card embed `<app-chat-link-embed>`; external →
+   * giữ nguyên card placeholder cũ.
+   */
+  protected isInternalLink(url: string | undefined): boolean {
+    return !!url && resolveInternalLink(url) !== null;
   }
 
   protected formatBytes(bytes?: number): string {

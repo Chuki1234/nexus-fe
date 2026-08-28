@@ -18,6 +18,7 @@ import type { ServerMemberDto } from '../../../../shared/dto/server-members.dto'
 
 export type SettingsTab =
   | 'account'
+  | 'accounts'
   | 'profile'
   | 'privacy'
   | 'notifications'

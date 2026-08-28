@@ -292,6 +292,28 @@
   </div>
 
   <!-- ═══════════════════════════════════════════
+       SECTION 4 – QUẢN LÝ & CHUYỂN TÀI KHOẢN
+  ════════════════════════════════════════════ -->
+  <h2 class="settings-section-heading" id="multi-account-heading">Quản Lý & Chuyển Tài Khoản</h2>
+
+  <div class="settings-row-group" aria-labelledby="multi-account-heading">
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <span class="settings-row-title">Tài khoản trên thiết bị này</span>
+        <span class="settings-row-value">Lưu các tài khoản đã đăng nhập để chuyển đổi qua lại nhanh chóng mà không cần đăng nhập lại.</span>
+      </div>
+      <button
+        type="button"
+        (click)="openManageAccountsModal()"
+        class="settings-row-btn settings-row-btn--primary cursor-pointer flex items-center gap-1.5"
+      >
+        <mat-icon class="!w-4 !h-4 !text-[16px]">swap_horiz</mat-icon>
+        <span>Chuyển tài khoản</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
        SECTION 5 – VÙNG NGUY HIỂM
   ════════════════════════════════════════════ -->
   <h2 class="settings-section-heading settings-section-heading--danger" id="danger-zone-heading">

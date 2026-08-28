@@ -114,6 +114,20 @@
                 <span>Xóa máy chủ</span>
               </button>
             } @else {
+              <!-- Nút Chuyển tài khoản (nằm NGAY TRÊN nút Đăng Xuất, chuyển tab trực tiếp trong Settings) -->
+              <button
+                type="button"
+                (click)="selectTab('accounts')"
+                class="w-full flex items-center gap-2 px-3.5 py-2 rounded-xl text-body-sm font-medium transition-colors cursor-pointer mb-1"
+                [class.bg-surface-feature]="settingsService.currentTab() === 'accounts'"
+                [class.text-ink]="settingsService.currentTab() === 'accounts'"
+                [class.text-slate]="settingsService.currentTab() !== 'accounts'"
+                [class.hover:bg-surface-feature]="settingsService.currentTab() !== 'accounts'"
+              >
+                <mat-icon class="!w-4 !h-4 !text-[18px] text-primary">swap_horiz</mat-icon>
+                <span>Chuyển Tài Khoản</span>
+              </button>
+
               <button
                 type="button"
                 (click)="handleLogout()"
@@ -216,6 +230,9 @@
                 <!-- User Settings Tabs -->
                 @case ('account') {
                   <app-account-tab />
+                }
+                @case ('accounts') {
+                  <app-accounts-tab />
                 }
                 @case ('profile') {
                   <app-profile-tab />

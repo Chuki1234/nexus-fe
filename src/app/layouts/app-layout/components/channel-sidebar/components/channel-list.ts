@@ -49,10 +49,13 @@ import { OverflowMarquee } from '../../../../../shared/ui/overflow-marquee/overf
 import { CreateChannelDialog } from './create-channel-dialog/create-channel-dialog';
 import { InviteChannelDialog } from './invite-channel-dialog/invite-channel-dialog';
 import { ServersStore } from '../../../../../core/servers/servers.store';
+import { ServersApiService } from '../../../../../core/api/servers-api.service';
 import { NotificationStore } from '../../../../../core/notification/notification-store';
 import { ServerVoiceStatesStore } from '../../../../../core/servers/server-voice-states.store';
 import { UserSettingsService } from '../../../../../features/settings/services/user-settings.service';
 import { ServerChannelStructureSyncService } from '../../../../../core/servers/server-channel-structure-sync.service';
+import { ToastService } from '../../../../../core/toast/toast.service';
+import { extractErrorMessage } from '../../../../../core/utils/error.util';
 
 export interface ChannelGroupViewModel {
   id: string;
@@ -123,7 +126,9 @@ export class ChannelList implements OnDestroy {
   @ViewChildren(CdkDropList) private readonly dropLists?: QueryList<CdkDropList>;
 
   private readonly serversStore = inject(ServersStore);
+  private readonly serversApi = inject(ServersApiService);
   private readonly notificationStore = inject(NotificationStore);
+  private readonly toast = inject(ToastService);
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
   private readonly voiceStatesStore = inject(ServerVoiceStatesStore);
   private readonly chatSocket = inject(ChatSocketService);
@@ -580,6 +585,7 @@ export class ChannelList implements OnDestroy {
 
   /**
    * Danh sách phần tử cấp gốc (Category hoặc Root Channel) theo đúng thứ tự canonical layout.
+   * Tự động đưa các kênh được Ghim lên ĐẦU danh mục hoặc ĐẦU danh sách máy chủ.
    */
   protected readonly rootItems = computed<SidebarItemViewModel[]>(() => {
     const srvId = this.serverId();
@@ -590,14 +596,15 @@ export class ChannelList implements OnDestroy {
     const channelMap = new Map(channels.map((c) => [c.id, c]));
     const categories = this.serversStore.categoriesOf(srvId);
     const catMap = new Map(categories.map((c) => [c.id, c]));
+    const pinnedSet = this.pinnedChannelIds();
 
-    const result: SidebarItemViewModel[] = [];
+    const rawItems: SidebarItemViewModel[] = [];
 
     for (const item of layout.rootItems) {
       if (item.kind === 'channel') {
         const ch = channelMap.get(item.id);
         if (ch) {
-          result.push({
+          rawItems.push({
             kind: 'channel',
             channel: ch,
           });
@@ -614,11 +621,18 @@ export class ChannelList implements OnDestroy {
             }
           }
 
+          // Ghim kênh lên ĐẦU danh mục nếu kênh đó được ghim
+          childChannels.sort((a, b) => {
+            const aPinned = pinnedSet.has(a.id) ? 1 : 0;
+            const bPinned = pinnedSet.has(b.id) ? 1 : 0;
+            return bPinned - aPinned;
+          });
+
           const isCollapsed = this.isGroupCollapsed(cat.id);
           const mentionCount = childChannels.reduce((acc, c) => acc + (c.mentionCount || 0), 0);
           const hasUnread = childChannels.some((c) => c.unread || (c.mentionCount || 0) > 0);
 
-          result.push({
+          rawItems.push({
             kind: 'category',
             category: cat,
             channels: childChannels,
@@ -630,7 +644,19 @@ export class ChannelList implements OnDestroy {
       }
     }
 
-    return result;
+    // Tách các kênh gốc được ghim đẩy lên ĐẦU HÀNG danh sách máy chủ
+    const pinnedRootChannels: SidebarItemViewModel[] = [];
+    const otherItems: SidebarItemViewModel[] = [];
+
+    for (const item of rawItems) {
+      if (item.kind === 'channel' && pinnedSet.has(item.channel.id)) {
+        pinnedRootChannels.push(item);
+      } else {
+        otherItems.push(item);
+      }
+    }
+
+    return [...pinnedRootChannels, ...otherItems];
   });
 
   /**
@@ -1013,18 +1039,123 @@ export class ChannelList implements OnDestroy {
 
     const url = `${window.location.origin}/channels/${this.serverId()}/${target.id}`;
     if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(url).catch(() => undefined);
+      navigator.clipboard
+        .writeText(url)
+        .then(() =>
+          this.toast.show({
+            message: 'Đã sao chép liên kết kênh vào khay nhớ tạm.',
+            type: 'success',
+          }),
+        )
+        .catch(() =>
+          this.toast.show({
+            message: 'Không thể sao chép liên kết.',
+            type: 'error',
+          }),
+        );
     }
   }
 
-  protected markGroupAsRead(group?: { id?: string; label?: string } | null): void {
+  protected readonly pinnedChannelIds = signal<Set<string>>(this.loadPinnedChannels());
+
+  private loadPinnedChannels(): Set<string> {
+    if (typeof localStorage === 'undefined') return new Set();
+    try {
+      const raw = localStorage.getItem('nexus_pinned_channels');
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch {
+      return new Set();
+    }
+  }
+
+  protected isChannelPinned(channelId?: string | null): boolean {
+    if (!channelId) return false;
+    return this.pinnedChannelIds().has(channelId);
+  }
+
+  protected togglePinChannel(channel?: ChannelSummary | null): void {
+    const target = channel ?? this.selectedChannel();
+    if (!target) return;
+
+    let isPinnedNow = false;
+    this.pinnedChannelIds.update((set) => {
+      const next = new Set(set);
+      if (next.has(target.id)) {
+        next.delete(target.id);
+        isPinnedNow = false;
+      } else {
+        next.add(target.id);
+        isPinnedNow = true;
+      }
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('nexus_pinned_channels', JSON.stringify(Array.from(next)));
+      }
+      return next;
+    });
+
+    this.toast.show({
+      message: isPinnedNow
+        ? `Đã ghim kênh #${target.name} lên đầu.`
+        : `Đã bỏ ghim kênh #${target.name}.`,
+      type: 'success',
+    });
+  }
+
+  protected markGroupAsRead(
+    group?: ChannelGroupViewModel | { id?: string; label?: string; channels?: ChannelSummary[] } | null,
+  ): void {
     const target = group ?? this.selectedGroup();
     if (!target) return;
+    const channels = 'channels' in target ? target.channels : undefined;
+    if (channels) {
+      for (const ch of channels) {
+        this.notificationStore.markChannelRead(ch.id);
+      }
+      this.toast.show({ message: 'Đã đánh dấu danh mục là đã đọc.', type: 'info' });
+    }
   }
 
   protected markChannelAsRead(channel?: ChannelSummary | null): void {
     const target = channel ?? this.selectedChannel();
     if (!target) return;
+    this.notificationStore.markChannelRead(target.id);
+    this.toast.show({ message: `Đã đánh dấu kênh #${target.name} là đã đọc.`, type: 'info' });
+  }
+
+  protected async onDeleteChannel(channel?: ChannelSummary | null): Promise<void> {
+    const target = channel ?? this.selectedChannel();
+    const sId = this.serverId();
+    if (!target || !sId) return;
+
+    const serverChannels = this.serversStore.channelsOf(sId) || [];
+    const textChannels = serverChannels.filter((c) => c.type === 'text' || !c.type);
+    if (
+      textChannels.length <= 1 &&
+      (target.type === 'text' || !target.type) &&
+      serverChannels.length > 0
+    ) {
+      this.toast.show({
+        message: 'Không thể xóa kênh chữ cuối cùng trong máy chủ.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn xóa kênh #${target.name}? Thao tác này không thể hoàn tác.`)) {
+      return;
+    }
+
+    try {
+      await this.serversApi.deleteChannel(sId, target.id);
+      this.serversStore.removeChannel(sId, target.id);
+      this.toast.show({
+        message: `Đã xóa kênh #${target.name}.`,
+        type: 'success',
+      });
+    } catch (err: any) {
+      const errorMsg = extractErrorMessage(err, 'Không thể xóa kênh.');
+      this.toast.show({ message: errorMsg, type: 'error' });
+    }
   }
 
   protected createChannelOfSameType(channel?: ChannelSummary | null): void {
@@ -1065,15 +1196,18 @@ export class ChannelList implements OnDestroy {
       for (const chId of channelIds) {
         this.userSettings.setChannelMuted(chId, true, durationMs);
       }
+      this.toast.show({ message: 'Đã cập nhật trạng thái tắt âm kênh.', type: 'success' });
     } else if (action === 'unmute') {
       for (const chId of channelIds) {
         this.userSettings.setChannelMuted(chId, false);
       }
+      this.toast.show({ message: 'Đã bật lại âm thanh kênh.', type: 'success' });
     } else if (action.startsWith('notify-')) {
       const level = action.replace('notify-', '') as 'default' | 'all' | 'mentions' | 'nothing';
       for (const chId of channelIds) {
         this.userSettings.setChannelNotificationLevel(chId, level);
       }
+      this.toast.show({ message: 'Đã cập nhật cài đặt thông báo kênh.', type: 'success' });
     }
   }
 
