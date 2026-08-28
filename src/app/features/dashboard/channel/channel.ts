@@ -400,6 +400,10 @@ export class ChannelPage implements OnInit, AfterViewInit {
             if (k) this.processedMessageIds.add(k);
           }
           this.scrollController.handleInitialRender(targetKey, this.scrollController.generation);
+          // Mở kênh = đã đọc: ghi con trỏ đã đọc xuống read_states ngay, không đợi
+          // người dùng cuộn. Nếu thiếu bước này thì badge chỉ giảm in-memory và F5
+          // sẽ khôi phục lại vì server không hề biết mình đã xem.
+          this.markLatestAsRead();
           return;
         }
 
@@ -426,8 +430,29 @@ export class ChannelPage implements OnInit, AfterViewInit {
           wasNearBottom,
           count: inboundCount,
         });
+
+        // Đang ở đáy kênh khi có tin mới ⇒ đã thấy ⇒ persist đã đọc luôn (không đợi
+        // sự kiện scroll, vì auto-scroll có thể không phát scroll event kịp/đủ gần đáy).
+        if (wasNearBottom) {
+          this.markLatestAsRead();
+        }
       });
     });
+  }
+
+  /**
+   * Ghi tin nhắn persisted mới nhất vào read_states qua channelChat.markAsRead.
+   * markAsRead đã tự chặn theo monotonic (không kéo lùi) và bỏ qua khi tab ẩn,
+   * nên gọi lặp lại là an toàn.
+   */
+  private markLatestAsRead(): void {
+    const msgs = this.messages();
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].status === 'persisted') {
+        void this.channelChat.markAsRead(msgs[i].id);
+        return;
+      }
+    }
   }
 
   async ngOnInit(): Promise<void> {

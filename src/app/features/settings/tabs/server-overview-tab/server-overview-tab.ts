@@ -23,7 +23,16 @@ export class ServerOverviewTab {
   protected readonly serverName = computed(() => this.serverData().name);
   protected readonly serverDescription = computed(() => this.serverData().description);
   protected readonly initials = computed(() => this.serverData().initials);
-  protected readonly serverIcon = computed(() => this.serverData().iconUrl ?? null);
+  /**
+   * Ảnh XEM TRƯỚC cục bộ (ObjectURL của file vừa chọn). Phải ưu tiên hơn giá trị
+   * từ store: `currentServerData` luôn override `iconUrl` bằng giá trị của server
+   * thật (thường là null khi chưa có icon), nên nếu chỉ đọc `serverData().iconUrl`
+   * thì file mới chọn không bao giờ hiện ra ở live preview.
+   */
+  private readonly pendingIconPreview = signal<string | null>(null);
+  protected readonly serverIcon = computed(
+    () => this.pendingIconPreview() ?? this.serverData().iconUrl ?? null,
+  );
   protected readonly bannerColor = computed(
     () => this.serverData().bannerColor || 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
   );
@@ -91,15 +100,27 @@ export class ServerOverviewTab {
     const file = input.files[0];
     if (!file.type.startsWith('image/')) return;
 
-    // Lưu file gốc để upload khi save; hiện preview qua ObjectURL (không tốn bộ nhớ).
+    // Lưu file gốc để upload khi save; hiện preview qua ObjectURL cục bộ.
     this.pendingIconFile.set(file);
-    const previewUrl = URL.createObjectURL(file);
-    this.settingsService.updateCurrentServerOverview({ iconUrl: previewUrl });
+    this.revokePendingPreview();
+    this.pendingIconPreview.set(URL.createObjectURL(file));
+    // Cho phép chọn lại cùng một file lần nữa (input file không tự bắn change nếu
+    // value không đổi).
+    input.value = '';
   }
 
   protected removeServerIcon(): void {
     this.pendingIconFile.set(null);
+    this.revokePendingPreview();
+    this.pendingIconPreview.set(null);
     this.settingsService.updateCurrentServerOverview({ iconUrl: null });
+  }
+
+  private revokePendingPreview(): void {
+    const prev = this.pendingIconPreview();
+    if (prev?.startsWith('blob:')) {
+      URL.revokeObjectURL(prev);
+    }
   }
 
   protected async saveServerOverview(): Promise<void> {
@@ -117,6 +138,8 @@ export class ServerOverviewTab {
         // Cập nhật preview sang URL thật từ Storage (không còn ObjectURL tạm)
         this.settingsService.updateCurrentServerOverview({ iconUrl: iconRes.iconUrl });
         this.pendingIconFile.set(null);
+        this.revokePendingPreview();
+        this.pendingIconPreview.set(null);
       }
 
       // 2. Lưu tên (và các trường khác không phải file)
