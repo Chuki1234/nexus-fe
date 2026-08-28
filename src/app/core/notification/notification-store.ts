@@ -4,6 +4,7 @@ import { AuthService } from '../auth/auth.service';
 import { ChatSocketService } from '../realtime/chat-socket.service';
 import { ServersStore } from '../servers/servers.store';
 import { ActiveChatStore } from '../../features/dashboard/services/active-chat.store';
+import { UserSettingsService } from '../../features/settings/services/user-settings.service';
 
 interface ChannelCounts {
   unread: number;
@@ -29,6 +30,8 @@ export class NotificationStore {
   private readonly auth = inject(AuthService);
   private readonly serversStore = inject(ServersStore);
   private readonly activeChatStore = inject(ActiveChatStore);
+  // Optional: tránh mọi rủi ro vòng lặp DI và để test mock từng phần.
+  private readonly userSettings = inject(UserSettingsService, { optional: true });
 
   /** Số tin chưa đọc theo DM conversationId. */
   private readonly dmCounts = signal<Record<string, number>>({});
@@ -43,6 +46,8 @@ export class NotificationStore {
       this.subs.add(
         this.chatSocket.conversationUpdated$.subscribe(({ conversationId, senderId }) => {
           if (senderId && senderId === this.myId()) return;
+          // DM 1-1: senderId chính là người bạn. Đã tắt thông báo người này ⇒ không bump badge.
+          if (senderId && this.isDmMuted(senderId)) return;
           if (this.activeChatStore.conversationId() === conversationId) return;
           this.bumpDm(conversationId, 1);
         }),
@@ -56,6 +61,8 @@ export class NotificationStore {
 
           if (p.conversationId) {
             if (this.activeChatStore.conversationId() === p.conversationId) return;
+            // DM 1-1: authorId là người bạn. Tắt thông báo ⇒ bỏ qua kể cả khi @mention.
+            if (p.authorId && this.isDmMuted(p.authorId)) return;
             if (p.unreadCount) this.bumpDm(p.conversationId, p.unreadCount);
             return;
           }
@@ -126,6 +133,11 @@ export class NotificationStore {
 
   private myId(): string | null {
     return this.auth.user()?.id ?? null;
+  }
+
+  /** Người bạn trong DM 1-1 có đang bị tắt thông báo không. */
+  private isDmMuted(friendId: string): boolean {
+    return this.userSettings?.isFriendMuted(friendId) ?? false;
   }
 
   // ── DM ────────────────────────────────────────────────────────────────────

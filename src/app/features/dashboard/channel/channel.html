@@ -190,6 +190,7 @@
                     <li
                       class="message-row"
                       [id]="'msg-' + msg.id"
+                      [attr.data-message-id]="msg.id"
                       [class.message-row--compact]="isCompact(idx)"
                       [class.message-row--highlighted]="highlightedMessageId() === msg.id"
                       [class.message-row--sending]="msg.status === 'sending'"
@@ -242,13 +243,51 @@
                     <article class="message-card">
                       <!-- Reply context header -->
                       @if (msg.replyToId) {
-                        <div
-                          class="message-reply mb-1 cursor-pointer"
-                          (click)="jumpToMessage(msg.replyToId)"
-                        >
-                          <mat-icon class="!size-3.5 !text-sm text-steel">reply</mat-icon>
-                          <span class="text-micro text-steel">Đang trả lời một tin nhắn</span>
-                        </div>
+                        @if (findReplyMessage(msg.replyToId); as replyMsg) {
+                          <div
+                            class="message-reply cursor-pointer"
+                            role="button"
+                            tabindex="0"
+                            (click)="jumpToMessage(msg.replyToId)"
+                            title="Đi tới tin nhắn gốc"
+                            aria-label="Đi tới tin nhắn gốc của {{
+                              replyMsg.author?.displayName ||
+                                replyMsg.author?.username ||
+                                'Người dùng'
+                            }}"
+                          >
+                            <mat-icon class="message-reply__icon" aria-hidden="true">reply</mat-icon>
+                            <span class="message-reply__avatar" aria-hidden="true">
+                              {{
+                                (
+                                  replyMsg.author?.displayName ||
+                                  replyMsg.author?.username ||
+                                  'U'
+                                ).slice(0, 1)
+                              }}
+                            </span>
+                            <strong class="message-reply__author">{{
+                              replyMsg.author?.displayName ||
+                                replyMsg.author?.username ||
+                                'Người dùng'
+                            }}</strong>
+                            <span class="message-reply__snippet truncate">{{
+                              getReplySnippet(replyMsg)
+                            }}</span>
+                          </div>
+                        } @else {
+                          <div
+                            class="message-reply cursor-pointer"
+                            role="button"
+                            tabindex="0"
+                            (click)="jumpToMessage(msg.replyToId)"
+                            title="Đi tới tin nhắn gốc"
+                            aria-label="Đi tới tin nhắn gốc"
+                          >
+                            <mat-icon class="message-reply__icon" aria-hidden="true">reply</mat-icon>
+                            <span class="text-xs text-steel">Đã trả lời một tin nhắn</span>
+                          </div>
+                        }
                       }
 
                       <div
@@ -780,6 +819,7 @@
       <app-context-panel
         title="Tin nhắn đã ghim"
         [open]="pinsOpen()"
+        [showClose]="false"
         (closed)="pinsOpen.set(false)"
       >
         <section class="p-3" aria-label="Danh sách tin nhắn đã ghim">

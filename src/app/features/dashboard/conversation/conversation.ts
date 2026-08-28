@@ -494,8 +494,11 @@ export class ConversationPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected openPins(): void {
-    this.profilePanelOpen.set(false);
-    this.pinsOpen.set(true);
+    const next = !this.pinsOpen();
+    if (next) {
+      this.profilePanelOpen.set(false);
+    }
+    this.pinsOpen.set(next);
   }
 
   protected readonly recipientStatus = computed(() => {

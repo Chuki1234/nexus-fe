@@ -1361,7 +1361,12 @@
       }
     </div>
 
-    <app-context-panel title="Tin nhắn đã ghim" [open]="pinsOpen()" (closed)="pinsOpen.set(false)">
+    <app-context-panel
+      title="Tin nhắn đã ghim"
+      [open]="pinsOpen()"
+      [showClose]="false"
+      (closed)="pinsOpen.set(false)"
+    >
       <section class="p-3" aria-label="Danh sách tin nhắn đã ghim">
         <app-pinned-messages-list
           [messages]="pinnedMessages()"

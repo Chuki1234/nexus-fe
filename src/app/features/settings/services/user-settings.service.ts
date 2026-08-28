@@ -11,6 +11,7 @@ import { formatApiError } from '../../../core/api/servers-api.service';
 import { ServerCapabilitiesService } from '../../../core/servers/server-capabilities.service';
 import { ServersStore } from '../../../core/servers/servers.store';
 import { FriendsStore } from '../../dashboard/friends/services/friends-store';
+import { FriendsApi } from '../../dashboard/friends/services/friends-api';
 import { ServersApiService } from '../../../core/api/servers-api.service';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
 import type { ServerMemberDto } from '../../../../shared/dto/server-members.dto';
@@ -441,6 +442,7 @@ export class UserSettingsService {
   private readonly capabilitiesService = inject(ServerCapabilitiesService, { optional: true });
   private readonly serversStore = inject(ServersStore, { optional: true });
   private readonly friendsStore = inject(FriendsStore, { optional: true });
+  private readonly friendsApi = inject(FriendsApi, { optional: true });
   private readonly serversApi = inject(ServersApiService, { optional: true });
   private readonly chatSocket = inject(ChatSocketService, { optional: true });
 
@@ -1580,7 +1582,8 @@ export class UserSettingsService {
     })(),
   );
 
-  // Muted Friends list: string[] (user IDs)
+  // Muted Friends list: string[] (user IDs). Nguồn sự thật là BACKEND (đồng bộ đa
+  // thiết bị); localStorage chỉ là cache để hiển thị tức thì trước khi fetch xong.
   readonly mutedFriends = signal<string[]>(
     (() => {
       try {
@@ -1592,6 +1595,9 @@ export class UserSettingsService {
       return [];
     })(),
   );
+
+  /** userId đã nạp danh sách mute từ backend — tránh nạp lại nhiều lần. */
+  private mutesLoadedFor: string | null = null;
 
   constructor() {
     effect(() => {
@@ -1624,6 +1630,17 @@ export class UserSettingsService {
     });
 
     this.initServerMembersRealtime();
+
+    // Khi đăng nhập, nạp danh sách tắt thông báo DM từ backend (đồng bộ đa thiết bị).
+    effect(() => {
+      const uid = this.authService?.user()?.id ?? null;
+      if (uid && this.mutesLoadedFor !== uid) {
+        this.mutesLoadedFor = uid;
+        void this.loadMutedFriends();
+      } else if (!uid) {
+        this.mutesLoadedFor = null;
+      }
+    });
 
     const initialPrefs = this.preferences();
     this.applyThemeAndAccentToDom(initialPrefs.theme, initialPrefs.themeAccent);
@@ -2989,20 +3006,51 @@ export class UserSettingsService {
     return this.mutedFriends().includes(friendId);
   }
 
+  /**
+   * Bật/tắt thông báo DM cho một người — LƯU THEO TÀI KHOẢN (đồng bộ đa thiết bị).
+   *
+   * Cập nhật signal + cache localStorage ngay (optimistic) để UI phản hồi tức thì,
+   * đồng thời gọi backend. Nếu backend lỗi thì revert về trạng thái trước.
+   */
   toggleMuteFriend(friendId: string): boolean {
-    let nowMuted = false;
-    this.mutedFriends.update((list) => {
-      const isMuted = list.includes(friendId);
-      nowMuted = !isMuted;
-      const updated = isMuted ? list.filter((id) => id !== friendId) : [...list, friendId];
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.setItem('nexuscord-muted-friends', JSON.stringify(updated));
-        }
-      } catch {}
-      return updated;
+    const prev = this.mutedFriends();
+    const wasMuted = prev.includes(friendId);
+    const nowMuted = !wasMuted;
+    const updated = nowMuted ? [...prev, friendId] : prev.filter((id) => id !== friendId);
+
+    this.mutedFriends.set(updated);
+    this.persistMutedFriendsCache(updated);
+
+    const req = nowMuted
+      ? this.friendsApi?.muteUser(friendId)
+      : this.friendsApi?.unmuteUser(friendId);
+    req?.catch(() => {
+      // Khôi phục trạng thái cũ khi đồng bộ server thất bại.
+      this.mutedFriends.set(prev);
+      this.persistMutedFriendsCache(prev);
     });
+
     return nowMuted;
+  }
+
+  /** Nạp danh sách tắt thông báo từ backend (nguồn sự thật) — cache lại localStorage. */
+  private async loadMutedFriends(): Promise<void> {
+    if (!this.friendsApi) return;
+    try {
+      const ids = await this.friendsApi.listMutes();
+      this.mutedFriends.set(ids);
+      this.persistMutedFriendsCache(ids);
+    } catch {
+      // Backend lỗi → giữ nguyên cache localStorage hiện có.
+    }
+  }
+
+  private persistMutedFriendsCache(ids: string[]): void {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('nexuscord-muted-friends', JSON.stringify(ids));
+      }
+    } catch {}
   }
 
   revokeSession(id: string): void {

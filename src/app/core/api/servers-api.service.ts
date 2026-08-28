@@ -45,7 +45,7 @@ export const CANONICAL_SERVER_TEMPLATES: readonly ServerTemplate[] = [
     icon: 'tune',
     textChannelCount: 1,
     voiceChannelCount: 0,
-    channels: [{ name: 'chung', type: 'text', position: 0 }],
+    channels: [{ name: 'chào-mừng', type: 'text', position: 0 }],
   },
   {
     id: 'gaming',
@@ -70,7 +70,7 @@ export const CANONICAL_SERVER_TEMPLATES: readonly ServerTemplate[] = [
     textChannelCount: 3,
     voiceChannelCount: 1,
     channels: [
-      { name: 'chung', type: 'text', position: 0 },
+      { name: 'chào-mừng', type: 'text', position: 0 },
       { name: 'kèo-cuối-tuần', type: 'text', position: 1 },
       { name: 'ảnh-và-meme', type: 'text', position: 2 },
       { name: 'Phòng khách', type: 'voice', position: 3 },
@@ -84,7 +84,7 @@ export const CANONICAL_SERVER_TEMPLATES: readonly ServerTemplate[] = [
     textChannelCount: 4,
     voiceChannelCount: 1,
     channels: [
-      { name: 'thông-báo', type: 'text', position: 0 },
+      { name: 'chào-mừng', type: 'text', position: 0 },
       { name: 'thảo-luận', type: 'text', position: 1 },
       { name: 'tài-liệu', type: 'text', position: 2 },
       { name: 'bài-tập', type: 'text', position: 3 },
@@ -99,7 +99,7 @@ export const CANONICAL_SERVER_TEMPLATES: readonly ServerTemplate[] = [
     textChannelCount: 4,
     voiceChannelCount: 1,
     channels: [
-      { name: 'thông-báo', type: 'text', position: 0 },
+      { name: 'chào-mừng', type: 'text', position: 0 },
       { name: 'giới-thiệu', type: 'text', position: 1 },
       { name: 'sự-kiện', type: 'text', position: 2 },
       { name: 'ban-tổ-chức', type: 'text', position: 3 },

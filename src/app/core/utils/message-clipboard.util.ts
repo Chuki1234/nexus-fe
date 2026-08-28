@@ -39,6 +39,10 @@ export const PORTABLE_FILE_EXTENSIONS = new Set([
   'pdf',
   'txt',
   'zip',
+  '7z',
+  'tar',
+  'rar',
+  'gz',
   'docx',
 ]);
 
@@ -69,6 +73,10 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   pdf: 'application/pdf',
   txt: 'text/plain',
   zip: 'application/zip',
+  '7z': 'application/x-7z-compressed',
+  tar: 'application/x-tar',
+  rar: 'application/vnd.rar',
+  gz: 'application/gzip',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 };
 
@@ -156,11 +164,16 @@ function getAuthToken(): string | null {
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.includes('auth-token')) {
+      if (key && (key.includes('auth-token') || key.startsWith('sb-'))) {
         const item = localStorage.getItem(key);
         if (item) {
-          const parsed = JSON.parse(item);
-          if (parsed?.access_token) return parsed.access_token;
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed?.access_token) return parsed.access_token;
+            if (parsed?.currentSession?.access_token) return parsed.currentSession.access_token;
+          } catch {
+            // ignore
+          }
         }
       }
     }
@@ -189,7 +202,7 @@ async function imageSourceToFile(src: string, alt: string, index: number): Promi
   // 1. Thử fetch trực tiếp ở frontend
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 2000);
+    const timer = setTimeout(() => controller.abort(), 2500);
     const response = await fetch(src, {
       credentials: 'omit',
       signal: controller.signal,
@@ -231,8 +244,9 @@ async function imageSourceToFile(src: string, alt: string, index: number): Promi
     const blob = await response.blob();
     if (blob.size > MAX_SINGLE_FILE_BYTES) return null;
 
+    const contentType = response.headers.get('content-type') || blob.type || 'image/png';
     return new File([blob], filename, {
-      type: blob.type || 'image/png',
+      type: contentType,
       lastModified: Date.now(),
     });
   } catch {
@@ -246,7 +260,7 @@ async function linkedResourceToFile(href: string, filename: string): Promise<Fil
   // 1. Thử fetch trực tiếp ở frontend
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 2000);
+    const timer = setTimeout(() => controller.abort(), 2500);
     const response = await fetch(href, {
       credentials: 'omit',
       signal: controller.signal,
@@ -268,7 +282,7 @@ async function linkedResourceToFile(href: string, filename: string): Promise<Fil
     // Fallback qua backend proxy
   }
 
-  // 2. Fallback qua backend proxy để vượt qua CORS (Discord CDN, Dropbox, v.v.)
+  // 2. Fallback qua backend proxy để vượt qua CORS (Discord CDN, Dropbox, Zalo, Telegram, v.v.)
   try {
     const baseUrl = environment.apiUrl || 'http://localhost:3000/api';
     const token = getAuthToken();
@@ -287,7 +301,8 @@ async function linkedResourceToFile(href: string, filename: string): Promise<Fil
     if (blob.size > MAX_SINGLE_FILE_BYTES) return null;
 
     const extension = extensionFromFilename(filename);
-    const type = MIME_BY_EXTENSION[extension] || blob.type || 'application/octet-stream';
+    const contentType = response.headers.get('content-type');
+    const type = contentType || MIME_BY_EXTENSION[extension] || blob.type || 'application/octet-stream';
     return new File([blob], filename, { type, lastModified: Date.now() });
   } catch {
     return null;
@@ -545,16 +560,25 @@ export async function extractClipboardMessage(
       });
     }
   } else {
-    // Fallback cho text/plain chứa link tải file trực tiếp
+    // Fallback cho text/plain chứa link tải file/ảnh/video trực tiếp hoặc CDN URL
     const fileUrls = Array.from(plainText.matchAll(/https?:\/\/[^\s<>"'`]+/g))
       .map((match) => match[0])
       .map((href) => {
         try {
-          const filename = cleanFilename(
-            decodeURIComponent(new URL(href).pathname.split('/').pop() || ''),
-          );
-          return PORTABLE_FILE_EXTENSIONS.has(extensionFromFilename(filename))
-            ? { href, filename }
+          const urlObj = new URL(href);
+          const rawPath = urlObj.pathname.split('/').pop() || '';
+          let filename = cleanFilename(decodeURIComponent(rawPath));
+          let ext = extensionFromFilename(filename);
+          // If no extension in pathname, check query parameters (e.g. format=png, ext=jpg)
+          if (!ext) {
+            const formatParam = urlObj.searchParams.get('format') || urlObj.searchParams.get('ext');
+            if (formatParam && PORTABLE_FILE_EXTENSIONS.has(formatParam.toLowerCase())) {
+              ext = formatParam.toLowerCase();
+              filename = `${filename || 'media'}.${ext}`;
+            }
+          }
+          return PORTABLE_FILE_EXTENSIONS.has(ext)
+            ? { href, filename: filename || `file-${Date.now()}.${ext}` }
             : null;
         } catch {
           return null;
@@ -571,7 +595,7 @@ export async function extractClipboardMessage(
       convertedLinks.forEach((file, index) => {
         const source = urlsToFetch[index];
         if (file) {
-          portablePlainText = portablePlainText.replace(source.href, '');
+          portablePlainText = portablePlainText.replace(source.href, '').trim();
           appendFile(file);
         } else {
           failedResourceCount += 1;

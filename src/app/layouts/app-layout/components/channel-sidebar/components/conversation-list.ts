@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   OnDestroy,
@@ -100,6 +101,20 @@ export class ConversationList implements OnInit, OnDestroy {
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
   private readonly recentActivity = signal<Record<string, number>>({});
+  private activeVisitConversationId: string | null = null;
+  private hasSentInActiveVisit = false;
+
+  constructor() {
+    // Route/direct navigation cũng tạo một phiên truy cập mới. Chỉ đổi phiên ở
+    // đây, tuyệt đối không ghi activity vì hành vi xem chat không phải tương tác.
+    effect(() => {
+      const activeConversationId = this.activeChatStore.conversationId();
+      if (activeConversationId !== this.activeVisitConversationId) {
+        this.activeVisitConversationId = activeConversationId;
+        this.hasSentInActiveVisit = false;
+      }
+    });
+  }
 
   protected readonly hasQuery = computed(() => this.normalize(this.query()).length > 0);
 
@@ -189,8 +204,15 @@ export class ConversationList implements OnInit, OnDestroy {
       const list = await this.conversationsApi.listConversations();
       this.realConversations.set(list ?? []);
       this.hydrateRecentActivity(list ?? []);
+      // Bạn đã tắt thông báo ⇒ seed unreadCount = 0 để badge không hiện lại sau F5.
       this.notificationStore.seedDmUnread(
-        (list ?? []).map((c) => ({ id: c.id, unreadCount: c.unreadCount })),
+        (list ?? []).map((c) => ({
+          id: c.id,
+          unreadCount:
+            c.recipient?.id && this.userSettingsService?.isFriendMuted(c.recipient.id)
+              ? 0
+              : c.unreadCount,
+        })),
       );
       this.error.set(null);
     } catch {
@@ -205,23 +227,36 @@ export class ConversationList implements OnInit, OnDestroy {
     //    cần phát hiện DM MỚI chưa có trong sidebar để tải lại danh sách.
     if (this.chatSocket.conversationUpdated$) {
       this.subs.add(
-        this.chatSocket.conversationUpdated$.subscribe(({ conversationId, senderId, lastMessageAt }) => {
-          this.touchConversation(conversationId, this.toTimestamp(lastMessageAt));
-          if (senderId === this.auth.user()?.id) return;
-          const exists = this.realConversations().some((c) => c.id === conversationId);
-          if (!exists) {
-            void this.loadRealConversations();
-          }
-        }),
+        this.chatSocket.conversationUpdated$.subscribe(
+          ({ conversationId, senderId, lastMessageAt }) => {
+            if (senderId === this.auth.user()?.id) return;
+            // Tin đang được xem không tạo unread, vì vậy không được làm sidebar
+            // nhảy. Chỉ tin đến ở một cuộc trò chuyện khác mới là recent activity.
+            if (this.activeChatStore.conversationId() !== conversationId) {
+              this.touchConversation(conversationId, this.toTimestamp(lastMessageAt));
+            }
+            const exists = this.realConversations().some((c) => c.id === conversationId);
+            if (!exists) {
+              void this.loadRealConversations();
+            }
+          },
+        ),
       );
     }
 
-    // `conversation:updated` không phát ngược về sender. `message:created` giúp
-    // cuộc trò chuyện vừa gửi cũng lập tức lên đầu mà không cần tải lại REST.
+    // `conversation:updated` không phát ngược về sender. Với message:created của
+    // chính user, chỉ lần gửi đầu tiên trong mỗi phiên truy cập mới đánh dấu recent.
     if (this.chatSocket.messageCreated$) {
       this.subs.add(
         this.chatSocket.messageCreated$.subscribe(({ message }) => {
           if (!message.conversationId) return;
+          if (message.authorId !== this.auth.user()?.id) return;
+          if (this.activeVisitConversationId !== message.conversationId) {
+            this.activeVisitConversationId = message.conversationId;
+            this.hasSentInActiveVisit = false;
+          }
+          if (this.hasSentInActiveVisit) return;
+          this.hasSentInActiveVisit = true;
           this.touchConversation(message.conversationId, this.toTimestamp(message.createdAt));
         }),
       );
@@ -291,7 +326,10 @@ export class ConversationList implements OnInit, OnDestroy {
   }
 
   protected onConversationOpened(conversationId: string): void {
-    this.touchConversation(conversationId);
+    if (this.activeVisitConversationId !== conversationId) {
+      this.activeVisitConversationId = conversationId;
+      this.hasSentInActiveVisit = false;
+    }
   }
 
   protected onStartAudioCall(conv: DisplayConversation): void {

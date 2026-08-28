@@ -200,25 +200,33 @@ describe('ChatScrollController', () => {
     expect(pillState.showPill).toBe(false);
   });
 
-  it('settling: không có ảnh pending thì observer được dọn dẹp ngay lập tức', () => {
-    let observed = false;
+  it('settling: không có ảnh pending vẫn bám đáy khi nội dung giãn chiều cao (text/reply/embed)', () => {
+    let resizeCallback: (() => void) | undefined;
     class MockResizeObserver {
-      observe() {
-        observed = true;
+      constructor(cb: () => void) {
+        resizeCallback = cb;
       }
+      observe() {}
       disconnect() {
-        observed = false;
+        resizeCallback = undefined;
       }
       unobserve() {}
     }
     (window as unknown as { ResizeObserver: unknown }).ResizeObserver = MockResizeObserver;
 
-    // Không có thẻ img nào
+    // Không có thẻ img nào — trước đây observer thoát ngay, khiến chat text dừng
+    // ở lưng chừng khi layout giãn sau paint. Nay observer bám đáy đến khi ổn định.
     const gen = controller.reset('conv-1');
+    setElementDimensions(mockElement, 1000, 400, 0);
     controller.handleInitialRender('conv-1', gen);
 
-    // Observer không bị giữ lại active
-    expect(observed).toBe(false);
+    expect(mockElement.scrollTop).toBe(1000);
+    expect(resizeCallback).toBeDefined();
+
+    // Nội dung giãn cao lên (render bất đồng bộ) -> observer ghim lại đáy.
+    setElementDimensions(mockElement, 1600, 400, 1000);
+    resizeCallback?.();
+    expect(mockElement.scrollTop).toBe(1600);
   });
 
   it('settling: fake img pending với deferred decode, observer active qua nhiều resize và dừng khi decode hoàn tất', async () => {

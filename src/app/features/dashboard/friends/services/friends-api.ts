@@ -147,6 +147,33 @@ export class FriendsApi {
     );
   }
 
+  /** Danh sách userId đã tắt thông báo DM (đồng bộ theo tài khoản). */
+  listMutes(): Promise<string[]> {
+    return firstValueFrom(
+      this.http.get<string[]>(`${this.baseUrl}/mutes`, {
+        headers: this.authHeaders(),
+      }),
+    );
+  }
+
+  muteUser(userId: string): Promise<void> {
+    return firstValueFrom(
+      this.http.put<void>(
+        `${this.baseUrl}/${userId}/mute`,
+        {},
+        { headers: this.authHeaders() },
+      ),
+    );
+  }
+
+  unmuteUser(userId: string): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(`${this.baseUrl}/${userId}/mute`, {
+        headers: this.authHeaders(),
+      }),
+    );
+  }
+
   private authHeaders(): HttpHeaders {
     const token = this.auth.accessToken();
     if (!token) {

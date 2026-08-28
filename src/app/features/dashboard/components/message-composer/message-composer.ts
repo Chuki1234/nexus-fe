@@ -1357,6 +1357,10 @@ export class MessageComposer implements OnDestroy {
         '.pdf',
         '.txt',
         '.zip',
+        '.7z',
+        '.tar',
+        '.rar',
+        '.gz',
         '.docx',
       ].includes(ext);
 

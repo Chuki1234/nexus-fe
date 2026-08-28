@@ -579,7 +579,9 @@ export class ChannelPage implements OnInit, AfterViewInit {
       return;
     }
 
-    const replyToId = context?.kind === 'reply' ? context.messageId : undefined;
+    const replyToId =
+      payload.replyToId ||
+      (context?.kind === 'reply' ? (context.replyToId || context.messageId) : undefined);
     this.composerContext.set(null);
 
     // Âm thanh gửi tin (đồng bộ toggle "Tin nhắn" trong Cài đặt thông báo).
@@ -769,11 +771,14 @@ export class ChannelPage implements OnInit, AfterViewInit {
     }
   }
 
-  /** Mở panel danh sách tin đã ghim. */
+  /** Mở/đóng panel danh sách tin đã ghim. */
   protected openPins(): void {
-    this.searchOpen.set(false);
-    this.detailsOpen.set(false);
-    this.pinsOpen.set(true);
+    const next = !this.pinsOpen();
+    if (next) {
+      this.searchOpen.set(false);
+      this.detailsOpen.set(false);
+    }
+    this.pinsOpen.set(next);
   }
 
   protected async unpinFromPanel(message: MessageResponseDto): Promise<void> {
@@ -831,6 +836,42 @@ export class ChannelPage implements OnInit, AfterViewInit {
 
   protected onCancel(clientNonce: string): void {
     this.channelChat.cancelOptimisticMessage(clientNonce);
+  }
+
+  findReplyMessage(replyToId: string | null): ChannelChatUiMessage | undefined {
+    if (!replyToId) return undefined;
+    return this.messages().find((m) => m.id === replyToId);
+  }
+
+  getReplySnippet(msg: ChannelChatUiMessage): string {
+    if (msg.deletedAt) {
+      return 'Tin nhắn đã bị xóa';
+    }
+    if (msg.content && msg.content.trim().length > 0) {
+      return msg.content;
+    }
+    if (msg.externalMedia) {
+      const type = msg.externalMedia.mediaType || (msg.externalMedia as { type?: string }).type;
+      const title = (msg.externalMedia as { title?: string }).title;
+      if (type === 'sticker' || msg.externalMedia.provider === 'stipop') {
+        return title ? `[Nhãn dán] ${title}` : '[Nhãn dán]';
+      }
+      return title ? `[GIF] ${title}` : '[GIF]';
+    }
+    if (msg.attachments && msg.attachments.length > 0) {
+      const first = msg.attachments[0];
+      const isImg =
+        first.mimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(first.filename);
+      const isVid =
+        first.mimeType?.startsWith('video/') || /\.(mp4|webm|mov|mkv)$/i.test(first.filename);
+      const isAud =
+        first.mimeType?.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)$/i.test(first.filename);
+      if (isImg) return '[Hình ảnh]';
+      if (isVid) return '[Video]';
+      if (isAud) return '[Âm thanh]';
+      return `[Tệp đính kèm] ${first.filename}`;
+    }
+    return 'Tin nhắn';
   }
 
   protected openSettings(): void {
@@ -920,14 +961,29 @@ export class ChannelPage implements OnInit, AfterViewInit {
     });
   }
 
+  private highlightTimeout: ReturnType<typeof setTimeout> | null = null;
+
   protected jumpToMessage(messageId: string): void {
-    const el = document.getElementById(`msg-${messageId}`);
+    if (!messageId) return;
+    const el =
+      document.getElementById(`msg-${messageId}`) ||
+      document.querySelector(`[data-message-id="${messageId}"]`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       this.highlightedMessageId.set(messageId);
-      setTimeout(() => {
-        this.highlightedMessageId.set(null);
+      if (this.highlightTimeout) {
+        clearTimeout(this.highlightTimeout);
+      }
+      this.highlightTimeout = setTimeout(() => {
+        if (this.highlightedMessageId() === messageId) {
+          this.highlightedMessageId.set(null);
+        }
       }, 2000);
+    } else {
+      this.toast.show({
+        message: 'Tin nhắn gốc chưa được tải trong lịch sử hiển thị.',
+        type: 'info',
+      });
     }
   }
 
