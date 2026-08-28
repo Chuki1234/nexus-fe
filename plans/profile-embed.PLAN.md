@@ -251,7 +251,7 @@ Test case dự kiến:
 
 ### Kết quả Phase 5
 - Ngày hoàn thành: 2026-08-29
-- Commit: frontend `<điền sau khi push>` · backend `n/a`
+- Commit: frontend `d5c7cd7` · backend `n/a`
 - Kết quả test: unit `chat-link-embed 6/6 · servers-api 15/15 · conversation 65/65 · internal-link 19/19`
   (regression 105/105) · E2E `3 test đã author` (playwright.config.ts + e2e/chat-link-embed.e2e.ts) —
   chạy cần `npx playwright install` + storageState đăng nhập
@@ -319,7 +319,7 @@ Test case dự kiến:
 | 2 | 2026-08-28 | 2026-08-28 | unit 6/6 | be 0fd93b6 |
 | 3 | 2026-08-29 | 2026-08-29 | unit 19+4+65 | fe 3f95a36 |
 | 4 | 2026-08-29 | 2026-08-29 | unit 7+15+65 | fe cc1959f |
-| 5 | 2026-08-29 | 2026-08-29 | unit 105/105 | fe (điền sau) |
+| 5 | 2026-08-29 | 2026-08-29 | unit 105/105 | fe d5c7cd7 |
 | 6 | | | | |
 
 ---
