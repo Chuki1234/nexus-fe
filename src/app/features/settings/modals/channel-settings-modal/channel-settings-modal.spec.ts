@@ -67,6 +67,13 @@ describe('ChannelSettingsModal', () => {
     expect(component.channelName()).toBe('tuitentai');
   });
 
+  it('không hiển thị tùy chọn giới hạn độ tuổi khi tính năng chưa được phát hành', () => {
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).not.toContain('ĐỘ HIỂN THỊ NỘI DUNG');
+    expect(text).not.toContain('Kênh giới hạn độ tuổi');
+    expect(fixture.nativeElement.querySelector('input[value="age_restricted"]')).toBeNull();
+  });
+
   it('phát hiện dirty khi người dùng thay đổi tên kênh', () => {
     expect(component.isDirty()).toBe(false);
     component.channelName.set('tuitentai-vip');
@@ -89,6 +96,9 @@ describe('ChannelSettingsModal', () => {
     expect(mockServersApi.updateChannel).toHaveBeenCalledWith('srv-1', 'chn-1', {
       name: 'tuitentai-pro',
       topic: 'Chủ đề mới',
+      slowmode: 0,
+      contentVisibility: 'default',
+      isAgeRestricted: false,
     });
     expect(component.saveNotice()).toContain('Đã lưu thay đổi');
   });
