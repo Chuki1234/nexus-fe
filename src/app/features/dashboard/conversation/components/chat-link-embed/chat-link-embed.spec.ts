@@ -137,21 +137,47 @@ describe('ChatLinkEmbed', () => {
   });
 
   describe('giới thiệu máy chủ /channels/:serverId', () => {
-    it('server tồn tại → tên link /channels/:id, KHÔNG có nút hành động', async () => {
+    it('card giàu: tên link, online·member, founding date, mô tả, tag; KHÔNG nút', async () => {
       serversMock.getServerPreview.mockResolvedValue({
         serverId: SERVER_ID,
         name: 'Gaming Zone',
         iconUrl: null,
         bannerUrl: null,
         memberCount: 5,
+        description: 'Server đồ án Nexus',
+        tags: ['Gaming', 'Học tập'],
+        createdAt: '2026-01-15T00:00:00.000Z',
+        onlineCount: 3,
       });
       await setup(`${ORIGIN}/channels/${SERVER_ID}`);
 
       const el: HTMLElement = fixture.nativeElement;
       const nameLink = el.querySelector(`a[href="/channels/${SERVER_ID}"]`) as HTMLAnchorElement | null;
       expect(nameLink?.textContent).toContain('Gaming Zone');
+      expect(el.textContent).toContain('3 Trực tuyến');
+      expect(el.textContent).toContain('5 thành viên');
+      expect(el.textContent).toContain('Thành lập từ tháng 1 2026');
+      expect(el.textContent).toContain('Server đồ án Nexus');
+      expect(el.textContent).toContain('Gaming');
+      expect(el.textContent).toContain('Học tập');
       // introduction không có nút "Tham gia"/"Xem server"
       expect(el.querySelector('a.nexus-embed-action')).toBeNull();
+    });
+
+    it('mô tả rỗng → placeholder "Chưa có mô tả cho máy chủ này."', async () => {
+      serversMock.getServerPreview.mockResolvedValue({
+        serverId: SERVER_ID,
+        name: 'Empty Desc',
+        iconUrl: null,
+        bannerUrl: null,
+        memberCount: 1,
+        description: null,
+        tags: [],
+        createdAt: '2026-01-15T00:00:00.000Z',
+        onlineCount: 0,
+      });
+      await setup(`${ORIGIN}/channels/${SERVER_ID}`);
+      expect(fixture.nativeElement.textContent).toContain('Chưa có mô tả cho máy chủ này.');
     });
   });
 

@@ -32,6 +32,26 @@ export interface ServerCardVm {
   /** Lời mời hết hạn/hết lượt → không cho tham gia, hiện lý do. */
   invalid: boolean;
   invalidReason: string | null;
+  /** Phần "giàu" chỉ có ở card giới thiệu server (introduction) — invite bỏ trống. */
+  rich: boolean;
+  description: string | null;
+  tags: string[];
+  onlineCount: number | null;
+  /** Nhãn "Thành lập từ …" đã format sẵn, hoặc null. */
+  foundedLabel: string | null;
+}
+
+const VI_MONTHS = [
+  'tháng 1', 'tháng 2', 'tháng 3', 'tháng 4', 'tháng 5', 'tháng 6',
+  'tháng 7', 'tháng 8', 'tháng 9', 'tháng 10', 'tháng 11', 'tháng 12',
+];
+
+/** ISO → "tháng M YYYY" cho dòng "Thành lập từ". Null nếu không parse được. */
+function formatFoundedLabel(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${VI_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 /**
@@ -175,6 +195,11 @@ export class ChatLinkEmbed {
                   : p.isMaxUsed
                     ? 'Lời mời đã hết lượt dùng'
                     : null,
+                rich: false,
+                description: null,
+                tags: [],
+                onlineCount: null,
+                foundedLabel: null,
               } satisfies ServerCardVm;
             })
             .catch(() => null)
@@ -191,6 +216,11 @@ export class ChatLinkEmbed {
                 joinLink: ['/channels', p.serverId] as const,
                 invalid: false,
                 invalidReason: null,
+                rich: true,
+                description: p.description,
+                tags: p.tags,
+                onlineCount: p.onlineCount,
+                foundedLabel: formatFoundedLabel(p.createdAt),
               } satisfies ServerCardVm;
             })
             .catch(() => null);

@@ -72,9 +72,30 @@
           >
             {{ s.name }}
           </a>
-          <span class="block text-caption text-steel">{{ s.memberCount }} thành viên</span>
+          <span class="block text-caption text-steel">
+            @if (s.rich && s.onlineCount !== null) {
+              <span class="font-medium text-primary">{{ s.onlineCount }} Trực tuyến</span> ·
+            }
+            {{ s.memberCount }} thành viên
+          </span>
         </div>
       </div>
+
+      @if (s.rich) {
+        @if (s.foundedLabel) {
+          <p class="mt-1.5 text-[11px] text-stone">Thành lập từ {{ s.foundedLabel }}</p>
+        }
+        <p class="mt-2.5 rounded-xl border border-hairline bg-surface-feature/40 px-3 py-2 text-caption text-steel">
+          {{ s.description || 'Chưa có mô tả cho máy chủ này.' }}
+        </p>
+        @if (s.tags.length) {
+          <div class="mt-2.5 flex flex-wrap gap-1.5">
+            @for (tag of s.tags; track tag) {
+              <span class="rounded-full border border-hairline bg-surface-feature px-2.5 py-1 text-[11px] font-medium text-ink">{{ tag }}</span>
+            }
+          </div>
+        }
+      }
 
       @if (s.invalid) {
         <p class="mt-2.5 text-caption text-steel">{{ s.invalidReason }}</p>
