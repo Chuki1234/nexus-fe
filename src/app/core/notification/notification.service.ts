@@ -16,6 +16,7 @@ export interface InAppNotification {
   routeUrl?: string[];
   type?: 'message' | 'mention' | 'call' | 'system';
   serverId?: string;
+  channelId?: string;
 }
 
 @Injectable({
@@ -53,6 +54,14 @@ export class NotificationService {
         // Đang xem đúng kênh này thì không toast tin thường (tránh spam).
         if (this.serversStore.activeChannelId() === message.channelId) return;
         const serverId = this.serversStore.activeServerId() ?? undefined;
+
+        // Nếu kênh hoặc server bị tắt âm / chặn thông báo thì bỏ qua hoàn toàn
+        const myUsername = this.auth.user()?.user_metadata?.['username'] || '';
+        const isMention = !!myUsername && content.includes(`@${myUsername}`);
+        if (!this.settings.isChannelNotificationAllowed(message.channelId, serverId, isMention)) {
+          return;
+        }
+
         const channel = serverId
           ? this.serversStore.channelsOf(serverId).find((c) => c.id === message.channelId)
           : undefined;
@@ -68,6 +77,7 @@ export class NotificationService {
           routeUrl: ['/channels', serverId ?? '@me', message.channelId],
           type: 'message',
           serverId,
+          channelId: message.channelId,
         });
         return;
       }
@@ -125,6 +135,11 @@ export class NotificationService {
       const currentUserId = this.auth.user()?.id;
       if (currentUserId && p.authorId && p.authorId === currentUserId) return;
 
+      // Kiểm tra xem kênh có cấm thông báo hoàn toàn không
+      if (p.channelId && !this.settings.isChannelNotificationAllowed(p.channelId, p.serverId, true)) {
+        return;
+      }
+
       const everyone = p.mentionType === 'everyone';
       const contextTag = `${p.serverName ?? 'Máy chủ'} # ${p.channelName ?? 'kênh'}`;
       const prefix = everyone ? '@everyone · ' : '';
@@ -139,6 +154,7 @@ export class NotificationService {
           : ['/channels/@me'],
         type: 'mention',
         serverId: p.serverId,
+        channelId: p.channelId,
       });
     });
   }
@@ -170,8 +186,13 @@ export class NotificationService {
     const timestamp = notification.timestamp ?? 'Vừa xong';
     const item: InAppNotification = { ...notification, id, timestamp };
 
-    // ══ KIỂM TRA THIẾT LẬP TẮT ÂM VÀ THÔNG BÁO CỦA MÁY CHỦ (Ảnh 1) ══
-    if (item.serverId) {
+    // ══ KIỂM TRA THIẾT LẬP TẮT ÂM VÀ THÔNG BÁO CỦA KÊNH & MÁY CHỦ ══
+    if (item.channelId) {
+      const isMention = item.type === 'mention';
+      if (!this.settings.isChannelNotificationAllowed(item.channelId, item.serverId, isMention)) {
+        return; // Kênh này bị tắt âm hoặc không nhận thông báo -> bỏ qua hoàn toàn!
+      }
+    } else if (item.serverId) {
       const serverSettings = this.settings.serverNotificationSettingsMap()[item.serverId];
       if (serverSettings) {
         // Nếu Server bị Tắt âm (isMuted): Không nhận thông báo trừ khi là @mention
@@ -199,9 +220,13 @@ export class NotificationService {
       document.title = `(${this.notifications().length}) Nexus`;
     }
 
-    // Phát âm thanh phù hợp (chỉ phát khi máy chủ không bị tắt âm)
+    // Phát âm thanh phù hợp (chỉ phát khi máy chủ và kênh không bị tắt âm)
     let shouldPlaySound = true;
-    if (item.serverId) {
+    if (item.channelId) {
+      if (this.settings.isChannelMuted(item.channelId, item.serverId) && item.type !== 'mention') {
+        shouldPlaySound = false;
+      }
+    } else if (item.serverId) {
       const serverSettings = this.settings.serverNotificationSettingsMap()[item.serverId];
       if (serverSettings && serverSettings.isMuted && item.type !== 'mention') {
         shouldPlaySound = false;
@@ -219,7 +244,7 @@ export class NotificationService {
         }
       } else {
         if (prefs.soundMessage) {
-          this.playMessageSound(item.serverId);
+          this.playMessageSound(item.serverId, item.channelId);
         }
       }
     }
@@ -268,7 +293,12 @@ export class NotificationService {
   // ═══════════════════════════════════════════
 
   /** Âm thanh tin nhắn mới (Discord message ping) */
-  playMessageSound(serverId?: string): void {
+  playMessageSound(serverId?: string, channelId?: string): void {
+    if (channelId) {
+      if (this.settings.isChannelMuted(channelId, serverId)) {
+        return; // Tắt âm hoàn toàn cho kênh này
+      }
+    }
     if (serverId) {
       const serverSettings = this.settings.serverNotificationSettingsMap()[serverId];
       if (serverSettings && (serverSettings.isMuted || serverSettings.notificationLevel === 'nothing')) {

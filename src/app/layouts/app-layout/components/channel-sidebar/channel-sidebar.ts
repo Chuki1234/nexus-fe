@@ -30,6 +30,7 @@ import { ConversationList } from './components/conversation-list';
 import { DeleteServerDialog } from './components/delete-server-dialog/delete-server-dialog';
 import { InviteChannelDialog } from './components/invite-channel-dialog/invite-channel-dialog';
 import { LeaveServerDialog } from './components/leave-server-dialog/leave-server-dialog';
+import { ServerNotificationsModal } from '../../../../features/server-notifications-modal/server-notifications-modal';
 
 /**
  * Cột 2 — Cái vỏ: tiêu đề trên, khối người dùng dưới,
@@ -45,6 +46,7 @@ import { LeaveServerDialog } from './components/leave-server-dialog/leave-server
     OverflowMarquee,
     ChannelList,
     ConversationList,
+    ServerNotificationsModal,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface' },
@@ -65,6 +67,7 @@ export class ChannelSidebar {
   protected readonly conversationQuery = signal('');
   protected readonly isMenuOpen = signal(false);
   protected readonly hideMutedChannels = signal(false);
+  protected readonly showNotificationsModal = signal(false);
 
   protected openCommandCenter(): void {
     this.commandCenterService.open();
@@ -231,7 +234,7 @@ export class ChannelSidebar {
         this.openLeaveServerDialog();
         break;
       case 'notifications':
-        this.openServerSettings('server-overview');
+        this.showNotificationsModal.set(true);
         break;
       case 'privacy':
         this.openServerSettings('server-safety');

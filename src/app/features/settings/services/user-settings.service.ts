@@ -126,6 +126,13 @@ export interface ServerNotificationSettings {
   mobilePushNotifications: boolean;
 }
 
+export interface ChannelNotificationSettings {
+  channelId: string;
+  isMuted: boolean;
+  notificationLevel: 'default' | 'all' | 'mentions' | 'nothing';
+  mutedUntil?: number | null;
+}
+
 export interface ServerAccessSettings {
   joinMode: 'invite-only' | 'apply' | 'discoverable';
   ageRestricted: boolean;
@@ -952,6 +959,23 @@ export class UserSettingsService {
     },
   });
 
+  private readonly CHANNEL_NOTIF_STORAGE_KEY = 'nexuscord_channel_notifications_v1';
+  private readonly SERVER_NOTIF_STORAGE_KEY = 'nexuscord_server_notifications_v1';
+
+  private loadPersistedChannelNotifications(): Record<string, ChannelNotificationSettings> {
+    if (typeof localStorage === 'undefined') return {};
+    try {
+      const raw = localStorage.getItem(this.CHANNEL_NOTIF_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  readonly channelNotificationSettingsMap = signal<Record<string, ChannelNotificationSettings>>(
+    this.loadPersistedChannelNotifications(),
+  );
+
   updateServerNotificationSetting<K extends keyof ServerNotificationSettings>(
     serverId: string,
     key: K,
@@ -967,14 +991,134 @@ export class UserSettingsService {
         muteNewEvents: false,
         mobilePushNotifications: true,
       };
-      return {
+      const next = {
         ...map,
         [serverId]: {
           ...current,
           [key]: value,
         },
       };
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem(this.SERVER_NOTIF_STORAGE_KEY, JSON.stringify(next));
+        } catch { /* ignore */ }
+      }
+      return next;
     });
+  }
+
+  getChannelNotificationSettings(channelId: string): ChannelNotificationSettings {
+    return (
+      this.channelNotificationSettingsMap()[channelId] ?? {
+        channelId,
+        isMuted: false,
+        notificationLevel: 'default',
+      }
+    );
+  }
+
+  setChannelMuted(channelId: string, isMuted: boolean, durationMs?: number | null): void {
+    const mutedUntil = isMuted && durationMs ? Date.now() + durationMs : null;
+    this.channelNotificationSettingsMap.update((map) => {
+      const current = map[channelId] ?? {
+        channelId,
+        isMuted: false,
+        notificationLevel: 'default',
+      };
+      const next = {
+        ...map,
+        [channelId]: {
+          ...current,
+          isMuted,
+          mutedUntil,
+        },
+      };
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem(this.CHANNEL_NOTIF_STORAGE_KEY, JSON.stringify(next));
+        } catch { /* ignore */ }
+      }
+      return next;
+    });
+  }
+
+  setChannelNotificationLevel(
+    channelId: string,
+    notificationLevel: 'default' | 'all' | 'mentions' | 'nothing',
+  ): void {
+    this.channelNotificationSettingsMap.update((map) => {
+      const current = map[channelId] ?? {
+        channelId,
+        isMuted: false,
+        notificationLevel: 'default',
+      };
+      const next = {
+        ...map,
+        [channelId]: {
+          ...current,
+          notificationLevel,
+        },
+      };
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem(this.CHANNEL_NOTIF_STORAGE_KEY, JSON.stringify(next));
+        } catch { /* ignore */ }
+      }
+      return next;
+    });
+  }
+
+  isChannelMuted(channelId: string, serverId?: string): boolean {
+    const channelSettings = this.channelNotificationSettingsMap()[channelId];
+    if (channelSettings?.isMuted) {
+      if (channelSettings.mutedUntil && channelSettings.mutedUntil < Date.now()) {
+        return false;
+      }
+      return true;
+    }
+
+    if (serverId) {
+      const serverSettings = this.serverNotificationSettingsMap()[serverId];
+      if (serverSettings?.isMuted) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  isChannelNotificationAllowed(
+    channelId: string,
+    serverId: string | undefined,
+    isMention: boolean,
+  ): boolean {
+    const channelSettings = this.channelNotificationSettingsMap()[channelId];
+    const serverSettings = serverId ? this.serverNotificationSettingsMap()[serverId] : undefined;
+
+    if (channelSettings) {
+      if (channelSettings.isMuted) {
+        if (!channelSettings.mutedUntil || channelSettings.mutedUntil >= Date.now()) {
+          if (!isMention) return false;
+          if (channelSettings.notificationLevel === 'nothing') return false;
+          return true;
+        }
+      }
+
+      if (channelSettings.notificationLevel === 'nothing') return false;
+      if (channelSettings.notificationLevel === 'mentions') return isMention;
+      if (channelSettings.notificationLevel === 'all') return true;
+    }
+
+    if (serverSettings) {
+      if (serverSettings.isMuted) {
+        return isMention;
+      }
+      if (serverSettings.notificationLevel === 'nothing') return false;
+      if (serverSettings.notificationLevel === 'mentions') return isMention;
+      if (serverSettings.notificationLevel === 'all') return true;
+    }
+
+    return true;
   }
 
   readonly currentServerData = computed<ServerSettingsData>(() => {
@@ -1474,15 +1618,19 @@ export class UserSettingsService {
 
     this.initServerMembersRealtime();
 
+    const initialPrefs = this.preferences();
+    this.applyThemeAndAccentToDom(initialPrefs.theme, initialPrefs.themeAccent);
+
     effect(() => {
       const prefs = this.preferences();
       try {
         if (typeof window !== 'undefined' && window.localStorage) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+          localStorage.setItem('nexuscord-theme', prefs.theme || 'nexus-dark');
         }
         if (typeof document !== 'undefined') {
-          // 1. Theme
-          document.documentElement.setAttribute('data-theme', prefs.theme || 'nexus-dark');
+          // 1. Theme & Accent Color
+          this.applyThemeAndAccentToDom(prefs.theme, prefs.themeAccent);
 
           // 2. Message Density
           document.documentElement.setAttribute(
@@ -1493,34 +1641,6 @@ export class UserSettingsService {
           // 3. Chat Font Size
           const fontSize = prefs.fontSize || 15;
           document.documentElement.style.setProperty('--chat-font-size', `${fontSize}px`);
-
-          // 4. Accent Color
-          const isLight = prefs.theme === 'warm-light';
-          if (prefs.themeAccent && prefs.themeAccent !== '#00ed64') {
-            const hex = prefs.themeAccent;
-            document.documentElement.style.setProperty('--color-primary', hex);
-            document.documentElement.style.setProperty('--color-brand-green', hex);
-            document.documentElement.style.setProperty('--nexus-primary', hex);
-            document.documentElement.style.setProperty('--nexus-brand-green', hex);
-            document.documentElement.style.setProperty('--color-doodle-tint', hex);
-            document.documentElement.style.setProperty('--color-primary-soft', hex);
-          } else if (isLight) {
-            document.documentElement.style.setProperty('--color-primary', '#006241');
-            document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
-            document.documentElement.style.setProperty('--color-brand-green', '#006241');
-            document.documentElement.style.setProperty('--nexus-primary', '#006241');
-            document.documentElement.style.setProperty('--nexus-brand-green', '#006241');
-            document.documentElement.style.setProperty('--color-doodle-tint', '#006241');
-            document.documentElement.style.setProperty('--color-primary-soft', '#00754a');
-          } else {
-            document.documentElement.style.removeProperty('--color-primary');
-            document.documentElement.style.removeProperty('--color-on-primary');
-            document.documentElement.style.removeProperty('--color-brand-green');
-            document.documentElement.style.removeProperty('--nexus-primary');
-            document.documentElement.style.removeProperty('--nexus-brand-green');
-            document.documentElement.style.removeProperty('--color-doodle-tint');
-            document.documentElement.style.removeProperty('--color-primary-soft');
-          }
 
           // 5. Zoom Level
           if (prefs.zoomLevel && prefs.zoomLevel !== 100) {
@@ -2653,8 +2773,56 @@ export class UserSettingsService {
     this.currentTab.set(tab);
   }
 
+  applyThemeAndAccentToDom(theme: string, accent: string): void {
+    if (typeof document === 'undefined') return;
+    const resolvedTheme = theme || 'nexus-dark';
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+
+    const isLight = resolvedTheme === 'warm-light';
+    if (accent && accent !== '#00ed64') {
+      const hex = accent;
+      document.documentElement.style.setProperty('--color-primary', hex);
+      document.documentElement.style.setProperty('--color-brand-green', hex);
+      document.documentElement.style.setProperty('--nexus-primary', hex);
+      document.documentElement.style.setProperty('--nexus-brand-green', hex);
+      document.documentElement.style.setProperty('--color-doodle-tint', hex);
+      document.documentElement.style.setProperty('--color-primary-soft', hex);
+      if (isLight) {
+        document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
+      }
+    } else if (isLight) {
+      document.documentElement.style.setProperty('--color-primary', '#006241');
+      document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
+      document.documentElement.style.setProperty('--color-brand-green', '#006241');
+      document.documentElement.style.setProperty('--nexus-primary', '#006241');
+      document.documentElement.style.setProperty('--nexus-brand-green', '#006241');
+      document.documentElement.style.setProperty('--color-doodle-tint', '#006241');
+      document.documentElement.style.setProperty('--color-primary-soft', '#00754a');
+    } else {
+      document.documentElement.style.removeProperty('--color-primary');
+      document.documentElement.style.removeProperty('--color-on-primary');
+      document.documentElement.style.removeProperty('--color-brand-green');
+      document.documentElement.style.removeProperty('--nexus-primary');
+      document.documentElement.style.removeProperty('--nexus-brand-green');
+      document.documentElement.style.removeProperty('--color-doodle-tint');
+      document.documentElement.style.removeProperty('--color-primary-soft');
+    }
+  }
+
   updatePreference<K extends keyof AppPreferences>(key: K, value: AppPreferences[K]): void {
-    this.preferences.update((prev) => ({ ...prev, [key]: value }));
+    this.preferences.update((prev) => {
+      const next = { ...prev, [key]: value };
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+          localStorage.setItem('nexuscord-theme', next.theme || 'nexus-dark');
+        } catch { /* ignore */ }
+      }
+      if (key === 'theme' || key === 'themeAccent') {
+        this.applyThemeAndAccentToDom(next.theme, next.themeAccent);
+      }
+      return next;
+    });
   }
 
   toggleConnectedAccount(id: string): void {

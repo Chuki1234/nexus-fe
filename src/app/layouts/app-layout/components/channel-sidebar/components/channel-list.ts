@@ -132,7 +132,7 @@ export class ChannelList implements OnDestroy {
   private readonly profileDialog = inject(ProfileDialogService);
   private readonly route = inject(ActivatedRoute);
   private readonly host = inject(ElementRef<HTMLElement>);
-  private readonly userSettings = inject(UserSettingsService);
+  protected readonly userSettings = inject(UserSettingsService);
   private readonly structureSync = inject(ServerChannelStructureSyncService);
   readonly voiceRoom = inject(VoiceRoomService);
 
@@ -1038,7 +1038,44 @@ export class ChannelList implements OnDestroy {
     });
   }
 
-  protected onActionSeam(action: string, target?: unknown): void {}
+  protected onActionSeam(action: string, target?: unknown): void {
+    const item = (target ?? this.selectedChannel() ?? this.selectedGroup()) as
+      | { id?: string; channels?: ChannelSummary[] }
+      | undefined;
+    if (!item) return;
+
+    const channelIds: string[] = [];
+    if (Array.isArray(item.channels) && item.channels.length > 0) {
+      channelIds.push(...item.channels.map((c) => c.id));
+    } else if (item.id) {
+      channelIds.push(item.id);
+    }
+
+    if (channelIds.length === 0) return;
+
+    if (action.startsWith('mute-')) {
+      const duration = action.replace('mute-', '');
+      let durationMs: number | null = null;
+      if (duration === '15m') durationMs = 15 * 60 * 1000;
+      else if (duration === '1h') durationMs = 60 * 60 * 1000;
+      else if (duration === '8h') durationMs = 8 * 60 * 60 * 1000;
+      else if (duration === '24h') durationMs = 24 * 60 * 60 * 1000;
+      else if (duration === 'until-on') durationMs = null;
+
+      for (const chId of channelIds) {
+        this.userSettings.setChannelMuted(chId, true, durationMs);
+      }
+    } else if (action === 'unmute') {
+      for (const chId of channelIds) {
+        this.userSettings.setChannelMuted(chId, false);
+      }
+    } else if (action.startsWith('notify-')) {
+      const level = action.replace('notify-', '') as 'default' | 'all' | 'mentions' | 'nothing';
+      for (const chId of channelIds) {
+        this.userSettings.setChannelNotificationLevel(chId, level);
+      }
+    }
+  }
 
   /**
    * Thả ra ngoài vùng sidebar là thao tác bị hủy: không mutate layout, CDK tự

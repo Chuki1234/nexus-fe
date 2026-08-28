@@ -4,6 +4,7 @@ import { Injectable, PLATFORM_ID, effect, inject, signal } from '@angular/core';
 export type ThemeMode = 'dark' | 'light';
 
 const STORAGE_KEY = 'nexuscord-theme';
+const PREFS_STORAGE_KEY = 'nexus_user_preferences_v2';
 
 @Injectable({
   providedIn: 'root',
@@ -29,6 +30,13 @@ export class ThemeService {
   private readInitialMode(): ThemeMode {
     if (isPlatformBrowser(this.platformId)) {
       try {
+        const prefsRaw = this.document.defaultView?.localStorage.getItem(PREFS_STORAGE_KEY);
+        if (prefsRaw) {
+          const parsed = JSON.parse(prefsRaw);
+          if (parsed.theme) {
+            return parsed.theme === 'warm-light' || parsed.theme === 'light' ? 'light' : 'dark';
+          }
+        }
         const stored = this.document.defaultView?.localStorage.getItem(STORAGE_KEY);
         if (stored === 'dark' || stored === 'light') {
           return stored;
@@ -38,11 +46,18 @@ export class ThemeService {
       }
     }
 
-    return this.document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    const attr = this.document.documentElement.getAttribute('data-theme');
+    return attr === 'warm-light' || attr === 'light' ? 'light' : 'dark';
   }
 
   private applyMode(mode: ThemeMode): void {
-    this.document.documentElement.setAttribute('data-theme', mode);
+    const currentAttr = this.document.documentElement.getAttribute('data-theme');
+    if (mode === 'dark' && (currentAttr === 'midnight-dark' || currentAttr === 'nexus-dark')) {
+      // Giữ nguyên biến thể dark hiện tại (AMOLED hoặc Teal), không ghi đè thành 'dark' thô
+    } else {
+      const dataTheme = mode === 'light' ? 'warm-light' : 'nexus-dark';
+      this.document.documentElement.setAttribute('data-theme', dataTheme);
+    }
 
     if (isPlatformBrowser(this.platformId)) {
       try {
