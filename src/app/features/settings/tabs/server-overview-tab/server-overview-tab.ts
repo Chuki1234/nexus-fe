@@ -131,26 +131,29 @@ export class ServerOverviewTab {
     this.saveError.set(null);
 
     try {
+      let finalIconUrl = data.iconUrl;
+
       // 1. Upload icon trước (nếu người dùng chọn file mới)
       const iconFile = this.pendingIconFile();
       if (iconFile) {
         const iconRes = await this.serversApi.uploadServerIcon(sId, iconFile);
-        this.serversStore.patchServer(sId, { iconUrl: iconRes.iconUrl });
-        // Cập nhật preview sang URL thật từ Storage (không còn ObjectURL tạm)
-        this.settingsService.updateCurrentServerOverview({ iconUrl: iconRes.iconUrl });
+        finalIconUrl = iconRes.iconUrl;
+        this.settingsService.updateCurrentServerOverview({ iconUrl: finalIconUrl });
         this.pendingIconFile.set(null);
         this.revokePendingPreview();
         this.pendingIconPreview.set(null);
       }
 
-      // 2. Lưu tên + kênh hệ thống (và các trường khác không phải file)
+      // 2. Lưu tên, iconUrl và kênh hệ thống (hỗ trợ cả gỡ icon khi finalIconUrl = null)
       const res = await this.serversApi.updateServer(sId, {
         name: data.name,
+        iconUrl: finalIconUrl,
         systemChannelId: data.systemChannelId || undefined,
       });
 
       this.serversStore.patchServer(sId, {
         name: res.name,
+        iconUrl: res.iconUrl,
         systemChannelId: res.systemChannelId,
       });
 

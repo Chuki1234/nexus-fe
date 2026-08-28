@@ -317,7 +317,7 @@
                     <span>Sao chép ID thành viên</span>
                   </button>
                   @if (!m.isOwner) {
-                    @if (settingsService.canKickMembers() || settingsService.canBanMembers()) {
+                    @if (settingsService.canKickMembers()) {
                       <div class="my-1 border-t border-hairline"></div>
                     }
                     @if (settingsService.canKickMembers()) {
@@ -326,7 +326,7 @@
                         <span class="text-warning-text font-bold">Kick khỏi server</span>
                       </button>
                     }
-                    @if (settingsService.canBanMembers()) {
+                    @if (false && settingsService.canBanMembers()) {
                       <button mat-menu-item type="button" (click)="openBanModal(m)" class="text-danger">
                         <mat-icon class="!text-danger">gavel</mat-icon>
                         <span class="text-danger font-bold">Cấm (Ban) thành viên</span>

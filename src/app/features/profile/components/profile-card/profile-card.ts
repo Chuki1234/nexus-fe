@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog } from '@angular/material/dialog';
 import { Router, RouterLink } from '@angular/router';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
 import { bannerColorFor, PROFILE_NOTE_MAX, profileDisplayName, type PublicProfile } from '../../../../../shared';
@@ -44,6 +45,7 @@ export class ProfileCard {
   private readonly profileStore = inject(ProfileStore);
   private readonly router = inject(Router);
   private readonly userSettings = inject(UserSettingsService);
+  private readonly dialog = inject(MatDialog, { optional: true });
 
   protected readonly presence = computed(() => {
     const person = this.profile();
@@ -147,14 +149,10 @@ export class ProfileCard {
 
   /**
    * Cài Đặt là một modal sống trong `AppLayout` (khung `/channels`), không phải
-   * route riêng — thẻ hồ sơ này còn được render ở `/u/:username`, ngoài khung
-   * đó. Mở cờ `isOpen` TRƯỚC khi điều hướng để modal đã sẵn sàng ngay khi
-   * `AppLayout` được mount.
+   * route riêng — đóng Profile Dialog trước khi mở Cài Đặt.
    */
   protected editProfile(): void {
-    // Thẻ hồ sơ nay LUÔN mở trong dialog (trên nền AppLayout) sau khi trang
-    // `/u/:username` bị bỏ, nên chỉ cần mở Cài đặt — không phải điều hướng về
-    // `/channels/@me` nữa (điều hướng sẽ đóng dialog và nhảy trang không cần thiết).
+    this.dialog?.closeAll();
     this.userSettings.openUserSettings('profile');
   }
 }

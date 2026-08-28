@@ -170,6 +170,7 @@ export class ServerMembersTab implements OnInit, OnDestroy {
     if (sId) {
       void this.settingsService.loadServerRoles(sId);
       void this.settingsService.loadServerMembers(sId);
+      void this.settingsService.loadServerBans(sId);
       if (this.chatSocket) {
         void this.chatSocket.joinServer(sId);
       }

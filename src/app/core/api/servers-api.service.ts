@@ -736,4 +736,90 @@ export class ServersApiService {
       ),
     );
   }
+
+  /**
+   * Trục xuất (Kick) thành viên khỏi máy chủ: DELETE /api/servers/:serverId/members/:targetUserId
+   */
+  async kickServerMember(
+    serverId: string,
+    targetUserId: string,
+  ): Promise<{ success: boolean; serverId: string; targetUserId: string }> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.delete<{ success: boolean; serverId: string; targetUserId: string }>(
+        `${environment.apiUrl}/servers/${serverId}/members/${targetUserId}`,
+        { headers },
+      ),
+    );
+  }
+
+  /**
+   * Cấm (Ban) thành viên khỏi máy chủ: POST /api/servers/:serverId/bans
+   */
+  async banServerMember(
+    serverId: string,
+    targetUserId: string,
+    reason?: string,
+  ): Promise<{ success: boolean; serverId: string; targetUserId: string; reason?: string }> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.post<{ success: boolean; serverId: string; targetUserId: string; reason?: string }>(
+        `${environment.apiUrl}/servers/${serverId}/bans`,
+        { targetUserId, reason },
+        { headers },
+      ),
+    );
+  }
+
+  /**
+   * Lấy danh sách thành viên bị cấm trong máy chủ: GET /api/servers/:serverId/bans
+   */
+  async getServerBans(serverId: string): Promise<Array<{
+    id: string;
+    userId: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+    reason: string | null;
+    bannedAt: string;
+    bannedBy: string;
+  }>> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.get<Array<{
+        id: string;
+        userId: string;
+        username: string;
+        displayName: string;
+        avatarUrl: string | null;
+        reason: string | null;
+        bannedAt: string;
+        bannedBy: string;
+      }>>(`${environment.apiUrl}/servers/${serverId}/bans`, { headers }),
+    );
+  }
+
+  /**
+   * Bỏ cấm (Unban) thành viên khỏi máy chủ: DELETE /api/servers/:serverId/bans/:targetUserId
+   */
+  async unbanServerMember(
+    serverId: string,
+    targetUserId: string,
+  ): Promise<{ success: boolean; serverId: string; targetUserId: string }> {
+    const token = this.auth.accessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return firstValueFrom(
+      this.http.delete<{ success: boolean; serverId: string; targetUserId: string }>(
+        `${environment.apiUrl}/servers/${serverId}/bans/${targetUserId}`,
+        { headers },
+      ),
+    );
+  }
 }

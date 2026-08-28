@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -60,6 +61,7 @@ export class VoiceStage implements OnDestroy {
   private readonly profile = inject(ProfileService);
   private readonly profileDialog = inject(ProfileDialogService);
   private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog, { optional: true });
 
   readonly inviteClicked = output<void>();
 
@@ -69,7 +71,6 @@ export class VoiceStage implements OnDestroy {
   protected readonly selectedParticipant = signal<VoiceParticipantModel | null>(null);
   protected readonly contextMenuPosition = signal<{ x: number; y: number }>({ x: 0, y: 0 });
   protected readonly openingDmIdentity = signal<string | null>(null);
-  private readonly mutedSoundboards = signal<Record<string, boolean>>({});
 
   protected readonly isOwner = computed(() => {
     const sId = this.voiceRoom.currentServerId();
@@ -290,6 +291,7 @@ export class VoiceStage implements OnDestroy {
     this.openingDmIdentity.set(participant.identity);
     try {
       const conversation = await this.conversationsApi.getOrCreateDm(participant.identity);
+      this.dialog?.closeAll();
       await this.router.navigate(['/channels/@me', conversation.id]);
     } catch (err) {
       console.warn('Không mở được tin nhắn riêng từ voice tile:', err);
@@ -304,15 +306,6 @@ export class VoiceStage implements OnDestroy {
 
   protected isParticipantMutedForMe(participant: VoiceParticipantModel): boolean {
     return !participant.isLocal && this.voiceRoom.isLocalMuted(participant.identity);
-  }
-
-  protected toggleSoundboardMute(participant: VoiceParticipantModel): void {
-    const id = participant.identity;
-    this.mutedSoundboards.update((map) => ({ ...map, [id]: !map[id] }));
-  }
-
-  protected isSoundboardMuted(participant: VoiceParticipantModel): boolean {
-    return this.mutedSoundboards()[participant.identity] ?? false;
   }
 
   onVolumeChange(userId: string, event: Event): void {

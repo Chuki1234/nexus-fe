@@ -151,7 +151,6 @@ export class SettingsModal {
       items: [
         { id: 'account', label: 'Tài Khoản', icon: 'person' },
         { id: 'profile', label: 'Hồ Sơ', icon: 'badge' },
-        { id: 'privacy', label: 'Dữ Liệu & Bảo Mật', icon: 'shield' },
         { id: 'connections', label: 'Ứng Dụng Đã Kết Nối', icon: 'link' },
         { id: 'notifications', label: 'Các Thông Báo', icon: 'notifications' },
       ],
