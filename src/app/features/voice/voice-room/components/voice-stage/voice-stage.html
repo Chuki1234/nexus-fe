@@ -181,7 +181,7 @@
           <input
             type="range"
             min="0"
-            max="200"
+            max="100"
             step="1"
             [value]="voiceRoom.getUserVolume(participant.identity)"
             (input)="onVolumeChange(participant.identity, $event)"
@@ -198,17 +198,9 @@
         <span class="context-menu-label text-ink flex-1">Tắt tiếng</span>
         <div class="context-menu-checkbox" [class.context-menu-checkbox--checked]="isParticipantMutedForMe(participant)">
           @if (isParticipantMutedForMe(participant)) {
-            <mat-icon aria-hidden="true">check</mat-icon>
-          }
-        </div>
-      </button>
-
-      <button mat-menu-item type="button" (click)="toggleSoundboardMute(participant)" class="context-menu-item">
-        <mat-icon class="context-menu-icon text-steel">music_off</mat-icon>
-        <span class="context-menu-label text-ink flex-1">Tắt soundboard</span>
-        <div class="context-menu-checkbox" [class.context-menu-checkbox--checked]="isSoundboardMuted(participant)">
-          @if (isSoundboardMuted(participant)) {
-            <mat-icon aria-hidden="true">check</mat-icon>
+            <svg class="w-3 h-3 text-on-primary stroke-[3.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
           }
         </div>
       </button>

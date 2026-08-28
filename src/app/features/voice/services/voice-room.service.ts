@@ -28,6 +28,7 @@ import { VoiceApiService } from '../../../core/api/voice-api.service';
 import { ProfileService } from '../../../core/profile/profile.service';
 import { ProfileStore } from '../../profile/profile-store';
 import { ChatSocketService } from '../../../core/realtime/chat-socket.service';
+import { ServerVoiceStatesStore } from '../../../core/servers/server-voice-states.store';
 import { AuthService } from '../../../core/auth/auth.service';
 import { UserSettingsService } from '../../settings/services/user-settings.service';
 import { MediaDeviceService } from './media-device.service';
@@ -70,6 +71,7 @@ export class VoiceRoomService implements OnDestroy {
   private readonly userSettings = inject(UserSettingsService);
   private readonly auth = inject(AuthService);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly voiceStatesStore = inject(ServerVoiceStatesStore);
 
   /** Khoá localStorage nhớ phòng thoại đang ở, để tự vào lại sau khi F5/đóng-mở tab. */
   private static readonly ACTIVE_VOICE_KEY = 'nexus:activeVoice';
@@ -100,7 +102,7 @@ export class VoiceRoomService implements OnDestroy {
   readonly localParticipant = signal<VoiceParticipantModel | null>(null);
   readonly remoteParticipants = signal<VoiceParticipantModel[]>([]);
 
-  /** Quản lý âm lượng cục bộ từng thành viên (0% - 200%) và tắt tiếng cục bộ (Local Mute) */
+  /** Quản lý âm lượng cục bộ từng thành viên (0% - 100%) và tắt tiếng cục bộ (Local Mute) */
   readonly localUserVolumes = signal<Record<string, number>>({});
   readonly localUserMutes = signal<Record<string, boolean>>({});
 
@@ -237,6 +239,23 @@ export class VoiceRoomService implements OnDestroy {
       });
     });
 
+    // Tự động đồng bộ Avatar của chính mình và thành viên khác khi ProfileStore hoặc ServerVoiceStatesStore cập nhật
+    effect(() => {
+      // Track profile changes (VD: vừa đổi avatar trong Cài Đặt Hồ Sơ)
+      const myAvatar1 = this.profileStore.profile()?.avatarUrl;
+      const myAvatar2 = this.profile.current()?.avatarUrl;
+      // Track server voice states changes
+      const sId = this.currentServerId();
+      if (sId) {
+        void this.voiceStatesStore.voiceStatesByServer()[sId];
+      }
+
+      if (this.room) {
+        this.updateLocalParticipantState();
+        this.syncRemoteParticipants();
+      }
+    });
+
     // 4. Lắng nghe phím Push-to-Talk toàn cục (Global Push-to-Talk)
     if (typeof window !== 'undefined') {
       window.addEventListener(
@@ -342,10 +361,10 @@ export class VoiceRoomService implements OnDestroy {
   }
 
   /**
-   * Điều chỉnh âm lượng cục bộ của một thành viên (0% - 200%).
+   * Điều chỉnh âm lượng cục bộ của một thành viên (0% - 100%).
    */
   setUserVolume(userIdOrIdentity: string, volumePercent: number): void {
-    const clamped = Math.max(0, Math.min(200, Math.round(volumePercent)));
+    const clamped = Math.max(0, Math.min(100, Math.round(volumePercent)));
     this.localUserVolumes.update((map) => ({ ...map, [userIdOrIdentity]: clamped }));
     this.applyLocalAudioVolume(userIdOrIdentity);
   }
@@ -876,9 +895,11 @@ export class VoiceRoomService implements OnDestroy {
     this.localParticipant.set({
       identity: p.identity,
       name: p.name || 'Bạn',
-      // Tile của chính mình: lấy thẳng avatar từ ProfileStore (không phụ thuộc
-      // metadata token / BE), fallback về metadata nếu store chưa có.
-      avatarUrl: this.profileStore.profile()?.avatarUrl ?? this.avatarFromMetadata(p.metadata),
+      // Tile của chính mình: lấy thẳng avatar từ ProfileStore / ProfileService (không phụ thuộc metadata token cũ)
+      avatarUrl:
+        this.profileStore.profile()?.avatarUrl ??
+        this.profile.current()?.avatarUrl ??
+        this.avatarFromMetadata(p.metadata),
       isLocal: true,
       isSpeaking,
       isMuted: !p.isMicrophoneEnabled,
@@ -897,15 +918,23 @@ export class VoiceRoomService implements OnDestroy {
       return;
     }
 
+    const serverId = this.currentServerId() ?? '';
+    const voiceStates = this.voiceStatesStore.getServerVoiceStates(serverId);
+
     const list: VoiceParticipantModel[] = [];
     this.room.remoteParticipants.forEach((p) => {
       const cameraPub = p.getTrackPublication(Track.Source.Camera);
       const screenPub = p.getTrackPublication(Track.Source.ScreenShare);
 
+      // Tra cứu VoiceMemberState để lấy avatarUrl mới nhất từ server voice states
+      const voiceState = voiceStates.find((s) => s.userId === p.identity);
+      const avatarUrl = voiceState?.avatarUrl ?? this.avatarFromMetadata(p.metadata) ?? null;
+      const displayName = voiceState?.displayName || voiceState?.name || p.name || `Member_${p.identity.slice(0, 5)}`;
+
       list.push({
         identity: p.identity,
-        name: p.name || `Member_${p.identity.slice(0, 5)}`,
-        avatarUrl: this.avatarFromMetadata(p.metadata),
+        name: displayName,
+        avatarUrl,
         isLocal: false,
         isSpeaking: p.isSpeaking,
         isMuted: !p.isMicrophoneEnabled,

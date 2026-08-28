@@ -2421,6 +2421,19 @@ export class UserSettingsService {
 
   kickServerMember(id: string): void {
     const sId = this.currentServerId();
+    if (!sId) return;
+
+    if (this.serversApi) {
+      this.serversApi
+        .kickServerMember(sId, id)
+        .then(() => {
+          void this.loadServerMembers(sId);
+        })
+        .catch((err) => {
+          console.error('Lỗi khi kick thành viên:', err);
+        });
+    }
+
     this.serverDataMap.update((map) => {
       const current = map[sId];
       if (!current) return map;
@@ -2449,6 +2462,20 @@ export class UserSettingsService {
 
   banServerMember(id: string, reason = ''): void {
     const sId = this.currentServerId();
+    if (!sId) return;
+
+    if (this.serversApi) {
+      this.serversApi
+        .banServerMember(sId, id, reason)
+        .then(() => {
+          void this.loadServerMembers(sId);
+          void this.loadServerBans(sId);
+        })
+        .catch((err) => {
+          console.error('Lỗi khi cấm (ban) thành viên:', err);
+        });
+    }
+
     this.serverDataMap.update((map) => {
       const current = map[sId];
       if (!current) return map;
@@ -2484,8 +2511,59 @@ export class UserSettingsService {
     });
   }
 
+  async loadServerBans(serverId: string): Promise<void> {
+    if (!serverId || !this.serversApi) return;
+
+    try {
+      const bans = await this.serversApi.getServerBans(serverId);
+      const mappedBans: BannedUserItem[] = (bans || []).map((b) => ({
+        id: b.id || `b-${b.userId}`,
+        username: b.username || 'Unknown',
+        displayName: b.displayName || b.username || 'Thành viên bị cấm',
+        avatarUrl: b.avatarUrl || undefined,
+        bannedAt: b.bannedAt ? new Date(b.bannedAt).toLocaleDateString('vi-VN') : 'Gần đây',
+        reason: b.reason || 'Vi phạm quy định máy chủ',
+      }));
+
+      this.serverDataMap.update((map) => {
+        const current = map[serverId] || {
+          members: [],
+          roles: [],
+          channels: [],
+          invites: [],
+          bannedUsers: [],
+          auditLogs: [],
+        };
+        return {
+          ...map,
+          [serverId]: {
+            ...current,
+            bannedUsers: mappedBans,
+          },
+        };
+      });
+    } catch (err) {
+      console.error(`[UserSettingsService] Không thể tải danh sách server_bans của ${serverId}:`, err);
+    }
+  }
+
   unbanServerMember(id: string): void {
     const sId = this.currentServerId();
+    if (!sId) return;
+
+    const targetUserId = id.includes('_') ? id.split('_')[1] : id.replace(/^b-/, '');
+
+    if (this.serversApi) {
+      this.serversApi
+        .unbanServerMember(sId, targetUserId)
+        .then(() => {
+          void this.loadServerBans(sId);
+        })
+        .catch((err) => {
+          console.error('Lỗi khi bỏ cấm (unban) thành viên:', err);
+        });
+    }
+
     this.serverDataMap.update((map) => {
       const current = map[sId];
       if (!current) return map;
