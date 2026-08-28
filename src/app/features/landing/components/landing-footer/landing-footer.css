@@ -23,11 +23,10 @@
   gap: 12px;
 }
 .brand__mark {
-  inline-size: 40px;
-  block-size: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--color-brand-green), var(--color-brand-green-mid));
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-brand-green) 14%, transparent);
+  block-size: 46px;
+  inline-size: auto;
+  object-fit: contain;
+  /* Mascot Nexus thay cho ô vuông xanh hardcode (nexus-mascot.png, trong suốt). */
 }
 .brand__name {
   font-size: var(--text-heading-3);
