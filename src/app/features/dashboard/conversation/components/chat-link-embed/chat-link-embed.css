@@ -1,0 +1,11 @@
+:host {
+  display: block;
+}
+
+/* Nút hành động dạng pill, đồng bộ quy ước nút của design system (rounded-full). */
+.nexus-embed-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+}

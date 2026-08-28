@@ -3,22 +3,25 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { AccountDisabledService } from '../../../../core/auth/account-disabled.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
 import { UserSettingsService } from '../../services/user-settings.service';
 import { TwoFactorService } from '../../services/two-factor.service';
+import { ManageAccountsModal } from '../../../profile/modals/manage-accounts-modal/manage-accounts-modal';
 
 @Component({
   selector: 'app-account-tab',
   standalone: true,
-  imports: [FormsModule, MatIconModule, MatButtonModule, MatTooltipModule],
+  imports: [FormsModule, MatIconModule, MatButtonModule, MatDialogModule, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './account-tab.html',
   styleUrl: './account-tab.css',
 })
 export class AccountTab implements OnInit {
+  private readonly dialog = inject(MatDialog);
   protected readonly settingsService = inject(UserSettingsService);
   protected readonly profileService = inject(ProfileService);
   protected readonly tfa = inject(TwoFactorService);
@@ -520,5 +523,13 @@ export class AccountTab implements OnInit {
     } finally {
       this.isDeleting.set(false);
     }
+  }
+
+  protected openManageAccountsModal(): void {
+    this.dialog.open(ManageAccountsModal, {
+      width: '480px',
+      maxWidth: '95vw',
+      panelClass: 'nexus-dialog-panel',
+    });
   }
 }

@@ -2,9 +2,11 @@ import { OverlayModule, type ConnectedPosition } from '@angular/cdk/overlay';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import { AccountSwitchService, SavedAccount } from '../../../../core/auth/account-switch.service';
 import { ProfileService } from '../../../../core/profile/profile.service';
 import { PresenceService } from '../../../../core/presence/presence.service';
 import { PRESENCE_LABEL } from '../../../../../shared/dto/common';
@@ -14,7 +16,9 @@ import { ProfileStore } from '../../../../features/profile/profile-store';
 import { UserSettingsService } from '../../../../features/settings/services/user-settings.service';
 import { MediaDeviceService } from '../../../../features/voice/services/media-device.service';
 import { VoiceRoomService } from '../../../../features/voice/services/voice-room.service';
+import { ToastService } from '../../../../core/toast/toast.service';
 import { Avatar } from '../../../../shared/ui/avatar/avatar';
+import { ManageAccountsModal } from '../../../../features/profile/modals/manage-accounts-modal/manage-accounts-modal';
 
 /**
  * Khối người dùng ở đáy cột 2: avatar, tên, và các nút mic / tai nghe / cài đặt.
@@ -29,6 +33,8 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
     Avatar,
     MatIconModule,
     MatButtonModule,
+    MatDialogModule,
+    MatMenuModule,
     MatTooltipModule,
     OverlayModule,
     ProfilePopover,
@@ -42,12 +48,15 @@ import { Avatar } from '../../../../shared/ui/avatar/avatar';
 })
 export class UserPanel {
   private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
   private readonly profile = inject(ProfileService);
   private readonly presenceService = inject(PresenceService);
   private readonly settingsService = inject(UserSettingsService);
   private readonly profileDialog = inject(ProfileDialogService);
   readonly voiceRoom = inject(VoiceRoomService);
   readonly mediaDevices = inject(MediaDeviceService);
+  readonly accountSwitch = inject(AccountSwitchService);
+  private readonly toast = inject(ToastService);
   protected readonly store = inject(ProfileStore);
 
   protected readonly isVoiceConnected = this.voiceRoom.isConnected;
@@ -172,5 +181,23 @@ export class UserPanel {
     // openUserSettings ép settingsMode = 'user', tránh dính lại chế độ 'server' nếu
     // trước đó modal từng mở qua gear của channel-sidebar (openServerSettings).
     this.settingsService.openUserSettings('account');
+  }
+
+  protected openManageAccounts(): void {
+    this.popoverOpen.set(false);
+    this.dialog.open(ManageAccountsModal, {
+      width: '480px',
+      maxWidth: '95vw',
+      panelClass: 'nexus-dialog-panel',
+    });
+  }
+
+  protected async onSwitchAccount(acc: SavedAccount): Promise<void> {
+    this.popoverOpen.set(false);
+    try {
+      await this.accountSwitch.switchToAccount(acc);
+    } catch (err: any) {
+      this.toast.show({ message: err?.message || 'Không thể chuyển tài khoản.', type: 'error' });
+    }
   }
 }

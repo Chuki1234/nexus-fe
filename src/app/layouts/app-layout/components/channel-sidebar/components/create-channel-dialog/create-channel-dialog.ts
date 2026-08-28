@@ -9,6 +9,7 @@ import { ChannelSummary } from '../../../../../../core/servers/server.models';
 import { ServersStore } from '../../../../../../core/servers/servers.store';
 import { ServerCapabilitiesService } from '../../../../../../core/servers/server-capabilities.service';
 import { ServerChannelStructureSyncService } from '../../../../../../core/servers/server-channel-structure-sync.service';
+import { ToastService } from '../../../../../../core/toast/toast.service';
 
 export interface CreateChannelDialogData {
   serverId: string;
@@ -36,6 +37,7 @@ export class CreateChannelDialog {
   private readonly serversStore = inject(ServersStore, { optional: true });
   private readonly capabilitiesService = inject(ServerCapabilitiesService);
   private readonly structureSync = inject(ServerChannelStructureSyncService);
+  private readonly toast = inject(ToastService);
 
   protected readonly rawChannelName = signal('');
   protected readonly channelType = signal<'text' | 'voice'>(this.data.defaultType ?? 'text');
@@ -90,10 +92,12 @@ export class CreateChannelDialog {
         void this.structureSync.save(this.data.serverId).catch(() => undefined);
       }
 
+      this.toast.show({ message: `Đã tạo kênh #${createdChannel.name} thành công.`, type: 'success' });
       this.dialogRef.close(channelWithCategory);
     } catch (err: any) {
       const formatted = formatApiError(err);
       this.errorMessage.set(formatted);
+      this.toast.show({ message: formatted, type: 'error' });
 
       if (err?.status === 403 || formatted.includes('không có quyền')) {
         this.capabilitiesService.refresh(this.data.serverId).catch(() => {});

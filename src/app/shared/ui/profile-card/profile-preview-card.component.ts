@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AvatarComponent } from '../avatar.component';
 import { bannerFallback } from './banner-color';
@@ -70,7 +70,17 @@ type PreviewLink = { label?: string; url?: string };
           </span>
         </div>
 
-        <h3 class="text-display-sm font-bold text-ink-strong tracking-tight">{{ displayName() }}</h3>
+        @if (nameInteractive()) {
+          <button
+            type="button"
+            class="block text-left text-display-sm font-bold text-ink-strong tracking-tight cursor-pointer hover:underline focus-visible:underline focus-visible:outline-none"
+            (click)="nameClick.emit()"
+          >
+            {{ displayName() }}
+          </button>
+        } @else {
+          <h3 class="text-display-sm font-bold text-ink-strong tracking-tight">{{ displayName() }}</h3>
+        }
         <p class="text-body-sm text-mute">&commat;{{ username() }}</p>
 
         @if (statusMessage(); as status) {
@@ -159,6 +169,13 @@ export class ProfilePreviewCardComponent {
   /** Đang có request upload chạy dở — khoá phần ảnh tương ứng bằng lớp mờ. */
   readonly avatarBusy = input(false);
   readonly bannerBusy = input(false);
+
+  /**
+   * Cho phép bấm vào TÊN hiển thị (mở dialog/điều hướng ở nơi nhúng). Mặc định
+   * `false` để trang Setting giữ nguyên tên tĩnh — chỉ card embed trong chat bật.
+   */
+  readonly nameInteractive = input(false);
+  readonly nameClick = output<void>();
 
   protected readonly bannerColor = computed(() => bannerFallback(this.username(), this.accentColor()));
 

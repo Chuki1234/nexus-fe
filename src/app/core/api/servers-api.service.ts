@@ -9,6 +9,7 @@ import {
   ServerInviteCandidateDto,
   ServerInviteLinkResponseDto,
   ServerInvitePreviewDto,
+  ServerPreviewDto,
 } from '../../../shared/dto/server-invitations.dto';
 import { ServerMemberDto } from '../../../shared/dto/server-members.dto';
 export type { ServerMemberDto };
@@ -469,6 +470,17 @@ export class ServersApiService {
   async getInvitePreview(code: string): Promise<ServerInvitePreviewDto> {
     return firstValueFrom(
       this.http.get<ServerInvitePreviewDto>(`${environment.apiUrl}/invites/${code}`),
+    );
+  }
+
+  /**
+   * Xem trước công khai một máy chủ theo id (card "giới thiệu" khi dán link
+   * `origin/channels/:serverId` vào chat): GET /api/servers/:serverId/preview.
+   * Endpoint public nên không gắn Authorization header.
+   */
+  async getServerPreview(serverId: string): Promise<ServerPreviewDto> {
+    return firstValueFrom(
+      this.http.get<ServerPreviewDto>(`${environment.apiUrl}/servers/${serverId}/preview`),
     );
   }
 
