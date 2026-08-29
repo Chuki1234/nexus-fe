@@ -251,8 +251,10 @@ export class VoiceRoomService implements OnDestroy {
       }
 
       if (this.room) {
-        this.updateLocalParticipantState();
-        this.syncRemoteParticipants();
+        untracked(() => {
+          this.updateLocalParticipantState();
+          this.syncRemoteParticipants();
+        });
       }
     });
 
