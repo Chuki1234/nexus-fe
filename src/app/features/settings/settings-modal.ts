@@ -61,6 +61,12 @@ export interface NavItem {
   badge?: string;
   badgeType?: 'primary' | 'success' | 'new';
   subItems?: { label: string; actionId?: string }[];
+  /**
+   * Ẩn khỏi danh sách nav (vẫn giữ trong dữ liệu để breadcrumb resolve được
+   * nhãn). Dùng cho tab 'accounts' — chỉ vào qua nút "Chuyển Tài Khoản" ở chân,
+   * tránh trùng lặp trong nhóm "Cài đặt Người dùng".
+   */
+  hidden?: boolean;
 }
 
 export interface NavCategory {
@@ -155,7 +161,9 @@ export class SettingsModal {
       title: 'CÀI ĐẶT NGƯỜI DÙNG',
       items: [
         { id: 'account', label: 'Tài Khoản', icon: 'person' },
-        { id: 'accounts', label: 'Chuyển Tài Khoản', icon: 'swap_horiz' },
+        // Ẩn khỏi nav: chỉ vào tab này qua nút "Chuyển Tài Khoản" ở chân sidebar
+        // (ngay trên Đăng Xuất), tránh trùng lặp trong nhóm "Cài đặt Người dùng".
+        { id: 'accounts', label: 'Chuyển Tài Khoản', icon: 'swap_horiz', hidden: true },
         { id: 'profile', label: 'Hồ Sơ', icon: 'badge' },
         { id: 'connections', label: 'Ứng Dụng Đã Kết Nối', icon: 'link' },
         { id: 'notifications', label: 'Các Thông Báo', icon: 'notifications' },
@@ -217,8 +225,12 @@ export class SettingsModal {
 
   protected readonly filteredCategories = computed(() => {
     const q = this.settingsService.searchQuery().trim().toLowerCase();
-    const categories = this.activeCategories();
-    if (!q) return categories;
+    // Bỏ item ẩn (vd 'accounts') khỏi mọi lần render nav — kể cả khi không tìm kiếm.
+    const categories = this.activeCategories().map((cat) => ({
+      ...cat,
+      items: cat.items.filter((item) => !item.hidden),
+    }));
+    if (!q) return categories.filter((cat) => cat.items.length > 0);
 
     return categories
       .map((cat) => ({
