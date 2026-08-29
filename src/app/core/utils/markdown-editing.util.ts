@@ -1,6 +1,7 @@
 export type MarkdownFormatType =
   | 'bold'
   | 'italic'
+  | 'underline'
   | 'strike'
   | 'inline-code'
   | 'code-block'
@@ -23,6 +24,7 @@ interface FormatDelimiters {
 const FORMAT_DELIMITERS: Record<MarkdownFormatType, FormatDelimiters> = {
   bold: { prefix: '**', suffix: '**', placeholder: 'văn bản đậm' },
   italic: { prefix: '*', suffix: '*', placeholder: 'văn bản nghiêng' },
+  underline: { prefix: '__', suffix: '__', placeholder: 'văn bản gạch dưới' },
   strike: { prefix: '~~', suffix: '~~', placeholder: 'văn bản gạch ngang' },
   'inline-code': { prefix: '`', suffix: '`', placeholder: 'mã' },
   'code-block': { prefix: '```\n', suffix: '\n```', placeholder: 'mã nguồn', isBlock: true },
@@ -154,6 +156,8 @@ export function handleMarkdownHotkeys(
     format = 'bold';
   } else if (key === 'i' && !event.shiftKey && !event.altKey) {
     format = 'italic';
+  } else if (key === 'u' && !event.shiftKey && !event.altKey) {
+    format = 'underline';
   } else if (key === 'k' && !event.shiftKey && !event.altKey) {
     format = 'link';
   } else if (key === 'e' && !event.shiftKey && !event.altKey) {

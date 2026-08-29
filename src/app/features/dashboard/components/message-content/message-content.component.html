@@ -35,6 +35,17 @@
         }
       </em>
     }
+    @case ('underline') {
+      <u class="underline">
+        @if (tok.children?.length) {
+          @for (child of tok.children; track child.key) {
+            <ng-container *ngTemplateOutlet="renderToken; context: { $implicit: child }"></ng-container>
+          }
+        } @else {
+          {{ tok.value }}
+        }
+      </u>
+    }
     @case ('strike') {
       <s class="line-through text-slate">
         @if (tok.children?.length) {

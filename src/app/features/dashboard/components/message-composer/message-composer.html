@@ -271,12 +271,22 @@
       (ngModelChange)="onInput($event)"
       (keydown)="onKeydown($event)"
       (keyup)="onKeyup($event)"
+      (select)="updateSelectionToolbar()"
+      (mouseup)="updateSelectionToolbar()"
       (compositionstart)="onCompositionStart()"
       (compositionend)="onCompositionEnd($event)"
       (blur)="onBlur()"
       (paste)="onPaste($event)"
       class="composer-textarea min-w-0 flex-1 bg-transparent py-0 text-body-sm text-ink placeholder:text-steel focus:outline-none disabled:cursor-not-allowed resize-none leading-[22px]"
     ></textarea>
+
+    <!-- Floating Formatting Toolbar khi bôi đen text (Word Style) -->
+    @if (selectionToolbarPos(); as pos) {
+      <app-chat-formatting-toolbar
+        [position]="pos"
+        (formatSelected)="applyFormatFromToolbar($event)"
+      />
+    }
 
     <!-- Nút Định dạng Markdown (Aa) -->
     <button

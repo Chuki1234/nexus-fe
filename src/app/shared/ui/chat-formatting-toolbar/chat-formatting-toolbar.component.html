@@ -1,0 +1,45 @@
+<div class="formatting-toolbar flex items-center gap-0.5 p-1 rounded-xl bg-surface/95 border border-hairline/80 shadow-2xl backdrop-blur-md text-ink animate-scale-up">
+  <!-- Bold (B) -->
+  <button
+    type="button"
+    (mousedown)="onFormat('bold', $event)"
+    class="toolbar-btn px-2.5 py-1 rounded-lg text-body-sm font-black hover:bg-surface-feature hover:text-primary transition-colors flex items-center justify-center cursor-pointer min-w-[30px]"
+    matTooltip="In đậm (Ctrl+B)"
+    title="In đậm (Ctrl+B)"
+  >
+    B
+  </button>
+
+  <!-- Italic (I) -->
+  <button
+    type="button"
+    (mousedown)="onFormat('italic', $event)"
+    class="toolbar-btn px-2.5 py-1 rounded-lg text-body-sm font-semibold italic hover:bg-surface-feature hover:text-primary transition-colors flex items-center justify-center cursor-pointer min-w-[30px]"
+    matTooltip="In nghiêng (Ctrl+I)"
+    title="In nghiêng (Ctrl+I)"
+  >
+    I
+  </button>
+
+  <!-- Underline (U) -->
+  <button
+    type="button"
+    (mousedown)="onFormat('underline', $event)"
+    class="toolbar-btn px-2.5 py-1 rounded-lg text-body-sm font-semibold underline hover:bg-surface-feature hover:text-primary transition-colors flex items-center justify-center cursor-pointer min-w-[30px]"
+    matTooltip="Gạch dưới (Ctrl+U)"
+    title="Gạch dưới (Ctrl+U)"
+  >
+    U
+  </button>
+
+  <!-- Strikethrough (S) -->
+  <button
+    type="button"
+    (mousedown)="onFormat('strike', $event)"
+    class="toolbar-btn px-2.5 py-1 rounded-lg text-body-sm font-semibold line-through hover:bg-surface-feature hover:text-primary transition-colors flex items-center justify-center cursor-pointer min-w-[30px]"
+    matTooltip="Gạch ngang (Ctrl+Shift+X)"
+    title="Gạch ngang (Ctrl+Shift+X)"
+  >
+    S
+  </button>
+</div>
