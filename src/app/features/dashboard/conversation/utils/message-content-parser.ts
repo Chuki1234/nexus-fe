@@ -13,6 +13,7 @@ export type MessageTokenType =
   | 'spoiler'
   | 'bold'
   | 'italic'
+  | 'underline'
   | 'strike'
   | 'inline-code'
   | 'code-block'
@@ -56,12 +57,15 @@ const MD_LINK_REGEX = /(?:^|[^\!])\[([^\]\n]+)\]\((https?:\/\/[^\s<>"'`)]+)\)/g;
 /** Regex nhận diện Bold: **text** */
 const BOLD_REGEX = /\*\*([\s\S]+?)\*\*/g;
 
+/** Regex nhận diện Underline: __text__ */
+const UNDERLINE_REGEX = /__([\s\S]+?)__/g;
+
 /** Regex nhận diện Strike: ~~text~~ */
 const STRIKE_REGEX = /~~([\s\S]+?)~~/g;
 
 /** Regex nhận diện Italic: *text* hoặc _text_ */
-const ITALIC_STAR_REGEX = /(^|[^\*])\*([^\*\n]+?)\*([^\*]|$)/g;
-const ITALIC_UNDERSCORE_REGEX = /(^|[^_])_([^_\n]+?)_([^_]|$)/g;
+const ITALIC_STAR_REGEX = /(?<!\*)\*([^\*\n]+?)\*(?!\*)/g;
+const ITALIC_UNDERSCORE_REGEX = /(?<!_)_([^_\n]+?)_(?!_)/g;
 
 /**
  * Hàm phân tích đệ quy cho các đoạn text thông thường (bold, italic, strike, spoiler, links, mentions).
@@ -265,6 +269,37 @@ function parseInlineSpans(
     return tokens;
   }
 
+  // 5.5. Phân tách Underline __...__
+  if (text.includes('__')) {
+    const tokens: MessageContentToken[] = [];
+    let lastIdx = 0;
+    let counter = 0;
+    const matches = text.matchAll(UNDERLINE_REGEX);
+
+    for (const match of matches) {
+      const matchIdx = match.index ?? 0;
+      const underlineContent = match[1];
+
+      if (matchIdx > lastIdx) {
+        tokens.push(...parseInlineSpans(text.substring(lastIdx, matchIdx), `${prefix}-u-${counter++}`, depth + 1));
+      }
+
+      tokens.push({
+        key: `${prefix}-u-${counter++}`,
+        type: 'underline',
+        value: underlineContent,
+        children: parseInlineSpans(underlineContent, `${prefix}-uchild-${counter}`, depth + 1),
+      });
+
+      lastIdx = matchIdx + match[0].length;
+    }
+
+    if (lastIdx < text.length) {
+      tokens.push(...parseInlineSpans(text.substring(lastIdx), `${prefix}-u-${counter++}`, depth + 1));
+    }
+    return tokens;
+  }
+
   // 6. Phân tách Strike ~~...~~
   if (text.includes('~~')) {
     const tokens: MessageContentToken[] = [];
@@ -296,7 +331,7 @@ function parseInlineSpans(
     return tokens;
   }
 
-  // 7. Phân tách Italic *...* hoặc _..._
+  // 7. Phân tách Italic *...*
   if (text.includes('*')) {
     const tokens: MessageContentToken[] = [];
     let lastIdx = 0;
@@ -305,14 +340,10 @@ function parseInlineSpans(
 
     for (const match of matches) {
       const matchIdx = match.index ?? 0;
-      const leadingChar = match[1] || '';
-      const italicContent = match[2];
-      const trailingChar = match[3] || '';
+      const italicContent = match[1];
 
-      const contentStart = matchIdx + leadingChar.length;
-
-      if (contentStart > lastIdx) {
-        tokens.push(...parseInlineSpans(text.substring(lastIdx, contentStart), `${prefix}-it-${counter++}`, depth + 1));
+      if (matchIdx > lastIdx) {
+        tokens.push(...parseInlineSpans(text.substring(lastIdx, matchIdx), `${prefix}-it-${counter++}`, depth + 1));
       }
 
       tokens.push({
@@ -322,10 +353,7 @@ function parseInlineSpans(
         children: parseInlineSpans(italicContent, `${prefix}-itchild-${counter}`, depth + 1),
       });
 
-      lastIdx = contentStart + 1 + italicContent.length + 1; // +2 for stars
-      if (trailingChar) {
-        lastIdx -= trailingChar.length;
-      }
+      lastIdx = matchIdx + match[0].length;
     }
 
     if (lastIdx < text.length) {

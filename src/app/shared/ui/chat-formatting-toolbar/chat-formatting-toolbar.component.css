@@ -1,0 +1,13 @@
+:host {
+  transform: translate(-50%, -100%);
+  margin-top: -8px;
+  pointer-events: auto;
+}
+
+.formatting-toolbar {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+}
+
+.toolbar-btn:active {
+  transform: scale(0.95);
+}

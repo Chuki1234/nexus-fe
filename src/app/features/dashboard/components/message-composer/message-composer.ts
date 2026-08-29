@@ -34,6 +34,10 @@ import {
   handleMarkdownHotkeys,
   type MarkdownFormatType,
 } from '../../../../core/utils/markdown-editing.util';
+import {
+  ChatFormattingToolbarComponent,
+  type FormattingToolbarPosition,
+} from '../../../../shared/ui/chat-formatting-toolbar/chat-formatting-toolbar.component';
 import { deleteMentionTokenAtomically } from '../../../../core/utils/mention-token-edit.util';
 import {
   convertEmoticonsToEmoji,
@@ -525,6 +529,89 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function getTextareaSelectionBounds(
+  textarea: HTMLTextAreaElement,
+  start: number,
+  end: number,
+): { top: number; left: number; width: number } | null {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+
+  const style = window.getComputedStyle(textarea);
+  const textareaRect = textarea.getBoundingClientRect();
+
+  const mirror = document.createElement('div');
+  mirror.style.position = 'fixed';
+  mirror.style.visibility = 'hidden';
+  mirror.style.pointerEvents = 'none';
+  mirror.style.top = '-9999px';
+  mirror.style.left = '-9999px';
+  mirror.style.width = `${textareaRect.width}px`;
+  mirror.style.whiteSpace = 'pre-wrap';
+  mirror.style.wordBreak = 'break-word';
+
+  const propertiesToCopy = [
+    'fontFamily',
+    'fontSize',
+    'fontWeight',
+    'fontStyle',
+    'letterSpacing',
+    'lineHeight',
+    'textTransform',
+    'wordSpacing',
+    'textIndent',
+    'paddingTop',
+    'paddingRight',
+    'paddingBottom',
+    'paddingLeft',
+    'borderTopWidth',
+    'borderRightWidth',
+    'borderBottomWidth',
+    'borderLeftWidth',
+    'boxSizing',
+  ];
+
+  for (const prop of propertiesToCopy) {
+    (mirror.style as any)[prop] = (style as any)[prop];
+  }
+
+  const textVal = textarea.value;
+  const beforeText = textVal.slice(0, start);
+  const selectedText = textVal.slice(start, end);
+  const afterText = textVal.slice(end);
+
+  const beforeSpan = document.createElement('span');
+  beforeSpan.textContent = beforeText;
+
+  const targetSpan = document.createElement('span');
+  targetSpan.textContent = selectedText;
+
+  const afterSpan = document.createElement('span');
+  afterSpan.textContent = afterText;
+
+  mirror.appendChild(beforeSpan);
+  mirror.appendChild(targetSpan);
+  mirror.appendChild(afterSpan);
+
+  document.body.appendChild(mirror);
+
+  const targetRect = targetSpan.getBoundingClientRect();
+  const mirrorRect = mirror.getBoundingClientRect();
+
+  const relativeLeft = targetRect.left - mirrorRect.left;
+  const relativeTop = targetRect.top - mirrorRect.top;
+
+  const absoluteLeft = textareaRect.left + relativeLeft - textarea.scrollLeft;
+  const absoluteTop = textareaRect.top + relativeTop - textarea.scrollTop;
+
+  document.body.removeChild(mirror);
+
+  return {
+    left: absoluteLeft,
+    top: absoluteTop,
+    width: targetRect.width,
+  };
+}
+
 /**
  * Ô soạn tin nhắn ở đáy khu nội dung.
  *
@@ -542,6 +629,7 @@ function formatFileSize(bytes: number): string {
     GiphyPickerComponent,
     StipopPickerComponent,
     Avatar,
+    ChatFormattingToolbarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -555,6 +643,8 @@ function formatFileSize(bytes: number): string {
 export class MessageComposer implements OnDestroy {
   readonly textareaEl = viewChild<ElementRef<HTMLTextAreaElement>>('messageTextarea');
   readonly fileInputEl = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+
+  readonly selectionToolbarPos = signal<FormattingToolbarPosition | null>(null);
 
   /** Tên kênh hoặc người nhận, hiện trong placeholder. */
   readonly target = input.required<string>();
@@ -1181,10 +1271,67 @@ export class MessageComposer implements OnDestroy {
       this.checkMentionTrigger();
       this.checkEmojiSuggestTrigger();
     }
+    this.updateSelectionToolbar();
   }
 
   onBlur(): void {
     this.stoppedTyping.emit();
+    setTimeout(() => {
+      this.selectionToolbarPos.set(null);
+    }, 200);
+  }
+
+  updateSelectionToolbar(): void {
+    const textarea = this.textareaEl()?.nativeElement;
+    if (!textarea) {
+      this.selectionToolbarPos.set(null);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    if (start === null || end === null || start === end) {
+      this.selectionToolbarPos.set(null);
+      return;
+    }
+
+    const selRect = getTextareaSelectionBounds(textarea, start, end);
+    if (!selRect || selRect.width === 0) {
+      this.selectionToolbarPos.set(null);
+      return;
+    }
+
+    // Đặt vị trí toolbar căn giữa chính xác phía trên đoạn text được highlight
+    const centerLeft = Math.max(120, Math.min(window.innerWidth - 120, selRect.left + selRect.width / 2));
+    const topPos = Math.max(40, selRect.top - 8);
+
+    this.selectionToolbarPos.set({
+      top: topPos,
+      left: centerLeft,
+    });
+  }
+
+  applyFormatFromToolbar(format: MarkdownFormatType): void {
+    const textarea = this.textareaEl()?.nativeElement;
+    if (!textarea) return;
+
+    const res = applyMarkdownFormat(
+      textarea.value,
+      textarea.selectionStart,
+      textarea.selectionEnd,
+      format,
+    );
+
+    textarea.value = res.value;
+    this.onInput(res.value);
+
+    queueMicrotask(() => {
+      textarea.setSelectionRange(res.selectionStart, res.selectionEnd);
+      textarea.focus();
+      this.adjustTextareaHeight();
+      this.updateSelectionToolbar();
+    });
   }
 
   onCompositionStart(): void {
