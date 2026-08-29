@@ -26,11 +26,10 @@ interface RouteLink {
 export class LandingFooter {
   protected readonly year = new Date().getFullYear();
 
-  /** Neo tới các section có thật trên trang. */
+  /** Neo tới các section có thật trên trang (khớp id trong template mỗi section). */
   protected readonly productLinks: readonly AnchorLink[] = [
-    { label: 'Tính năng', href: '#features' },
-    { label: 'Thời gian thực', href: '#realtime' },
-    { label: 'Bảo mật', href: '#security' },
+    { label: 'Tính năng', href: '#journey' },
+    { label: 'Chi tiết', href: '#chi-tiet' },
     { label: 'Cộng đồng', href: '#community' },
   ];
 

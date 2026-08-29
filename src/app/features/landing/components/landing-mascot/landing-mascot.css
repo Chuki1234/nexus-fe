@@ -4,95 +4,36 @@
 }
 
 .mascot {
-  display: block;
   inline-size: 100%;
   block-size: auto;
   overflow: visible;
-  /* Màu thân đổi theo variant; dùng chung cho thân, đuôi, chân. */
-  --m-body: var(--color-brand-green);
-  animation: bob 3.6s var(--ease-nexus-out) infinite;
-}
-.mascot--purple {
-  --m-body: var(--color-accent-purple);
-}
-.mascot--orange {
-  --m-body: var(--color-accent-orange);
 }
 
-/* ---- Thân / đuôi / chân ---- */
-.m-body {
-  fill: var(--m-body);
-}
-.m-limb {
-  fill: none;
-  stroke: var(--m-body);
-  stroke-width: 15;
-  stroke-linecap: round;
-}
-.m-tail {
-  fill: none;
-  stroke: var(--m-body);
-  stroke-width: 20;
-  stroke-linecap: round;
-}
-.m-belly {
-  fill: var(--color-brand-green-soft);
-  opacity: 0.9;
-}
-
-/* ---- Mặt ---- */
-.m-eyewhite {
-  fill: var(--color-on-dark);
-}
-.m-face {
-  fill: var(--color-on-primary);
-}
-.m-spark {
-  fill: var(--color-on-dark);
-}
-.m-smile {
-  fill: none;
-  stroke: var(--color-on-primary);
-  stroke-width: 6;
-  stroke-linecap: round;
-}
-.m-cheek {
-  fill: var(--color-accent-pink);
-  opacity: 0.4;
-}
-
-/* ---- Chân trước vẫy ---- */
-.m-wave {
+/* Thân tắc kè "thở" cực nhẹ — cành đứng yên. Tinh tế, không hoạt hình. */
+.m-idle {
   transform-box: view-box;
-  transform-origin: 152px 150px;
+  transform-origin: 150px 170px;
+  animation: nexiBreathe 6.5s ease-in-out infinite;
 }
-.mascot--waving .m-wave {
-  animation: wave 1.1s ease-in-out infinite;
+@keyframes nexiBreathe {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(-0.6deg); }
 }
 
-/* ---- Keyframes ---- */
-@keyframes bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
+/* Đồng tử liếc rất khẽ — thêm chút "sống" mà vẫn điềm tĩnh. */
+.m-pupil {
+  transform-box: view-box;
+  transform-origin: 200px 123px;
+  animation: nexiGlance 7.5s ease-in-out infinite;
 }
-@keyframes wave {
-  0%,
-  100% {
-    transform: rotate(-8deg);
-  }
-  50% {
-    transform: rotate(14deg);
-  }
+@keyframes nexiGlance {
+  0%, 40%, 100% { transform: translateX(0); }
+  50%, 90% { transform: translateX(-3px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mascot,
-  .mascot--waving .m-wave {
+  .m-idle,
+  .m-pupil {
     animation: none;
   }
 }

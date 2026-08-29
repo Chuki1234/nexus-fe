@@ -1,28 +1,45 @@
 <section class="hero" id="top">
   <div class="hero__copy">
-    <p class="eyebrow">Nền tảng cộng đồng thời gian thực</p>
+    <p class="eyebrow">Trò chuyện · Gọi nhóm · Xây cộng đồng</p>
 
     <h1 class="hero__title">
       Nơi cộng đồng của bạn<br />
-      trò chuyện <span class="hero__accent">theo thời gian thực</span>.
+      <span class="hero__accent">trò chuyện và gắn kết</span>.
     </h1>
 
     <p class="hero__subtitle">
-      Máy chủ, kênh, tin nhắn, thoại và quyền hạn — tất cả trong một không gian
-      mở tức thì. Nexus giữ mọi người cùng một nhịp, ngay khoảnh khắc họ gõ phím.
+      Nhắn tin, gọi thoại, gọi video và xây dựng không gian riêng cho cộng đồng —
+      tất cả trong một ứng dụng, mượt mà và luôn sẵn sàng.
     </p>
 
     <div class="hero__actions">
-      <a class="btn-pill" routerLink="/register">Tạo máy chủ miễn phí</a>
-      <a class="btn-outline" href="#features">Xem tính năng</a>
+      <a class="btn-pill" routerLink="/register">Tạo cộng đồng miễn phí</a>
+      <a class="btn-outline" href="#journey">Khám phá tính năng</a>
     </div>
 
-    <p class="hero__note">Miễn phí để bắt đầu · Không cần thẻ tín dụng</p>
+    <p class="hero__note">Miễn phí để bắt đầu · Không cần thẻ thanh toán</p>
   </div>
 
   <div class="hero__stage">
+  <!-- Lớp NỀN: các chi tiết trôi lơ lửng, bị làm mờ (blur) tạo chiều sâu -->
+  <div class="hero__back" aria-hidden="true">
+    <span class="hbShape hbShape--blob1"></span>
+    <span class="hbShape hbShape--blob2"></span>
+    <span class="hbShape hbShape--ring"></span>
+    <span class="hbShape hbShape--bubble"></span>
+    <span class="hbShape hbShape--card"></span>
+    <span class="hbShape hbShape--pill"></span>
+    <span class="hbStar hbStar--1"></span>
+    <span class="hbStar hbStar--2"></span>
+    <span class="hbStar hbStar--3"></span>
+    <span class="hbStar hbStar--4"></span>
+    <span class="hbStar hbStar--5"></span>
+  </div>
+
+  <span class="hero__glow hero__glow--a" aria-hidden="true"></span>
+  <span class="hero__glow hero__glow--b" aria-hidden="true"></span>
   <!-- Signature: cửa sổ channel Nexus, tin nhắn trôi vào tuần tự khi tải trang -->
-  <div class="mock" role="img" aria-label="Xem trước một kênh Nexus với tin nhắn đến theo thời gian thực">
+  <div class="mock" role="img" aria-label="Xem trước một kênh trò chuyện của Nexus">
     <div class="mock__bar" aria-hidden="true">
       <span class="mock__dot"></span>
       <span class="mock__dot"></span>
@@ -41,7 +58,7 @@
         <div class="mock__head" aria-hidden="true">
           <span class="mock__hash">#</span>
           <span class="mock__chan">chung</span>
-          <span class="mock__presence"><i class="dot"></i> 4 đang online</span>
+          <span class="mock__presence"><i class="dot"></i> 5 đang online</span>
         </div>
 
         <div class="mock__stream">
@@ -74,6 +91,17 @@
       </div>
     </div>
   </div>
+
+    <!-- Lớp TRƯỚC: chip nổi sắc nét, trôi nhẹ -->
+    <div class="hero__chip hero__chip--voice" aria-hidden="true">
+      <svg viewBox="0 0 24 24" class="chipMic"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>
+      <span>Phòng chờ · <b>3</b></span>
+      <span class="chipWave"><i></i><i></i><i></i><i></i></span>
+    </div>
+    <div class="hero__chip hero__chip--react" aria-hidden="true">
+      <svg viewBox="0 0 24 24" class="chipHeart"><path d="M12 21s-7-4.35-9.5-8.5C.9 9.7 2.2 6.5 5.2 6.5c1.9 0 3 .9 3.8 2 0.8-1.1 1.9-2 3.8-2 3 0 4.3 3.2 2.7 6C19 16.65 12 21 12 21z"/></svg>
+      <b>+12</b>
+    </div>
 
     <app-landing-mascot class="hero__mascot" [waving]="true" label="Nexi — linh vật Nexus vẫy chào" />
   </div>

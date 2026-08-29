@@ -1,73 +1,84 @@
 @let hasLabel = label().length > 0;
 
+<!--
+  Nexi — linh vật tắc kè của Nexuscord, phong cách PAPERCUT (giấy xếp lớp):
+  nhiều lớp teal/xanh chồng nhau, viền gold, bóng đổ mềm tạo chiều sâu 2.5D.
+  Đậu trên cành, đuôi xoắn, mắt turret đồng tâm — nhận diện tắc kè. Cành đứng yên,
+  chỉ thân "thở" rất nhẹ (tinh tế, không hoạt hình).
+-->
 <svg
   class="mascot"
-  [class.mascot--purple]="variant() === 'purple'"
-  [class.mascot--orange]="variant() === 'orange'"
-  [class.mascot--waving]="waving()"
-  viewBox="0 0 240 235"
+  viewBox="0 0 280 280"
   [attr.role]="hasLabel ? 'img' : null"
   [attr.aria-label]="hasLabel ? label() : null"
   [attr.aria-hidden]="hasLabel ? null : true"
   xmlns="http://www.w3.org/2000/svg"
 >
-  <!-- Đuôi xoắn ốc — nét nhận diện của tắc kè (vẽ sau lưng thân) -->
-  <path
-    class="m-tail"
-    d="M150 170
-       C 196 176 222 154 220 122
-       C 218 96 194 86 178 100
-       C 166 110 170 130 186 130
-       C 196 130 200 120 196 114"
-  />
+  <defs>
+    <filter id="nexiPaper" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1.5" dy="3" stdDeviation="2" flood-color="#04231d" flood-opacity="0.42" />
+    </filter>
+  </defs>
 
-  <!-- Chân sau (sau thân) -->
-  <ellipse class="m-body" cx="90" cy="198" rx="17" ry="12" />
-  <ellipse class="m-body" cx="150" cy="198" rx="17" ry="12" />
+  <!-- Cành cây (tĩnh) -->
+  <g filter="url(#nexiPaper)">
+    <path d="M18 232 C 90 224 150 236 262 214" fill="none" stroke="#7a4f2c" stroke-width="24" stroke-linecap="round" />
+    <path d="M18 226 C 90 218 150 230 262 208" fill="none" stroke="#9a6a38" stroke-width="9" stroke-linecap="round" />
+  </g>
 
-  <!-- Chân trước trái (đệm ngón bám) -->
-  <path class="m-limb" d="M96 156 C 84 172 76 178 70 184" />
-  <circle class="m-body" cx="66" cy="188" r="11" />
-  <circle class="m-body" cx="58" cy="196" r="4.5" />
-  <circle class="m-body" cx="67" cy="199" r="4.5" />
-  <circle class="m-body" cx="76" cy="196" r="4.5" />
-
-  <!-- Thân + bụng sáng -->
-  <ellipse class="m-body" cx="120" cy="160" rx="46" ry="44" />
-  <ellipse class="m-belly" cx="120" cy="170" rx="27" ry="28" />
-
-  <!-- Đầu -->
-  <ellipse class="m-body" cx="120" cy="92" rx="58" ry="50" />
-
-  <!-- Chân trước phải: vẫy chào khi waving, đứng yên khi không -->
-  @if (waving()) {
-    <g class="m-wave">
-      <path class="m-limb" d="M150 150 C 176 140 192 120 190 100" />
-      <circle class="m-body" cx="190" cy="96" r="12" />
-      <circle class="m-body" cx="182" cy="88" r="4.5" />
-      <circle class="m-body" cx="192" cy="84" r="4.5" />
-      <circle class="m-body" cx="200" cy="90" r="4.5" />
+  <!-- Tắc kè (thở nhẹ) -->
+  <g class="m-idle">
+    <!-- Đuôi xoắn -->
+    <g filter="url(#nexiPaper)">
+      <path d="M118 176 C 70 210 44 176 62 150 C 74 133 100 138 98 158 C 97 170 82 172 80 160" fill="none" stroke="#1e5a4d" stroke-width="22" stroke-linecap="round" />
+      <path d="M118 176 C 70 210 44 176 62 150 C 74 133 100 138 98 158 C 97 170 82 172 80 160" fill="none" stroke="#2f7d6b" stroke-width="13" stroke-linecap="round" />
+      <path d="M118 172 C 74 204 50 176 66 152" fill="none" stroke="#e3b25a" stroke-width="3" stroke-linecap="round" />
     </g>
-  } @else {
-    <path class="m-limb" d="M144 156 C 156 172 164 178 170 184" />
-    <circle class="m-body" cx="174" cy="188" r="11" />
-    <circle class="m-body" cx="166" cy="196" r="4.5" />
-    <circle class="m-body" cx="175" cy="199" r="4.5" />
-    <circle class="m-body" cx="184" cy="196" r="4.5" />
-  }
 
-  <!-- Mắt to lồi (đặc trưng tắc kè) -->
-  <circle class="m-eyewhite" cx="96" cy="60" r="23" />
-  <circle class="m-eyewhite" cx="144" cy="60" r="23" />
-  <circle class="m-face" cx="100" cy="64" r="12" />
-  <circle class="m-face" cx="140" cy="64" r="12" />
-  <circle class="m-spark" cx="104" cy="59" r="4.5" />
-  <circle class="m-spark" cx="144" cy="59" r="4.5" />
+    <!-- Chân sau -->
+    <g filter="url(#nexiPaper)">
+      <path d="M120 196 q 4 26 -8 40 l 16 4 q 10 -20 8 -40 z" fill="#1e5a4d" />
+    </g>
 
-  <!-- Lỗ mũi + má hồng + miệng cười -->
-  <circle class="m-face" cx="112" cy="102" r="2.6" />
-  <circle class="m-face" cx="128" cy="102" r="2.6" />
-  <circle class="m-cheek" cx="84" cy="108" r="9" />
-  <circle class="m-cheek" cx="156" cy="108" r="9" />
-  <path class="m-smile" d="M104 112 Q120 128 136 112" />
+    <!-- Thân: lưng tối → thân teal → bụng sáng + viền gold -->
+    <g filter="url(#nexiPaper)">
+      <ellipse cx="132" cy="158" rx="66" ry="52" fill="#1e5a4d" />
+      <ellipse cx="136" cy="162" rx="58" ry="45" fill="#2f7d6b" />
+      <path d="M108 176 q 34 26 74 6 q -6 30 -40 30 q -34 0 -34 -36 z" fill="#8fd4a8" />
+      <path d="M78 132 q 40 -20 92 -2" fill="none" stroke="#e3b25a" stroke-width="3" stroke-linecap="round" />
+    </g>
+
+    <!-- Chân trước bám cành -->
+    <g filter="url(#nexiPaper)">
+      <path d="M158 190 q 6 24 -4 40 l 16 2 q 8 -22 4 -40 z" fill="#2f7d6b" />
+      <path d="M156 226 l 6 -8 m 6 8 l 2 -10 m 8 8 l 8 -8" stroke="#1e5a4d" stroke-width="4" stroke-linecap="round" fill="none" />
+    </g>
+
+    <!-- Mào lưng răng cưa -->
+    <g filter="url(#nexiPaper)">
+      <path d="M150 108 L146 84 L160 104 L166 80 L178 106 L188 86 L196 112 Z" fill="#1e5a4d" />
+      <path d="M152 110 L150 92 L160 106 L168 88 L178 108 L188 92 L194 112 Z" fill="#43a07f" />
+    </g>
+
+    <!-- Đầu -->
+    <g filter="url(#nexiPaper)">
+      <ellipse cx="190" cy="130" rx="46" ry="42" fill="#1e5a4d" />
+      <ellipse cx="192" cy="132" rx="40" ry="37" fill="#2f7d6b" />
+      <path d="M176 150 q 26 16 44 -2 q -4 20 -24 20 q -20 0 -20 -18 z" fill="#8fd4a8" />
+    </g>
+
+    <!-- Mắt turret: vòng đồng tâm papercut -->
+    <g filter="url(#nexiPaper)">
+      <circle cx="196" cy="120" r="23" fill="#1e5a4d" />
+      <circle cx="196" cy="120" r="18" fill="#43a07f" />
+      <circle cx="197" cy="121" r="12" fill="#f1ead6" />
+      <circle cx="199" cy="122" r="8" fill="#e3b25a" />
+      <circle class="m-pupil" cx="200" cy="123" r="5" fill="#0d2b24" />
+      <circle cx="197" cy="119" r="2.2" fill="#ffffff" />
+    </g>
+
+    <!-- Mũi + miệng -->
+    <path d="M228 138 q 8 6 4 14" fill="none" stroke="#1e5a4d" stroke-width="3.4" stroke-linecap="round" />
+    <circle cx="230" cy="132" r="2.2" fill="#164a3f" />
+  </g>
 </svg>

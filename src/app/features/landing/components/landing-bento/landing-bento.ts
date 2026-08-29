@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RevealDirective } from '../../directives/reveal.directive';
 
 interface BentoCard {
   readonly icon: string;
@@ -8,7 +9,7 @@ interface BentoCard {
 
 @Component({
   selector: 'app-landing-bento',
-  imports: [],
+  imports: [RevealDirective],
   templateUrl: './landing-bento.html',
   styleUrl: './landing-bento.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -16,34 +17,34 @@ interface BentoCard {
 export class LandingBento {
   protected readonly cards: readonly BentoCard[] = [
     {
-      icon: 'forum',
-      title: 'Tin nhắn riêng',
-      body: 'Nhắn 1-1 với bất kỳ ai, tách biệt khỏi máy chủ.',
+      icon: 'badge',
+      title: 'Hồ sơ của riêng bạn',
+      body: 'Ảnh đại diện, ảnh bìa, dòng trạng thái và màu sắc riêng — thể hiện cá tính của bạn trong mọi cộng đồng.',
     },
     {
-      icon: 'sensors',
-      title: 'Trạng thái hiện diện',
-      body: 'Thấy ai đang online, rời đi hay đang bận — cập nhật tức thì.',
-    },
-    {
-      icon: 'done_all',
-      title: 'Đã đọc chính xác',
-      body: 'Đếm chưa đọc lấy từ read state, đúng cả khi mở nhiều tab.',
+      icon: 'edit_note',
+      title: 'Toàn quyền với tin nhắn',
+      body: 'Chỉnh sửa, ghim, thu hồi hay chuyển tiếp tin nhắn — chỉ với một thao tác.',
     },
     {
       icon: 'emoji_emotions',
-      title: 'Sticker',
-      body: 'Thêm sắc thái với sticker, kèm ghi nguồn theo nhà cung cấp.',
+      title: 'Sticker & GIF',
+      body: 'Thêm cảm xúc cho cuộc trò chuyện với kho sticker và GIF phong phú.',
+    },
+    {
+      icon: 'shield',
+      title: 'Phân quyền linh hoạt',
+      body: 'Trao quyền phù hợp cho từng thành viên — ai quản lý, ai trò chuyện — chi tiết đến từng kênh.',
     },
     {
       icon: 'link',
-      title: 'Link mời',
-      body: 'Mời thành viên bằng link có hạn dùng và thời hạn rõ ràng.',
+      title: 'Mời thành viên bằng link',
+      body: 'Mở rộng cộng đồng bằng link mời, kèm giới hạn lượt dùng và thời hạn tùy chỉnh.',
     },
     {
-      icon: 'notifications_active',
-      title: 'Thông báo trong ứng dụng',
-      body: 'Huy hiệu và sự kiện socket — không phụ thuộc push bên ngoài.',
+      icon: 'devices',
+      title: 'Nhất quán trên mọi thiết bị',
+      body: 'Đăng nhập ở bất cứ đâu vẫn có đúng một trải nghiệm: tin chưa đọc, hội thoại và bạn bè luôn nhất quán.',
     },
   ];
 }

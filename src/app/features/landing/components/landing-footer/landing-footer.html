@@ -5,7 +5,7 @@
         <img class="brand__mark" src="/assets/nexus-mascot.png" alt="" aria-hidden="true" decoding="async" />
         <span class="brand__name">Nexus</span>
       </div>
-      <p class="footer__tag">Không gian cộng đồng thời gian thực.</p>
+      <p class="footer__tag">Không gian kết nối cho mọi cộng đồng.</p>
     </div>
 
     <nav class="footer__cols" aria-label="Liên kết chân trang">
@@ -29,10 +29,31 @@
     </nav>
   </div>
 
-  <!-- Wordmark khổng lồ + tắc kè ló đầu ngồi trên chữ — chữ ký footer. -->
+  <!-- Sân khấu chữ ký: đàn Nexi đứng trên "mặt đất" phía trên wordmark khổng lồ. -->
   <div class="footer__sign">
-    <app-landing-mascot class="footer__mascot" [waving]="true" />
-    <div class="footer__wordmark" aria-hidden="true">Nexus</div>
+    <div class="fscene" aria-hidden="true">
+      <!-- Trang trí nổi -->
+      <span class="fstar fstar--1"></span>
+      <span class="fstar fstar--2"></span>
+      <span class="fstar fstar--3"></span>
+      <span class="fstar fstar--4"></span>
+      <div class="fcard fcard--msg">
+        <span class="fcard__ava"></span>
+        <span class="fcard__lines"><i></i><i></i></span>
+      </div>
+      <div class="fcard fcard--voice">
+        <span class="fdot"></span> Đang trong kênh thoại
+      </div>
+
+      <!-- Mặt đất + đàn linh vật -->
+      <div class="fground">
+        <app-landing-mascot class="fmascot fmascot--sm" label="" />
+        <app-landing-mascot class="fmascot fmascot--lg" [waving]="true" label="Nexi — linh vật Nexus vẫy chào" />
+        <app-landing-mascot class="fmascot fmascot--md fmascot--flip" label="" />
+      </div>
+    </div>
+
+    <div class="footer__wordmark">Nexus</div>
   </div>
 
   <div class="footer__base">
