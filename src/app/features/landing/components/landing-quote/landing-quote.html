@@ -1,16 +1,21 @@
 <section class="quote" id="community">
-  <figure class="quote__figure">
-    <blockquote class="quote__text">
-      “Cả cộng đồng chuyển sang Nexus trong một buổi chiều. Tin nhắn tới tức thì,
-      kênh thoại lúc nào cũng sẵn, và ai cũng thấy nhau đang online — cảm giác
-      như mọi người ngồi chung một phòng.”
-    </blockquote>
-    <figcaption class="quote__by">
-      <span class="quote__avatar" aria-hidden="true">TG</span>
-      <span class="quote__id">
-        <b class="quote__name">Trường Giang</b>
-        <span class="quote__role">Quản trị · DevViệt</span>
-      </span>
-    </figcaption>
-  </figure>
+  <div class="tst__head" appReveal [revealY]="26">
+    <p class="eyebrow">Cảm nhận từ người dùng</p>
+    <h2 class="tst__title">Được các cộng đồng tin dùng.</h2>
+  </div>
+
+  <ul class="tst__grid" appReveal [revealStagger]="0.08" [revealY]="34">
+    @for (t of testimonials; track t.name) {
+      <li class="tst">
+        <blockquote class="tst__text">{{ t.text }}</blockquote>
+        <div class="tst__by">
+          <span class="tst__avatar" [style.background]="t.hue" aria-hidden="true">{{ t.initials }}</span>
+          <span class="tst__id">
+            <b class="tst__name">{{ t.name }}</b>
+            <span class="tst__role">{{ t.role }}</span>
+          </span>
+        </div>
+      </li>
+    }
+  </ul>
 </section>

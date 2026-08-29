@@ -71,31 +71,123 @@
   color: var(--color-ink);
 }
 
-/* Tắc kè ngồi trên wordmark */
+/* Sân khấu chữ ký: đàn Nexi đứng trên mặt đất phía trên wordmark khổng lồ. */
 .footer__sign {
   position: relative;
+  padding-block-start: 44px;
 }
-.footer__mascot {
-  position: absolute;
-  z-index: 2;
-  inline-size: 96px;
-  inset-block-start: 0;
-  inset-inline-start: 50%;
-  transform: translate(-50%, -62%);
+.fscene {
+  position: relative;
+  max-inline-size: var(--container-band);
+  margin-inline: auto;
   pointer-events: none;
-  filter: drop-shadow(0 10px 16px color-mix(in srgb, var(--color-canvas-dark) 60%, transparent));
+}
+
+/* Mặt đất + đàn linh vật */
+.fground {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0px, 2vw, 24px);
+  padding-inline: 24px;
+}
+.fmascot {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 16px 22px color-mix(in srgb, var(--color-canvas-dark) 65%, transparent));
+}
+.fmascot--sm { inline-size: 128px; margin-block-end: 14px; }
+.fmascot--md { inline-size: 150px; margin-block-end: 6px; }
+.fmascot--lg { inline-size: 190px; }
+.fmascot--flip { transform: scaleX(-1); }
+
+/* Card nổi mô phỏng hoạt động */
+.fcard {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--color-hairline-soft, rgba(255, 255, 255, 0.08));
+  background: color-mix(in srgb, var(--color-canvas) 55%, var(--color-surface));
+  box-shadow: 0 16px 30px -14px rgba(0, 0, 0, 0.6);
+  font-size: var(--text-caption);
+  color: var(--color-steel);
+  animation: fFloat 5s ease-in-out infinite;
+}
+.fcard--msg { inset-block-start: 6px; inset-inline-start: 15%; }
+.fcard--voice {
+  inset-block-start: 40px;
+  inset-inline-end: 15%;
+  color: var(--color-brand-green-soft);
+  animation-delay: -2.2s;
+}
+.fcard__ava {
+  inline-size: 22px; block-size: 22px; border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-brand-green-mid), var(--color-accent-blue));
+}
+.fcard__lines { display: flex; flex-direction: column; gap: 4px; }
+.fcard__lines i { display: block; block-size: 5px; border-radius: 999px; background: var(--color-hairline-strong, rgba(255,255,255,.18)); }
+.fcard__lines i:first-child { inline-size: 46px; }
+.fcard__lines i:last-child { inline-size: 30px; }
+.fdot { inline-size: 9px; block-size: 9px; border-radius: 999px; background: #2fd671; box-shadow: 0 0 0 3px color-mix(in srgb, #2fd671 22%, transparent); }
+
+/* Sao lấp lánh */
+.fstar {
+  position: absolute;
+  z-index: 0;
+  inline-size: 4px; block-size: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-brand-green-soft) 70%, transparent);
+  animation: fTwinkle 3.4s ease-in-out infinite;
+}
+.fstar--1 { inset-block-start: 12px; inset-inline-start: 30%; }
+.fstar--2 { inset-block-start: 60px; inset-inline-start: 44%; animation-delay: -0.8s; }
+.fstar--3 { inset-block-start: 24px; inset-inline-end: 32%; animation-delay: -1.6s; }
+.fstar--4 { inset-block-start: 74px; inset-inline-start: 58%; animation-delay: -2.4s; }
+
+@keyframes fFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes fTwinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@media (max-width: 620px) {
+  .fmascot--sm, .fmascot--md { display: none; }
+  .fcard { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fcard, .fstar { animation: none; }
 }
 
 /* Wordmark khổng lồ — tràn chiều ngang, cắt gọn hai mép. */
 .footer__wordmark {
-  font-size: clamp(96px, 21vw, 320px);
+  font-size: clamp(150px, 34vw, 520px);
   font-weight: 800;
-  line-height: 0.82;
+  line-height: 0.78;
   letter-spacing: -0.04em;
   text-align: center;
-  color: color-mix(in srgb, var(--color-steel) 42%, var(--color-surface));
+  /* Gradient dọc: mờ dần lên đỉnh, ánh xanh MongoDB nhẹ ở chân chữ — sang hơn màu phẳng. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-steel) 30%, var(--color-surface)) 0%,
+    color-mix(in srgb, var(--color-steel) 52%, var(--color-surface)) 55%,
+    color-mix(in srgb, var(--color-brand-green) 42%, var(--color-surface)) 118%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   padding-inline: 12px;
-  margin-block: 8px -0.12em;
+  /* Chỉ nhích lên xíu để tắc kè ĐẬU trên ĐỈNH chữ (không đè thân chữ);
+     chân chữ vẫn đứng trên đường line, không thò xuống dòng copyright. */
+  margin-block: -0.04em 0;
   user-select: none;
   white-space: nowrap;
 }

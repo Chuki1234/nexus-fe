@@ -3,15 +3,13 @@
 
   <main id="main">
     <app-landing-hero />
-    <app-landing-logos />
+    <app-landing-logos appReveal />
 
-    @for (feature of features; track feature.variant) {
-      <app-landing-feature-row [feature]="feature" />
-    }
+    <app-landing-journey />
 
     <app-landing-bento />
     <app-landing-quote />
-    <app-landing-cta />
+    <app-landing-cta appReveal [revealY]="36" />
   </main>
 
   <app-landing-footer />
