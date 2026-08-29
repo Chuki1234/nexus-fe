@@ -55,6 +55,9 @@ export class ServerVoiceStatesStore {
       const filtered = currentList.filter(
         (m) => m.channelId !== channelId || activeSet.has(m.userId),
       );
+      if (filtered.length === currentList.length) {
+        return prev;
+      }
       return {
         ...prev,
         [serverId]: filtered,
