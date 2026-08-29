@@ -2882,33 +2882,26 @@ export class UserSettingsService {
     document.documentElement.setAttribute('data-theme', resolvedTheme);
 
     const isLight = resolvedTheme === 'warm-light';
-    if (accent && accent !== '#00ed64') {
-      const hex = accent;
+    const effectiveAccent = accent || (isLight ? '#006241' : '#00ed64');
+
+    if (effectiveAccent) {
+      const hex = effectiveAccent;
       document.documentElement.style.setProperty('--color-primary', hex);
+      document.documentElement.style.setProperty('--color-primary-soft', hex);
+      document.documentElement.style.setProperty('--color-primary-deep', hex);
+      document.documentElement.style.setProperty('--color-primary-pressed', hex);
       document.documentElement.style.setProperty('--color-brand-green', hex);
+      document.documentElement.style.setProperty('--color-brand-green-dark', hex);
+      document.documentElement.style.setProperty('--color-brand-green-mid', hex);
+      document.documentElement.style.setProperty(
+        '--color-brand-green-soft',
+        `color-mix(in srgb, ${hex} 22%, ${isLight ? '#ffffff' : '#000000'})`,
+      );
       document.documentElement.style.setProperty('--nexus-primary', hex);
       document.documentElement.style.setProperty('--nexus-brand-green', hex);
+      document.documentElement.style.setProperty('--nexus-accent', hex);
       document.documentElement.style.setProperty('--color-doodle-tint', hex);
-      document.documentElement.style.setProperty('--color-primary-soft', hex);
-      if (isLight) {
-        document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
-      }
-    } else if (isLight) {
-      document.documentElement.style.setProperty('--color-primary', '#006241');
       document.documentElement.style.setProperty('--color-on-primary', '#ffffff');
-      document.documentElement.style.setProperty('--color-brand-green', '#006241');
-      document.documentElement.style.setProperty('--nexus-primary', '#006241');
-      document.documentElement.style.setProperty('--nexus-brand-green', '#006241');
-      document.documentElement.style.setProperty('--color-doodle-tint', '#006241');
-      document.documentElement.style.setProperty('--color-primary-soft', '#00754a');
-    } else {
-      document.documentElement.style.removeProperty('--color-primary');
-      document.documentElement.style.removeProperty('--color-on-primary');
-      document.documentElement.style.removeProperty('--color-brand-green');
-      document.documentElement.style.removeProperty('--nexus-primary');
-      document.documentElement.style.removeProperty('--nexus-brand-green');
-      document.documentElement.style.removeProperty('--color-doodle-tint');
-      document.documentElement.style.removeProperty('--color-primary-soft');
     }
   }
 
